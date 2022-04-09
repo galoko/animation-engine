@@ -1,0 +1,10 @@
+{
+    "compilerOptions": {
+        "outDir": "./build/",
+        "sourceMap": true,
+        "target": "es2020",
+        "module": "es2020",
+        "moduleResolution": "node",
+        "experimentalDecorators": true
+    }
+}
