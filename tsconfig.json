@@ -2,8 +2,9 @@
     "compilerOptions": {
         "outDir": "./build/",
         "sourceMap": true,
-        "target": "es2020",
-        "module": "es2020",
+        "target": "esnext",
+        "module": "esnext",
+        "strictNullChecks": true,
         "moduleResolution": "node",
         "experimentalDecorators": true
     }

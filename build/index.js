@@ -7666,6 +7666,7 @@ var vec2 = /*#__PURE__*/Object.freeze({
 });
 
 const HUMAN_BONES_START = 1000;
+const HUMAN_BONES_COUNT = 13;
 const BONE_NAME_TO_BONE_ID = [
     "Spine",
     "UpperSpine",
@@ -7681,25 +7682,151 @@ const BONE_NAME_TO_BONE_ID = [
     "UpperArm.L",
     "LowerArm.L",
 ];
+const SPINE = boneNameToBoneId("Spine");
+const UPPER_SPINE = boneNameToBoneId("UpperSpine");
+const NECK = boneNameToBoneId("Neck");
+const UPPER_LEG_R = boneNameToBoneId("UpperLeg.R");
+const LOWER_LEG_R = boneNameToBoneId("LowerLeg.R");
+const FOOT_R = boneNameToBoneId("Foot.R");
+const UPPER_LEG_L = boneNameToBoneId("UpperLeg.L");
+const LOWER_LEG_L = boneNameToBoneId("LowerLeg.L");
+const FOOT_L = boneNameToBoneId("Foot.L");
+const UPPER_ARM_R = boneNameToBoneId("UpperArm.R");
+const LOWER_ARM_R = boneNameToBoneId("LowerArm.R");
+const UPPER_ARM_L = boneNameToBoneId("UpperArm.L");
+const LOWER_ARM_L = boneNameToBoneId("LowerArm.L");
 function boneIdToBoneName(id) {
     return BONE_NAME_TO_BONE_ID[id - HUMAN_BONES_START];
 }
+function boneNameToBoneId(name) {
+    const index = BONE_NAME_TO_BONE_ID.indexOf(name);
+    if (index === -1) {
+        throw new Error("Unknown bone");
+    }
+    return HUMAN_BONES_START + index;
+}
+const HUMAN_SKELETON = new Map();
+HUMAN_SKELETON.set(UPPER_SPINE, SPINE);
+HUMAN_SKELETON.set(NECK, UPPER_SPINE);
+HUMAN_SKELETON.set(LOWER_LEG_R, UPPER_LEG_R);
+HUMAN_SKELETON.set(FOOT_R, LOWER_LEG_R);
+HUMAN_SKELETON.set(LOWER_LEG_L, UPPER_LEG_L);
+HUMAN_SKELETON.set(FOOT_L, LOWER_LEG_L);
+HUMAN_SKELETON.set(UPPER_ARM_R, UPPER_SPINE);
+HUMAN_SKELETON.set(LOWER_ARM_R, UPPER_ARM_R);
+HUMAN_SKELETON.set(UPPER_ARM_L, UPPER_SPINE);
+HUMAN_SKELETON.set(LOWER_ARM_L, UPPER_ARM_L);
+function getHumanBoneParent(id) {
+    return HUMAN_SKELETON.get(id);
+}
 class Bone {
+    id;
+    translation;
+    rotation;
 }
 class Model {
+    vertices;
+    vertexCount;
+    indices;
+    indexCount;
+    bones;
+    inverseMatrices;
+    boneIdToBoneIndex;
     constructor(vertices, vertexCount, indices, indexCount, bones) {
         this.vertices = vertices;
         this.vertexCount = vertexCount;
         this.indices = indices;
         this.indexCount = indexCount;
         this.bones = bones;
-        //
+        this.inverseMatrices = new Array(bones.length);
+        this.boneIdToBoneIndex = new Map();
+        for (let i = 0; i < bones.length; i++) {
+            this.boneIdToBoneIndex.set(bones[i].id, i);
+        }
+        this.buildInverseMatrices();
+    }
+    getBoneIndex(id) {
+        return this.boneIdToBoneIndex.get(id);
+    }
+    getBone(id) {
+        const index = this.getBoneIndex(id);
+        if (index === undefined) {
+            return null;
+        }
+        return this.bones[index];
+    }
+    getBoneParent(id) {
+        const parentId = getHumanBoneParent(id);
+        if (parentId === undefined) {
+            return null;
+        }
+        const parentIndex = this.getBoneIndex(parentId);
+        if (parentIndex === undefined) {
+            throw new Error("Unknown bone");
+        }
+        return this.bones[parentIndex];
+    }
+    getBoneParentIndex(id) {
+        const parentId = getHumanBoneParent(id);
+        if (parentId === undefined) {
+            return undefined;
+        }
+        return this.getBoneIndex(parentId);
+    }
+    buildInverseMatrices() {
+        for (let boneId = HUMAN_BONES_START; boneId < HUMAN_BONES_START + HUMAN_BONES_COUNT; boneId++) {
+            const boneIndex = this.getBoneIndex(boneId);
+            if (boneIndex === undefined) {
+                throw new Error("Unknown bone");
+            }
+            const parentBoneId = getHumanBoneParent(boneId);
+            const parentBoneIndex = parentBoneId !== undefined ? this.boneIdToBoneIndex.get(parentBoneId) : undefined;
+            const bone = this.bones[boneIndex];
+            const invMatrix = create$5();
+            fromRotationTranslation$1(invMatrix, bone.rotation, bone.translation);
+            if (parentBoneIndex !== undefined) {
+                const parentMatrix = clone$5(this.inverseMatrices[parentBoneIndex]);
+                invert$2(parentMatrix, parentMatrix);
+                mul$5(invMatrix, parentMatrix, invMatrix);
+            }
+            invert$2(invMatrix, invMatrix);
+            this.inverseMatrices[boneIndex] = invMatrix;
+        }
     }
 }
 class Animation {
+    timings;
+    values;
     constructor(timings, values) {
         this.timings = timings;
         this.values = values;
+    }
+    findTimingNextIndex(s) {
+        let index = 1;
+        while (this.timings[index] <= s && index < this.timings.length) {
+            index++;
+        }
+        console.assert(index < this.timings.length);
+        return index;
+    }
+    getRotation(boneId, s) {
+        const first = this.timings[0];
+        const last = this.timings[this.timings.length - 1];
+        const duration = last - first;
+        s = first + ((s - first) % duration);
+        const rotation = create$2();
+        const rotations = this.values.get(boneId);
+        if (rotations !== undefined) {
+            const nextIndex = this.findTimingNextIndex(s);
+            const prevIndex = nextIndex - 1;
+            const s0 = this.timings[prevIndex];
+            const s1 = this.timings[nextIndex];
+            const t = (s - s0) / (s1 - s0);
+            const r0 = rotations[prevIndex];
+            const r1 = rotations[nextIndex];
+            slerp(rotation, r0, r1, t);
+        }
+        return rotation;
     }
 }
 const ATTRIBUTES = [
@@ -7793,6 +7920,22 @@ async function loadAnimationFromURL(url) {
     const data = await (await fetch(url)).arrayBuffer();
     return loadAnimation(data);
 }
+async function loadTexture(gl, url) {
+    return new Promise(resolve => {
+        const image = new Image();
+        image.onload = () => {
+            const texture = gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            resolve(texture);
+        };
+        image.src = url;
+    });
+}
 
 function compileShader(gl, vertText, fragText, parameters) {
     const vertexShader = gl.createShader(gl.VERTEX_SHADER);
@@ -7826,7 +7969,7 @@ function compileShader(gl, vertText, fragText, parameters) {
         }
         else {
             const attributeLocation = gl.getAttribLocation(program, parameter);
-            if (attributeLocation !== null) {
+            if (attributeLocation !== -1) {
                 result[parameter] = attributeLocation;
             }
             else {
@@ -7879,24 +8022,88 @@ var generalVert = "attribute vec3 p;\r\nattribute vec3 n;\r\n\r\nuniform mat4 mv
 
 var generalFrag = "varying lowp vec3 normal;\r\n\r\nvoid main(void) {\r\n    gl_FragColor = vec4(normal, 1.0);\r\n}";
 
+var skinningVert = "attribute vec3 p;\r\nattribute vec3 n;\r\nattribute vec2 uv;\r\n\r\nattribute vec4 w;\r\nattribute vec4 j;\r\n\r\nuniform mat4 mvp;\r\nuniform sampler2D matrices;\r\n\r\nvarying highp vec2 texCoord;\r\nvarying highp vec3 normal;\r\n\r\nmat4 getJointMatrix(float j) {\r\n    float v0 = (j * 4.0 + 0.5) / 1024.0;\r\n    float v1 = (j * 4.0 + 1.5) / 1024.0;\r\n    float v2 = (j * 4.0 + 2.5) / 1024.0;\r\n    float v3 = (j * 4.0 + 3.5) / 1024.0;\r\n\r\n    vec4 p0 = texture2D(matrices, vec2(v0, 0.5));\r\n    vec4 p1 = texture2D(matrices, vec2(v1, 0.5));\r\n    vec4 p2 = texture2D(matrices, vec2(v2, 0.5));\r\n    vec4 p3 = texture2D(matrices, vec2(v3, 0.5));\r\n\r\n    return mat4(p0, p1, p2, p3);\r\n}\r\n\r\nvoid main(void) {\r\n    mat4 skinningMatrix =\r\n        getJointMatrix(j[0]) * w[0] +\r\n        getJointMatrix(j[1]) * w[1] +\r\n        getJointMatrix(j[2]) * w[2] +\r\n        getJointMatrix(j[3]) * w[3];\r\n\r\n    gl_Position = mvp * skinningMatrix * vec4(p, 1.0);\r\n\r\n    texCoord = uv;\r\n    normal = (skinningMatrix * vec4(n, 0.0)).xyz;\r\n}";
+
+var skinningFrag = "precision highp float;\r\n\r\nvarying highp vec2 texCoord;\r\nvarying highp vec3 normal;\r\n\r\nuniform sampler2D texture;\r\n\r\nvoid main(void) {\r\n    vec3 lightDir = vec3(0, 0, 1);\r\n    vec3 lightColor = vec3(1.0);\r\n\r\n    float diff = max(dot(normal, lightDir), 0.0);\r\n    vec3 diffuse = diff * lightColor;\r\n\r\n    float ambient = 0.5;\r\n    vec3 objectColor = texture2D(texture, texCoord).rgb;\r\n    vec3 result = min(ambient + diffuse, 1.0) * objectColor;\r\n\r\n    gl_FragColor = vec4(result, 1.0);\r\n}";
+
+function calculateSkinningMatrices(model, animation, s, buffer) {
+    const worldMatrices = new Array(HUMAN_BONES_COUNT);
+    const globalMatrices = new Array(HUMAN_BONES_COUNT);
+    for (let boneId = HUMAN_BONES_START; boneId < HUMAN_BONES_START + HUMAN_BONES_COUNT; boneId++) {
+        const boneParentIndex = model.getBoneParentIndex(boneId);
+        const boneIndex = model.getBoneIndex(boneId);
+        if (boneIndex === undefined) {
+            throw new Error("Unknown bone");
+        }
+        const bone = model.bones[boneIndex];
+        const invMatrix = model.inverseMatrices[boneIndex];
+        const rotation = animation.getRotation(boneId, s);
+        const worldMatrix = create$5();
+        fromRotationTranslation$1(worldMatrix, rotation, bone.translation);
+        if (boneParentIndex !== undefined) {
+            const parentGlobalMatrix = globalMatrices[boneParentIndex];
+            mul$5(worldMatrix, parentGlobalMatrix, worldMatrix);
+        }
+        globalMatrices[boneIndex] = clone$5(worldMatrix);
+        mul$5(worldMatrix, worldMatrix, invMatrix);
+        worldMatrices[boneIndex] = worldMatrix;
+    }
+    const result = new Float32Array(buffer, 0, model.bones.length * 16);
+    for (let boneIndex = 0; boneIndex < model.bones.length; boneIndex++) {
+        result.set(worldMatrices[boneIndex], boneIndex * 16);
+    }
+    return result;
+}
+
+const ANIMATION_TEXTURE_SIZE = 1024;
 class Render {
+    canvas;
+    gl;
+    generalShader;
+    skinningShader;
+    matrices;
+    matricesBuffer;
+    projectionMatrix;
     constructor() {
         this.canvas = document.createElement("canvas");
         document.addEventListener("resize", this.handleResize.bind(this));
         document.body.appendChild(this.canvas);
-        this.gl = create3DContextWithWrapperThatThrowsOnGLError(this.canvas.getContext("webgl"));
+        this.gl = create3DContextWithWrapperThatThrowsOnGLError(this.canvas.getContext("webgl", {
+            antialias: true,
+            powerPreference: "high-performance",
+        }));
+        this.matrices = this.gl.createTexture();
+        this.matricesBuffer = new Float32Array(ANIMATION_TEXTURE_SIZE * 1 * 4);
+        const { gl, matrices } = this;
+        gl.getExtension("OES_texture_float");
+        gl.bindTexture(gl.TEXTURE_2D, matrices);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, ANIMATION_TEXTURE_SIZE, 1, 0, gl.RGBA, gl.FLOAT, null);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
         this.projectionMatrix = create$5();
-        this.generalShader = compileShader(this.gl, generalVert, generalFrag, ["p", "n", "mvp"]);
-        this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        this.generalShader = compileShader(gl, generalVert, generalFrag, ["p", "n", "mvp"]);
+        this.skinningShader = compileShader(gl, skinningVert, skinningFrag, [
+            "p",
+            "n",
+            "uv",
+            "w",
+            "j",
+            "mvp",
+            "matrices",
+            "texture",
+        ]);
+        gl.clearColor(0.0, 0.0, 0.0, 1.0);
         this.handleResize();
     }
     handleResize() {
-        const { canvas } = this;
+        const { canvas, gl } = this;
         canvas.style.width = document.body.clientWidth + "px";
         canvas.style.height = document.body.clientHeight + "px";
-        canvas.width = document.body.clientWidth * devicePixelRatio;
-        canvas.height = document.body.clientHeight * devicePixelRatio;
-        this.gl.viewport(0, 0, canvas.width, canvas.height);
+        canvas.width = document.body.clientWidth * 1;
+        canvas.height = document.body.clientHeight * 1;
+        gl.viewport(0, 0, canvas.width, canvas.height);
         perspective(this.projectionMatrix, (45 * Math.PI) / 180, canvas.width / canvas.height, 0.1, 100);
     }
     beginRender() {
@@ -7905,33 +8112,50 @@ class Render {
         gl.disable(gl.CULL_FACE);
         gl.enable(gl.DEPTH_TEST);
     }
-    drawModel(model) {
-        const { gl, generalShader } = this;
+    drawModel(model, tex, animation, s, position) {
+        const { gl, skinningShader } = this;
         gl.bindBuffer(gl.ARRAY_BUFFER, model.vertices);
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, model.indices);
-        defineModelVertexBuffer(gl, generalShader);
-        gl.useProgram(generalShader.program);
+        defineModelVertexBuffer(gl, skinningShader);
+        gl.useProgram(skinningShader.program);
         const viewMatrix = create$5();
-        lookAt(viewMatrix, fromValues$4(3, -3, 3), fromValues$4(0, 0, 1), fromValues$4(0, 0, 1));
+        lookAt(viewMatrix, fromValues$4(3, -3, 1), fromValues$4(0, 0, 1), fromValues$4(0, 0, 1));
         const mvp = create$5();
-        multiply$5(mvp, this.projectionMatrix, viewMatrix);
-        gl.uniformMatrix4fv(generalShader.mvp, false, mvp);
+        multiply$5(mvp, mvp, this.projectionMatrix);
+        multiply$5(mvp, mvp, viewMatrix);
+        translate$1(mvp, mvp, position);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, this.matrices);
+        const matricesData = calculateSkinningMatrices(model, animation, s, this.matricesBuffer.buffer);
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, matricesData.length / 4, 1, gl.RGBA, gl.FLOAT, matricesData);
+        gl.uniformMatrix4fv(skinningShader.mvp, false, mvp);
+        gl.uniform1i(skinningShader.texture, 0);
+        gl.uniform1i(skinningShader.matrices, 1);
         gl.drawElements(gl.TRIANGLES, model.indexCount, gl.UNSIGNED_SHORT, 0);
     }
 }
 
 let render;
 let model;
+let model2;
+let tex;
+let tex2;
 let animation;
 async function main() {
     render = new Render();
-    model = await loadModelFromURL(render.gl, "/man.bin");
+    model = await loadModelFromURL(render.gl, "/chel.bin");
+    tex = await loadTexture(render.gl, "/chel.png");
+    model2 = await loadModelFromURL(render.gl, "/man.bin");
+    tex2 = await loadTexture(render.gl, "/man.png");
     animation = await loadAnimationFromURL("/run.bin");
     requestAnimationFrame(tick);
 }
-function tick() {
+function tick(time) {
     render.beginRender();
-    render.drawModel(model);
+    render.drawModel(model, tex, animation, time / 10000, fromValues$4(1, 0, 0));
+    render.drawModel(model2, tex2, animation, time / 10000, fromValues$4(-1, 0, 0));
     requestAnimationFrame(tick);
 }
 main();

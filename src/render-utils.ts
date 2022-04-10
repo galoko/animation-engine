@@ -9,8 +9,8 @@ export function compileShader(
     fragText: string,
     parameters: Array<string>
 ): CompiledShader {
-    const vertexShader = gl.createShader(gl.VERTEX_SHADER)
-    const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER)
+    const vertexShader = gl.createShader(gl.VERTEX_SHADER)!
+    const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER)!
 
     gl.shaderSource(vertexShader, vertText)
     gl.shaderSource(fragmentShader, fragText)
@@ -29,7 +29,7 @@ export function compileShader(
         )
     }
 
-    const program = gl.createProgram()
+    const program = gl.createProgram()!
     gl.attachShader(program, vertexShader)
     gl.attachShader(program, fragmentShader)
     gl.linkProgram(program)
@@ -49,7 +49,7 @@ export function compileShader(
             result[parameter] = uniformLocation
         } else {
             const attributeLocation = gl.getAttribLocation(program, parameter)
-            if (attributeLocation !== null) {
+            if (attributeLocation !== -1) {
                 result[parameter] = attributeLocation
             } else {
                 console.warn(`${parameter} is not found in shader.`)
