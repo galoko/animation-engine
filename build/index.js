@@ -2,6 +2,99 @@
 (function(l, r) { if (!l || l.getElementById('livereloadscript')) return; r = l.createElement('script'); r.async = 1; r.src = '//' + (self.location.host || 'localhost').split(':')[0] + ':35729/livereload.js?snipver=1'; r.id = 'livereloadscript'; l.getElementsByTagName('head')[0].appendChild(r) })(self.document);
 'use strict';
 
+function compileShader(gl, vertText, fragText, parameters) {
+    const vertexShader = gl.createShader(gl.VERTEX_SHADER);
+    const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(vertexShader, vertText);
+    gl.shaderSource(fragmentShader, fragText);
+    gl.compileShader(vertexShader);
+    if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
+        throw new Error(`ERROR compiling vertex shader for ${name}! ${gl.getShaderInfoLog(vertexShader)}`);
+    }
+    gl.compileShader(fragmentShader);
+    if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
+        throw new Error(`ERROR compiling fragment shader for ${name}! ${gl.getShaderInfoLog(fragmentShader)}`);
+    }
+    const program = gl.createProgram();
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        throw new Error(`ERROR linking program! ${gl.getProgramInfoLog(program)}`);
+    }
+    gl.validateProgram(program);
+    if (!gl.getProgramParameter(program, gl.VALIDATE_STATUS)) {
+        throw new Error(`ERROR validating program! ${gl.getProgramInfoLog(program)}`);
+    }
+    const result = { program };
+    parameters.forEach((parameter) => {
+        const uniformLocation = gl.getUniformLocation(program, parameter);
+        if (uniformLocation !== null) {
+            result[parameter] = uniformLocation;
+        }
+        else {
+            const attributeLocation = gl.getAttribLocation(program, parameter);
+            if (attributeLocation !== -1) {
+                result[parameter] = attributeLocation;
+            }
+            else {
+                console.warn(`${parameter} is not found in shader.`);
+            }
+        }
+    });
+    return result;
+}
+function glEnumToString(gl, value) {
+    // Optimization for the most common enum:
+    if (value === gl.NO_ERROR) {
+        return "NO_ERROR";
+    }
+    for (const p in gl) {
+        if (gl[p] === value) {
+            return p;
+        }
+    }
+    return "0x" + value.toString(16);
+}
+function createGLErrorWrapper(context, fname) {
+    return function (...rest) {
+        // eslint-disable-next-line prefer-spread
+        const rv = context[fname].apply(context, rest);
+        const err = context.getError();
+        if (err !== context.NO_ERROR)
+            throw "GL error " + glEnumToString(context, err) + " in " + fname;
+        return rv;
+    };
+}
+function create3DContextWithWrapperThatThrowsOnGLError(context) {
+    const wrap = {
+        getError: function () {
+            return context.getError();
+        },
+    };
+    for (const i in context) {
+        if (typeof context[i] === "function") {
+            wrap[i] = createGLErrorWrapper(context, i);
+        }
+        else {
+            wrap[i] = context[i];
+        }
+    }
+    return wrap;
+}
+
+var generalVert = "attribute vec3 p;\r\nattribute vec3 n;\r\n\r\nuniform mat4 mvp;\r\n\r\nvarying highp vec3 normal;\r\n\r\nvoid main(void) {\r\n    gl_Position = mvp * vec4(p, 1.0);\r\n    normal = n;\r\n}";
+
+var generalFrag = "varying lowp vec3 normal;\r\n\r\nvoid main(void) {\r\n    gl_FragColor = vec4(normal, 1.0);\r\n}";
+
+var objectsVert = "attribute vec3 p;\r\nattribute vec3 n;\r\nattribute vec2 uv;\r\n\r\nuniform mat4 mvp;\r\n\r\nvarying highp vec2 texCoord;\r\nvarying highp vec3 normal;\r\n\r\nvoid main(void) {\r\n    gl_Position = mvp * vec4(p, 1.0);\r\n\r\n    texCoord = uv;\r\n    normal = n;\r\n}";
+
+var objectsFrag = "precision highp float;\r\n\r\nvarying highp vec2 texCoord;\r\nvarying highp vec3 normal;\r\n\r\nuniform sampler2D texture;\r\n\r\nvoid main(void) {\r\n    vec3 lightDir = vec3(0, 1, 1);\r\n    vec3 lightColor = vec3(1.0);\r\n\r\n    float diff = max(dot(normal, lightDir), 0.0);\r\n    vec3 diffuse = diff * lightColor;\r\n\r\n    float ambient = 0.5;\r\n    vec3 objectColor = texture2D(texture, texCoord).rgb;\r\n    vec3 result = min(ambient + diffuse, 1.0) * objectColor;\r\n\r\n    gl_FragColor = vec4(result, 1.0);\r\n}";
+
+var skinningVert = "attribute vec3 p;\r\nattribute vec3 n;\r\nattribute vec2 uv;\r\n\r\nattribute vec4 w;\r\nattribute vec4 j;\r\n\r\nuniform mat4 mvp;\r\nuniform sampler2D matrices;\r\n\r\nvarying highp vec2 texCoord;\r\nvarying highp vec3 normal;\r\n\r\nmat4 getJointMatrix(float j) {\r\n    float v0 = (j * 4.0 + 0.5) / 1024.0;\r\n    float v1 = (j * 4.0 + 1.5) / 1024.0;\r\n    float v2 = (j * 4.0 + 2.5) / 1024.0;\r\n    float v3 = (j * 4.0 + 3.5) / 1024.0;\r\n\r\n    vec4 p0 = texture2D(matrices, vec2(v0, 0.5));\r\n    vec4 p1 = texture2D(matrices, vec2(v1, 0.5));\r\n    vec4 p2 = texture2D(matrices, vec2(v2, 0.5));\r\n    vec4 p3 = texture2D(matrices, vec2(v3, 0.5));\r\n\r\n    return mat4(p0, p1, p2, p3);\r\n}\r\n\r\nvoid main(void) {\r\n    mat4 skinningMatrix =\r\n        getJointMatrix(j[0]) * w[0] +\r\n        getJointMatrix(j[1]) * w[1] +\r\n        getJointMatrix(j[2]) * w[2] +\r\n        getJointMatrix(j[3]) * w[3];\r\n\r\n    gl_Position = mvp * skinningMatrix * vec4(p, 1.0);\r\n\r\n    texCoord = uv;\r\n    normal = (skinningMatrix * vec4(n, 0.0)).xyz;\r\n}";
+
+var skinningFrag = "precision highp float;\r\n\r\nvarying highp vec2 texCoord;\r\nvarying highp vec3 normal;\r\n\r\nuniform sampler2D texture;\r\n\r\nvoid main(void) {\r\n    vec3 lightDir = vec3(0, 0, 1);\r\n    vec3 lightColor = vec3(1.0);\r\n\r\n    float diff = max(dot(normal, lightDir), 0.0);\r\n    vec3 diffuse = diff * lightColor;\r\n\r\n    float ambient = 0.5;\r\n    vec3 objectColor = texture2D(texture, texCoord).rgb;\r\n    vec3 result = min(ambient + diffuse, 1.0) * objectColor;\r\n\r\n    gl_FragColor = vec4(result, 1.0);\r\n}";
+
 /**
  * Common utilities
  * @module glMatrix
@@ -54,13 +147,13 @@ if (!Math.hypot) Math.hypot = function () {
 };
 
 var common = /*#__PURE__*/Object.freeze({
-  __proto__: null,
-  EPSILON: EPSILON,
-  get ARRAY_TYPE () { return ARRAY_TYPE; },
-  RANDOM: RANDOM,
-  setMatrixArrayType: setMatrixArrayType,
-  toRadian: toRadian,
-  equals: equals$9
+    __proto__: null,
+    EPSILON: EPSILON,
+    get ARRAY_TYPE () { return ARRAY_TYPE; },
+    RANDOM: RANDOM,
+    setMatrixArrayType: setMatrixArrayType,
+    toRadian: toRadian,
+    equals: equals$9
 });
 
 /**
@@ -496,33 +589,33 @@ var mul$8 = multiply$8;
 var sub$6 = subtract$6;
 
 var mat2 = /*#__PURE__*/Object.freeze({
-  __proto__: null,
-  create: create$8,
-  clone: clone$8,
-  copy: copy$8,
-  identity: identity$5,
-  fromValues: fromValues$8,
-  set: set$8,
-  transpose: transpose$2,
-  invert: invert$5,
-  adjoint: adjoint$2,
-  determinant: determinant$3,
-  multiply: multiply$8,
-  rotate: rotate$4,
-  scale: scale$8,
-  fromRotation: fromRotation$4,
-  fromScaling: fromScaling$3,
-  str: str$8,
-  frob: frob$3,
-  LDU: LDU,
-  add: add$8,
-  subtract: subtract$6,
-  exactEquals: exactEquals$8,
-  equals: equals$8,
-  multiplyScalar: multiplyScalar$3,
-  multiplyScalarAndAdd: multiplyScalarAndAdd$3,
-  mul: mul$8,
-  sub: sub$6
+    __proto__: null,
+    create: create$8,
+    clone: clone$8,
+    copy: copy$8,
+    identity: identity$5,
+    fromValues: fromValues$8,
+    set: set$8,
+    transpose: transpose$2,
+    invert: invert$5,
+    adjoint: adjoint$2,
+    determinant: determinant$3,
+    multiply: multiply$8,
+    rotate: rotate$4,
+    scale: scale$8,
+    fromRotation: fromRotation$4,
+    fromScaling: fromScaling$3,
+    str: str$8,
+    frob: frob$3,
+    LDU: LDU,
+    add: add$8,
+    subtract: subtract$6,
+    exactEquals: exactEquals$8,
+    equals: equals$8,
+    multiplyScalar: multiplyScalar$3,
+    multiplyScalarAndAdd: multiplyScalarAndAdd$3,
+    mul: mul$8,
+    sub: sub$6
 });
 
 /**
@@ -1012,32 +1105,32 @@ var mul$7 = multiply$7;
 var sub$5 = subtract$5;
 
 var mat2d = /*#__PURE__*/Object.freeze({
-  __proto__: null,
-  create: create$7,
-  clone: clone$7,
-  copy: copy$7,
-  identity: identity$4,
-  fromValues: fromValues$7,
-  set: set$7,
-  invert: invert$4,
-  determinant: determinant$2,
-  multiply: multiply$7,
-  rotate: rotate$3,
-  scale: scale$7,
-  translate: translate$3,
-  fromRotation: fromRotation$3,
-  fromScaling: fromScaling$2,
-  fromTranslation: fromTranslation$3,
-  str: str$7,
-  frob: frob$2,
-  add: add$7,
-  subtract: subtract$5,
-  multiplyScalar: multiplyScalar$2,
-  multiplyScalarAndAdd: multiplyScalarAndAdd$2,
-  exactEquals: exactEquals$7,
-  equals: equals$7,
-  mul: mul$7,
-  sub: sub$5
+    __proto__: null,
+    create: create$7,
+    clone: clone$7,
+    copy: copy$7,
+    identity: identity$4,
+    fromValues: fromValues$7,
+    set: set$7,
+    invert: invert$4,
+    determinant: determinant$2,
+    multiply: multiply$7,
+    rotate: rotate$3,
+    scale: scale$7,
+    translate: translate$3,
+    fromRotation: fromRotation$3,
+    fromScaling: fromScaling$2,
+    fromTranslation: fromTranslation$3,
+    str: str$7,
+    frob: frob$2,
+    add: add$7,
+    subtract: subtract$5,
+    multiplyScalar: multiplyScalar$2,
+    multiplyScalarAndAdd: multiplyScalarAndAdd$2,
+    exactEquals: exactEquals$7,
+    equals: equals$7,
+    mul: mul$7,
+    sub: sub$5
 });
 
 /**
@@ -1819,39 +1912,39 @@ var mul$6 = multiply$6;
 var sub$4 = subtract$4;
 
 var mat3 = /*#__PURE__*/Object.freeze({
-  __proto__: null,
-  create: create$6,
-  fromMat4: fromMat4$1,
-  clone: clone$6,
-  copy: copy$6,
-  fromValues: fromValues$6,
-  set: set$6,
-  identity: identity$3,
-  transpose: transpose$1,
-  invert: invert$3,
-  adjoint: adjoint$1,
-  determinant: determinant$1,
-  multiply: multiply$6,
-  translate: translate$2,
-  rotate: rotate$2,
-  scale: scale$6,
-  fromTranslation: fromTranslation$2,
-  fromRotation: fromRotation$2,
-  fromScaling: fromScaling$1,
-  fromMat2d: fromMat2d,
-  fromQuat: fromQuat$1,
-  normalFromMat4: normalFromMat4,
-  projection: projection,
-  str: str$6,
-  frob: frob$1,
-  add: add$6,
-  subtract: subtract$4,
-  multiplyScalar: multiplyScalar$1,
-  multiplyScalarAndAdd: multiplyScalarAndAdd$1,
-  exactEquals: exactEquals$6,
-  equals: equals$6,
-  mul: mul$6,
-  sub: sub$4
+    __proto__: null,
+    create: create$6,
+    fromMat4: fromMat4$1,
+    clone: clone$6,
+    copy: copy$6,
+    fromValues: fromValues$6,
+    set: set$6,
+    identity: identity$3,
+    transpose: transpose$1,
+    invert: invert$3,
+    adjoint: adjoint$1,
+    determinant: determinant$1,
+    multiply: multiply$6,
+    translate: translate$2,
+    rotate: rotate$2,
+    scale: scale$6,
+    fromTranslation: fromTranslation$2,
+    fromRotation: fromRotation$2,
+    fromScaling: fromScaling$1,
+    fromMat2d: fromMat2d,
+    fromQuat: fromQuat$1,
+    normalFromMat4: normalFromMat4,
+    projection: projection,
+    str: str$6,
+    frob: frob$1,
+    add: add$6,
+    subtract: subtract$4,
+    multiplyScalar: multiplyScalar$1,
+    multiplyScalarAndAdd: multiplyScalarAndAdd$1,
+    exactEquals: exactEquals$6,
+    equals: equals$6,
+    mul: mul$6,
+    sub: sub$4
 });
 
 /**
@@ -3765,58 +3858,58 @@ var mul$5 = multiply$5;
 var sub$3 = subtract$3;
 
 var mat4 = /*#__PURE__*/Object.freeze({
-  __proto__: null,
-  create: create$5,
-  clone: clone$5,
-  copy: copy$5,
-  fromValues: fromValues$5,
-  set: set$5,
-  identity: identity$2,
-  transpose: transpose,
-  invert: invert$2,
-  adjoint: adjoint,
-  determinant: determinant,
-  multiply: multiply$5,
-  translate: translate$1,
-  scale: scale$5,
-  rotate: rotate$1,
-  rotateX: rotateX$3,
-  rotateY: rotateY$3,
-  rotateZ: rotateZ$3,
-  fromTranslation: fromTranslation$1,
-  fromScaling: fromScaling,
-  fromRotation: fromRotation$1,
-  fromXRotation: fromXRotation,
-  fromYRotation: fromYRotation,
-  fromZRotation: fromZRotation,
-  fromRotationTranslation: fromRotationTranslation$1,
-  fromQuat2: fromQuat2,
-  getTranslation: getTranslation$1,
-  getScaling: getScaling,
-  getRotation: getRotation,
-  fromRotationTranslationScale: fromRotationTranslationScale,
-  fromRotationTranslationScaleOrigin: fromRotationTranslationScaleOrigin,
-  fromQuat: fromQuat,
-  frustum: frustum,
-  perspectiveNO: perspectiveNO,
-  perspective: perspective,
-  perspectiveZO: perspectiveZO,
-  perspectiveFromFieldOfView: perspectiveFromFieldOfView,
-  orthoNO: orthoNO,
-  ortho: ortho,
-  orthoZO: orthoZO,
-  lookAt: lookAt,
-  targetTo: targetTo,
-  str: str$5,
-  frob: frob,
-  add: add$5,
-  subtract: subtract$3,
-  multiplyScalar: multiplyScalar,
-  multiplyScalarAndAdd: multiplyScalarAndAdd,
-  exactEquals: exactEquals$5,
-  equals: equals$5,
-  mul: mul$5,
-  sub: sub$3
+    __proto__: null,
+    create: create$5,
+    clone: clone$5,
+    copy: copy$5,
+    fromValues: fromValues$5,
+    set: set$5,
+    identity: identity$2,
+    transpose: transpose,
+    invert: invert$2,
+    adjoint: adjoint,
+    determinant: determinant,
+    multiply: multiply$5,
+    translate: translate$1,
+    scale: scale$5,
+    rotate: rotate$1,
+    rotateX: rotateX$3,
+    rotateY: rotateY$3,
+    rotateZ: rotateZ$3,
+    fromTranslation: fromTranslation$1,
+    fromScaling: fromScaling,
+    fromRotation: fromRotation$1,
+    fromXRotation: fromXRotation,
+    fromYRotation: fromYRotation,
+    fromZRotation: fromZRotation,
+    fromRotationTranslation: fromRotationTranslation$1,
+    fromQuat2: fromQuat2,
+    getTranslation: getTranslation$1,
+    getScaling: getScaling,
+    getRotation: getRotation,
+    fromRotationTranslationScale: fromRotationTranslationScale,
+    fromRotationTranslationScaleOrigin: fromRotationTranslationScaleOrigin,
+    fromQuat: fromQuat,
+    frustum: frustum,
+    perspectiveNO: perspectiveNO,
+    perspective: perspective,
+    perspectiveZO: perspectiveZO,
+    perspectiveFromFieldOfView: perspectiveFromFieldOfView,
+    orthoNO: orthoNO,
+    ortho: ortho,
+    orthoZO: orthoZO,
+    lookAt: lookAt,
+    targetTo: targetTo,
+    str: str$5,
+    frob: frob,
+    add: add$5,
+    subtract: subtract$3,
+    multiplyScalar: multiplyScalar,
+    multiplyScalarAndAdd: multiplyScalarAndAdd,
+    exactEquals: exactEquals$5,
+    equals: equals$5,
+    mul: mul$5,
+    sub: sub$3
 });
 
 /**
@@ -4607,55 +4700,55 @@ var forEach$2 = function () {
 }();
 
 var vec3 = /*#__PURE__*/Object.freeze({
-  __proto__: null,
-  create: create$4,
-  clone: clone$4,
-  length: length$4,
-  fromValues: fromValues$4,
-  copy: copy$4,
-  set: set$4,
-  add: add$4,
-  subtract: subtract$2,
-  multiply: multiply$4,
-  divide: divide$2,
-  ceil: ceil$2,
-  floor: floor$2,
-  min: min$2,
-  max: max$2,
-  round: round$2,
-  scale: scale$4,
-  scaleAndAdd: scaleAndAdd$2,
-  distance: distance$2,
-  squaredDistance: squaredDistance$2,
-  squaredLength: squaredLength$4,
-  negate: negate$2,
-  inverse: inverse$2,
-  normalize: normalize$4,
-  dot: dot$4,
-  cross: cross$2,
-  lerp: lerp$4,
-  hermite: hermite,
-  bezier: bezier,
-  random: random$3,
-  transformMat4: transformMat4$2,
-  transformMat3: transformMat3$1,
-  transformQuat: transformQuat$1,
-  rotateX: rotateX$2,
-  rotateY: rotateY$2,
-  rotateZ: rotateZ$2,
-  angle: angle$1,
-  zero: zero$2,
-  str: str$4,
-  exactEquals: exactEquals$4,
-  equals: equals$4,
-  sub: sub$2,
-  mul: mul$4,
-  div: div$2,
-  dist: dist$2,
-  sqrDist: sqrDist$2,
-  len: len$4,
-  sqrLen: sqrLen$4,
-  forEach: forEach$2
+    __proto__: null,
+    create: create$4,
+    clone: clone$4,
+    length: length$4,
+    fromValues: fromValues$4,
+    copy: copy$4,
+    set: set$4,
+    add: add$4,
+    subtract: subtract$2,
+    multiply: multiply$4,
+    divide: divide$2,
+    ceil: ceil$2,
+    floor: floor$2,
+    min: min$2,
+    max: max$2,
+    round: round$2,
+    scale: scale$4,
+    scaleAndAdd: scaleAndAdd$2,
+    distance: distance$2,
+    squaredDistance: squaredDistance$2,
+    squaredLength: squaredLength$4,
+    negate: negate$2,
+    inverse: inverse$2,
+    normalize: normalize$4,
+    dot: dot$4,
+    cross: cross$2,
+    lerp: lerp$4,
+    hermite: hermite,
+    bezier: bezier,
+    random: random$3,
+    transformMat4: transformMat4$2,
+    transformMat3: transformMat3$1,
+    transformQuat: transformQuat$1,
+    rotateX: rotateX$2,
+    rotateY: rotateY$2,
+    rotateZ: rotateZ$2,
+    angle: angle$1,
+    zero: zero$2,
+    str: str$4,
+    exactEquals: exactEquals$4,
+    equals: equals$4,
+    sub: sub$2,
+    mul: mul$4,
+    div: div$2,
+    dist: dist$2,
+    sqrDist: sqrDist$2,
+    len: len$4,
+    sqrLen: sqrLen$4,
+    forEach: forEach$2
 });
 
 /**
@@ -5322,48 +5415,48 @@ var forEach$1 = function () {
 }();
 
 var vec4 = /*#__PURE__*/Object.freeze({
-  __proto__: null,
-  create: create$3,
-  clone: clone$3,
-  fromValues: fromValues$3,
-  copy: copy$3,
-  set: set$3,
-  add: add$3,
-  subtract: subtract$1,
-  multiply: multiply$3,
-  divide: divide$1,
-  ceil: ceil$1,
-  floor: floor$1,
-  min: min$1,
-  max: max$1,
-  round: round$1,
-  scale: scale$3,
-  scaleAndAdd: scaleAndAdd$1,
-  distance: distance$1,
-  squaredDistance: squaredDistance$1,
-  length: length$3,
-  squaredLength: squaredLength$3,
-  negate: negate$1,
-  inverse: inverse$1,
-  normalize: normalize$3,
-  dot: dot$3,
-  cross: cross$1,
-  lerp: lerp$3,
-  random: random$2,
-  transformMat4: transformMat4$1,
-  transformQuat: transformQuat,
-  zero: zero$1,
-  str: str$3,
-  exactEquals: exactEquals$3,
-  equals: equals$3,
-  sub: sub$1,
-  mul: mul$3,
-  div: div$1,
-  dist: dist$1,
-  sqrDist: sqrDist$1,
-  len: len$3,
-  sqrLen: sqrLen$3,
-  forEach: forEach$1
+    __proto__: null,
+    create: create$3,
+    clone: clone$3,
+    fromValues: fromValues$3,
+    copy: copy$3,
+    set: set$3,
+    add: add$3,
+    subtract: subtract$1,
+    multiply: multiply$3,
+    divide: divide$1,
+    ceil: ceil$1,
+    floor: floor$1,
+    min: min$1,
+    max: max$1,
+    round: round$1,
+    scale: scale$3,
+    scaleAndAdd: scaleAndAdd$1,
+    distance: distance$1,
+    squaredDistance: squaredDistance$1,
+    length: length$3,
+    squaredLength: squaredLength$3,
+    negate: negate$1,
+    inverse: inverse$1,
+    normalize: normalize$3,
+    dot: dot$3,
+    cross: cross$1,
+    lerp: lerp$3,
+    random: random$2,
+    transformMat4: transformMat4$1,
+    transformQuat: transformQuat,
+    zero: zero$1,
+    str: str$3,
+    exactEquals: exactEquals$3,
+    equals: equals$3,
+    sub: sub$1,
+    mul: mul$3,
+    div: div$1,
+    dist: dist$1,
+    sqrDist: sqrDist$1,
+    len: len$3,
+    sqrLen: sqrLen$3,
+    forEach: forEach$1
 });
 
 /**
@@ -6074,46 +6167,46 @@ var setAxes = function () {
 }();
 
 var quat = /*#__PURE__*/Object.freeze({
-  __proto__: null,
-  create: create$2,
-  identity: identity$1,
-  setAxisAngle: setAxisAngle,
-  getAxisAngle: getAxisAngle,
-  getAngle: getAngle,
-  multiply: multiply$2,
-  rotateX: rotateX$1,
-  rotateY: rotateY$1,
-  rotateZ: rotateZ$1,
-  calculateW: calculateW,
-  exp: exp,
-  ln: ln,
-  pow: pow,
-  slerp: slerp,
-  random: random$1,
-  invert: invert$1,
-  conjugate: conjugate$1,
-  fromMat3: fromMat3,
-  fromEuler: fromEuler,
-  str: str$2,
-  clone: clone$2,
-  fromValues: fromValues$2,
-  copy: copy$2,
-  set: set$2,
-  add: add$2,
-  mul: mul$2,
-  scale: scale$2,
-  dot: dot$2,
-  lerp: lerp$2,
-  length: length$2,
-  len: len$2,
-  squaredLength: squaredLength$2,
-  sqrLen: sqrLen$2,
-  normalize: normalize$2,
-  exactEquals: exactEquals$2,
-  equals: equals$2,
-  rotationTo: rotationTo,
-  sqlerp: sqlerp,
-  setAxes: setAxes
+    __proto__: null,
+    create: create$2,
+    identity: identity$1,
+    setAxisAngle: setAxisAngle,
+    getAxisAngle: getAxisAngle,
+    getAngle: getAngle,
+    multiply: multiply$2,
+    rotateX: rotateX$1,
+    rotateY: rotateY$1,
+    rotateZ: rotateZ$1,
+    calculateW: calculateW,
+    exp: exp,
+    ln: ln,
+    pow: pow,
+    slerp: slerp,
+    random: random$1,
+    invert: invert$1,
+    conjugate: conjugate$1,
+    fromMat3: fromMat3,
+    fromEuler: fromEuler,
+    str: str$2,
+    clone: clone$2,
+    fromValues: fromValues$2,
+    copy: copy$2,
+    set: set$2,
+    add: add$2,
+    mul: mul$2,
+    scale: scale$2,
+    dot: dot$2,
+    lerp: lerp$2,
+    length: length$2,
+    len: len$2,
+    squaredLength: squaredLength$2,
+    sqrLen: sqrLen$2,
+    normalize: normalize$2,
+    exactEquals: exactEquals$2,
+    equals: equals$2,
+    rotationTo: rotationTo,
+    sqlerp: sqlerp,
+    setAxes: setAxes
 });
 
 /**
@@ -6950,46 +7043,46 @@ function equals$1(a, b) {
 }
 
 var quat2 = /*#__PURE__*/Object.freeze({
-  __proto__: null,
-  create: create$1,
-  clone: clone$1,
-  fromValues: fromValues$1,
-  fromRotationTranslationValues: fromRotationTranslationValues,
-  fromRotationTranslation: fromRotationTranslation,
-  fromTranslation: fromTranslation,
-  fromRotation: fromRotation,
-  fromMat4: fromMat4,
-  copy: copy$1,
-  identity: identity,
-  set: set$1,
-  getReal: getReal,
-  getDual: getDual,
-  setReal: setReal,
-  setDual: setDual,
-  getTranslation: getTranslation,
-  translate: translate,
-  rotateX: rotateX,
-  rotateY: rotateY,
-  rotateZ: rotateZ,
-  rotateByQuatAppend: rotateByQuatAppend,
-  rotateByQuatPrepend: rotateByQuatPrepend,
-  rotateAroundAxis: rotateAroundAxis,
-  add: add$1,
-  multiply: multiply$1,
-  mul: mul$1,
-  scale: scale$1,
-  dot: dot$1,
-  lerp: lerp$1,
-  invert: invert,
-  conjugate: conjugate,
-  length: length$1,
-  len: len$1,
-  squaredLength: squaredLength$1,
-  sqrLen: sqrLen$1,
-  normalize: normalize$1,
-  str: str$1,
-  exactEquals: exactEquals$1,
-  equals: equals$1
+    __proto__: null,
+    create: create$1,
+    clone: clone$1,
+    fromValues: fromValues$1,
+    fromRotationTranslationValues: fromRotationTranslationValues,
+    fromRotationTranslation: fromRotationTranslation,
+    fromTranslation: fromTranslation,
+    fromRotation: fromRotation,
+    fromMat4: fromMat4,
+    copy: copy$1,
+    identity: identity,
+    set: set$1,
+    getReal: getReal,
+    getDual: getDual,
+    setReal: setReal,
+    setDual: setDual,
+    getTranslation: getTranslation,
+    translate: translate,
+    rotateX: rotateX,
+    rotateY: rotateY,
+    rotateZ: rotateZ,
+    rotateByQuatAppend: rotateByQuatAppend,
+    rotateByQuatPrepend: rotateByQuatPrepend,
+    rotateAroundAxis: rotateAroundAxis,
+    add: add$1,
+    multiply: multiply$1,
+    mul: mul$1,
+    scale: scale$1,
+    dot: dot$1,
+    lerp: lerp$1,
+    invert: invert,
+    conjugate: conjugate,
+    length: length$1,
+    len: len$1,
+    squaredLength: squaredLength$1,
+    sqrLen: sqrLen$1,
+    normalize: normalize$1,
+    str: str$1,
+    exactEquals: exactEquals$1,
+    equals: equals$1
 });
 
 /**
@@ -7617,52 +7710,52 @@ var forEach = function () {
 }();
 
 var vec2 = /*#__PURE__*/Object.freeze({
-  __proto__: null,
-  create: create,
-  clone: clone,
-  fromValues: fromValues,
-  copy: copy,
-  set: set,
-  add: add,
-  subtract: subtract,
-  multiply: multiply,
-  divide: divide,
-  ceil: ceil,
-  floor: floor,
-  min: min,
-  max: max,
-  round: round,
-  scale: scale,
-  scaleAndAdd: scaleAndAdd,
-  distance: distance,
-  squaredDistance: squaredDistance,
-  length: length,
-  squaredLength: squaredLength,
-  negate: negate,
-  inverse: inverse,
-  normalize: normalize,
-  dot: dot,
-  cross: cross,
-  lerp: lerp,
-  random: random,
-  transformMat2: transformMat2,
-  transformMat2d: transformMat2d,
-  transformMat3: transformMat3,
-  transformMat4: transformMat4,
-  rotate: rotate,
-  angle: angle,
-  zero: zero,
-  str: str,
-  exactEquals: exactEquals,
-  equals: equals,
-  len: len,
-  sub: sub,
-  mul: mul,
-  div: div,
-  dist: dist,
-  sqrDist: sqrDist,
-  sqrLen: sqrLen,
-  forEach: forEach
+    __proto__: null,
+    create: create,
+    clone: clone,
+    fromValues: fromValues,
+    copy: copy,
+    set: set,
+    add: add,
+    subtract: subtract,
+    multiply: multiply,
+    divide: divide,
+    ceil: ceil,
+    floor: floor,
+    min: min,
+    max: max,
+    round: round,
+    scale: scale,
+    scaleAndAdd: scaleAndAdd,
+    distance: distance,
+    squaredDistance: squaredDistance,
+    length: length,
+    squaredLength: squaredLength,
+    negate: negate,
+    inverse: inverse,
+    normalize: normalize,
+    dot: dot,
+    cross: cross,
+    lerp: lerp,
+    random: random,
+    transformMat2: transformMat2,
+    transformMat2d: transformMat2d,
+    transformMat3: transformMat3,
+    transformMat4: transformMat4,
+    rotate: rotate,
+    angle: angle,
+    zero: zero,
+    str: str,
+    exactEquals: exactEquals,
+    equals: equals,
+    len: len,
+    sub: sub,
+    mul: mul,
+    div: div,
+    dist: dist,
+    sqrDist: sqrDist,
+    sqrLen: sqrLen,
+    forEach: forEach
 });
 
 const STRIDE$2 = 1 + 3 + 4;
@@ -7725,6 +7818,35 @@ class Bone {
     id;
     translation;
     rotation;
+}
+
+function calculateSkinningMatrices(skin, animation, s, buffer) {
+    const worldMatrices = new Array(HUMAN_BONES_COUNT);
+    const globalMatrices = new Array(HUMAN_BONES_COUNT);
+    for (let boneId = HUMAN_BONES_START; boneId < HUMAN_BONES_START + HUMAN_BONES_COUNT; boneId++) {
+        const boneParentIndex = skin.getBoneParentIndex(boneId);
+        const boneIndex = skin.getBoneIndex(boneId);
+        if (boneIndex === undefined) {
+            throw new Error("Unknown bone");
+        }
+        const bone = skin.bones[boneIndex];
+        const invMatrix = skin.inverseMatrices[boneIndex];
+        const rotation = animation.getRotation(boneId, s);
+        const worldMatrix = create$5();
+        fromRotationTranslation$1(worldMatrix, rotation, bone.translation);
+        if (boneParentIndex !== undefined) {
+            const parentGlobalMatrix = globalMatrices[boneParentIndex];
+            mul$5(worldMatrix, parentGlobalMatrix, worldMatrix);
+        }
+        globalMatrices[boneIndex] = clone$5(worldMatrix);
+        mul$5(worldMatrix, worldMatrix, invMatrix);
+        worldMatrices[boneIndex] = worldMatrix;
+    }
+    const result = new Float32Array(buffer, 0, skin.bones.length * 16);
+    for (let boneIndex = 0; boneIndex < skin.bones.length; boneIndex++) {
+        result.set(worldMatrices[boneIndex], boneIndex * 16);
+    }
+    return result;
 }
 
 const ATTRIBUTES$1 = [
@@ -7823,6 +7945,183 @@ class Skin {
     }
 }
 
+const ATTRIBUTES = [
+    {
+        name: "p",
+        size: 3,
+    },
+    {
+        name: "n",
+        size: 3,
+    },
+    {
+        name: "uv",
+        size: 2,
+    },
+];
+const STRIDE = ATTRIBUTES.reduce((acum, value) => acum + value.size, 0);
+class Model {
+    vertices;
+    vertexCount;
+    indices;
+    indexCount;
+    static ATTRIBUTES = ATTRIBUTES;
+    static STRIDE = STRIDE;
+    constructor(vertices, vertexCount, indices, indexCount) {
+        this.vertices = vertices;
+        this.vertexCount = vertexCount;
+        this.indices = indices;
+        this.indexCount = indexCount;
+    }
+}
+
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+const ANIMATION_TEXTURE_SIZE = 1024;
+const UP = fromValues$4(0, 0, 1);
+class Render {
+    canvas;
+    gl;
+    generalShader;
+    objectsShader;
+    skinningShader;
+    matrices;
+    matricesBuffer;
+    viewMatrix;
+    projectionMatrix;
+    models;
+    skins;
+    constructor() {
+        this.canvas = document.createElement("canvas");
+        document.addEventListener("resize", this.handleResize.bind(this));
+        document.body.appendChild(this.canvas);
+        this.models = new Set();
+        this.skins = new Set();
+        this.gl = create3DContextWithWrapperThatThrowsOnGLError(this.canvas.getContext("webgl", {
+            antialias: true,
+            powerPreference: "high-performance",
+        }));
+        this.matrices = this.gl.createTexture();
+        this.matricesBuffer = new Float32Array(ANIMATION_TEXTURE_SIZE * 1 * 4);
+        const { gl, matrices } = this;
+        gl.getExtension("OES_texture_float");
+        gl.bindTexture(gl.TEXTURE_2D, matrices);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, ANIMATION_TEXTURE_SIZE, 1, 0, gl.RGBA, gl.FLOAT, null);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        this.projectionMatrix = create$5();
+        this.viewMatrix = create$5();
+        this.generalShader = compileShader(gl, generalVert, generalFrag, ["p", "n", "mvp"]);
+        this.objectsShader = compileShader(gl, objectsVert, objectsFrag, [
+            "p",
+            "n",
+            "uv",
+            "mvp",
+            "texture",
+        ]);
+        this.skinningShader = compileShader(gl, skinningVert, skinningFrag, [
+            "p",
+            "n",
+            "uv",
+            "w",
+            "j",
+            "mvp",
+            "matrices",
+            "texture",
+        ]);
+        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        gl.disable(gl.CULL_FACE);
+        gl.enable(gl.DEPTH_TEST);
+        this.handleResize();
+    }
+    handleResize() {
+        const { canvas, gl } = this;
+        canvas.style.width = document.body.clientWidth + "px";
+        canvas.style.height = document.body.clientHeight + "px";
+        canvas.width = document.body.clientWidth * 1;
+        canvas.height = document.body.clientHeight * 1;
+        gl.viewport(0, 0, canvas.width, canvas.height);
+        perspective(this.projectionMatrix, (45 * Math.PI) / 180, canvas.width / canvas.height, 0.1, 100);
+    }
+    defineVertexBuffer(gl, shader, attributes, stride) {
+        let offset = 0;
+        for (const attr of attributes) {
+            const attrNum = shader[attr.name];
+            if (attrNum !== undefined) {
+                gl.vertexAttribPointer(attrNum, attr.size, gl.FLOAT, false, stride * Float32Array.BYTES_PER_ELEMENT, offset * Float32Array.BYTES_PER_ELEMENT);
+                gl.enableVertexAttribArray(attrNum);
+            }
+            offset += attr.size;
+        }
+    }
+    setCamera(pos, lookAt$1) {
+        lookAt(this.viewMatrix, lookAt$1, pos, UP);
+    }
+    drawSkin(skin, tex, animation, s, position) {
+        const { gl, skinningShader } = this;
+        gl.bindBuffer(gl.ARRAY_BUFFER, skin.vertices);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, skin.indices);
+        this.defineVertexBuffer(gl, skinningShader, Skin.ATTRIBUTES, Skin.STRIDE);
+        gl.useProgram(skinningShader.program);
+        const mvp = create$5();
+        multiply$5(mvp, mvp, this.projectionMatrix);
+        multiply$5(mvp, mvp, this.viewMatrix);
+        translate$1(mvp, mvp, position);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, this.matrices);
+        const matricesData = calculateSkinningMatrices(skin, animation, s, this.matricesBuffer.buffer);
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, matricesData.length / 4, 1, gl.RGBA, gl.FLOAT, matricesData);
+        gl.uniformMatrix4fv(skinningShader.mvp, false, mvp);
+        gl.uniform1i(skinningShader.texture, 0);
+        gl.uniform1i(skinningShader.matrices, 1);
+        gl.drawElements(gl.TRIANGLES, skin.indexCount, gl.UNSIGNED_SHORT, 0);
+    }
+    drawModel(model, tex, position) {
+        const { gl, objectsShader } = this;
+        gl.bindBuffer(gl.ARRAY_BUFFER, model.vertices);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, model.indices);
+        this.defineVertexBuffer(gl, objectsShader, Model.ATTRIBUTES, Model.STRIDE);
+        gl.useProgram(objectsShader.program);
+        const mvp = create$5();
+        multiply$5(mvp, mvp, this.projectionMatrix);
+        multiply$5(mvp, mvp, this.viewMatrix);
+        translate$1(mvp, mvp, position);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.uniformMatrix4fv(objectsShader.mvp, false, mvp);
+        gl.uniform1i(objectsShader.texture, 0);
+        gl.drawElements(gl.TRIANGLES, model.indexCount, gl.UNSIGNED_SHORT, 0);
+    }
+    draw() {
+        const { gl } = this;
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        for (const entity of this.models) {
+            //
+        }
+    }
+}
+
+class Physics {
+    ammo;
+    dynamicsWorld;
+    constructor(ammo) {
+        this.ammo = ammo;
+        // ammo init (wow)
+        const collisionConfiguration = new Ammo.btDefaultCollisionConfiguration();
+        const dispatcher = new Ammo.btCollisionDispatcher(collisionConfiguration);
+        const overlappingPairCache = new Ammo.btDbvtBroadphase();
+        const solver = new Ammo.btSequentialImpulseConstraintSolver();
+        this.dynamicsWorld = new Ammo.btDiscreteDynamicsWorld(dispatcher, overlappingPairCache, solver, collisionConfiguration);
+        this.dynamicsWorld.setGravity(new Ammo.btVector3(0, 0, -9.8));
+    }
+    tick(dt) {
+        //
+    }
+}
+
 class Animation {
     timings;
     values;
@@ -7856,36 +8155,6 @@ class Animation {
             slerp(rotation, r0, r1, t);
         }
         return rotation;
-    }
-}
-
-const ATTRIBUTES = [
-    {
-        name: "p",
-        size: 3,
-    },
-    {
-        name: "n",
-        size: 3,
-    },
-    {
-        name: "uv",
-        size: 2,
-    },
-];
-const STRIDE = ATTRIBUTES.reduce((acum, value) => acum + value.size, 0);
-class Model {
-    vertices;
-    vertexCount;
-    indices;
-    indexCount;
-    static ATTRIBUTES = ATTRIBUTES;
-    static STRIDE = STRIDE;
-    constructor(vertices, vertexCount, indices, indexCount) {
-        this.vertices = vertices;
-        this.vertexCount = vertexCount;
-        this.indices = indices;
-        this.indexCount = indexCount;
     }
 }
 
@@ -7982,285 +8251,83 @@ async function loadModelFromURL(gl, url) {
     return loadModel(gl, data);
 }
 
-function compileShader(gl, vertText, fragText, parameters) {
-    const vertexShader = gl.createShader(gl.VERTEX_SHADER);
-    const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
-    gl.shaderSource(vertexShader, vertText);
-    gl.shaderSource(fragmentShader, fragText);
-    gl.compileShader(vertexShader);
-    if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
-        throw new Error(`ERROR compiling vertex shader for ${name}! ${gl.getShaderInfoLog(vertexShader)}`);
+let Services;
+function setServices(value) {
+    if (Services != null) {
+        throw new Error("Services are set twice.");
     }
-    gl.compileShader(fragmentShader);
-    if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
-        throw new Error(`ERROR compiling fragment shader for ${name}! ${gl.getShaderInfoLog(fragmentShader)}`);
-    }
-    const program = gl.createProgram();
-    gl.attachShader(program, vertexShader);
-    gl.attachShader(program, fragmentShader);
-    gl.linkProgram(program);
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        throw new Error(`ERROR linking program! ${gl.getProgramInfoLog(program)}`);
-    }
-    gl.validateProgram(program);
-    if (!gl.getProgramParameter(program, gl.VALIDATE_STATUS)) {
-        throw new Error(`ERROR validating program! ${gl.getProgramInfoLog(program)}`);
-    }
-    const result = { program };
-    parameters.forEach((parameter) => {
-        const uniformLocation = gl.getUniformLocation(program, parameter);
-        if (uniformLocation !== null) {
-            result[parameter] = uniformLocation;
-        }
-        else {
-            const attributeLocation = gl.getAttribLocation(program, parameter);
-            if (attributeLocation !== -1) {
-                result[parameter] = attributeLocation;
-            }
-            else {
-                console.warn(`${parameter} is not found in shader.`);
-            }
-        }
-    });
-    return result;
-}
-function glEnumToString(gl, value) {
-    // Optimization for the most common enum:
-    if (value === gl.NO_ERROR) {
-        return "NO_ERROR";
-    }
-    for (const p in gl) {
-        if (gl[p] === value) {
-            return p;
-        }
-    }
-    return "0x" + value.toString(16);
-}
-function createGLErrorWrapper(context, fname) {
-    return function (...rest) {
-        // eslint-disable-next-line prefer-spread
-        const rv = context[fname].apply(context, rest);
-        const err = context.getError();
-        if (err !== context.NO_ERROR)
-            throw "GL error " + glEnumToString(context, err) + " in " + fname;
-        return rv;
-    };
-}
-function create3DContextWithWrapperThatThrowsOnGLError(context) {
-    const wrap = {
-        getError: function () {
-            return context.getError();
-        },
-    };
-    for (const i in context) {
-        if (typeof context[i] === "function") {
-            wrap[i] = createGLErrorWrapper(context, i);
-        }
-        else {
-            wrap[i] = context[i];
-        }
-    }
-    return wrap;
+    Services = value;
 }
 
-var generalVert = "attribute vec3 p;\r\nattribute vec3 n;\r\n\r\nuniform mat4 mvp;\r\n\r\nvarying highp vec3 normal;\r\n\r\nvoid main(void) {\r\n    gl_Position = mvp * vec4(p, 1.0);\r\n    normal = n;\r\n}";
-
-var generalFrag = "varying lowp vec3 normal;\r\n\r\nvoid main(void) {\r\n    gl_FragColor = vec4(normal, 1.0);\r\n}";
-
-var objectsVert = "attribute vec3 p;\r\nattribute vec3 n;\r\nattribute vec2 uv;\r\n\r\nuniform mat4 mvp;\r\n\r\nvarying highp vec2 texCoord;\r\nvarying highp vec3 normal;\r\n\r\nvoid main(void) {\r\n    gl_Position = mvp * vec4(p, 1.0);\r\n\r\n    texCoord = uv;\r\n    normal = n;\r\n}";
-
-var objectsFrag = "precision highp float;\r\n\r\nvarying highp vec2 texCoord;\r\nvarying highp vec3 normal;\r\n\r\nuniform sampler2D texture;\r\n\r\nvoid main(void) {\r\n    vec3 lightDir = vec3(0, 1, 1);\r\n    vec3 lightColor = vec3(1.0);\r\n\r\n    float diff = max(dot(normal, lightDir), 0.0);\r\n    vec3 diffuse = diff * lightColor;\r\n\r\n    float ambient = 0.5;\r\n    vec3 objectColor = texture2D(texture, texCoord).rgb;\r\n    vec3 result = min(ambient + diffuse, 1.0) * objectColor;\r\n\r\n    gl_FragColor = vec4(result, 1.0);\r\n}";
-
-var skinningVert = "attribute vec3 p;\r\nattribute vec3 n;\r\nattribute vec2 uv;\r\n\r\nattribute vec4 w;\r\nattribute vec4 j;\r\n\r\nuniform mat4 mvp;\r\nuniform sampler2D matrices;\r\n\r\nvarying highp vec2 texCoord;\r\nvarying highp vec3 normal;\r\n\r\nmat4 getJointMatrix(float j) {\r\n    float v0 = (j * 4.0 + 0.5) / 1024.0;\r\n    float v1 = (j * 4.0 + 1.5) / 1024.0;\r\n    float v2 = (j * 4.0 + 2.5) / 1024.0;\r\n    float v3 = (j * 4.0 + 3.5) / 1024.0;\r\n\r\n    vec4 p0 = texture2D(matrices, vec2(v0, 0.5));\r\n    vec4 p1 = texture2D(matrices, vec2(v1, 0.5));\r\n    vec4 p2 = texture2D(matrices, vec2(v2, 0.5));\r\n    vec4 p3 = texture2D(matrices, vec2(v3, 0.5));\r\n\r\n    return mat4(p0, p1, p2, p3);\r\n}\r\n\r\nvoid main(void) {\r\n    mat4 skinningMatrix =\r\n        getJointMatrix(j[0]) * w[0] +\r\n        getJointMatrix(j[1]) * w[1] +\r\n        getJointMatrix(j[2]) * w[2] +\r\n        getJointMatrix(j[3]) * w[3];\r\n\r\n    gl_Position = mvp * skinningMatrix * vec4(p, 1.0);\r\n\r\n    texCoord = uv;\r\n    normal = (skinningMatrix * vec4(n, 0.0)).xyz;\r\n}";
-
-var skinningFrag = "precision highp float;\r\n\r\nvarying highp vec2 texCoord;\r\nvarying highp vec3 normal;\r\n\r\nuniform sampler2D texture;\r\n\r\nvoid main(void) {\r\n    vec3 lightDir = vec3(0, 0, 1);\r\n    vec3 lightColor = vec3(1.0);\r\n\r\n    float diff = max(dot(normal, lightDir), 0.0);\r\n    vec3 diffuse = diff * lightColor;\r\n\r\n    float ambient = 0.5;\r\n    vec3 objectColor = texture2D(texture, texCoord).rgb;\r\n    vec3 result = min(ambient + diffuse, 1.0) * objectColor;\r\n\r\n    gl_FragColor = vec4(result, 1.0);\r\n}";
-
-function calculateSkinningMatrices(skin, animation, s, buffer) {
-    const worldMatrices = new Array(HUMAN_BONES_COUNT);
-    const globalMatrices = new Array(HUMAN_BONES_COUNT);
-    for (let boneId = HUMAN_BONES_START; boneId < HUMAN_BONES_START + HUMAN_BONES_COUNT; boneId++) {
-        const boneParentIndex = skin.getBoneParentIndex(boneId);
-        const boneIndex = skin.getBoneIndex(boneId);
-        if (boneIndex === undefined) {
-            throw new Error("Unknown bone");
-        }
-        const bone = skin.bones[boneIndex];
-        const invMatrix = skin.inverseMatrices[boneIndex];
-        const rotation = animation.getRotation(boneId, s);
-        const worldMatrix = create$5();
-        fromRotationTranslation$1(worldMatrix, rotation, bone.translation);
-        if (boneParentIndex !== undefined) {
-            const parentGlobalMatrix = globalMatrices[boneParentIndex];
-            mul$5(worldMatrix, parentGlobalMatrix, worldMatrix);
-        }
-        globalMatrices[boneIndex] = clone$5(worldMatrix);
-        mul$5(worldMatrix, worldMatrix, invMatrix);
-        worldMatrices[boneIndex] = worldMatrix;
+var ResourceType;
+(function (ResourceType) {
+    ResourceType[ResourceType["Texture"] = 0] = "Texture";
+    ResourceType[ResourceType["Model"] = 1] = "Model";
+    ResourceType[ResourceType["Skin"] = 2] = "Skin";
+    ResourceType[ResourceType["Animation"] = 3] = "Animation";
+})(ResourceType || (ResourceType = {}));
+// TODO implement cache
+class ResourceManager {
+    getUrl(name, ext) {
+        return `build/${name}.${ext}`;
     }
-    const result = new Float32Array(buffer, 0, skin.bones.length * 16);
-    for (let boneIndex = 0; boneIndex < skin.bones.length; boneIndex++) {
-        result.set(worldMatrices[boneIndex], boneIndex * 16);
+    async requireTexture(name) {
+        return loadTexture(Services.render.gl, this.getUrl(name, "png"));
     }
-    return result;
-}
-
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
-const ANIMATION_TEXTURE_SIZE = 1024;
-const UP = fromValues$4(0, 0, 1);
-class Render {
-    canvas;
-    gl;
-    generalShader;
-    objectsShader;
-    skinningShader;
-    matrices;
-    matricesBuffer;
-    viewMatrix;
-    projectionMatrix;
-    constructor() {
-        this.canvas = document.createElement("canvas");
-        document.addEventListener("resize", this.handleResize.bind(this));
-        document.body.appendChild(this.canvas);
-        this.gl = create3DContextWithWrapperThatThrowsOnGLError(this.canvas.getContext("webgl", {
-            antialias: true,
-            powerPreference: "high-performance",
-        }));
-        this.matrices = this.gl.createTexture();
-        this.matricesBuffer = new Float32Array(ANIMATION_TEXTURE_SIZE * 1 * 4);
-        const { gl, matrices } = this;
-        gl.getExtension("OES_texture_float");
-        gl.bindTexture(gl.TEXTURE_2D, matrices);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, ANIMATION_TEXTURE_SIZE, 1, 0, gl.RGBA, gl.FLOAT, null);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        this.projectionMatrix = create$5();
-        this.viewMatrix = create$5();
-        this.generalShader = compileShader(gl, generalVert, generalFrag, ["p", "n", "mvp"]);
-        this.objectsShader = compileShader(gl, objectsVert, objectsFrag, [
-            "p",
-            "n",
-            "uv",
-            "mvp",
-            "texture",
-        ]);
-        this.skinningShader = compileShader(gl, skinningVert, skinningFrag, [
-            "p",
-            "n",
-            "uv",
-            "w",
-            "j",
-            "mvp",
-            "matrices",
-            "texture",
-        ]);
-        gl.clearColor(0.0, 0.0, 0.0, 1.0);
-        this.handleResize();
+    async requireModel(name) {
+        return loadModelFromURL(Services.render.gl, this.getUrl(name, "mdl"));
     }
-    handleResize() {
-        const { canvas, gl } = this;
-        canvas.style.width = document.body.clientWidth + "px";
-        canvas.style.height = document.body.clientHeight + "px";
-        canvas.width = document.body.clientWidth * 1;
-        canvas.height = document.body.clientHeight * 1;
-        gl.viewport(0, 0, canvas.width, canvas.height);
-        perspective(this.projectionMatrix, (45 * Math.PI) / 180, canvas.width / canvas.height, 0.1, 100);
+    async requireSkin(name) {
+        return loadSkinFromURL(Services.render.gl, this.getUrl(name, "skn"));
     }
-    defineVertexBuffer(gl, shader, attributes, stride) {
-        let offset = 0;
-        for (const attr of attributes) {
-            const attrNum = shader[attr.name];
-            if (attrNum !== undefined) {
-                gl.vertexAttribPointer(attrNum, attr.size, gl.FLOAT, false, stride * Float32Array.BYTES_PER_ELEMENT, offset * Float32Array.BYTES_PER_ELEMENT);
-                gl.enableVertexAttribArray(attrNum);
-            }
-            offset += attr.size;
-        }
-    }
-    beginRender() {
-        const { gl } = this;
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-        gl.disable(gl.CULL_FACE);
-        gl.enable(gl.DEPTH_TEST);
-    }
-    setCamera(pos, lookAt$1) {
-        lookAt(this.viewMatrix, lookAt$1, pos, UP);
-    }
-    drawSkin(skin, tex, animation, s, position) {
-        const { gl, skinningShader } = this;
-        gl.bindBuffer(gl.ARRAY_BUFFER, skin.vertices);
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, skin.indices);
-        this.defineVertexBuffer(gl, skinningShader, Skin.ATTRIBUTES, Skin.STRIDE);
-        gl.useProgram(skinningShader.program);
-        const mvp = create$5();
-        multiply$5(mvp, mvp, this.projectionMatrix);
-        multiply$5(mvp, mvp, this.viewMatrix);
-        translate$1(mvp, mvp, position);
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, tex);
-        gl.activeTexture(gl.TEXTURE1);
-        gl.bindTexture(gl.TEXTURE_2D, this.matrices);
-        const matricesData = calculateSkinningMatrices(skin, animation, s, this.matricesBuffer.buffer);
-        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, matricesData.length / 4, 1, gl.RGBA, gl.FLOAT, matricesData);
-        gl.uniformMatrix4fv(skinningShader.mvp, false, mvp);
-        gl.uniform1i(skinningShader.texture, 0);
-        gl.uniform1i(skinningShader.matrices, 1);
-        gl.drawElements(gl.TRIANGLES, skin.indexCount, gl.UNSIGNED_SHORT, 0);
-    }
-    drawModel(model, tex, position) {
-        const { gl, objectsShader } = this;
-        gl.bindBuffer(gl.ARRAY_BUFFER, model.vertices);
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, model.indices);
-        this.defineVertexBuffer(gl, objectsShader, Model.ATTRIBUTES, Model.STRIDE);
-        gl.useProgram(objectsShader.program);
-        const mvp = create$5();
-        multiply$5(mvp, mvp, this.projectionMatrix);
-        multiply$5(mvp, mvp, this.viewMatrix);
-        translate$1(mvp, mvp, position);
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, tex);
-        gl.uniformMatrix4fv(objectsShader.mvp, false, mvp);
-        gl.uniform1i(objectsShader.texture, 0);
-        gl.drawElements(gl.TRIANGLES, model.indexCount, gl.UNSIGNED_SHORT, 0);
+    async requireAnimation(name) {
+        return loadAnimationFromURL(this.getUrl(name, "anm"));
     }
 }
 
-let render;
-let skin1;
-let skin2;
-let tex1;
-let tex2;
-let blank;
-let animation;
-let halfSphere;
-let cylinder;
-let capsule;
+class World {
+    add(entity) {
+        //
+    }
+}
+
+class GameLoop {
+    prevTime;
+    tickBind = this.tick.bind(this);
+    start() {
+        requestAnimationFrame(this.tickBind);
+    }
+    tick(time) {
+        const dt = this.prevTime != undefined ? time - this.prevTime : 0;
+        Services.physics.tick(dt);
+        Services.render.draw();
+        this.prevTime = time;
+        requestAnimationFrame(this.tickBind);
+    }
+}
+
+class ServicesClass {
+    render;
+    physics;
+    resources;
+    world;
+    loop;
+    constructor(options) {
+        this.render = new Render();
+        this.physics = new Physics(options.ammo);
+        this.resources = new ResourceManager();
+        this.world = new World();
+        this.loop = new GameLoop();
+    }
+    start() {
+        this.loop.start();
+    }
+}
+
 async function main() {
-    render = new Render();
-    skin1 = await loadSkinFromURL(render.gl, "build/chel.bin");
-    tex1 = await loadTexture(render.gl, "build/chel.png");
-    skin2 = await loadSkinFromURL(render.gl, "build/man.bin");
-    tex2 = await loadTexture(render.gl, "build/man.png");
-    animation = await loadAnimationFromURL("build/run.bin");
-    blank = await loadTexture(render.gl, "build/blank.png");
-    halfSphere = await loadModelFromURL(render.gl, "build/half_sphere.mdl");
-    cylinder = await loadModelFromURL(render.gl, "build/cylinder.mdl");
-    capsule = await loadModelFromURL(render.gl, "build/capsule.mdl");
-    requestAnimationFrame(tick);
-}
-let a = 0;
-document.body.onmousemove = e => (a = (e.clientX / document.body.clientWidth) * 3.14);
-function tick(time) {
-    render.setCamera(fromValues$4(0, 0, 1), fromValues$4(Math.cos(a) * 5, Math.sin(a) * -5, 1));
-    const t = time / 10000;
-    render.beginRender();
-    render.drawSkin(skin1, tex1, animation, t, fromValues$4(1, 0, 0));
-    render.drawSkin(skin2, tex2, animation, t, fromValues$4(-1, 0, 0));
-    render.drawModel(halfSphere, blank, fromValues$4(0, -1, 0));
-    render.drawModel(cylinder, blank, fromValues$4(0, -1, -0.5));
-    render.drawModel(capsule, blank, fromValues$4(0, 0, -0.5));
-    requestAnimationFrame(tick);
+    const ammo = await Ammo();
+    setServices(new ServicesClass({ ammo }));
+    Services.start();
 }
 main();
 //# sourceMappingURL=index.js.map

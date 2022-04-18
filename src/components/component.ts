@@ -1,14 +1,9 @@
 import { Entity } from "../entities/entity"
+export abstract class Component {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    static ID: string = undefined!
 
-export enum ComponentID {
-    TRANSFORM,
-    PHYSICS,
-    VISUAL,
-}
-
-export class Component {
-    static readonly MAX_COMPONENT = 3
-
-    id: ComponentID
-    owner: Entity
+    constructor(readonly owner: Entity) {
+        //
+    }
 }

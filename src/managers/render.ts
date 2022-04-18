@@ -19,6 +19,7 @@ import { calculateSkinningMatrices } from "./animation-processor"
 import { Skin } from "../models/skin"
 import { Model } from "../models/model"
 import { Animation } from "../models/animation"
+import { Entity } from "../entities/entity"
 
 const ANIMATION_TEXTURE_SIZE = 1024
 
@@ -43,11 +44,17 @@ export class Render {
     private readonly viewMatrix: mat4
     private readonly projectionMatrix: mat4
 
+    private readonly models: Set<Entity>
+    private readonly skins: Set<Entity>
+
     constructor() {
         this.canvas = document.createElement("canvas")
 
         document.addEventListener("resize", this.handleResize.bind(this))
         document.body.appendChild(this.canvas)
+
+        this.models = new Set()
+        this.skins = new Set()
 
         this.gl = create3DContextWithWrapperThatThrowsOnGLError(
             this.canvas.getContext("webgl", {
@@ -102,6 +109,9 @@ export class Render {
 
         gl.clearColor(0.0, 0.0, 0.0, 1.0)
 
+        gl.disable(gl.CULL_FACE)
+        gl.enable(gl.DEPTH_TEST)
+
         this.handleResize()
     }
 
@@ -148,14 +158,6 @@ export class Render {
 
             offset += attr.size
         }
-    }
-
-    beginRender() {
-        const { gl } = this
-
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-        gl.disable(gl.CULL_FACE)
-        gl.enable(gl.DEPTH_TEST)
     }
 
     setCamera(pos: vec3, lookAt: vec3): void {
@@ -230,5 +232,14 @@ export class Render {
         gl.uniform1i(objectsShader.texture, 0)
 
         gl.drawElements(gl.TRIANGLES, model.indexCount, gl.UNSIGNED_SHORT, 0)
+    }
+
+    draw(): void {
+        const { gl } = this
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+
+        for (const entity of this.models) {
+            //
+        }
     }
 }
