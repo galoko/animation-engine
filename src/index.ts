@@ -1,14 +1,14 @@
 import { vec3 } from "gl-matrix"
 import {
-    Skin,
-    Animation,
     loadSkinFromURL,
     loadAnimationFromURL,
     loadTexture,
-    Model,
     loadModelFromURL,
-} from "./loaders"
-import { Render } from "./render"
+} from "./managers/loaders"
+import { Render } from "./managers/render"
+import { Model } from "./models/model"
+import { Skin } from "./models/skin"
+import { Animation } from "./models/animation"
 
 let render: Render
 let skin1: Skin

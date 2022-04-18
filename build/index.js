@@ -7665,7 +7665,7 @@ var vec2 = /*#__PURE__*/Object.freeze({
   forEach: forEach
 });
 
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
+const STRIDE$2 = 1 + 3 + 4;
 const HUMAN_BONES_START = 1000;
 const HUMAN_BONES_COUNT = 13;
 const BONE_NAME_TO_BONE_ID = [
@@ -7720,29 +7720,44 @@ HUMAN_SKELETON.set(LOWER_ARM_L, UPPER_ARM_L);
 function getHumanBoneParent(id) {
     return HUMAN_SKELETON.get(id);
 }
-class Model {
-    vertices;
-    vertexCount;
-    indices;
-    indexCount;
-    constructor(vertices, vertexCount, indices, indexCount) {
-        this.vertices = vertices;
-        this.vertexCount = vertexCount;
-        this.indices = indices;
-        this.indexCount = indexCount;
-    }
-}
 class Bone {
+    static STRIDE = STRIDE$2;
     id;
     translation;
     rotation;
 }
+
+const ATTRIBUTES$1 = [
+    {
+        name: "p",
+        size: 3,
+    },
+    {
+        name: "n",
+        size: 3,
+    },
+    {
+        name: "uv",
+        size: 2,
+    },
+    {
+        name: "w",
+        size: 4,
+    },
+    {
+        name: "j",
+        size: 4,
+    },
+];
+const STRIDE$1 = ATTRIBUTES$1.reduce((acum, value) => acum + value.size, 0);
 class Skin {
     vertices;
     vertexCount;
     indices;
     indexCount;
     bones;
+    static ATTRIBUTES = ATTRIBUTES$1;
+    static STRIDE = STRIDE$1;
     inverseMatrices;
     boneIdToBoneIndex;
     constructor(vertices, vertexCount, indices, indexCount, bones) {
@@ -7807,6 +7822,7 @@ class Skin {
         }
     }
 }
+
 class Animation {
     timings;
     values;
@@ -7842,18 +7858,8 @@ class Animation {
         return rotation;
     }
 }
-function defineVertexBuffer(gl, shader, attributes, stride) {
-    let offset = 0;
-    for (const attr of attributes) {
-        const attrNum = shader[attr.name];
-        if (attrNum !== undefined) {
-            gl.vertexAttribPointer(attrNum, attr.size, gl.FLOAT, false, stride * Float32Array.BYTES_PER_ELEMENT, offset * Float32Array.BYTES_PER_ELEMENT);
-            gl.enableVertexAttribArray(attrNum);
-        }
-        offset += attr.size;
-    }
-}
-const SKIN_ATTRIBUTES = [
+
+const ATTRIBUTES = [
     {
         name: "p",
         size: 3,
@@ -7866,30 +7872,37 @@ const SKIN_ATTRIBUTES = [
         name: "uv",
         size: 2,
     },
-    {
-        name: "w",
-        size: 4,
-    },
-    {
-        name: "j",
-        size: 4,
-    },
 ];
-const SKIN_STRIDE = SKIN_ATTRIBUTES.reduce((acum, value) => acum + value.size, 0);
-const BONE_STRIDE = 1 + 3 + 4;
+const STRIDE = ATTRIBUTES.reduce((acum, value) => acum + value.size, 0);
+class Model {
+    vertices;
+    vertexCount;
+    indices;
+    indexCount;
+    static ATTRIBUTES = ATTRIBUTES;
+    static STRIDE = STRIDE;
+    constructor(vertices, vertexCount, indices, indexCount) {
+        this.vertices = vertices;
+        this.vertexCount = vertexCount;
+        this.indices = indices;
+        this.indexCount = indexCount;
+    }
+}
+
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 function loadSkin(gl, data) {
     const header = new Uint32Array(data, 0, 3);
     const [vertexCount, indexCount, boneCount] = header;
     const indices = new Uint16Array(data, 3 * 4, indexCount);
     const floatPosition = Math.ceil((3 * 4 + indexCount * 2) / 4) * 4;
-    const vertices = new Float32Array(data, floatPosition, SKIN_STRIDE * vertexCount);
-    const boneData = new Float32Array(data, floatPosition + SKIN_STRIDE * vertexCount * 4, boneCount * BONE_STRIDE);
+    const vertices = new Float32Array(data, floatPosition, Skin.STRIDE * vertexCount);
+    const boneData = new Float32Array(data, floatPosition + Skin.STRIDE * vertexCount * 4, boneCount * Bone.STRIDE);
     const bones = [];
     for (let i = 0; i < boneCount; i++) {
         const bone = new Bone();
-        bone.id = Math.trunc(boneData[i * BONE_STRIDE + 0]);
-        bone.translation = fromValues$4(boneData[i * BONE_STRIDE + 1], boneData[i * BONE_STRIDE + 2], boneData[i * BONE_STRIDE + 3]);
-        bone.rotation = fromValues$2(boneData[i * BONE_STRIDE + 4], boneData[i * BONE_STRIDE + 5], boneData[i * BONE_STRIDE + 6], boneData[i * BONE_STRIDE + 7]);
+        bone.id = Math.trunc(boneData[i * Bone.STRIDE + 0]);
+        bone.translation = fromValues$4(boneData[i * Bone.STRIDE + 1], boneData[i * Bone.STRIDE + 2], boneData[i * Bone.STRIDE + 3]);
+        bone.rotation = fromValues$2(boneData[i * Bone.STRIDE + 4], boneData[i * Bone.STRIDE + 5], boneData[i * Bone.STRIDE + 6], boneData[i * Bone.STRIDE + 7]);
         bones.push(bone);
     }
     const vertexBuffer = gl.createBuffer();
@@ -7949,27 +7962,12 @@ async function loadTexture(gl, url) {
         image.src = url;
     });
 }
-const MODEL_ATTRIBUTES = [
-    {
-        name: "p",
-        size: 3,
-    },
-    {
-        name: "n",
-        size: 3,
-    },
-    {
-        name: "uv",
-        size: 2,
-    },
-];
-const MODEL_STRIDE = MODEL_ATTRIBUTES.reduce((acum, value) => acum + value.size, 0);
 function loadModel(gl, data) {
     const header = new Uint32Array(data, 0, 2);
     const [vertexCount, indexCount] = header;
     const indices = new Uint16Array(data, 2 * 4, indexCount);
     const floatPosition = Math.ceil((2 * 4 + indexCount * 2) / 4) * 4;
-    const vertices = new Float32Array(data, floatPosition, MODEL_STRIDE * vertexCount);
+    const vertices = new Float32Array(data, floatPosition, Model.STRIDE * vertexCount);
     const vertexBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
@@ -8169,6 +8167,17 @@ class Render {
         gl.viewport(0, 0, canvas.width, canvas.height);
         perspective(this.projectionMatrix, (45 * Math.PI) / 180, canvas.width / canvas.height, 0.1, 100);
     }
+    defineVertexBuffer(gl, shader, attributes, stride) {
+        let offset = 0;
+        for (const attr of attributes) {
+            const attrNum = shader[attr.name];
+            if (attrNum !== undefined) {
+                gl.vertexAttribPointer(attrNum, attr.size, gl.FLOAT, false, stride * Float32Array.BYTES_PER_ELEMENT, offset * Float32Array.BYTES_PER_ELEMENT);
+                gl.enableVertexAttribArray(attrNum);
+            }
+            offset += attr.size;
+        }
+    }
     beginRender() {
         const { gl } = this;
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -8182,7 +8191,7 @@ class Render {
         const { gl, skinningShader } = this;
         gl.bindBuffer(gl.ARRAY_BUFFER, skin.vertices);
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, skin.indices);
-        defineVertexBuffer(gl, skinningShader, SKIN_ATTRIBUTES, SKIN_STRIDE);
+        this.defineVertexBuffer(gl, skinningShader, Skin.ATTRIBUTES, Skin.STRIDE);
         gl.useProgram(skinningShader.program);
         const mvp = create$5();
         multiply$5(mvp, mvp, this.projectionMatrix);
@@ -8203,7 +8212,7 @@ class Render {
         const { gl, objectsShader } = this;
         gl.bindBuffer(gl.ARRAY_BUFFER, model.vertices);
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, model.indices);
-        defineVertexBuffer(gl, objectsShader, MODEL_ATTRIBUTES, MODEL_STRIDE);
+        this.defineVertexBuffer(gl, objectsShader, Model.ATTRIBUTES, Model.STRIDE);
         gl.useProgram(objectsShader.program);
         const mvp = create$5();
         multiply$5(mvp, mvp, this.projectionMatrix);

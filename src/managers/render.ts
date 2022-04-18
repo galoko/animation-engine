@@ -3,33 +3,31 @@ import {
     CompiledShader,
     compileShader,
     create3DContextWithWrapperThatThrowsOnGLError,
-} from "./render-utils"
+} from "../utils/render-utils"
 
-import generalVert from "./shaders/general.vert"
-import generalFrag from "./shaders/general.frag"
+import generalVert from "../shaders/general.vert"
+import generalFrag from "../shaders/general.frag"
 
-import objectsVert from "./shaders/objects.vert"
-import objectsFrag from "./shaders/objects.frag"
+import objectsVert from "../shaders/objects.vert"
+import objectsFrag from "../shaders/objects.frag"
 
-import skinningVert from "./shaders/skinning.vert"
-import skinningFrag from "./shaders/skinning.frag"
+import skinningVert from "../shaders/skinning.vert"
+import skinningFrag from "../shaders/skinning.frag"
 
-import {
-    defineVertexBuffer,
-    Skin,
-    Animation,
-    SKIN_ATTRIBUTES,
-    MODEL_ATTRIBUTES,
-    Model,
-    MODEL_STRIDE,
-    SKIN_STRIDE,
-} from "./loaders"
 import { mat4, vec3 } from "gl-matrix"
 import { calculateSkinningMatrices } from "./animation-processor"
+import { Skin } from "../models/skin"
+import { Model } from "../models/model"
+import { Animation } from "../models/animation"
 
 const ANIMATION_TEXTURE_SIZE = 1024
 
 const UP = vec3.fromValues(0, 0, 1)
+
+export type AttributeDef = {
+    name: string
+    size: number
+}
 
 export class Render {
     private readonly canvas: HTMLCanvasElement
@@ -127,6 +125,31 @@ export class Render {
         )
     }
 
+    private defineVertexBuffer(
+        gl: WebGLRenderingContext,
+        shader: CompiledShader,
+        attributes: AttributeDef[],
+        stride: number
+    ): void {
+        let offset = 0
+        for (const attr of attributes) {
+            const attrNum = shader[attr.name] as number
+            if (attrNum !== undefined) {
+                gl.vertexAttribPointer(
+                    attrNum,
+                    attr.size,
+                    gl.FLOAT,
+                    false,
+                    stride * Float32Array.BYTES_PER_ELEMENT,
+                    offset * Float32Array.BYTES_PER_ELEMENT
+                )
+                gl.enableVertexAttribArray(attrNum)
+            }
+
+            offset += attr.size
+        }
+    }
+
     beginRender() {
         const { gl } = this
 
@@ -145,7 +168,7 @@ export class Render {
         gl.bindBuffer(gl.ARRAY_BUFFER, skin.vertices)
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, skin.indices)
 
-        defineVertexBuffer(gl, skinningShader, SKIN_ATTRIBUTES, SKIN_STRIDE)
+        this.defineVertexBuffer(gl, skinningShader, Skin.ATTRIBUTES, Skin.STRIDE)
 
         gl.useProgram(skinningShader.program)
 
@@ -191,7 +214,7 @@ export class Render {
         gl.bindBuffer(gl.ARRAY_BUFFER, model.vertices)
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, model.indices)
 
-        defineVertexBuffer(gl, objectsShader, MODEL_ATTRIBUTES, MODEL_STRIDE)
+        this.defineVertexBuffer(gl, objectsShader, Model.ATTRIBUTES, Model.STRIDE)
 
         gl.useProgram(objectsShader.program)
 

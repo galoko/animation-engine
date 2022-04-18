@@ -1,5 +1,7 @@
 import { mat4 } from "gl-matrix"
-import { Skin, Animation, HUMAN_BONES_START, HUMAN_BONES_COUNT } from "./loaders"
+import { HUMAN_BONES_COUNT, HUMAN_BONES_START } from "../models/bone"
+import { Skin } from "../models/skin"
+import { Animation } from "../models/animation"
 
 export function calculateSkinningMatrices(
     skin: Skin,
