@@ -7665,6 +7665,7 @@ var vec2 = /*#__PURE__*/Object.freeze({
   forEach: forEach
 });
 
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 const HUMAN_BONES_START = 1000;
 const HUMAN_BONES_COUNT = 13;
 const BONE_NAME_TO_BONE_ID = [
@@ -7719,12 +7720,24 @@ HUMAN_SKELETON.set(LOWER_ARM_L, UPPER_ARM_L);
 function getHumanBoneParent(id) {
     return HUMAN_SKELETON.get(id);
 }
+class Model {
+    vertices;
+    vertexCount;
+    indices;
+    indexCount;
+    constructor(vertices, vertexCount, indices, indexCount) {
+        this.vertices = vertices;
+        this.vertexCount = vertexCount;
+        this.indices = indices;
+        this.indexCount = indexCount;
+    }
+}
 class Bone {
     id;
     translation;
     rotation;
 }
-class Model {
+class Skin {
     vertices;
     vertexCount;
     indices;
@@ -7829,7 +7842,18 @@ class Animation {
         return rotation;
     }
 }
-const ATTRIBUTES = [
+function defineVertexBuffer(gl, shader, attributes, stride) {
+    let offset = 0;
+    for (const attr of attributes) {
+        const attrNum = shader[attr.name];
+        if (attrNum !== undefined) {
+            gl.vertexAttribPointer(attrNum, attr.size, gl.FLOAT, false, stride * Float32Array.BYTES_PER_ELEMENT, offset * Float32Array.BYTES_PER_ELEMENT);
+            gl.enableVertexAttribArray(attrNum);
+        }
+        offset += attr.size;
+    }
+}
+const SKIN_ATTRIBUTES = [
     {
         name: "p",
         size: 3,
@@ -7851,26 +7875,15 @@ const ATTRIBUTES = [
         size: 4,
     },
 ];
-const MODEL_STRIDE = ATTRIBUTES.reduce((acum, value) => acum + value.size, 0);
-function defineModelVertexBuffer(gl, shader) {
-    let offset = 0;
-    for (const attr of ATTRIBUTES) {
-        const attrNum = shader[attr.name];
-        if (attrNum !== undefined) {
-            gl.vertexAttribPointer(attrNum, attr.size, gl.FLOAT, false, MODEL_STRIDE * Float32Array.BYTES_PER_ELEMENT, offset * Float32Array.BYTES_PER_ELEMENT);
-            gl.enableVertexAttribArray(attrNum);
-        }
-        offset += attr.size;
-    }
-}
+const SKIN_STRIDE = SKIN_ATTRIBUTES.reduce((acum, value) => acum + value.size, 0);
 const BONE_STRIDE = 1 + 3 + 4;
-function loadModel(gl, data) {
+function loadSkin(gl, data) {
     const header = new Uint32Array(data, 0, 3);
     const [vertexCount, indexCount, boneCount] = header;
     const indices = new Uint16Array(data, 3 * 4, indexCount);
     const floatPosition = Math.ceil((3 * 4 + indexCount * 2) / 4) * 4;
-    const vertices = new Float32Array(data, floatPosition, MODEL_STRIDE * vertexCount);
-    const boneData = new Float32Array(data, floatPosition + MODEL_STRIDE * vertexCount * 4, boneCount * BONE_STRIDE);
+    const vertices = new Float32Array(data, floatPosition, SKIN_STRIDE * vertexCount);
+    const boneData = new Float32Array(data, floatPosition + SKIN_STRIDE * vertexCount * 4, boneCount * BONE_STRIDE);
     const bones = [];
     for (let i = 0; i < boneCount; i++) {
         const bone = new Bone();
@@ -7885,12 +7898,12 @@ function loadModel(gl, data) {
     const indexBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
-    const model = new Model(vertexBuffer, vertexCount, indexBuffer, indexCount, bones);
-    return model;
+    const skin = new Skin(vertexBuffer, vertexCount, indexBuffer, indexCount, bones);
+    return skin;
 }
-async function loadModelFromURL(gl, url) {
+async function loadSkinFromURL(gl, url) {
     const data = await (await fetch(url)).arrayBuffer();
-    return loadModel(gl, data);
+    return loadSkin(gl, data);
 }
 function loadAnimation(data) {
     const floats = new Float32Array(data);
@@ -7935,6 +7948,40 @@ async function loadTexture(gl, url) {
         };
         image.src = url;
     });
+}
+const MODEL_ATTRIBUTES = [
+    {
+        name: "p",
+        size: 3,
+    },
+    {
+        name: "n",
+        size: 3,
+    },
+    {
+        name: "uv",
+        size: 2,
+    },
+];
+const MODEL_STRIDE = MODEL_ATTRIBUTES.reduce((acum, value) => acum + value.size, 0);
+function loadModel(gl, data) {
+    const header = new Uint32Array(data, 0, 2);
+    const [vertexCount, indexCount] = header;
+    const indices = new Uint16Array(data, 2 * 4, indexCount);
+    const floatPosition = Math.ceil((2 * 4 + indexCount * 2) / 4) * 4;
+    const vertices = new Float32Array(data, floatPosition, MODEL_STRIDE * vertexCount);
+    const vertexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+    const indexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+    const model = new Model(vertexBuffer, vertexCount, indexBuffer, indexCount);
+    return model;
+}
+async function loadModelFromURL(gl, url) {
+    const data = await (await fetch(url)).arrayBuffer();
+    return loadModel(gl, data);
 }
 
 function compileShader(gl, vertText, fragText, parameters) {
@@ -8022,21 +8069,25 @@ var generalVert = "attribute vec3 p;\r\nattribute vec3 n;\r\n\r\nuniform mat4 mv
 
 var generalFrag = "varying lowp vec3 normal;\r\n\r\nvoid main(void) {\r\n    gl_FragColor = vec4(normal, 1.0);\r\n}";
 
+var objectsVert = "attribute vec3 p;\r\nattribute vec3 n;\r\nattribute vec2 uv;\r\n\r\nuniform mat4 mvp;\r\n\r\nvarying highp vec2 texCoord;\r\nvarying highp vec3 normal;\r\n\r\nvoid main(void) {\r\n    gl_Position = mvp * vec4(p, 1.0);\r\n\r\n    texCoord = uv;\r\n    normal = n;\r\n}";
+
+var objectsFrag = "precision highp float;\r\n\r\nvarying highp vec2 texCoord;\r\nvarying highp vec3 normal;\r\n\r\nuniform sampler2D texture;\r\n\r\nvoid main(void) {\r\n    vec3 lightDir = vec3(0, 1, 1);\r\n    vec3 lightColor = vec3(1.0);\r\n\r\n    float diff = max(dot(normal, lightDir), 0.0);\r\n    vec3 diffuse = diff * lightColor;\r\n\r\n    float ambient = 0.5;\r\n    vec3 objectColor = texture2D(texture, texCoord).rgb;\r\n    vec3 result = min(ambient + diffuse, 1.0) * objectColor;\r\n\r\n    gl_FragColor = vec4(result, 1.0);\r\n}";
+
 var skinningVert = "attribute vec3 p;\r\nattribute vec3 n;\r\nattribute vec2 uv;\r\n\r\nattribute vec4 w;\r\nattribute vec4 j;\r\n\r\nuniform mat4 mvp;\r\nuniform sampler2D matrices;\r\n\r\nvarying highp vec2 texCoord;\r\nvarying highp vec3 normal;\r\n\r\nmat4 getJointMatrix(float j) {\r\n    float v0 = (j * 4.0 + 0.5) / 1024.0;\r\n    float v1 = (j * 4.0 + 1.5) / 1024.0;\r\n    float v2 = (j * 4.0 + 2.5) / 1024.0;\r\n    float v3 = (j * 4.0 + 3.5) / 1024.0;\r\n\r\n    vec4 p0 = texture2D(matrices, vec2(v0, 0.5));\r\n    vec4 p1 = texture2D(matrices, vec2(v1, 0.5));\r\n    vec4 p2 = texture2D(matrices, vec2(v2, 0.5));\r\n    vec4 p3 = texture2D(matrices, vec2(v3, 0.5));\r\n\r\n    return mat4(p0, p1, p2, p3);\r\n}\r\n\r\nvoid main(void) {\r\n    mat4 skinningMatrix =\r\n        getJointMatrix(j[0]) * w[0] +\r\n        getJointMatrix(j[1]) * w[1] +\r\n        getJointMatrix(j[2]) * w[2] +\r\n        getJointMatrix(j[3]) * w[3];\r\n\r\n    gl_Position = mvp * skinningMatrix * vec4(p, 1.0);\r\n\r\n    texCoord = uv;\r\n    normal = (skinningMatrix * vec4(n, 0.0)).xyz;\r\n}";
 
 var skinningFrag = "precision highp float;\r\n\r\nvarying highp vec2 texCoord;\r\nvarying highp vec3 normal;\r\n\r\nuniform sampler2D texture;\r\n\r\nvoid main(void) {\r\n    vec3 lightDir = vec3(0, 0, 1);\r\n    vec3 lightColor = vec3(1.0);\r\n\r\n    float diff = max(dot(normal, lightDir), 0.0);\r\n    vec3 diffuse = diff * lightColor;\r\n\r\n    float ambient = 0.5;\r\n    vec3 objectColor = texture2D(texture, texCoord).rgb;\r\n    vec3 result = min(ambient + diffuse, 1.0) * objectColor;\r\n\r\n    gl_FragColor = vec4(result, 1.0);\r\n}";
 
-function calculateSkinningMatrices(model, animation, s, buffer) {
+function calculateSkinningMatrices(skin, animation, s, buffer) {
     const worldMatrices = new Array(HUMAN_BONES_COUNT);
     const globalMatrices = new Array(HUMAN_BONES_COUNT);
     for (let boneId = HUMAN_BONES_START; boneId < HUMAN_BONES_START + HUMAN_BONES_COUNT; boneId++) {
-        const boneParentIndex = model.getBoneParentIndex(boneId);
-        const boneIndex = model.getBoneIndex(boneId);
+        const boneParentIndex = skin.getBoneParentIndex(boneId);
+        const boneIndex = skin.getBoneIndex(boneId);
         if (boneIndex === undefined) {
             throw new Error("Unknown bone");
         }
-        const bone = model.bones[boneIndex];
-        const invMatrix = model.inverseMatrices[boneIndex];
+        const bone = skin.bones[boneIndex];
+        const invMatrix = skin.inverseMatrices[boneIndex];
         const rotation = animation.getRotation(boneId, s);
         const worldMatrix = create$5();
         fromRotationTranslation$1(worldMatrix, rotation, bone.translation);
@@ -8048,21 +8099,25 @@ function calculateSkinningMatrices(model, animation, s, buffer) {
         mul$5(worldMatrix, worldMatrix, invMatrix);
         worldMatrices[boneIndex] = worldMatrix;
     }
-    const result = new Float32Array(buffer, 0, model.bones.length * 16);
-    for (let boneIndex = 0; boneIndex < model.bones.length; boneIndex++) {
+    const result = new Float32Array(buffer, 0, skin.bones.length * 16);
+    for (let boneIndex = 0; boneIndex < skin.bones.length; boneIndex++) {
         result.set(worldMatrices[boneIndex], boneIndex * 16);
     }
     return result;
 }
 
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 const ANIMATION_TEXTURE_SIZE = 1024;
+const UP = fromValues$4(0, 0, 1);
 class Render {
     canvas;
     gl;
     generalShader;
+    objectsShader;
     skinningShader;
     matrices;
     matricesBuffer;
+    viewMatrix;
     projectionMatrix;
     constructor() {
         this.canvas = document.createElement("canvas");
@@ -8083,7 +8138,15 @@ class Render {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
         this.projectionMatrix = create$5();
+        this.viewMatrix = create$5();
         this.generalShader = compileShader(gl, generalVert, generalFrag, ["p", "n", "mvp"]);
+        this.objectsShader = compileShader(gl, objectsVert, objectsFrag, [
+            "p",
+            "n",
+            "uv",
+            "mvp",
+            "texture",
+        ]);
         this.skinningShader = compileShader(gl, skinningVert, skinningFrag, [
             "p",
             "n",
@@ -8112,50 +8175,82 @@ class Render {
         gl.disable(gl.CULL_FACE);
         gl.enable(gl.DEPTH_TEST);
     }
-    drawModel(model, tex, animation, s, position) {
+    setCamera(pos, lookAt$1) {
+        lookAt(this.viewMatrix, lookAt$1, pos, UP);
+    }
+    drawSkin(skin, tex, animation, s, position) {
         const { gl, skinningShader } = this;
-        gl.bindBuffer(gl.ARRAY_BUFFER, model.vertices);
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, model.indices);
-        defineModelVertexBuffer(gl, skinningShader);
+        gl.bindBuffer(gl.ARRAY_BUFFER, skin.vertices);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, skin.indices);
+        defineVertexBuffer(gl, skinningShader, SKIN_ATTRIBUTES, SKIN_STRIDE);
         gl.useProgram(skinningShader.program);
-        const viewMatrix = create$5();
-        lookAt(viewMatrix, fromValues$4(3, -3, 1), fromValues$4(0, 0, 1), fromValues$4(0, 0, 1));
         const mvp = create$5();
         multiply$5(mvp, mvp, this.projectionMatrix);
-        multiply$5(mvp, mvp, viewMatrix);
+        multiply$5(mvp, mvp, this.viewMatrix);
         translate$1(mvp, mvp, position);
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, tex);
         gl.activeTexture(gl.TEXTURE1);
         gl.bindTexture(gl.TEXTURE_2D, this.matrices);
-        const matricesData = calculateSkinningMatrices(model, animation, s, this.matricesBuffer.buffer);
+        const matricesData = calculateSkinningMatrices(skin, animation, s, this.matricesBuffer.buffer);
         gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, matricesData.length / 4, 1, gl.RGBA, gl.FLOAT, matricesData);
         gl.uniformMatrix4fv(skinningShader.mvp, false, mvp);
         gl.uniform1i(skinningShader.texture, 0);
         gl.uniform1i(skinningShader.matrices, 1);
+        gl.drawElements(gl.TRIANGLES, skin.indexCount, gl.UNSIGNED_SHORT, 0);
+    }
+    drawModel(model, tex, position) {
+        const { gl, objectsShader } = this;
+        gl.bindBuffer(gl.ARRAY_BUFFER, model.vertices);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, model.indices);
+        defineVertexBuffer(gl, objectsShader, MODEL_ATTRIBUTES, MODEL_STRIDE);
+        gl.useProgram(objectsShader.program);
+        const mvp = create$5();
+        multiply$5(mvp, mvp, this.projectionMatrix);
+        multiply$5(mvp, mvp, this.viewMatrix);
+        translate$1(mvp, mvp, position);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.uniformMatrix4fv(objectsShader.mvp, false, mvp);
+        gl.uniform1i(objectsShader.texture, 0);
         gl.drawElements(gl.TRIANGLES, model.indexCount, gl.UNSIGNED_SHORT, 0);
     }
 }
 
 let render;
-let model;
-let model2;
-let tex;
+let skin1;
+let skin2;
+let tex1;
 let tex2;
+let blank;
 let animation;
+let halfSphere;
+let cylinder;
+let capsule;
 async function main() {
     render = new Render();
-    model = await loadModelFromURL(render.gl, "/chel.bin");
-    tex = await loadTexture(render.gl, "/chel.png");
-    model2 = await loadModelFromURL(render.gl, "/man.bin");
-    tex2 = await loadTexture(render.gl, "/man.png");
-    animation = await loadAnimationFromURL("/run.bin");
+    skin1 = await loadSkinFromURL(render.gl, "build/chel.bin");
+    tex1 = await loadTexture(render.gl, "build/chel.png");
+    skin2 = await loadSkinFromURL(render.gl, "build/man.bin");
+    tex2 = await loadTexture(render.gl, "build/man.png");
+    animation = await loadAnimationFromURL("build/run.bin");
+    blank = await loadTexture(render.gl, "build/blank.png");
+    halfSphere = await loadModelFromURL(render.gl, "build/half_sphere.mdl");
+    cylinder = await loadModelFromURL(render.gl, "build/cylinder.mdl");
+    capsule = await loadModelFromURL(render.gl, "build/capsule.mdl");
     requestAnimationFrame(tick);
 }
+let a = 0;
+document.body.onmousemove = e => (a = (e.clientX / document.body.clientWidth) * 3.14);
 function tick(time) {
+    render.setCamera(fromValues$4(0, 0, 1), fromValues$4(Math.cos(a) * 5, Math.sin(a) * -5, 1));
+    const t = time / 10000;
     render.beginRender();
-    render.drawModel(model, tex, animation, time / 10000, fromValues$4(1, 0, 0));
-    render.drawModel(model2, tex2, animation, time / 10000, fromValues$4(-1, 0, 0));
+    render.drawSkin(skin1, tex1, animation, t, fromValues$4(1, 0, 0));
+    render.drawSkin(skin2, tex2, animation, t, fromValues$4(-1, 0, 0));
+    render.drawModel(halfSphere, blank, fromValues$4(0, -1, 0));
+    render.drawModel(cylinder, blank, fromValues$4(0, -1, -0.5));
+    render.drawModel(capsule, blank, fromValues$4(0, 0, -0.5));
     requestAnimationFrame(tick);
 }
 main();

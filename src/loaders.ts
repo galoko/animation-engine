@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { vec3, quat, mat4 } from "gl-matrix"
 import { CompiledShader } from "./render-utils"
 
@@ -66,13 +67,21 @@ export function getHumanBoneParent(id: number): number | undefined {
     return HUMAN_SKELETON.get(id)
 }
 
+export class Model {
+    constructor(
+        readonly vertices: WebGLBuffer,
+        readonly vertexCount: number,
+        readonly indices: WebGLBuffer,
+        readonly indexCount: number
+    ) {}
+}
+
 export class Bone {
     id: number
     translation: vec3
     rotation: quat
 }
-
-export class Model {
+export class Skin {
     readonly inverseMatrices: mat4[]
     readonly boneIdToBoneIndex: Map<number, number>
 
@@ -204,7 +213,37 @@ export class Animation {
     }
 }
 
-const ATTRIBUTES = [
+type AttributeDef = {
+    name: string
+    size: number
+}
+
+export function defineVertexBuffer(
+    gl: WebGLRenderingContext,
+    shader: CompiledShader,
+    attributes: AttributeDef[],
+    stride: number
+): void {
+    let offset = 0
+    for (const attr of attributes) {
+        const attrNum = shader[attr.name] as number
+        if (attrNum !== undefined) {
+            gl.vertexAttribPointer(
+                attrNum,
+                attr.size,
+                gl.FLOAT,
+                false,
+                stride * Float32Array.BYTES_PER_ELEMENT,
+                offset * Float32Array.BYTES_PER_ELEMENT
+            )
+            gl.enableVertexAttribArray(attrNum)
+        }
+
+        offset += attr.size
+    }
+}
+
+export const SKIN_ATTRIBUTES: AttributeDef[] = [
     {
         name: "p",
         size: 3,
@@ -226,39 +265,19 @@ const ATTRIBUTES = [
         size: 4,
     },
 ]
-const MODEL_STRIDE = ATTRIBUTES.reduce((acum, value) => acum + value.size, 0)
-
-export function defineModelVertexBuffer(gl: WebGLRenderingContext, shader: CompiledShader): void {
-    let offset = 0
-    for (const attr of ATTRIBUTES) {
-        const attrNum = shader[attr.name] as number
-        if (attrNum !== undefined) {
-            gl.vertexAttribPointer(
-                attrNum,
-                attr.size,
-                gl.FLOAT,
-                false,
-                MODEL_STRIDE * Float32Array.BYTES_PER_ELEMENT,
-                offset * Float32Array.BYTES_PER_ELEMENT
-            )
-            gl.enableVertexAttribArray(attrNum)
-        }
-
-        offset += attr.size
-    }
-}
+export const SKIN_STRIDE = SKIN_ATTRIBUTES.reduce((acum, value) => acum + value.size, 0)
 
 const BONE_STRIDE = 1 + 3 + 4
 
-export function loadModel(gl: WebGLRenderingContext, data: ArrayBuffer): Model {
+export function loadSkin(gl: WebGLRenderingContext, data: ArrayBuffer): Skin {
     const header = new Uint32Array(data, 0, 3)
     const [vertexCount, indexCount, boneCount] = header
     const indices = new Uint16Array(data, 3 * 4, indexCount)
     const floatPosition = Math.ceil((3 * 4 + indexCount * 2) / 4) * 4
-    const vertices = new Float32Array(data, floatPosition, MODEL_STRIDE * vertexCount)
+    const vertices = new Float32Array(data, floatPosition, SKIN_STRIDE * vertexCount)
     const boneData = new Float32Array(
         data,
-        floatPosition + MODEL_STRIDE * vertexCount * 4,
+        floatPosition + SKIN_STRIDE * vertexCount * 4,
         boneCount * BONE_STRIDE
     )
 
@@ -289,14 +308,14 @@ export function loadModel(gl: WebGLRenderingContext, data: ArrayBuffer): Model {
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer)
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW)
 
-    const model = new Model(vertexBuffer, vertexCount, indexBuffer, indexCount, bones)
+    const skin = new Skin(vertexBuffer, vertexCount, indexBuffer, indexCount, bones)
 
-    return model
+    return skin
 }
 
-export async function loadModelFromURL(gl: WebGLRenderingContext, url: string): Promise<Model> {
+export async function loadSkinFromURL(gl: WebGLRenderingContext, url: string): Promise<Skin> {
     const data = await (await fetch(url)).arrayBuffer()
-    return loadModel(gl, data)
+    return loadSkin(gl, data)
 }
 
 export function loadAnimation(data: ArrayBuffer) {
@@ -358,4 +377,47 @@ export async function loadTexture(gl: WebGLRenderingContext, url: string): Promi
         }
         image.src = url
     })
+}
+
+export const MODEL_ATTRIBUTES: AttributeDef[] = [
+    {
+        name: "p",
+        size: 3,
+    },
+    {
+        name: "n",
+        size: 3,
+    },
+    {
+        name: "uv",
+        size: 2,
+    },
+]
+
+export const MODEL_STRIDE = MODEL_ATTRIBUTES.reduce((acum, value) => acum + value.size, 0)
+
+export function loadModel(gl: WebGLRenderingContext, data: ArrayBuffer): Model {
+    const header = new Uint32Array(data, 0, 2)
+    const [vertexCount, indexCount] = header
+
+    const indices = new Uint16Array(data, 2 * 4, indexCount)
+    const floatPosition = Math.ceil((2 * 4 + indexCount * 2) / 4) * 4
+    const vertices = new Float32Array(data, floatPosition, MODEL_STRIDE * vertexCount)
+
+    const vertexBuffer = gl.createBuffer()!
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer)
+    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW)
+
+    const indexBuffer = gl.createBuffer()!
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer)
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW)
+
+    const model = new Model(vertexBuffer, vertexCount, indexBuffer, indexCount)
+
+    return model
+}
+
+export async function loadModelFromURL(gl: WebGLRenderingContext, url: string): Promise<Model> {
+    const data = await (await fetch(url)).arrayBuffer()
+    return loadModel(gl, data)
 }

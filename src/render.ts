@@ -1,36 +1,48 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import {
     CompiledShader,
     compileShader,
     create3DContextWithWrapperThatThrowsOnGLError,
 } from "./render-utils"
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
+
 import generalVert from "./shaders/general.vert"
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
 import generalFrag from "./shaders/general.frag"
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
+
+import objectsVert from "./shaders/objects.vert"
+import objectsFrag from "./shaders/objects.frag"
+
 import skinningVert from "./shaders/skinning.vert"
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
 import skinningFrag from "./shaders/skinning.frag"
-import { defineModelVertexBuffer, Model, Animation } from "./model-loader"
+
+import {
+    defineVertexBuffer,
+    Skin,
+    Animation,
+    SKIN_ATTRIBUTES,
+    MODEL_ATTRIBUTES,
+    Model,
+    MODEL_STRIDE,
+    SKIN_STRIDE,
+} from "./loaders"
 import { mat4, vec3 } from "gl-matrix"
 import { calculateSkinningMatrices } from "./animation-processor"
 
 const ANIMATION_TEXTURE_SIZE = 1024
+
+const UP = vec3.fromValues(0, 0, 1)
 
 export class Render {
     private readonly canvas: HTMLCanvasElement
     public readonly gl: WebGLRenderingContext
 
     private readonly generalShader: CompiledShader
+    private readonly objectsShader: CompiledShader
     private readonly skinningShader: CompiledShader
 
     private readonly matrices: WebGLTexture
     private readonly matricesBuffer: Float32Array
 
+    private readonly viewMatrix: mat4
     private readonly projectionMatrix: mat4
 
     constructor() {
@@ -69,7 +81,16 @@ export class Render {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
 
         this.projectionMatrix = mat4.create()
+        this.viewMatrix = mat4.create()
+
         this.generalShader = compileShader(gl, generalVert, generalFrag, ["p", "n", "mvp"])
+        this.objectsShader = compileShader(gl, objectsVert, objectsFrag, [
+            "p",
+            "n",
+            "uv",
+            "mvp",
+            "texture",
+        ])
         this.skinningShader = compileShader(gl, skinningVert, skinningFrag, [
             "p",
             "n",
@@ -114,27 +135,23 @@ export class Render {
         gl.enable(gl.DEPTH_TEST)
     }
 
-    drawModel(model: Model, tex: WebGLTexture, animation: Animation, s: number, position: vec3) {
+    setCamera(pos: vec3, lookAt: vec3): void {
+        mat4.lookAt(this.viewMatrix, lookAt, pos, UP)
+    }
+
+    drawSkin(skin: Skin, tex: WebGLTexture, animation: Animation, s: number, position: vec3) {
         const { gl, skinningShader } = this
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, model.vertices)
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, model.indices)
+        gl.bindBuffer(gl.ARRAY_BUFFER, skin.vertices)
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, skin.indices)
 
-        defineModelVertexBuffer(gl, skinningShader)
+        defineVertexBuffer(gl, skinningShader, SKIN_ATTRIBUTES, SKIN_STRIDE)
 
         gl.useProgram(skinningShader.program)
 
-        const viewMatrix = mat4.create()
-        mat4.lookAt(
-            viewMatrix,
-            vec3.fromValues(3, -3, 1),
-            vec3.fromValues(0, 0, 1),
-            vec3.fromValues(0, 0, 1)
-        )
-
         const mvp = mat4.create()
         mat4.multiply(mvp, mvp, this.projectionMatrix)
-        mat4.multiply(mvp, mvp, viewMatrix)
+        mat4.multiply(mvp, mvp, this.viewMatrix)
         mat4.translate(mvp, mvp, position)
 
         gl.activeTexture(gl.TEXTURE0)
@@ -144,7 +161,7 @@ export class Render {
         gl.bindTexture(gl.TEXTURE_2D, this.matrices)
 
         const matricesData = calculateSkinningMatrices(
-            model,
+            skin,
             animation,
             s,
             this.matricesBuffer.buffer
@@ -164,6 +181,30 @@ export class Render {
         gl.uniformMatrix4fv(skinningShader.mvp, false, mvp)
         gl.uniform1i(skinningShader.texture, 0)
         gl.uniform1i(skinningShader.matrices, 1)
+
+        gl.drawElements(gl.TRIANGLES, skin.indexCount, gl.UNSIGNED_SHORT, 0)
+    }
+
+    drawModel(model: Model, tex: WebGLTexture, position: vec3) {
+        const { gl, objectsShader } = this
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, model.vertices)
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, model.indices)
+
+        defineVertexBuffer(gl, objectsShader, MODEL_ATTRIBUTES, MODEL_STRIDE)
+
+        gl.useProgram(objectsShader.program)
+
+        const mvp = mat4.create()
+        mat4.multiply(mvp, mvp, this.projectionMatrix)
+        mat4.multiply(mvp, mvp, this.viewMatrix)
+        mat4.translate(mvp, mvp, position)
+
+        gl.activeTexture(gl.TEXTURE0)
+        gl.bindTexture(gl.TEXTURE_2D, tex)
+
+        gl.uniformMatrix4fv(objectsShader.mvp, false, mvp)
+        gl.uniform1i(objectsShader.texture, 0)
 
         gl.drawElements(gl.TRIANGLES, model.indexCount, gl.UNSIGNED_SHORT, 0)
     }

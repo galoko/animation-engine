@@ -1,8 +1,8 @@
 import { mat4 } from "gl-matrix"
-import { Model, Animation, HUMAN_BONES_START, HUMAN_BONES_COUNT } from "./model-loader"
+import { Skin, Animation, HUMAN_BONES_START, HUMAN_BONES_COUNT } from "./loaders"
 
 export function calculateSkinningMatrices(
-    model: Model,
+    skin: Skin,
     animation: Animation,
     s: number,
     buffer: ArrayBuffer
@@ -11,16 +11,16 @@ export function calculateSkinningMatrices(
     const globalMatrices = new Array(HUMAN_BONES_COUNT)
 
     for (let boneId = HUMAN_BONES_START; boneId < HUMAN_BONES_START + HUMAN_BONES_COUNT; boneId++) {
-        const boneParentIndex = model.getBoneParentIndex(boneId)
+        const boneParentIndex = skin.getBoneParentIndex(boneId)
 
-        const boneIndex = model.getBoneIndex(boneId)
+        const boneIndex = skin.getBoneIndex(boneId)
         if (boneIndex === undefined) {
             throw new Error("Unknown bone")
         }
 
-        const bone = model.bones[boneIndex]
+        const bone = skin.bones[boneIndex]
 
-        const invMatrix = model.inverseMatrices[boneIndex]
+        const invMatrix = skin.inverseMatrices[boneIndex]
 
         const rotation = animation.getRotation(boneId, s)
 
@@ -38,8 +38,8 @@ export function calculateSkinningMatrices(
         worldMatrices[boneIndex] = worldMatrix
     }
 
-    const result = new Float32Array(buffer, 0, model.bones.length * 16)
-    for (let boneIndex = 0; boneIndex < model.bones.length; boneIndex++) {
+    const result = new Float32Array(buffer, 0, skin.bones.length * 16)
+    for (let boneIndex = 0; boneIndex < skin.bones.length; boneIndex++) {
         result.set(worldMatrices[boneIndex], boneIndex * 16)
     }
 

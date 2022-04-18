@@ -28,7 +28,7 @@ export default {
             main: true,
         }),
         commonjs({ include: ["node_modules/**"] }),
-        serve("build"),
+        serve("."),
         livereload("build"),
     ],
 }
