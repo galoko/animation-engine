@@ -89,7 +89,7 @@ var generalFrag = "varying lowp vec3 normal;\r\n\r\nvoid main(void) {\r\n    gl_
 
 var objectsVert = "attribute vec3 p;\r\nattribute vec3 n;\r\nattribute vec2 uv;\r\n\r\nuniform mat4 mvp;\r\n\r\nvarying highp vec2 texCoord;\r\nvarying highp vec3 normal;\r\n\r\nvoid main(void) {\r\n    gl_Position = mvp * vec4(p, 1.0);\r\n\r\n    texCoord = uv;\r\n    normal = n;\r\n}";
 
-var objectsFrag = "precision highp float;\r\n\r\nvarying highp vec2 texCoord;\r\nvarying highp vec3 normal;\r\n\r\nuniform sampler2D texture;\r\n\r\nvoid main(void) {\r\n    vec3 lightDir = vec3(0, 1, 1);\r\n    vec3 lightColor = vec3(1.0);\r\n\r\n    float diff = max(dot(normal, lightDir), 0.0);\r\n    vec3 diffuse = diff * lightColor;\r\n\r\n    float ambient = 0.5;\r\n    vec3 objectColor = texture2D(texture, texCoord).rgb;\r\n    vec3 result = min(ambient + diffuse, 1.0) * objectColor;\r\n\r\n    gl_FragColor = vec4(result, 1.0);\r\n}";
+var objectsFrag = "precision highp float;\r\n\r\nvarying highp vec2 texCoord;\r\nvarying highp vec3 normal;\r\n\r\nuniform sampler2D texture;\r\n\r\nvoid main(void) {\r\n    vec3 lightDir = normalize(vec3(0.656, 0.3, 0.14));\r\n    vec3 lightColor = vec3(1.0);\r\n\r\n    float diff = max(dot(normal, lightDir), 0.0);\r\n    vec3 diffuse = diff * lightColor;\r\n\r\n    float ambient = 0.5;\r\n    vec3 objectColor = texture2D(texture, texCoord).rgb;\r\n    vec3 result = min(ambient + diffuse, 1.0) * objectColor;\r\n\r\n    gl_FragColor = vec4(result, 1.0);\r\n}";
 
 var skinningVert = "attribute vec3 p;\r\nattribute vec3 n;\r\nattribute vec2 uv;\r\n\r\nattribute vec4 w;\r\nattribute vec4 j;\r\n\r\nuniform mat4 mvp;\r\nuniform sampler2D matrices;\r\n\r\nvarying highp vec2 texCoord;\r\nvarying highp vec3 normal;\r\n\r\nmat4 getJointMatrix(float j) {\r\n    float v0 = (j * 4.0 + 0.5) / 1024.0;\r\n    float v1 = (j * 4.0 + 1.5) / 1024.0;\r\n    float v2 = (j * 4.0 + 2.5) / 1024.0;\r\n    float v3 = (j * 4.0 + 3.5) / 1024.0;\r\n\r\n    vec4 p0 = texture2D(matrices, vec2(v0, 0.5));\r\n    vec4 p1 = texture2D(matrices, vec2(v1, 0.5));\r\n    vec4 p2 = texture2D(matrices, vec2(v2, 0.5));\r\n    vec4 p3 = texture2D(matrices, vec2(v3, 0.5));\r\n\r\n    return mat4(p0, p1, p2, p3);\r\n}\r\n\r\nvoid main(void) {\r\n    mat4 skinningMatrix =\r\n        getJointMatrix(j[0]) * w[0] +\r\n        getJointMatrix(j[1]) * w[1] +\r\n        getJointMatrix(j[2]) * w[2] +\r\n        getJointMatrix(j[3]) * w[3];\r\n\r\n    gl_Position = mvp * skinningMatrix * vec4(p, 1.0);\r\n\r\n    texCoord = uv;\r\n    normal = (skinningMatrix * vec4(n, 0.0)).xyz;\r\n}";
 
@@ -7975,6 +7975,56 @@ class Model {
     }
 }
 
+class Component {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    static ID = undefined;
+    owner;
+    constructor() {
+        //
+    }
+}
+
+class TransformComponent extends Component {
+    transform;
+    static ID = "transform";
+    constructor(transform) {
+        super();
+        this.transform = transform;
+    }
+}
+
+let Services;
+function setServices(value) {
+    if (Services != null) {
+        throw new Error("Services are set twice.");
+    }
+    Services = value;
+}
+
+class ModelComponent extends Component {
+    static ID = "model";
+    model;
+    constructor(texName) {
+        super();
+        this.loadModel(texName);
+    }
+    async loadModel(texName) {
+        this.model = await Services.resources.requireModel(texName);
+    }
+}
+
+class TextureComponent extends Component {
+    static ID = "texture";
+    texture;
+    constructor(texName) {
+        super();
+        this.loadTexture(texName);
+    }
+    async loadTexture(texName) {
+        this.texture = await Services.resources.requireTexture(texName);
+    }
+}
+
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 const ANIMATION_TEXTURE_SIZE = 1024;
 const UP = fromValues$4(0, 0, 1);
@@ -8056,7 +8106,25 @@ class Render {
         }
     }
     setCamera(pos, lookAt$1) {
-        lookAt(this.viewMatrix, lookAt$1, pos, UP);
+        lookAt(this.viewMatrix, pos, lookAt$1, UP);
+    }
+    drawModel(model, tex, transform) {
+        const { gl, objectsShader } = this;
+        gl.bindBuffer(gl.ARRAY_BUFFER, model.vertices);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, model.indices);
+        this.defineVertexBuffer(gl, objectsShader, Model.ATTRIBUTES, Model.STRIDE);
+        gl.useProgram(objectsShader.program);
+        const modelMatrix = create$5();
+        fromRotationTranslationScale(modelMatrix, transform.rotation, transform.pos, transform.size);
+        const mvp = create$5();
+        multiply$5(mvp, mvp, this.projectionMatrix);
+        multiply$5(mvp, mvp, this.viewMatrix);
+        multiply$5(mvp, mvp, modelMatrix);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.uniformMatrix4fv(objectsShader.mvp, false, mvp);
+        gl.uniform1i(objectsShader.texture, 0);
+        gl.drawElements(gl.TRIANGLES, model.indexCount, gl.UNSIGNED_SHORT, 0);
     }
     drawSkin(skin, tex, animation, s, position) {
         const { gl, skinningShader } = this;
@@ -8079,27 +8147,22 @@ class Render {
         gl.uniform1i(skinningShader.matrices, 1);
         gl.drawElements(gl.TRIANGLES, skin.indexCount, gl.UNSIGNED_SHORT, 0);
     }
-    drawModel(model, tex, position) {
-        const { gl, objectsShader } = this;
-        gl.bindBuffer(gl.ARRAY_BUFFER, model.vertices);
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, model.indices);
-        this.defineVertexBuffer(gl, objectsShader, Model.ATTRIBUTES, Model.STRIDE);
-        gl.useProgram(objectsShader.program);
-        const mvp = create$5();
-        multiply$5(mvp, mvp, this.projectionMatrix);
-        multiply$5(mvp, mvp, this.viewMatrix);
-        translate$1(mvp, mvp, position);
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, tex);
-        gl.uniformMatrix4fv(objectsShader.mvp, false, mvp);
-        gl.uniform1i(objectsShader.texture, 0);
-        gl.drawElements(gl.TRIANGLES, model.indexCount, gl.UNSIGNED_SHORT, 0);
+    add(entity) {
+        const transform = entity.get(TransformComponent);
+        const model = entity.get(ModelComponent);
+        const texture = entity.get(TextureComponent);
+        if (transform && model && texture) {
+            this.models.add(entity);
+        }
     }
     draw() {
         const { gl } = this;
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         for (const entity of this.models) {
-            //
+            const transform = entity.get(TransformComponent);
+            const model = entity.get(ModelComponent);
+            const texture = entity.get(TextureComponent);
+            this.drawModel(model.model, texture.texture, transform.transform);
         }
     }
 }
@@ -8251,14 +8314,6 @@ async function loadModelFromURL(gl, url) {
     return loadModel(gl, data);
 }
 
-let Services;
-function setServices(value) {
-    if (Services != null) {
-        throw new Error("Services are set twice.");
-    }
-    Services = value;
-}
-
 var ResourceType;
 (function (ResourceType) {
     ResourceType[ResourceType["Texture"] = 0] = "Texture";
@@ -8268,26 +8323,44 @@ var ResourceType;
 })(ResourceType || (ResourceType = {}));
 // TODO implement cache
 class ResourceManager {
+    pendingList = [];
     getUrl(name, ext) {
         return `build/${name}.${ext}`;
     }
     async requireTexture(name) {
-        return loadTexture(Services.render.gl, this.getUrl(name, "png"));
+        let ext = "png";
+        const extIndex = name.lastIndexOf(".");
+        if (extIndex !== -1) {
+            ext = name.slice(extIndex + 1);
+            name = name.slice(0, extIndex);
+        }
+        const promise = loadTexture(Services.render.gl, this.getUrl(name, ext));
+        this.pendingList.push(promise);
+        return promise;
     }
     async requireModel(name) {
-        return loadModelFromURL(Services.render.gl, this.getUrl(name, "mdl"));
+        const promise = loadModelFromURL(Services.render.gl, this.getUrl(name, "mdl"));
+        this.pendingList.push(promise);
+        return promise;
     }
     async requireSkin(name) {
-        return loadSkinFromURL(Services.render.gl, this.getUrl(name, "skn"));
+        const promise = loadSkinFromURL(Services.render.gl, this.getUrl(name, "skn"));
+        this.pendingList.push(promise);
+        return promise;
     }
     async requireAnimation(name) {
-        return loadAnimationFromURL(this.getUrl(name, "anm"));
+        const promise = loadAnimationFromURL(this.getUrl(name, "anm"));
+        this.pendingList.push(promise);
+        return promise;
+    }
+    async waitForLoading() {
+        return Promise.all(this.pendingList);
     }
 }
 
 class World {
     add(entity) {
-        //
+        Services.render.add(entity);
     }
 }
 
@@ -8306,20 +8379,115 @@ class GameLoop {
     }
 }
 
+class CollisionComponent extends Component {
+    collisionPrimitive;
+    static ID = "collision";
+    constructor(collisionPrimitive) {
+        super();
+        this.collisionPrimitive = collisionPrimitive;
+    }
+}
+
+class Entity {
+    components = [];
+    registerComponent(component) {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        const id = component.constructor.ID;
+        if (this.components[id] != null) {
+            throw new Error("Component is already registered.");
+        }
+        this.components[id] = component;
+    }
+    get(c) {
+        const id = c.ID;
+        return this.components[id] || null;
+    }
+}
+
+class Object$1 extends Entity {
+    constructor(transform, modelName, textureName, collisionPrimitive) {
+        super();
+        this.registerComponent(new TransformComponent(transform));
+        this.registerComponent(new ModelComponent(modelName));
+        this.registerComponent(new TextureComponent(textureName));
+        this.registerComponent(new CollisionComponent(collisionPrimitive));
+    }
+}
+
+class CollisionPrimitive {
+    ammoShape;
+    getAmmoShape(transform) {
+        if (this.ammoShape === undefined) {
+            this.ammoShape = this.update(transform);
+        }
+        return this.ammoShape;
+    }
+}
+class Capsule extends CollisionPrimitive {
+    update(transform) {
+        const { size } = transform;
+        return new Ammo.btCapsuleShape(0.5 * size[0], 1 * size[1]);
+    }
+}
+class Plane extends CollisionPrimitive {
+    update(transform) {
+        const { pos, size } = transform;
+        const p0 = new Ammo.btVector3(pos[0] - 0.5 * size[0], pos[1] - 0.5 * size[1], pos[2]);
+        const p1 = new Ammo.btVector3(pos[0] + 0.5 * size[0], pos[1] - 0.5 * size[1], pos[2]);
+        const p2 = new Ammo.btVector3(pos[0] - 0.5 * size[0], pos[1] + 0.5 * size[1], pos[2]);
+        const p3 = new Ammo.btVector3(pos[0] + 0.5 * size[0], pos[1] + 0.5 * size[1], pos[2]);
+        const trimesh = new Ammo.btTriangleMesh();
+        trimesh.addTriangle(p0, p1, p2, true);
+        trimesh.addTriangle(p1, p2, p3, true);
+        return new Ammo.btBvhTriangleMeshShape(trimesh, true);
+    }
+}
+
+class MapLoader {
+    async loadMap(mapName) {
+        if (mapName === "test") {
+            await this.loadTestMap();
+        }
+        else {
+            throw new Error("TODO");
+        }
+    }
+    loadTestMap() {
+        const ground = new Object$1({
+            pos: fromValues$4(0, 0, 0),
+            size: fromValues$4(5, 5, 1),
+            rotation: create$2(),
+        }, "plane", "grass.jpg", new Plane());
+        Services.world.add(ground);
+        const player = new Object$1({
+            pos: fromValues$4(0, 0, 1),
+            size: fromValues$4(1, 1, 1),
+            rotation: create$2(),
+        }, "capsule", "blank", new Capsule());
+        Services.world.add(player);
+        Services.render.setCamera(fromValues$4(3, 3, 3), fromValues$4(0, 0, 0));
+    }
+}
+
 class ServicesClass {
     render;
     physics;
     resources;
     world;
+    mapLoader;
     loop;
     constructor(options) {
         this.render = new Render();
         this.physics = new Physics(options.ammo);
         this.resources = new ResourceManager();
         this.world = new World();
+        this.mapLoader = new MapLoader();
         this.loop = new GameLoop();
     }
-    start() {
+    async start() {
+        await this.mapLoader.loadMap("test");
+        await this.resources.waitForLoading();
         this.loop.start();
     }
 }
@@ -8327,7 +8495,7 @@ class ServicesClass {
 async function main() {
     const ammo = await Ammo();
     setServices(new ServicesClass({ ammo }));
-    Services.start();
+    await Services.start();
 }
 main();
 //# sourceMappingURL=index.js.map

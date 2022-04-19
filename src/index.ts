@@ -6,7 +6,7 @@ async function main() {
 
     setServices(new ServicesClass({ ammo }))
 
-    Services.start()
+    await Services.start()
 }
 
 main()

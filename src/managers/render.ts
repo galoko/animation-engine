@@ -20,6 +20,9 @@ import { Skin } from "../models/skin"
 import { Model } from "../models/model"
 import { Animation } from "../models/animation"
 import { Entity } from "../entities/entity"
+import { TransformComponent, TransformData } from "../components/transformComponent"
+import { ModelComponent } from "../components/modelComponent"
+import { TextureComponent } from "../components/textureComponent"
 
 const ANIMATION_TEXTURE_SIZE = 1024
 
@@ -115,7 +118,7 @@ export class Render {
         this.handleResize()
     }
 
-    handleResize() {
+    private handleResize() {
         const { canvas, gl } = this
 
         canvas.style.width = document.body.clientWidth + "px"
@@ -161,10 +164,48 @@ export class Render {
     }
 
     setCamera(pos: vec3, lookAt: vec3): void {
-        mat4.lookAt(this.viewMatrix, lookAt, pos, UP)
+        mat4.lookAt(this.viewMatrix, pos, lookAt, UP)
     }
 
-    drawSkin(skin: Skin, tex: WebGLTexture, animation: Animation, s: number, position: vec3) {
+    private drawModel(model: Model, tex: WebGLTexture, transform: TransformData) {
+        const { gl, objectsShader } = this
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, model.vertices)
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, model.indices)
+
+        this.defineVertexBuffer(gl, objectsShader, Model.ATTRIBUTES, Model.STRIDE)
+
+        gl.useProgram(objectsShader.program)
+
+        const modelMatrix = mat4.create()
+        mat4.fromRotationTranslationScale(
+            modelMatrix,
+            transform.rotation,
+            transform.pos,
+            transform.size
+        )
+
+        const mvp = mat4.create()
+        mat4.multiply(mvp, mvp, this.projectionMatrix)
+        mat4.multiply(mvp, mvp, this.viewMatrix)
+        mat4.multiply(mvp, mvp, modelMatrix)
+
+        gl.activeTexture(gl.TEXTURE0)
+        gl.bindTexture(gl.TEXTURE_2D, tex)
+
+        gl.uniformMatrix4fv(objectsShader.mvp, false, mvp)
+        gl.uniform1i(objectsShader.texture, 0)
+
+        gl.drawElements(gl.TRIANGLES, model.indexCount, gl.UNSIGNED_SHORT, 0)
+    }
+
+    private drawSkin(
+        skin: Skin,
+        tex: WebGLTexture,
+        animation: Animation,
+        s: number,
+        position: vec3
+    ) {
         const { gl, skinningShader } = this
 
         gl.bindBuffer(gl.ARRAY_BUFFER, skin.vertices)
@@ -210,28 +251,14 @@ export class Render {
         gl.drawElements(gl.TRIANGLES, skin.indexCount, gl.UNSIGNED_SHORT, 0)
     }
 
-    drawModel(model: Model, tex: WebGLTexture, position: vec3) {
-        const { gl, objectsShader } = this
+    add(entity: Entity): void {
+        const transform = entity.get(TransformComponent)
+        const model = entity.get(ModelComponent)
+        const texture = entity.get(TextureComponent)
 
-        gl.bindBuffer(gl.ARRAY_BUFFER, model.vertices)
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, model.indices)
-
-        this.defineVertexBuffer(gl, objectsShader, Model.ATTRIBUTES, Model.STRIDE)
-
-        gl.useProgram(objectsShader.program)
-
-        const mvp = mat4.create()
-        mat4.multiply(mvp, mvp, this.projectionMatrix)
-        mat4.multiply(mvp, mvp, this.viewMatrix)
-        mat4.translate(mvp, mvp, position)
-
-        gl.activeTexture(gl.TEXTURE0)
-        gl.bindTexture(gl.TEXTURE_2D, tex)
-
-        gl.uniformMatrix4fv(objectsShader.mvp, false, mvp)
-        gl.uniform1i(objectsShader.texture, 0)
-
-        gl.drawElements(gl.TRIANGLES, model.indexCount, gl.UNSIGNED_SHORT, 0)
+        if (transform && model && texture) {
+            this.models.add(entity)
+        }
     }
 
     draw(): void {
@@ -239,7 +266,11 @@ export class Render {
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
         for (const entity of this.models) {
-            //
+            const transform = entity.get(TransformComponent)!
+            const model = entity.get(ModelComponent)!
+            const texture = entity.get(TextureComponent)!
+
+            this.drawModel(model.model!, texture.texture!, transform.transform)
         }
     }
 }

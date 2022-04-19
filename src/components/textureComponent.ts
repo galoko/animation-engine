@@ -1,4 +1,3 @@
-import { Entity } from "../entities/entity"
 import { Services } from "../managers/services"
 import { Component } from "./component"
 
@@ -7,8 +6,8 @@ export class TextureComponent extends Component {
 
     texture: WebGLTexture | undefined
 
-    constructor(entity: Entity, texName: string) {
-        super(entity)
+    constructor(texName: string) {
+        super()
         this.loadTexture(texName)
     }
 

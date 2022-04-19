@@ -6,7 +6,7 @@ varying highp vec3 normal;
 uniform sampler2D texture;
 
 void main(void) {
-    vec3 lightDir = vec3(0, 1, 1);
+    vec3 lightDir = normalize(vec3(0.656, 0.3, 0.14));
     vec3 lightColor = vec3(1.0);
 
     float diff = max(dot(normal, lightDir), 0.0);

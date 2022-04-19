@@ -13,23 +13,45 @@ export enum ResourceType {
 
 // TODO implement cache
 export class ResourceManager {
+    private pendingList: Promise<unknown>[] = []
+
     private getUrl(name: string, ext: string): string {
         return `build/${name}.${ext}`
     }
 
     async requireTexture(name: string): Promise<WebGLTexture> {
-        return loadTexture(Services.render.gl, this.getUrl(name, "png"))
+        let ext = "png"
+
+        const extIndex = name.lastIndexOf(".")
+        if (extIndex !== -1) {
+            ext = name.slice(extIndex + 1)
+            name = name.slice(0, extIndex)
+        }
+
+        const promise = loadTexture(Services.render.gl, this.getUrl(name, ext))
+        this.pendingList.push(promise)
+        return promise
     }
 
     async requireModel(name: string): Promise<Model> {
-        return loadModelFromURL(Services.render.gl, this.getUrl(name, "mdl"))
+        const promise = loadModelFromURL(Services.render.gl, this.getUrl(name, "mdl"))
+        this.pendingList.push(promise)
+        return promise
     }
 
     async requireSkin(name: string): Promise<Skin> {
-        return loadSkinFromURL(Services.render.gl, this.getUrl(name, "skn"))
+        const promise = loadSkinFromURL(Services.render.gl, this.getUrl(name, "skn"))
+        this.pendingList.push(promise)
+        return promise
     }
 
     async requireAnimation(name: string): Promise<Animation> {
-        return loadAnimationFromURL(this.getUrl(name, "anm"))
+        const promise = loadAnimationFromURL(this.getUrl(name, "anm"))
+        this.pendingList.push(promise)
+        return promise
+    }
+
+    async waitForLoading(): Promise<void> {
+        return Promise.all(this.pendingList) as unknown as Promise<void>
     }
 }

@@ -1,5 +1,10 @@
 import { Component } from "../components/component"
 
+interface ComponentClass<T> {
+    new (...args): T
+    ID: string
+}
+
 export class Entity {
     private components: Component[] = []
 
@@ -14,7 +19,7 @@ export class Entity {
         this.components[id] = component
     }
 
-    get<T extends Component>(c: typeof Component): T | null {
+    get<T extends Component>(c: ComponentClass<T>): T | null {
         const id = c.ID
 
         return (this.components[id] as T) || null
