@@ -270,7 +270,13 @@ export class Render {
             const model = entity.get(ModelComponent)!
             const texture = entity.get(TextureComponent)!
 
-            this.drawModel(model.model!, texture.texture!, transform.transform)
+            model.modelDef.update(transform.transform)
+
+            const modelEntities = model.modelDef.getEntries()
+
+            for (const modelEntry of modelEntities) {
+                this.drawModel(modelEntry.model, texture.texture!, modelEntry.transform)
+            }
         }
     }
 }

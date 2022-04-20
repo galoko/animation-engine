@@ -7984,6 +7984,13 @@ class Component {
     }
 }
 
+function cloneTransform(transform) {
+    return {
+        pos: clone$4(transform.pos),
+        size: clone$4(transform.size),
+        rotation: clone$2(transform.rotation),
+    };
+}
 class TransformComponent extends Component {
     transform;
     static ID = "transform";
@@ -7993,24 +8000,21 @@ class TransformComponent extends Component {
     }
 }
 
+class ModelComponent extends Component {
+    modelDef;
+    static ID = "model";
+    constructor(modelDef) {
+        super();
+        this.modelDef = modelDef;
+    }
+}
+
 let Services;
 function setServices(value) {
     if (Services != null) {
         throw new Error("Services are set twice.");
     }
     Services = value;
-}
-
-class ModelComponent extends Component {
-    static ID = "model";
-    model;
-    constructor(texName) {
-        super();
-        this.loadModel(texName);
-    }
-    async loadModel(texName) {
-        this.model = await Services.resources.requireModel(texName);
-    }
 }
 
 class TextureComponent extends Component {
@@ -8162,7 +8166,11 @@ class Render {
             const transform = entity.get(TransformComponent);
             const model = entity.get(ModelComponent);
             const texture = entity.get(TextureComponent);
-            this.drawModel(model.model, texture.texture, transform.transform);
+            model.modelDef.update(transform.transform);
+            const modelEntities = model.modelDef.getEntries();
+            for (const modelEntry of modelEntities) {
+                this.drawModel(modelEntry.model, texture.texture, modelEntry.transform);
+            }
         }
     }
 }
@@ -8406,10 +8414,10 @@ class Entity {
 }
 
 class Object$1 extends Entity {
-    constructor(transform, modelName, textureName, collisionPrimitive) {
+    constructor(transform, modelDef, textureName, collisionPrimitive) {
         super();
         this.registerComponent(new TransformComponent(transform));
-        this.registerComponent(new ModelComponent(modelName));
+        this.registerComponent(new ModelComponent(modelDef));
         this.registerComponent(new TextureComponent(textureName));
         this.registerComponent(new CollisionComponent(collisionPrimitive));
     }
@@ -8444,6 +8452,67 @@ class Plane extends CollisionPrimitive {
     }
 }
 
+class ModelDef {
+}
+
+class CapsuleModelDef extends ModelDef {
+    halfSphere;
+    cylinder;
+    entries;
+    constructor() {
+        super();
+        this.loadModels();
+    }
+    async loadModels() {
+        const [halfSphere, cylinder] = await Promise.all([
+            Services.resources.requireModel("half_sphere"),
+            Services.resources.requireModel("cylinder"),
+        ]);
+        this.entries = [
+            { model: halfSphere, transform: undefined },
+            { model: cylinder, transform: undefined },
+            { model: halfSphere, transform: undefined },
+        ];
+    }
+    update(transform) {
+        const height = transform.size[2];
+        this.entries[0].transform = cloneTransform(transform);
+        this.entries[0].transform.size[2] = 1;
+        this.entries[0].transform.pos[2] += (height - 1) / 2;
+        this.entries[1].transform = cloneTransform(transform);
+        this.entries[1].transform.size[2] -= 1;
+        this.entries[2].transform = cloneTransform(transform);
+        this.entries[2].transform.size[2] = -1;
+        this.entries[2].transform.pos[2] -= (height - 1) / 2;
+    }
+    getEntries() {
+        if (this.entries === undefined) {
+            throw new Error("Models are not loaded.");
+        }
+        return this.entries;
+    }
+}
+
+class SimpleModelDef {
+    model;
+    transform;
+    constructor(modelName) {
+        this.loadModel(modelName);
+    }
+    async loadModel(modelName) {
+        this.model = await Services.resources.requireModel(modelName);
+    }
+    update(transform) {
+        this.transform = transform;
+    }
+    getEntries() {
+        if (this.model === undefined || this.transform === undefined) {
+            throw new Error("Model is not loaded.");
+        }
+        return [{ model: this.model, transform: this.transform }];
+    }
+}
+
 class MapLoader {
     async loadMap(mapName) {
         if (mapName === "test") {
@@ -8458,15 +8527,15 @@ class MapLoader {
             pos: fromValues$4(0, 0, 0),
             size: fromValues$4(5, 5, 1),
             rotation: create$2(),
-        }, "plane", "grass.jpg", new Plane());
+        }, new SimpleModelDef("plane"), "grass.jpg", new Plane());
         Services.world.add(ground);
         const player = new Object$1({
             pos: fromValues$4(0, 0, 1),
-            size: fromValues$4(1, 1, 1),
+            size: fromValues$4(1, 1, 1.8),
             rotation: create$2(),
-        }, "capsule", "blank", new Capsule());
+        }, new CapsuleModelDef(), "blank", new Capsule());
         Services.world.add(player);
-        Services.render.setCamera(fromValues$4(3, 3, 3), fromValues$4(0, 0, 0));
+        Services.render.setCamera(fromValues$4(10, 10, 10), fromValues$4(0, 0, 0));
     }
 }
 
