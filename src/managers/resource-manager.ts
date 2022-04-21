@@ -28,7 +28,11 @@ export class ResourceManager {
             name = name.slice(0, extIndex)
         }
 
-        const promise = loadTexture(Services.render.gl, this.getUrl(name, ext))
+        const promise = loadTexture(
+            Services.render.gl,
+            Services.render.anisotropic,
+            this.getUrl(name, ext)
+        )
         this.pendingList.push(promise)
         return promise
     }

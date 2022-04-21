@@ -23,6 +23,7 @@ import { Entity } from "../entities/entity"
 import { TransformComponent, TransformData } from "../components/transformComponent"
 import { ModelComponent } from "../components/modelComponent"
 import { TextureComponent } from "../components/textureComponent"
+import { getModelOptions, ModelOptions } from "../models/model-def"
 
 const ANIMATION_TEXTURE_SIZE = 1024
 
@@ -35,6 +36,7 @@ export type AttributeDef = {
 
 export class Render {
     public readonly gl: WebGLRenderingContext
+    public readonly anisotropic: EXT_texture_filter_anisotropic | null
 
     private readonly generalShader: CompiledShader
     private readonly objectsShader: CompiledShader
@@ -90,6 +92,7 @@ export class Render {
             "uv",
             "mvp",
             "texture",
+            "texMul",
         ])
         this.skinningShader = compileShader(gl, skinningVert, skinningFrag, [
             "p",
@@ -106,6 +109,8 @@ export class Render {
 
         gl.disable(gl.CULL_FACE)
         gl.enable(gl.DEPTH_TEST)
+
+        this.anisotropic = gl.getExtension("EXT_texture_filter_anisotropic")
     }
 
     private handleResize() {
@@ -166,7 +171,12 @@ export class Render {
         mat4.lookAt(this.viewMatrix, pos, lookAt, UP)
     }
 
-    private drawModel(model: Model, tex: WebGLTexture, transform: TransformData) {
+    private drawModel(
+        model: Model,
+        tex: WebGLTexture,
+        options: ModelOptions,
+        transform: TransformData
+    ) {
         const { gl, objectsShader } = this
 
         gl.bindBuffer(gl.ARRAY_BUFFER, model.vertices)
@@ -194,6 +204,7 @@ export class Render {
 
         gl.uniformMatrix4fv(objectsShader.mvp, false, mvp)
         gl.uniform1i(objectsShader.texture, 0)
+        gl.uniform1f(objectsShader.texMul, options.texMul)
 
         gl.drawElements(gl.TRIANGLES, model.indexCount, gl.UNSIGNED_SHORT, 0)
     }
@@ -277,7 +288,12 @@ export class Render {
             const modelEntities = model.modelDef.getEntries()
 
             for (const modelEntry of modelEntities) {
-                this.drawModel(modelEntry.model, texture.texture!, modelEntry.transform)
+                this.drawModel(
+                    modelEntry.model,
+                    texture.texture!,
+                    getModelOptions(modelEntry.options),
+                    modelEntry.transform
+                )
             }
         }
     }

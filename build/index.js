@@ -87,7 +87,7 @@ var generalVert = "attribute vec3 p;\r\nattribute vec3 n;\r\n\r\nuniform mat4 mv
 
 var generalFrag = "varying lowp vec3 normal;\r\n\r\nvoid main(void) {\r\n    gl_FragColor = vec4(normal, 1.0);\r\n}";
 
-var objectsVert = "attribute vec3 p;\r\nattribute vec3 n;\r\nattribute vec2 uv;\r\n\r\nuniform mat4 mvp;\r\n\r\nvarying highp vec2 texCoord;\r\nvarying highp vec3 normal;\r\n\r\nvoid main(void) {\r\n    gl_Position = mvp * vec4(p, 1.0);\r\n\r\n    texCoord = uv;\r\n    normal = n;\r\n}";
+var objectsVert = "attribute vec3 p;\r\nattribute vec3 n;\r\nattribute vec2 uv;\r\n\r\nuniform mat4 mvp;\r\nuniform float texMul;\r\n\r\nvarying highp vec2 texCoord;\r\nvarying highp vec3 normal;\r\n\r\nvoid main(void) {\r\n    gl_Position = mvp * vec4(p, 1.0);\r\n\r\n    texCoord = uv * texMul;\r\n    normal = n;\r\n}";
 
 var objectsFrag = "precision highp float;\r\n\r\nvarying highp vec2 texCoord;\r\nvarying highp vec3 normal;\r\n\r\nuniform sampler2D texture;\r\n\r\nvoid main(void) {\r\n    vec3 lightDir = normalize(vec3(0.656, 0.3, 0.14));\r\n    vec3 lightColor = vec3(1.0);\r\n\r\n    float diff = max(dot(normal, lightDir), 0.0);\r\n    vec3 diffuse = diff * lightColor;\r\n\r\n    float ambient = 0.5;\r\n    vec3 objectColor = texture2D(texture, texCoord).rgb;\r\n    vec3 result = min(ambient + diffuse, 1.0) * objectColor;\r\n\r\n    gl_FragColor = vec4(result, 1.0);\r\n}";
 
@@ -8029,12 +8029,22 @@ class TextureComponent extends Component {
     }
 }
 
+const DEFAULT_MODEL_OPTIONS = {
+    texMul: 1,
+};
+function getModelOptions(options) {
+    return Object.assign({ ...DEFAULT_MODEL_OPTIONS }, options || {});
+}
+class ModelDef {
+}
+
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 const ANIMATION_TEXTURE_SIZE = 1024;
 const UP = fromValues$4(0, 0, 1);
 class Render {
     canvas;
     gl;
+    anisotropic;
     generalShader;
     objectsShader;
     skinningShader;
@@ -8071,6 +8081,7 @@ class Render {
             "uv",
             "mvp",
             "texture",
+            "texMul",
         ]);
         this.skinningShader = compileShader(gl, skinningVert, skinningFrag, [
             "p",
@@ -8085,6 +8096,7 @@ class Render {
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
         gl.disable(gl.CULL_FACE);
         gl.enable(gl.DEPTH_TEST);
+        this.anisotropic = gl.getExtension("EXT_texture_filter_anisotropic");
     }
     handleResize() {
         const { canvas, gl } = this;
@@ -8115,7 +8127,7 @@ class Render {
     setCamera(pos, lookAt$1) {
         lookAt(this.viewMatrix, pos, lookAt$1, UP);
     }
-    drawModel(model, tex, transform) {
+    drawModel(model, tex, options, transform) {
         const { gl, objectsShader } = this;
         gl.bindBuffer(gl.ARRAY_BUFFER, model.vertices);
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, model.indices);
@@ -8131,6 +8143,7 @@ class Render {
         gl.bindTexture(gl.TEXTURE_2D, tex);
         gl.uniformMatrix4fv(objectsShader.mvp, false, mvp);
         gl.uniform1i(objectsShader.texture, 0);
+        gl.uniform1f(objectsShader.texMul, options.texMul);
         gl.drawElements(gl.TRIANGLES, model.indexCount, gl.UNSIGNED_SHORT, 0);
     }
     drawSkin(skin, tex, animation, s, position) {
@@ -8173,7 +8186,7 @@ class Render {
             model.modelDef.update(transform.transform);
             const modelEntities = model.modelDef.getEntries();
             for (const modelEntry of modelEntities) {
-                this.drawModel(modelEntry.model, texture.texture, modelEntry.transform);
+                this.drawModel(modelEntry.model, texture.texture, getModelOptions(modelEntry.options), modelEntry.transform);
             }
         }
     }
@@ -8198,6 +8211,23 @@ class PhysicsComponent extends Component {
     }
 }
 
+const DEFAULT_PHYSICS_OPTIONS = {
+    isStatic: false,
+    noRotation: false,
+    mass: 1,
+    friction: 0.5,
+};
+function getPhysicsOptions(options) {
+    return Object.assign({ ...DEFAULT_PHYSICS_OPTIONS }, options || {});
+}
+class PhysicsDef {
+    options;
+    constructor(options) {
+        this.options = options;
+        //
+    }
+}
+
 class Physics {
     ammo;
     dynamicsWorld;
@@ -8219,25 +8249,22 @@ class Physics {
         const transfrom = entity.get(TransformComponent);
         if (physics && collision && transfrom) {
             const shape = collision.collisionPrimitive.getAmmoShape(transfrom.transform);
-            let mass = physics.physicsDef.options.mass || 1;
-            const { isStatic, noRotation } = physics.physicsDef.options;
-            let localInertia;
-            if (isStatic || noRotation) {
-                if (isStatic) {
-                    mass = 0;
-                }
-                localInertia = new Ammo.btVector3(0, 0, 0);
-            }
-            else {
-                localInertia = undefined;
-            }
-            const bodyTransform = new Ammo.btTransform();
+            const options = getPhysicsOptions(physics.physicsDef.options);
+            const { isStatic, noRotation } = options;
+            const localInertia = isStatic || noRotation ? new Ammo.btVector3(0, 0, 0) : undefined;
+            const mass = isStatic ? 0 : options.mass;
+            let bodyTransform = new Ammo.btTransform();
             bodyTransform.setIdentity();
             bodyTransform.setOrigin(new Ammo.btVector3(transfrom.transform.pos[0], transfrom.transform.pos[1], transfrom.transform.pos[2]));
             bodyTransform.setRotation(new Ammo.btQuaternion(transfrom.transform.rotation[0], transfrom.transform.rotation[1], transfrom.transform.rotation[2], transfrom.transform.rotation[3]));
+            const additionalTransform = collision.collisionPrimitive.getTransfrom();
+            if (additionalTransform) {
+                bodyTransform = bodyTransform.op_mul(additionalTransform);
+            }
             const myMotionState = new Ammo.btDefaultMotionState(bodyTransform);
             const rbInfo = new Ammo.btRigidBodyConstructionInfo(mass, myMotionState, shape, localInertia);
             const body = new Ammo.btRigidBody(rbInfo);
+            body.setFriction(options.friction);
             this.dynamicsWorld.addRigidBody(body);
             this.entities.add(entity);
             physics.body = body;
@@ -8361,17 +8388,29 @@ async function loadAnimationFromURL(url) {
     const data = await (await fetch(url)).arrayBuffer();
     return loadAnimation(data);
 }
-async function loadTexture(gl, url) {
+async function loadTexture(gl, anisotropic, url) {
     return new Promise(resolve => {
         const image = new Image();
         image.onload = () => {
             const texture = gl.createTexture();
             gl.bindTexture(gl.TEXTURE_2D, texture);
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            const isPowerOf2 = Math.ceil(Math.log2(image.width)) == Math.floor(Math.log2(image.width)) &&
+                Math.ceil(Math.log2(image.height)) == Math.floor(Math.log2(image.height));
+            if (isPowerOf2) {
+                gl.generateMipmap(gl.TEXTURE_2D);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+            }
+            else {
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            }
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+            if (anisotropic) {
+                const max = gl.getParameter(anisotropic.MAX_TEXTURE_MAX_ANISOTROPY_EXT);
+                gl.texParameterf(gl.TEXTURE_2D, anisotropic.TEXTURE_MAX_ANISOTROPY_EXT, max);
+            }
             resolve(texture);
         };
         image.src = url;
@@ -8417,7 +8456,7 @@ class ResourceManager {
             ext = name.slice(extIndex + 1);
             name = name.slice(0, extIndex);
         }
-        const promise = loadTexture(Services.render.gl, this.getUrl(name, ext));
+        const promise = loadTexture(Services.render.gl, Services.render.anisotropic, this.getUrl(name, ext));
         this.pendingList.push(promise);
         return promise;
     }
@@ -8456,7 +8495,9 @@ class GameLoop {
     }
     tick(time) {
         const dt = this.prevTime != undefined ? time - this.prevTime : 0;
+        Services.inputManager.tick(dt);
         Services.physics.tick(dt);
+        Services.inputManager.postPhysics();
         Services.render.draw();
         this.prevTime = time;
         requestAnimationFrame(this.tickBind);
@@ -8499,11 +8540,27 @@ class CollisionPrimitive {
         }
         return this.ammoShape;
     }
+    getTransfrom() {
+        return undefined;
+    }
 }
 class Capsule extends CollisionPrimitive {
     update(transform) {
         const { size } = transform;
-        return new Ammo.btCapsuleShape(0.5 * size[0], 1 * size[2]);
+        return new Ammo.btCapsuleShapeZ(0.5 * size[0], size[2] - size[0]);
+    }
+}
+class Box extends CollisionPrimitive {
+    update(transform) {
+        const { size } = transform;
+        const ammoSize = new Ammo.btVector3(size[0] * 0.5, size[1] * 0.5, size[2] * 0.5);
+        return new Ammo.btBoxShape(ammoSize);
+    }
+}
+class Sphere extends CollisionPrimitive {
+    update(transform) {
+        const { size } = transform;
+        return new Ammo.btSphereShape(0.5 * size[0]);
     }
 }
 class Plane extends CollisionPrimitive {
@@ -8518,17 +8575,6 @@ class Plane extends CollisionPrimitive {
         trimesh.addTriangle(p1, p2, p3, true);
         return new Ammo.btBvhTriangleMeshShape(trimesh, true);
     }
-}
-
-class PhysicsDef {
-    options;
-    constructor(options) {
-        this.options = options;
-        //
-    }
-}
-
-class ModelDef {
 }
 
 class CapsuleModelDef extends ModelDef {
@@ -8570,9 +8616,11 @@ class CapsuleModelDef extends ModelDef {
 }
 
 class SimpleModelDef {
+    options;
     model;
     transform;
-    constructor(modelName) {
+    constructor(modelName, options) {
+        this.options = options;
         this.loadModel(modelName);
     }
     async loadModel(modelName) {
@@ -8585,8 +8633,77 @@ class SimpleModelDef {
         if (this.model === undefined || this.transform === undefined) {
             throw new Error("Model is not loaded.");
         }
-        return [{ model: this.model, transform: this.transform }];
+        return [{ model: this.model, transform: this.transform, options: this.options }];
     }
+}
+
+function xmur3(str) {
+    let h = 1779033703 ^ str.length;
+    for (let i = 0; i < str.length; i++) {
+        h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
+        h = (h << 13) | (h >>> 19);
+    }
+    return () => {
+        h = Math.imul(h ^ (h >>> 16), 2246822507);
+        h = Math.imul(h ^ (h >>> 13), 3266489909);
+        return (h ^= h >>> 16) >>> 0;
+    };
+}
+function sfc32(a, b, c, d) {
+    return () => {
+        a >>>= 0;
+        b >>>= 0;
+        c >>>= 0;
+        d >>>= 0;
+        let t = (a + b) | 0;
+        a = b ^ (b >>> 9);
+        b = (c + (c << 3)) | 0;
+        c = (c << 21) | (c >>> 11);
+        d = (d + 1) | 0;
+        t = (t + d) | 0;
+        c = (c + t) | 0;
+        return (t >>> 0) / 4294967296;
+    };
+}
+function mulberry32(a) {
+    return () => {
+        let t = (a += 0x6d2b79f5);
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+}
+function xoshiro128ss(a, b, c, d) {
+    return () => {
+        const t = b << 9;
+        let r = a * 5;
+        r = ((r << 7) | (r >>> 25)) * 9;
+        c ^= a;
+        d ^= b;
+        b ^= c;
+        a ^= d;
+        c ^= t;
+        d = (d << 11) | (d >>> 21);
+        return (r >>> 0) / 4294967296;
+    };
+}
+function jsf32(a, b, c, d) {
+    return () => {
+        a |= 0;
+        b |= 0;
+        c |= 0;
+        d |= 0;
+        const t = (a - ((b << 27) | (b >>> 5))) | 0;
+        a = b ^ ((c << 17) | (c >>> 15));
+        b = (c + d) | 0;
+        c = (d + t) | 0;
+        d = (a + t) | 0;
+        return (d >>> 0) / 4294967296;
+    };
+}
+function randomRange(min, max, rand) {
+    const r = rand();
+    return min + (max - min) * r;
 }
 
 class MapLoader {
@@ -8601,21 +8718,44 @@ class MapLoader {
     loadTestMap() {
         const ground = new Object$1({
             pos: fromValues$4(0, 0, 0),
-            size: fromValues$4(5, 5, 1),
+            size: fromValues$4(50, 50, 1),
             rotation: create$2(),
-        }, new SimpleModelDef("plane"), "grass.jpg", new PhysicsDef({
+        }, new SimpleModelDef("plane", {
+            texMul: 25,
+        }), "grass2.jpg", new PhysicsDef({
             isStatic: true,
         }), new Plane());
         Services.world.add(ground);
+        // Create xmur3 state:
+        const seed = xmur3("suchok");
+        // Output four 32-bit hashes to provide the seed for sfc32.
+        const rand = sfc32(seed(), seed(), seed(), seed());
+        for (let i = 0; i < 100; i++) {
+            const size = randomRange(0.5, 3, rand);
+            const x = randomRange(-25, 25, rand);
+            const y = randomRange(-25, 25, rand);
+            const rock = new Object$1({
+                pos: fromValues$4(x, y, randomRange(0, 0.5, rand) + size / 2),
+                size: fromValues$4(size, size, size),
+                rotation: create$2(),
+            }, new SimpleModelDef("sphere", {
+                texMul: 1,
+            }), "rock.jpg", new PhysicsDef({
+                isStatic: true,
+            }), new Sphere());
+            Services.world.add(rock);
+        }
         const player = new Object$1({
-            pos: fromValues$4(0, 0, 1),
+            pos: fromValues$4(0, 2.61, 10),
             size: fromValues$4(1, 1, 1.8),
             rotation: create$2(),
         }, new CapsuleModelDef(), "blank", new PhysicsDef({
             noRotation: true,
+            friction: 0.9,
         }), new Capsule());
         Services.world.add(player);
         Services.inputManager.setEntityToOrbit(player, 5);
+        Services.inputManager.setControlledEntity(player);
     }
 }
 
@@ -8624,7 +8764,9 @@ class InputManager {
     clickHandlerBind = this.clickHandler.bind(this);
     mouseHandlerBind = this.mouseHandler.bind(this);
     keyHandlerBind = this.keyHandler.bind(this);
+    keyboard = new Map();
     orbit;
+    controlledEntity;
     constructor(canvas) {
         this.canvas = canvas;
         this.attchEvents();
@@ -8653,17 +8795,49 @@ class InputManager {
             this.applyOrbit();
         }
     }
+    processControlledEntity() {
+        const entity = this.controlledEntity;
+        if (!entity) {
+            return;
+        }
+        const physics = entity.get(PhysicsComponent);
+        if (physics && this.orbit) {
+            if (this.isPressed("KeyW")) {
+                const force = fromValues$4(-10, 0, 0);
+                const q = create$2();
+                fromEuler(q, 0, 0, -this.orbit.zAngle);
+                transformQuat$1(force, force, q);
+                const ammoForce = new Ammo.btVector3(force[0], force[1], force[2]);
+                physics.body?.applyCentralLocalForce(ammoForce);
+                physics.body?.activate(true);
+            }
+        }
+    }
+    isPressed(code) {
+        return this.keyboard.has(code);
+    }
+    processKeyMap(e) {
+        if (e.type === "keydown") {
+            this.keyboard.set(e.code, true);
+        }
+        else if (e.type === "keyup") {
+            this.keyboard.delete(e.code);
+        }
+    }
     keyHandler(e) {
-        //
+        this.processKeyMap(e);
     }
     setEntityToOrbit(entity, distance) {
         this.orbit = {
             entity,
-            yAngle: 1,
+            yAngle: 0,
             zAngle: 0,
             distance,
         };
         this.applyOrbit();
+    }
+    setControlledEntity(entity) {
+        this.controlledEntity = entity;
     }
     applyOrbit() {
         if (this.orbit) {
@@ -8679,6 +8853,12 @@ class InputManager {
             add$4(eye, center, eye);
             Services.render.setCamera(eye, center);
         }
+    }
+    tick(dt) {
+        this.processControlledEntity();
+    }
+    postPhysics() {
+        this.applyOrbit();
     }
 }
 

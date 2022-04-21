@@ -1,13 +1,13 @@
 import { TransformData } from "../../components/transformComponent"
 import { Services } from "../../managers/services"
 import { Model } from "../model"
-import { ModelDef, ModelDefEntry } from "../model-def"
+import { ModelDef, ModelDefEntry, ModelOptions } from "../model-def"
 
 export class SimpleModelDef implements ModelDef {
     private model: Model | undefined
     private transform: TransformData | undefined
 
-    constructor(modelName: string) {
+    constructor(modelName: string, private readonly options?: Partial<ModelOptions>) {
         this.loadModel(modelName)
     }
 
@@ -24,6 +24,6 @@ export class SimpleModelDef implements ModelDef {
             throw new Error("Model is not loaded.")
         }
 
-        return [{ model: this.model, transform: this.transform }]
+        return [{ model: this.model, transform: this.transform, options: this.options }]
     }
 }

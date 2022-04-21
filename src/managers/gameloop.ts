@@ -12,7 +12,9 @@ export class GameLoop {
     private tick(time: number): void {
         const dt = this.prevTime != undefined ? time - this.prevTime : 0
 
+        Services.inputManager.tick(dt)
         Services.physics.tick(dt)
+        Services.inputManager.postPhysics()
         Services.render.draw()
 
         this.prevTime = time

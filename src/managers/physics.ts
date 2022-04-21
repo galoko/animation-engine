@@ -2,6 +2,7 @@ import { CollisionComponent } from "../components/collisionComponent"
 import { PhysicsComponent } from "../components/phyicsComponent"
 import { TransformComponent } from "../components/transformComponent"
 import { Entity } from "../entities/entity"
+import { getPhysicsOptions } from "../models/physics-def"
 
 export class Physics {
     private dynamicsWorld: Ammo.btDiscreteDynamicsWorld
@@ -32,20 +33,13 @@ export class Physics {
         if (physics && collision && transfrom) {
             const shape = collision.collisionPrimitive.getAmmoShape(transfrom.transform)
 
-            let mass = physics.physicsDef.options.mass || 1
-            const { isStatic, noRotation } = physics.physicsDef.options
+            const options = getPhysicsOptions(physics.physicsDef.options)
+            const { isStatic, noRotation } = options
 
-            let localInertia
-            if (isStatic || noRotation) {
-                if (isStatic) {
-                    mass = 0
-                }
-                localInertia = new Ammo.btVector3(0, 0, 0)
-            } else {
-                localInertia = undefined
-            }
+            const localInertia = isStatic || noRotation ? new Ammo.btVector3(0, 0, 0) : undefined
+            const mass = isStatic ? 0 : options.mass
 
-            const bodyTransform = new Ammo.btTransform()
+            let bodyTransform = new Ammo.btTransform()
             bodyTransform.setIdentity()
             bodyTransform.setOrigin(
                 new Ammo.btVector3(
@@ -63,6 +57,11 @@ export class Physics {
                 )
             )
 
+            const additionalTransform = collision.collisionPrimitive.getTransfrom()
+            if (additionalTransform) {
+                bodyTransform = bodyTransform.op_mul(additionalTransform)
+            }
+
             const myMotionState = new Ammo.btDefaultMotionState(bodyTransform)
 
             const rbInfo = new Ammo.btRigidBodyConstructionInfo(
@@ -72,6 +71,7 @@ export class Physics {
                 localInertia
             )
             const body = new Ammo.btRigidBody(rbInfo)
+            body.setFriction(options.friction)
 
             this.dynamicsWorld.addRigidBody(body)
 

@@ -1,4 +1,5 @@
 import { quat, vec3 } from "gl-matrix"
+import { PhysicsComponent } from "../components/phyicsComponent"
 import { TransformComponent } from "../components/transformComponent"
 import { Entity } from "../entities/entity"
 import { Services } from "./services"
@@ -17,7 +18,10 @@ export class InputManager {
     private readonly mouseHandlerBind = this.mouseHandler.bind(this)
     private readonly keyHandlerBind = this.keyHandler.bind(this)
 
+    private readonly keyboard: Map<string, boolean> = new Map()
+
     private orbit: OrbitInfo | undefined
+    private controlledEntity: Entity | undefined
 
     constructor(private readonly canvas: HTMLCanvasElement) {
         this.attchEvents()
@@ -58,19 +62,58 @@ export class InputManager {
         }
     }
 
+    private processControlledEntity(): void {
+        const entity = this.controlledEntity
+
+        if (!entity) {
+            return
+        }
+
+        const physics = entity.get(PhysicsComponent)
+
+        if (physics && this.orbit) {
+            if (this.isPressed("KeyW")) {
+                const force = vec3.fromValues(-10, 0, 0)
+                const q = quat.create()
+                quat.fromEuler(q, 0, 0, -this.orbit.zAngle)
+                vec3.transformQuat(force, force, q)
+
+                const ammoForce = new Ammo.btVector3(force[0], force[1], force[2])
+                physics.body?.applyCentralLocalForce(ammoForce)
+                physics.body?.activate(true)
+            }
+        }
+    }
+
+    private isPressed(code: string): boolean {
+        return this.keyboard.has(code)
+    }
+
+    private processKeyMap(e: KeyboardEvent): void {
+        if (e.type === "keydown") {
+            this.keyboard.set(e.code, true)
+        } else if (e.type === "keyup") {
+            this.keyboard.delete(e.code)
+        }
+    }
+
     private keyHandler(e: KeyboardEvent): void {
-        //
+        this.processKeyMap(e)
     }
 
     setEntityToOrbit(entity: Entity, distance: number): void {
         this.orbit = {
             entity,
-            yAngle: 1,
+            yAngle: 0,
             zAngle: 0,
             distance,
         }
 
         this.applyOrbit()
+    }
+
+    setControlledEntity(entity: Entity): void {
+        this.controlledEntity = entity
     }
 
     private applyOrbit() {
@@ -91,5 +134,13 @@ export class InputManager {
 
             Services.render.setCamera(eye, center)
         }
+    }
+
+    tick(dt: number) {
+        this.processControlledEntity()
+    }
+
+    postPhysics() {
+        this.applyOrbit()
     }
 }

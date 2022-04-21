@@ -1,3 +1,4 @@
+import { quat } from "gl-matrix"
 import { TransformData } from "../components/transformComponent"
 
 export abstract class CollisionPrimitive {
@@ -10,6 +11,10 @@ export abstract class CollisionPrimitive {
         return this.ammoShape
     }
 
+    getTransfrom(): Ammo.btTransform | undefined {
+        return undefined
+    }
+
     protected abstract update(transform: Readonly<TransformData>): Ammo.btCollisionShape
 }
 
@@ -17,7 +22,25 @@ export class Capsule extends CollisionPrimitive {
     update(transform: Readonly<TransformData>): Ammo.btCollisionShape {
         const { size } = transform
 
-        return new Ammo.btCapsuleShape(0.5 * size[0], 1 * size[2])
+        return new Ammo.btCapsuleShapeZ(0.5 * size[0], size[2] - size[0])
+    }
+}
+
+export class Box extends CollisionPrimitive {
+    update(transform: Readonly<TransformData>): Ammo.btCollisionShape {
+        const { size } = transform
+
+        const ammoSize = new Ammo.btVector3(size[0] * 0.5, size[1] * 0.5, size[2] * 0.5)
+
+        return new Ammo.btBoxShape(ammoSize)
+    }
+}
+
+export class Sphere extends CollisionPrimitive {
+    update(transform: Readonly<TransformData>): Ammo.btCollisionShape {
+        const { size } = transform
+
+        return new Ammo.btSphereShape(0.5 * size[0])
     }
 }
 
