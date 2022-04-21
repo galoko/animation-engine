@@ -17,11 +17,14 @@ export class MapLoader {
     }
 
     private loadTestMap() {
+        const q = quat.create()
+        quat.fromEuler(q, -45, 0, 0)
+
         const ground = new Object(
             {
                 pos: vec3.fromValues(0, 0, 0),
                 size: vec3.fromValues(50, 50, 1),
-                rotation: quat.create(),
+                rotation: q,
             },
             new SimpleModelDef("plane", {
                 texMul: 25,
@@ -39,24 +42,33 @@ export class MapLoader {
         // Output four 32-bit hashes to provide the seed for sfc32.
         const rand = sfc32(seed(), seed(), seed(), seed())
 
-        for (let i = 0; i < 100; i++) {
+        for (let i = 0; i < 20; i++) {
             const size = randomRange(0.5, 3, rand)
 
             const x = randomRange(-25, 25, rand)
             const y = randomRange(-25, 25, rand)
 
+            const q = quat.create()
+            quat.fromEuler(
+                q,
+                randomRange(0, 180, rand),
+                randomRange(0, 180, rand),
+                randomRange(0, 180, rand)
+            )
+
             const rock = new Object(
                 {
-                    pos: vec3.fromValues(x, y, randomRange(0, 0.5, rand) + size / 2),
+                    pos: vec3.fromValues(x, y, randomRange(0, 100, rand) + size / 2),
                     size: vec3.fromValues(size, size, size),
-                    rotation: quat.create(),
+                    rotation: q,
                 },
                 new SimpleModelDef("sphere", {
-                    texMul: 1,
+                    texMul: 3,
                 }),
                 "rock.jpg",
                 new PhysicsDef({
-                    isStatic: true,
+                    friction: 0.9,
+                    mass: 100,
                 }),
                 new Sphere()
             )
@@ -65,7 +77,7 @@ export class MapLoader {
 
         const player = new Object(
             {
-                pos: vec3.fromValues(0, 2.61, 10),
+                pos: vec3.fromValues(0, 2.61, 1.8 / 2),
                 size: vec3.fromValues(1, 1, 1.8),
                 rotation: quat.create(),
             },

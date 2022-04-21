@@ -3,6 +3,7 @@ attribute vec3 n;
 attribute vec2 uv;
 
 uniform mat4 mvp;
+uniform mat4 model;
 uniform float texMul;
 
 varying highp vec2 texCoord;
@@ -12,5 +13,5 @@ void main(void) {
     gl_Position = mvp * vec4(p, 1.0);
 
     texCoord = uv * texMul;
-    normal = n;
+    normal = (model * vec4(n, 0.0)).xyz;
 }

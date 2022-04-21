@@ -87,7 +87,7 @@ var generalVert = "attribute vec3 p;\r\nattribute vec3 n;\r\n\r\nuniform mat4 mv
 
 var generalFrag = "varying lowp vec3 normal;\r\n\r\nvoid main(void) {\r\n    gl_FragColor = vec4(normal, 1.0);\r\n}";
 
-var objectsVert = "attribute vec3 p;\r\nattribute vec3 n;\r\nattribute vec2 uv;\r\n\r\nuniform mat4 mvp;\r\nuniform float texMul;\r\n\r\nvarying highp vec2 texCoord;\r\nvarying highp vec3 normal;\r\n\r\nvoid main(void) {\r\n    gl_Position = mvp * vec4(p, 1.0);\r\n\r\n    texCoord = uv * texMul;\r\n    normal = n;\r\n}";
+var objectsVert = "attribute vec3 p;\r\nattribute vec3 n;\r\nattribute vec2 uv;\r\n\r\nuniform mat4 mvp;\r\nuniform mat4 model;\r\nuniform float texMul;\r\n\r\nvarying highp vec2 texCoord;\r\nvarying highp vec3 normal;\r\n\r\nvoid main(void) {\r\n    gl_Position = mvp * vec4(p, 1.0);\r\n\r\n    texCoord = uv * texMul;\r\n    normal = (model * vec4(n, 0.0)).xyz;\r\n}";
 
 var objectsFrag = "precision highp float;\r\n\r\nvarying highp vec2 texCoord;\r\nvarying highp vec3 normal;\r\n\r\nuniform sampler2D texture;\r\n\r\nvoid main(void) {\r\n    vec3 lightDir = normalize(vec3(0.656, 0.3, 0.14));\r\n    vec3 lightColor = vec3(1.0);\r\n\r\n    float diff = max(dot(normal, lightDir), 0.0);\r\n    vec3 diffuse = diff * lightColor;\r\n\r\n    float ambient = 0.5;\r\n    vec3 objectColor = texture2D(texture, texCoord).rgb;\r\n    vec3 result = min(ambient + diffuse, 1.0) * objectColor;\r\n\r\n    gl_FragColor = vec4(result, 1.0);\r\n}";
 
@@ -8081,6 +8081,7 @@ class Render {
             "uv",
             "mvp",
             "texture",
+            "model",
             "texMul",
         ]);
         this.skinningShader = compileShader(gl, skinningVert, skinningFrag, [
@@ -8093,7 +8094,7 @@ class Render {
             "matrices",
             "texture",
         ]);
-        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        gl.clearColor(0.3, 0.4, 1.0, 1.0);
         gl.disable(gl.CULL_FACE);
         gl.enable(gl.DEPTH_TEST);
         this.anisotropic = gl.getExtension("EXT_texture_filter_anisotropic");
@@ -8142,6 +8143,7 @@ class Render {
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, tex);
         gl.uniformMatrix4fv(objectsShader.mvp, false, mvp);
+        gl.uniformMatrix4fv(objectsShader.model, false, modelMatrix);
         gl.uniform1i(objectsShader.texture, 0);
         gl.uniform1f(objectsShader.texMul, options.texMul);
         gl.drawElements(gl.TRIANGLES, model.indexCount, gl.UNSIGNED_SHORT, 0);
@@ -8251,8 +8253,11 @@ class Physics {
             const shape = collision.collisionPrimitive.getAmmoShape(transfrom.transform);
             const options = getPhysicsOptions(physics.physicsDef.options);
             const { isStatic, noRotation } = options;
-            const localInertia = isStatic || noRotation ? new Ammo.btVector3(0, 0, 0) : undefined;
+            const localInertia = new Ammo.btVector3(0, 0, 0);
             const mass = isStatic ? 0 : options.mass;
+            if (!isStatic && !noRotation) {
+                shape.calculateLocalInertia(mass, localInertia);
+            }
             let bodyTransform = new Ammo.btTransform();
             bodyTransform.setIdentity();
             bodyTransform.setOrigin(new Ammo.btVector3(transfrom.transform.pos[0], transfrom.transform.pos[1], transfrom.transform.pos[2]));
@@ -8282,10 +8287,10 @@ class Physics {
                 transfrom.transform.pos[1] = origin.y();
                 transfrom.transform.pos[2] = origin.z();
                 const rotation = this.tempTransform.getRotation();
-                transfrom.transform.rotation[3] = rotation.x();
-                transfrom.transform.rotation[4] = rotation.y();
-                transfrom.transform.rotation[5] = rotation.z();
-                transfrom.transform.rotation[6] = rotation.w();
+                transfrom.transform.rotation[0] = rotation.x();
+                transfrom.transform.rotation[1] = rotation.y();
+                transfrom.transform.rotation[2] = rotation.z();
+                transfrom.transform.rotation[3] = rotation.w();
             }
         }
     }
@@ -8716,10 +8721,12 @@ class MapLoader {
         }
     }
     loadTestMap() {
+        const q = create$2();
+        fromEuler(q, -45, 0, 0);
         const ground = new Object$1({
             pos: fromValues$4(0, 0, 0),
             size: fromValues$4(50, 50, 1),
-            rotation: create$2(),
+            rotation: q,
         }, new SimpleModelDef("plane", {
             texMul: 25,
         }), "grass2.jpg", new PhysicsDef({
@@ -8730,23 +8737,26 @@ class MapLoader {
         const seed = xmur3("suchok");
         // Output four 32-bit hashes to provide the seed for sfc32.
         const rand = sfc32(seed(), seed(), seed(), seed());
-        for (let i = 0; i < 100; i++) {
+        for (let i = 0; i < 20; i++) {
             const size = randomRange(0.5, 3, rand);
             const x = randomRange(-25, 25, rand);
             const y = randomRange(-25, 25, rand);
+            const q = create$2();
+            fromEuler(q, randomRange(0, 180, rand), randomRange(0, 180, rand), randomRange(0, 180, rand));
             const rock = new Object$1({
-                pos: fromValues$4(x, y, randomRange(0, 0.5, rand) + size / 2),
+                pos: fromValues$4(x, y, randomRange(0, 100, rand) + size / 2),
                 size: fromValues$4(size, size, size),
-                rotation: create$2(),
+                rotation: q,
             }, new SimpleModelDef("sphere", {
-                texMul: 1,
+                texMul: 3,
             }), "rock.jpg", new PhysicsDef({
-                isStatic: true,
+                friction: 0.9,
+                mass: 100,
             }), new Sphere());
             Services.world.add(rock);
         }
         const player = new Object$1({
-            pos: fromValues$4(0, 2.61, 10),
+            pos: fromValues$4(0, 2.61, 1.8 / 2),
             size: fromValues$4(1, 1, 1.8),
             rotation: create$2(),
         }, new CapsuleModelDef(), "blank", new PhysicsDef({
@@ -8801,20 +8811,39 @@ class InputManager {
             return;
         }
         const physics = entity.get(PhysicsComponent);
-        if (physics && this.orbit) {
-            if (this.isPressed("KeyW")) {
-                const force = fromValues$4(-10, 0, 0);
-                const q = create$2();
-                fromEuler(q, 0, 0, -this.orbit.zAngle);
-                transformQuat$1(force, force, q);
-                const ammoForce = new Ammo.btVector3(force[0], force[1], force[2]);
-                physics.body?.applyCentralLocalForce(ammoForce);
-                physics.body?.activate(true);
+        if (physics && physics.body && this.orbit) {
+            let speed = 0;
+            let desiredAngle = this.orbit.zAngle;
+            if (this.isPressed("KeyW", "KeyS", "KeyA", "KeyD")) {
+                speed = 7;
             }
+            if (this.isPressed("KeyA")) {
+                desiredAngle -= this.isPressed("KeyW") ? 45 : this.isPressed("KeyS") ? -45 : 90;
+            }
+            if (this.isPressed("KeyD")) {
+                desiredAngle += this.isPressed("KeyW") ? 45 : this.isPressed("KeyS") ? -45 : 90;
+            }
+            if (this.isPressed("KeyS")) {
+                desiredAngle += 180;
+            }
+            const velocity = fromValues$4(-speed, 0, 0);
+            const q = create$2();
+            fromEuler(q, 0, 0, -desiredAngle);
+            transformQuat$1(velocity, velocity, q);
+            const currentVelocity = physics.body.getLinearVelocity();
+            velocity[2] = currentVelocity.z();
+            const ammoVelocity = new Ammo.btVector3(velocity[0], velocity[1], velocity[2]);
+            physics.body.setLinearVelocity(ammoVelocity);
+            physics.body.activate(true);
         }
     }
-    isPressed(code) {
-        return this.keyboard.has(code);
+    isPressed(...codes) {
+        for (const code of codes) {
+            if (this.keyboard.has(code)) {
+                return true;
+            }
+        }
+        return false;
     }
     processKeyMap(e) {
         if (e.type === "keydown") {

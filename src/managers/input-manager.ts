@@ -71,22 +71,48 @@ export class InputManager {
 
         const physics = entity.get(PhysicsComponent)
 
-        if (physics && this.orbit) {
-            if (this.isPressed("KeyW")) {
-                const force = vec3.fromValues(-10, 0, 0)
-                const q = quat.create()
-                quat.fromEuler(q, 0, 0, -this.orbit.zAngle)
-                vec3.transformQuat(force, force, q)
+        if (physics && physics.body && this.orbit) {
+            let speed = 0
+            let desiredAngle = this.orbit.zAngle
 
-                const ammoForce = new Ammo.btVector3(force[0], force[1], force[2])
-                physics.body?.applyCentralLocalForce(ammoForce)
-                physics.body?.activate(true)
+            if (this.isPressed("KeyW", "KeyS", "KeyA", "KeyD")) {
+                speed = 7
             }
+
+            if (this.isPressed("KeyA")) {
+                desiredAngle -= this.isPressed("KeyW") ? 45 : this.isPressed("KeyS") ? -45 : 90
+            }
+            if (this.isPressed("KeyD")) {
+                desiredAngle += this.isPressed("KeyW") ? 45 : this.isPressed("KeyS") ? -45 : 90
+            }
+
+            if (this.isPressed("KeyS")) {
+                desiredAngle += 180
+            }
+
+            const velocity = vec3.fromValues(-speed, 0, 0)
+            const q = quat.create()
+            quat.fromEuler(q, 0, 0, -desiredAngle)
+            vec3.transformQuat(velocity, velocity, q)
+
+            const currentVelocity = physics.body.getLinearVelocity()
+
+            velocity[2] = currentVelocity.z()
+
+            const ammoVelocity = new Ammo.btVector3(velocity[0], velocity[1], velocity[2])
+            physics.body.setLinearVelocity(ammoVelocity)
+            physics.body.activate(true)
         }
     }
 
-    private isPressed(code: string): boolean {
-        return this.keyboard.has(code)
+    private isPressed(...codes: string[]): boolean {
+        for (const code of codes) {
+            if (this.keyboard.has(code)) {
+                return true
+            }
+        }
+
+        return false
     }
 
     private processKeyMap(e: KeyboardEvent): void {

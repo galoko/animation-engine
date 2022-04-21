@@ -92,6 +92,7 @@ export class Render {
             "uv",
             "mvp",
             "texture",
+            "model",
             "texMul",
         ])
         this.skinningShader = compileShader(gl, skinningVert, skinningFrag, [
@@ -105,7 +106,7 @@ export class Render {
             "texture",
         ])
 
-        gl.clearColor(0.0, 0.0, 0.0, 1.0)
+        gl.clearColor(0.3, 0.4, 1.0, 1.0)
 
         gl.disable(gl.CULL_FACE)
         gl.enable(gl.DEPTH_TEST)
@@ -203,6 +204,7 @@ export class Render {
         gl.bindTexture(gl.TEXTURE_2D, tex)
 
         gl.uniformMatrix4fv(objectsShader.mvp, false, mvp)
+        gl.uniformMatrix4fv(objectsShader.model, false, modelMatrix)
         gl.uniform1i(objectsShader.texture, 0)
         gl.uniform1f(objectsShader.texMul, options.texMul)
 

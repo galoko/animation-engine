@@ -36,8 +36,12 @@ export class Physics {
             const options = getPhysicsOptions(physics.physicsDef.options)
             const { isStatic, noRotation } = options
 
-            const localInertia = isStatic || noRotation ? new Ammo.btVector3(0, 0, 0) : undefined
+            const localInertia = new Ammo.btVector3(0, 0, 0)
             const mass = isStatic ? 0 : options.mass
+
+            if (!isStatic && !noRotation) {
+                shape.calculateLocalInertia(mass, localInertia)
+            }
 
             let bodyTransform = new Ammo.btTransform()
             bodyTransform.setIdentity()
@@ -94,10 +98,10 @@ export class Physics {
                 transfrom.transform.pos[1] = origin.y()
                 transfrom.transform.pos[2] = origin.z()
                 const rotation = this.tempTransform.getRotation()
-                transfrom.transform.rotation[3] = rotation.x()
-                transfrom.transform.rotation[4] = rotation.y()
-                transfrom.transform.rotation[5] = rotation.z()
-                transfrom.transform.rotation[6] = rotation.w()
+                transfrom.transform.rotation[0] = rotation.x()
+                transfrom.transform.rotation[1] = rotation.y()
+                transfrom.transform.rotation[2] = rotation.z()
+                transfrom.transform.rotation[3] = rotation.w()
             }
         }
     }
