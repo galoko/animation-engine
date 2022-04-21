@@ -34,7 +34,6 @@ export type AttributeDef = {
 }
 
 export class Render {
-    private readonly canvas: HTMLCanvasElement
     public readonly gl: WebGLRenderingContext
 
     private readonly generalShader: CompiledShader
@@ -50,21 +49,14 @@ export class Render {
     private readonly models: Set<Entity>
     private readonly skins: Set<Entity>
 
-    constructor() {
-        this.canvas = document.createElement("canvas")
-
-        document.addEventListener("resize", this.handleResize.bind(this))
-        document.body.appendChild(this.canvas)
-
+    constructor(private readonly canvas: HTMLCanvasElement) {
         this.models = new Set()
         this.skins = new Set()
 
-        this.gl = create3DContextWithWrapperThatThrowsOnGLError(
-            this.canvas.getContext("webgl", {
-                antialias: true,
-                powerPreference: "high-performance",
-            })!
-        )
+        this.gl = this.canvas.getContext("webgl", {
+            antialias: true,
+            powerPreference: "high-performance",
+        })!
         this.matrices = this.gl.createTexture()!
         this.matricesBuffer = new Float32Array(ANIMATION_TEXTURE_SIZE * 1 * 4)
 
@@ -114,18 +106,25 @@ export class Render {
 
         gl.disable(gl.CULL_FACE)
         gl.enable(gl.DEPTH_TEST)
-
-        this.handleResize()
     }
 
     private handleResize() {
         const { canvas, gl } = this
 
-        canvas.style.width = document.body.clientWidth + "px"
-        canvas.style.height = document.body.clientHeight + "px"
+        const dpr = 1
 
-        canvas.width = document.body.clientWidth * 1
-        canvas.height = document.body.clientHeight * 1
+        const newWidth = Math.floor(document.body.clientWidth * dpr)
+        const newHeight = Math.floor(document.body.clientHeight * dpr)
+
+        if (canvas.width === newWidth && canvas.height === newHeight) {
+            return
+        }
+
+        canvas.style.width = newWidth / dpr + "px"
+        canvas.style.height = newHeight / dpr + "px"
+
+        canvas.width = newWidth
+        canvas.height = newHeight
 
         gl.viewport(0, 0, canvas.width, canvas.height)
 
@@ -263,6 +262,9 @@ export class Render {
 
     draw(): void {
         const { gl } = this
+
+        this.handleResize()
+
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
         for (const entity of this.models) {

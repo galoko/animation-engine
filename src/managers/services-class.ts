@@ -4,18 +4,24 @@ import { ResourceManager } from "./resource-manager"
 import { World } from "./world"
 import { GameLoop } from "./gameloop"
 import { MapLoader } from "./map-loader"
+import { InputManager } from "./input-manager"
 
 export class ServicesClass {
     readonly render: Render
     readonly physics: Physics
+    readonly inputManager: InputManager
     readonly resources: ResourceManager
     readonly world: World
     readonly mapLoader: MapLoader
     readonly loop: GameLoop
 
     constructor(options: { ammo: typeof Ammo }) {
-        this.render = new Render()
+        const canvas = document.createElement("canvas")
+        document.body.appendChild(canvas)
+
+        this.render = new Render(canvas)
         this.physics = new Physics(options.ammo)
+        this.inputManager = new InputManager(canvas)
         this.resources = new ResourceManager()
         this.world = new World()
         this.mapLoader = new MapLoader()

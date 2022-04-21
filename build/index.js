@@ -8044,16 +8044,14 @@ class Render {
     projectionMatrix;
     models;
     skins;
-    constructor() {
-        this.canvas = document.createElement("canvas");
-        document.addEventListener("resize", this.handleResize.bind(this));
-        document.body.appendChild(this.canvas);
+    constructor(canvas) {
+        this.canvas = canvas;
         this.models = new Set();
         this.skins = new Set();
-        this.gl = create3DContextWithWrapperThatThrowsOnGLError(this.canvas.getContext("webgl", {
+        this.gl = this.canvas.getContext("webgl", {
             antialias: true,
             powerPreference: "high-performance",
-        }));
+        });
         this.matrices = this.gl.createTexture();
         this.matricesBuffer = new Float32Array(ANIMATION_TEXTURE_SIZE * 1 * 4);
         const { gl, matrices } = this;
@@ -8087,14 +8085,19 @@ class Render {
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
         gl.disable(gl.CULL_FACE);
         gl.enable(gl.DEPTH_TEST);
-        this.handleResize();
     }
     handleResize() {
         const { canvas, gl } = this;
-        canvas.style.width = document.body.clientWidth + "px";
-        canvas.style.height = document.body.clientHeight + "px";
-        canvas.width = document.body.clientWidth * 1;
-        canvas.height = document.body.clientHeight * 1;
+        const dpr = 1;
+        const newWidth = Math.floor(document.body.clientWidth * dpr);
+        const newHeight = Math.floor(document.body.clientHeight * dpr);
+        if (canvas.width === newWidth && canvas.height === newHeight) {
+            return;
+        }
+        canvas.style.width = newWidth / dpr + "px";
+        canvas.style.height = newHeight / dpr + "px";
+        canvas.width = newWidth;
+        canvas.height = newHeight;
         gl.viewport(0, 0, canvas.width, canvas.height);
         perspective(this.projectionMatrix, (45 * Math.PI) / 180, canvas.width / canvas.height, 0.1, 100);
     }
@@ -8161,6 +8164,7 @@ class Render {
     }
     draw() {
         const { gl } = this;
+        this.handleResize();
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         for (const entity of this.models) {
             const transform = entity.get(TransformComponent);
@@ -8535,20 +8539,87 @@ class MapLoader {
             rotation: create$2(),
         }, new CapsuleModelDef(), "blank", new Capsule());
         Services.world.add(player);
-        Services.render.setCamera(fromValues$4(10, 10, 10), fromValues$4(0, 0, 0));
+        Services.inputManager.setEntityToOrbit(player, 5);
+    }
+}
+
+class InputManager {
+    canvas;
+    clickHandlerBind = this.clickHandler.bind(this);
+    mouseHandlerBind = this.mouseHandler.bind(this);
+    keyHandlerBind = this.keyHandler.bind(this);
+    orbit;
+    constructor(canvas) {
+        this.canvas = canvas;
+        this.attchEvents();
+    }
+    attchEvents() {
+        const { canvas } = this;
+        canvas.addEventListener("click", this.clickHandlerBind);
+        canvas.addEventListener("mousemove", this.mouseHandlerBind, { passive: true });
+        canvas.addEventListener("mouseup", this.mouseHandlerBind, { passive: true });
+        canvas.addEventListener("mousedown", this.mouseHandlerBind, { passive: true });
+        window.addEventListener("keyup", this.keyHandlerBind);
+        window.addEventListener("keydown", this.keyHandlerBind);
+    }
+    clickHandler(e) {
+        this.canvas.requestPointerLock();
+    }
+    mouseHandler(e) {
+        const dx = e.movementX;
+        const dy = e.movementY;
+        const isLocked = document.pointerLockElement === this.canvas;
+        if (this.orbit && isLocked && e.type === "mousemove") {
+            const ROTATION_SPEED = 0.1;
+            const e = 10e-3;
+            this.orbit.zAngle = (this.orbit.zAngle + dx * ROTATION_SPEED) % 360;
+            this.orbit.yAngle = Math.max(-90 + e, Math.min(this.orbit.yAngle + dy * ROTATION_SPEED, 90 - e));
+            this.applyOrbit();
+        }
+    }
+    keyHandler(e) {
+        //
+    }
+    setEntityToOrbit(entity, distance) {
+        this.orbit = {
+            entity,
+            yAngle: 1,
+            zAngle: 0,
+            distance,
+        };
+        this.applyOrbit();
+    }
+    applyOrbit() {
+        if (this.orbit) {
+            const transform = this.orbit.entity.get(TransformComponent);
+            if (!transform) {
+                throw new Error("Can't orbit entity without transformation component.");
+            }
+            const center = transform.transform.pos;
+            const q = create$2();
+            fromEuler(q, 0, -this.orbit.yAngle, -this.orbit.zAngle);
+            const eye = fromValues$4(this.orbit.distance, 0, 0);
+            transformQuat$1(eye, eye, q);
+            add$4(eye, center, eye);
+            Services.render.setCamera(eye, center);
+        }
     }
 }
 
 class ServicesClass {
     render;
     physics;
+    inputManager;
     resources;
     world;
     mapLoader;
     loop;
     constructor(options) {
-        this.render = new Render();
+        const canvas = document.createElement("canvas");
+        document.body.appendChild(canvas);
+        this.render = new Render(canvas);
         this.physics = new Physics(options.ammo);
+        this.inputManager = new InputManager(canvas);
         this.resources = new ResourceManager();
         this.world = new World();
         this.mapLoader = new MapLoader();

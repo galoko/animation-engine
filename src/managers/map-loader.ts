@@ -39,6 +39,6 @@ export class MapLoader {
         )
         Services.world.add(player)
 
-        Services.render.setCamera(vec3.fromValues(10, 10, 10), vec3.fromValues(0, 0, 0))
+        Services.inputManager.setEntityToOrbit(player, 5)
     }
 }
