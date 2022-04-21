@@ -8179,9 +8179,30 @@ class Render {
     }
 }
 
+class CollisionComponent extends Component {
+    collisionPrimitive;
+    static ID = "collision";
+    constructor(collisionPrimitive) {
+        super();
+        this.collisionPrimitive = collisionPrimitive;
+    }
+}
+
+class PhysicsComponent extends Component {
+    physicsDef;
+    static ID = "physics";
+    body;
+    constructor(physicsDef) {
+        super();
+        this.physicsDef = physicsDef;
+    }
+}
+
 class Physics {
     ammo;
     dynamicsWorld;
+    entities = new Set();
+    tempTransform = new Ammo.btTransform();
     constructor(ammo) {
         this.ammo = ammo;
         // ammo init (wow)
@@ -8192,8 +8213,58 @@ class Physics {
         this.dynamicsWorld = new Ammo.btDiscreteDynamicsWorld(dispatcher, overlappingPairCache, solver, collisionConfiguration);
         this.dynamicsWorld.setGravity(new Ammo.btVector3(0, 0, -9.8));
     }
+    add(entity) {
+        const physics = entity.get(PhysicsComponent);
+        const collision = entity.get(CollisionComponent);
+        const transfrom = entity.get(TransformComponent);
+        if (physics && collision && transfrom) {
+            const shape = collision.collisionPrimitive.getAmmoShape(transfrom.transform);
+            let mass = physics.physicsDef.options.mass || 1;
+            const { isStatic, noRotation } = physics.physicsDef.options;
+            let localInertia;
+            if (isStatic || noRotation) {
+                if (isStatic) {
+                    mass = 0;
+                }
+                localInertia = new Ammo.btVector3(0, 0, 0);
+            }
+            else {
+                localInertia = undefined;
+            }
+            const bodyTransform = new Ammo.btTransform();
+            bodyTransform.setIdentity();
+            bodyTransform.setOrigin(new Ammo.btVector3(transfrom.transform.pos[0], transfrom.transform.pos[1], transfrom.transform.pos[2]));
+            bodyTransform.setRotation(new Ammo.btQuaternion(transfrom.transform.rotation[0], transfrom.transform.rotation[1], transfrom.transform.rotation[2], transfrom.transform.rotation[3]));
+            const myMotionState = new Ammo.btDefaultMotionState(bodyTransform);
+            const rbInfo = new Ammo.btRigidBodyConstructionInfo(mass, myMotionState, shape, localInertia);
+            const body = new Ammo.btRigidBody(rbInfo);
+            this.dynamicsWorld.addRigidBody(body);
+            this.entities.add(entity);
+            physics.body = body;
+        }
+    }
+    syncBodies() {
+        for (const entity of this.entities) {
+            const physics = entity.get(PhysicsComponent);
+            const transfrom = entity.get(TransformComponent);
+            if (physics && transfrom) {
+                const body = physics.body;
+                body.getMotionState().getWorldTransform(this.tempTransform);
+                const origin = this.tempTransform.getOrigin();
+                transfrom.transform.pos[0] = origin.x();
+                transfrom.transform.pos[1] = origin.y();
+                transfrom.transform.pos[2] = origin.z();
+                const rotation = this.tempTransform.getRotation();
+                transfrom.transform.rotation[3] = rotation.x();
+                transfrom.transform.rotation[4] = rotation.y();
+                transfrom.transform.rotation[5] = rotation.z();
+                transfrom.transform.rotation[6] = rotation.w();
+            }
+        }
+    }
     tick(dt) {
-        //
+        this.dynamicsWorld.stepSimulation(dt, 2);
+        this.syncBodies();
     }
 }
 
@@ -8373,6 +8444,7 @@ class ResourceManager {
 class World {
     add(entity) {
         Services.render.add(entity);
+        Services.physics.add(entity);
     }
 }
 
@@ -8388,15 +8460,6 @@ class GameLoop {
         Services.render.draw();
         this.prevTime = time;
         requestAnimationFrame(this.tickBind);
-    }
-}
-
-class CollisionComponent extends Component {
-    collisionPrimitive;
-    static ID = "collision";
-    constructor(collisionPrimitive) {
-        super();
-        this.collisionPrimitive = collisionPrimitive;
     }
 }
 
@@ -8418,11 +8481,12 @@ class Entity {
 }
 
 class Object$1 extends Entity {
-    constructor(transform, modelDef, textureName, collisionPrimitive) {
+    constructor(transform, modelDef, textureName, physicsDef, collisionPrimitive) {
         super();
         this.registerComponent(new TransformComponent(transform));
         this.registerComponent(new ModelComponent(modelDef));
         this.registerComponent(new TextureComponent(textureName));
+        this.registerComponent(new PhysicsComponent(physicsDef));
         this.registerComponent(new CollisionComponent(collisionPrimitive));
     }
 }
@@ -8439,7 +8503,7 @@ class CollisionPrimitive {
 class Capsule extends CollisionPrimitive {
     update(transform) {
         const { size } = transform;
-        return new Ammo.btCapsuleShape(0.5 * size[0], 1 * size[1]);
+        return new Ammo.btCapsuleShape(0.5 * size[0], 1 * size[2]);
     }
 }
 class Plane extends CollisionPrimitive {
@@ -8453,6 +8517,14 @@ class Plane extends CollisionPrimitive {
         trimesh.addTriangle(p0, p1, p2, true);
         trimesh.addTriangle(p1, p2, p3, true);
         return new Ammo.btBvhTriangleMeshShape(trimesh, true);
+    }
+}
+
+class PhysicsDef {
+    options;
+    constructor(options) {
+        this.options = options;
+        //
     }
 }
 
@@ -8531,13 +8603,17 @@ class MapLoader {
             pos: fromValues$4(0, 0, 0),
             size: fromValues$4(5, 5, 1),
             rotation: create$2(),
-        }, new SimpleModelDef("plane"), "grass.jpg", new Plane());
+        }, new SimpleModelDef("plane"), "grass.jpg", new PhysicsDef({
+            isStatic: true,
+        }), new Plane());
         Services.world.add(ground);
         const player = new Object$1({
             pos: fromValues$4(0, 0, 1),
             size: fromValues$4(1, 1, 1.8),
             rotation: create$2(),
-        }, new CapsuleModelDef(), "blank", new Capsule());
+        }, new CapsuleModelDef(), "blank", new PhysicsDef({
+            noRotation: true,
+        }), new Capsule());
         Services.world.add(player);
         Services.inputManager.setEntityToOrbit(player, 5);
     }

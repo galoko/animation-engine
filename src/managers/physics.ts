@@ -1,5 +1,12 @@
+import { CollisionComponent } from "../components/collisionComponent"
+import { PhysicsComponent } from "../components/phyicsComponent"
+import { TransformComponent } from "../components/transformComponent"
+import { Entity } from "../entities/entity"
+
 export class Physics {
-    dynamicsWorld: Ammo.btDiscreteDynamicsWorld
+    private dynamicsWorld: Ammo.btDiscreteDynamicsWorld
+    private entities: Set<Entity> = new Set()
+    private readonly tempTransform = new Ammo.btTransform()
 
     constructor(private ammo: typeof Ammo) {
         // ammo init (wow)
@@ -17,7 +24,87 @@ export class Physics {
         this.dynamicsWorld.setGravity(new Ammo.btVector3(0, 0, -9.8))
     }
 
+    add(entity: Entity): void {
+        const physics = entity.get(PhysicsComponent)
+        const collision = entity.get(CollisionComponent)
+        const transfrom = entity.get(TransformComponent)
+
+        if (physics && collision && transfrom) {
+            const shape = collision.collisionPrimitive.getAmmoShape(transfrom.transform)
+
+            let mass = physics.physicsDef.options.mass || 1
+            const { isStatic, noRotation } = physics.physicsDef.options
+
+            let localInertia
+            if (isStatic || noRotation) {
+                if (isStatic) {
+                    mass = 0
+                }
+                localInertia = new Ammo.btVector3(0, 0, 0)
+            } else {
+                localInertia = undefined
+            }
+
+            const bodyTransform = new Ammo.btTransform()
+            bodyTransform.setIdentity()
+            bodyTransform.setOrigin(
+                new Ammo.btVector3(
+                    transfrom.transform.pos[0],
+                    transfrom.transform.pos[1],
+                    transfrom.transform.pos[2]
+                )
+            )
+            bodyTransform.setRotation(
+                new Ammo.btQuaternion(
+                    transfrom.transform.rotation[0],
+                    transfrom.transform.rotation[1],
+                    transfrom.transform.rotation[2],
+                    transfrom.transform.rotation[3]
+                )
+            )
+
+            const myMotionState = new Ammo.btDefaultMotionState(bodyTransform)
+
+            const rbInfo = new Ammo.btRigidBodyConstructionInfo(
+                mass,
+                myMotionState,
+                shape,
+                localInertia
+            )
+            const body = new Ammo.btRigidBody(rbInfo)
+
+            this.dynamicsWorld.addRigidBody(body)
+
+            this.entities.add(entity)
+
+            physics.body = body
+        }
+    }
+
+    private syncBodies() {
+        for (const entity of this.entities) {
+            const physics = entity.get(PhysicsComponent)
+            const transfrom = entity.get(TransformComponent)
+            if (physics && transfrom) {
+                const body = physics.body!
+
+                body.getMotionState().getWorldTransform(this.tempTransform)
+                const origin = this.tempTransform.getOrigin()
+                transfrom.transform.pos[0] = origin.x()
+                transfrom.transform.pos[1] = origin.y()
+                transfrom.transform.pos[2] = origin.z()
+                const rotation = this.tempTransform.getRotation()
+                transfrom.transform.rotation[3] = rotation.x()
+                transfrom.transform.rotation[4] = rotation.y()
+                transfrom.transform.rotation[5] = rotation.z()
+                transfrom.transform.rotation[6] = rotation.w()
+            }
+        }
+    }
+
     tick(dt: number): void {
-        //
+        this.dynamicsWorld.stepSimulation(dt, 2)
+
+        this.syncBodies()
     }
 }

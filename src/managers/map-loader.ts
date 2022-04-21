@@ -1,6 +1,7 @@
 import { quat, vec3 } from "gl-matrix"
 import { Object } from "../entities/object"
 import { Capsule, Plane } from "../models/collision-primitives"
+import { PhysicsDef } from "../models/physics-def"
 import { CapsuleModelDef } from "../models/templates/capsule-def"
 import { SimpleModelDef } from "../models/templates/simple-model-def"
 import { Services } from "./services"
@@ -23,6 +24,9 @@ export class MapLoader {
             },
             new SimpleModelDef("plane"),
             "grass.jpg",
+            new PhysicsDef({
+                isStatic: true,
+            }),
             new Plane()
         )
         Services.world.add(ground)
@@ -35,6 +39,9 @@ export class MapLoader {
             },
             new CapsuleModelDef(),
             "blank",
+            new PhysicsDef({
+                noRotation: true,
+            }),
             new Capsule()
         )
         Services.world.add(player)

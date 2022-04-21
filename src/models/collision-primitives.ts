@@ -10,14 +10,14 @@ export abstract class CollisionPrimitive {
         return this.ammoShape
     }
 
-    abstract update(transform: Readonly<TransformData>): Ammo.btCollisionShape
+    protected abstract update(transform: Readonly<TransformData>): Ammo.btCollisionShape
 }
 
 export class Capsule extends CollisionPrimitive {
     update(transform: Readonly<TransformData>): Ammo.btCollisionShape {
         const { size } = transform
 
-        return new Ammo.btCapsuleShape(0.5 * size[0], 1 * size[1])
+        return new Ammo.btCapsuleShape(0.5 * size[0], 1 * size[2])
     }
 }
 
