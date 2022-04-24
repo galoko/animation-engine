@@ -1,6 +1,7 @@
 declare function Ammo<T>(target?: T): Promise<T & typeof Ammo>
 declare namespace Ammo {
     function destroy(obj: any): void
+    function getPointer(obj: any): number
     class btIDebugDraw {
         drawLine(from: btVector3, to: btVector3, color: btVector3): void
         drawContactPoint(

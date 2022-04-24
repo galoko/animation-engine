@@ -1,4 +1,4 @@
-import { quat } from "gl-matrix"
+import { quat, vec3 } from "gl-matrix"
 import { TransformData } from "../components/transformComponent"
 
 export abstract class CollisionPrimitive {
@@ -46,17 +46,32 @@ export class Sphere extends CollisionPrimitive {
 
 export class Plane extends CollisionPrimitive {
     update(transform: Readonly<TransformData>): Ammo.btCollisionShape {
-        const { pos, size } = transform
+        const { pos, size, rotation } = transform
 
-        const p0 = new Ammo.btVector3(pos[0] - 0.5 * size[0], pos[1] - 0.5 * size[1], pos[2])
-        const p1 = new Ammo.btVector3(pos[0] + 0.5 * size[0], pos[1] - 0.5 * size[1], pos[2])
-        const p2 = new Ammo.btVector3(pos[0] - 0.5 * size[0], pos[1] + 0.5 * size[1], pos[2])
-        const p3 = new Ammo.btVector3(pos[0] + 0.5 * size[0], pos[1] + 0.5 * size[1], pos[2])
+        const p0 = vec3.fromValues(-0.5 * size[0], -0.5 * size[1], 0)
+        const p1 = vec3.fromValues(+0.5 * size[0], -0.5 * size[1], 0)
+        const p2 = vec3.fromValues(-0.5 * size[0], +0.5 * size[1], 0)
+        const p3 = vec3.fromValues(+0.5 * size[0], +0.5 * size[1], 0)
+
+        vec3.transformQuat(p0, p0, rotation)
+        vec3.transformQuat(p1, p1, rotation)
+        vec3.transformQuat(p2, p2, rotation)
+        vec3.transformQuat(p3, p3, rotation)
+
+        vec3.add(p0, p0, pos)
+        vec3.add(p1, p1, pos)
+        vec3.add(p2, p2, pos)
+        vec3.add(p3, p3, pos)
+
+        const p0a = new Ammo.btVector3(p0[0], p0[1], p0[2])
+        const p1a = new Ammo.btVector3(p1[0], p1[1], p1[2])
+        const p2a = new Ammo.btVector3(p2[0], p2[1], p2[2])
+        const p3a = new Ammo.btVector3(p3[0], p3[1], p3[2])
 
         const trimesh = new Ammo.btTriangleMesh()
 
-        trimesh.addTriangle(p0, p1, p2, true)
-        trimesh.addTriangle(p1, p2, p3, true)
+        trimesh.addTriangle(p0a, p1a, p2a, true)
+        trimesh.addTriangle(p1a, p2a, p3a, true)
 
         return new Ammo.btBvhTriangleMeshShape(trimesh, true)
     }

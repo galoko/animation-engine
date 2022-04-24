@@ -1,8 +1,15 @@
+import { vec3 } from "gl-matrix"
 import { CollisionComponent } from "../components/collisionComponent"
 import { PhysicsComponent } from "../components/phyicsComponent"
 import { TransformComponent } from "../components/transformComponent"
 import { Entity } from "../entities/entity"
-import { getPhysicsOptions } from "../models/physics-def"
+import { CollisionGroups, getPhysicsOptions } from "../models/physics-def"
+
+type RaycastResult = {
+    distance: number
+    normal: vec3
+    hit: boolean
+}
 
 export class Physics {
     private dynamicsWorld: Ammo.btDiscreteDynamicsWorld
@@ -45,21 +52,23 @@ export class Physics {
 
             let bodyTransform = new Ammo.btTransform()
             bodyTransform.setIdentity()
-            bodyTransform.setOrigin(
-                new Ammo.btVector3(
-                    transfrom.transform.pos[0],
-                    transfrom.transform.pos[1],
-                    transfrom.transform.pos[2]
+            if (!options.bakedTransform) {
+                bodyTransform.setOrigin(
+                    new Ammo.btVector3(
+                        transfrom.transform.pos[0],
+                        transfrom.transform.pos[1],
+                        transfrom.transform.pos[2]
+                    )
                 )
-            )
-            bodyTransform.setRotation(
-                new Ammo.btQuaternion(
-                    transfrom.transform.rotation[0],
-                    transfrom.transform.rotation[1],
-                    transfrom.transform.rotation[2],
-                    transfrom.transform.rotation[3]
+                bodyTransform.setRotation(
+                    new Ammo.btQuaternion(
+                        transfrom.transform.rotation[0],
+                        transfrom.transform.rotation[1],
+                        transfrom.transform.rotation[2],
+                        transfrom.transform.rotation[3]
+                    )
                 )
-            )
+            }
 
             const additionalTransform = collision.collisionPrimitive.getTransfrom()
             if (additionalTransform) {
@@ -77,7 +86,7 @@ export class Physics {
             const body = new Ammo.btRigidBody(rbInfo)
             body.setFriction(options.friction)
 
-            this.dynamicsWorld.addRigidBody(body)
+            this.dynamicsWorld.addRigidBody(body, options.collisionGroup, 0xff)
 
             this.entities.add(entity)
 
@@ -85,12 +94,36 @@ export class Physics {
         }
     }
 
+    raycast(p0: vec3, p1: vec3): RaycastResult {
+        const from = new Ammo.btVector3(p0[0], p0[1], p0[2])
+        const to = new Ammo.btVector3(p1[0], p1[1], p1[2])
+        const callback = new Ammo.ClosestRayResultCallback(from, to)
+        callback.set_m_collisionFilterGroup(CollisionGroups.STATIC)
+        this.dynamicsWorld.rayTest(from, to, callback)
+
+        const dist = vec3.distance(p0, p1)
+
+        const ammoNormal = callback.get_m_hitNormalWorld()
+        const normal = vec3.fromValues(ammoNormal.x(), ammoNormal.y(), ammoNormal.z())
+
+        return {
+            distance: dist * callback.get_m_closestHitFraction(),
+            normal,
+            hit: callback.hasHit(),
+        }
+    }
+
     private syncBodies() {
         for (const entity of this.entities) {
             const physics = entity.get(PhysicsComponent)
             const transfrom = entity.get(TransformComponent)
-            if (physics && transfrom) {
-                const body = physics.body!
+            if (physics && transfrom && physics.body) {
+                const body = physics.body
+
+                const options = getPhysicsOptions(physics.physicsDef.options)
+                if (options.isStatic) {
+                    continue
+                }
 
                 body.getMotionState().getWorldTransform(this.tempTransform)
                 const origin = this.tempTransform.getOrigin()

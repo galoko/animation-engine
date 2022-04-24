@@ -8213,11 +8213,18 @@ class PhysicsComponent extends Component {
     }
 }
 
+var CollisionGroups;
+(function (CollisionGroups) {
+    CollisionGroups[CollisionGroups["STATIC"] = 2] = "STATIC";
+    CollisionGroups[CollisionGroups["PLAYER"] = 4] = "PLAYER";
+})(CollisionGroups || (CollisionGroups = {}));
 const DEFAULT_PHYSICS_OPTIONS = {
     isStatic: false,
     noRotation: false,
     mass: 1,
     friction: 0.5,
+    bakedTransform: false,
+    collisionGroup: CollisionGroups.STATIC,
 };
 function getPhysicsOptions(options) {
     return Object.assign({ ...DEFAULT_PHYSICS_OPTIONS }, options || {});
@@ -8260,8 +8267,10 @@ class Physics {
             }
             let bodyTransform = new Ammo.btTransform();
             bodyTransform.setIdentity();
-            bodyTransform.setOrigin(new Ammo.btVector3(transfrom.transform.pos[0], transfrom.transform.pos[1], transfrom.transform.pos[2]));
-            bodyTransform.setRotation(new Ammo.btQuaternion(transfrom.transform.rotation[0], transfrom.transform.rotation[1], transfrom.transform.rotation[2], transfrom.transform.rotation[3]));
+            if (!options.bakedTransform) {
+                bodyTransform.setOrigin(new Ammo.btVector3(transfrom.transform.pos[0], transfrom.transform.pos[1], transfrom.transform.pos[2]));
+                bodyTransform.setRotation(new Ammo.btQuaternion(transfrom.transform.rotation[0], transfrom.transform.rotation[1], transfrom.transform.rotation[2], transfrom.transform.rotation[3]));
+            }
             const additionalTransform = collision.collisionPrimitive.getTransfrom();
             if (additionalTransform) {
                 bodyTransform = bodyTransform.op_mul(additionalTransform);
@@ -8270,17 +8279,36 @@ class Physics {
             const rbInfo = new Ammo.btRigidBodyConstructionInfo(mass, myMotionState, shape, localInertia);
             const body = new Ammo.btRigidBody(rbInfo);
             body.setFriction(options.friction);
-            this.dynamicsWorld.addRigidBody(body);
+            this.dynamicsWorld.addRigidBody(body, options.collisionGroup, 0xff);
             this.entities.add(entity);
             physics.body = body;
         }
+    }
+    raycast(p0, p1) {
+        const from = new Ammo.btVector3(p0[0], p0[1], p0[2]);
+        const to = new Ammo.btVector3(p1[0], p1[1], p1[2]);
+        const callback = new Ammo.ClosestRayResultCallback(from, to);
+        callback.set_m_collisionFilterGroup(CollisionGroups.STATIC);
+        this.dynamicsWorld.rayTest(from, to, callback);
+        const dist = distance$2(p0, p1);
+        const ammoNormal = callback.get_m_hitNormalWorld();
+        const normal = fromValues$4(ammoNormal.x(), ammoNormal.y(), ammoNormal.z());
+        return {
+            distance: dist * callback.get_m_closestHitFraction(),
+            normal,
+            hit: callback.hasHit(),
+        };
     }
     syncBodies() {
         for (const entity of this.entities) {
             const physics = entity.get(PhysicsComponent);
             const transfrom = entity.get(TransformComponent);
-            if (physics && transfrom) {
+            if (physics && transfrom && physics.body) {
                 const body = physics.body;
+                const options = getPhysicsOptions(physics.physicsDef.options);
+                if (options.isStatic) {
+                    continue;
+                }
                 body.getMotionState().getWorldTransform(this.tempTransform);
                 const origin = this.tempTransform.getOrigin();
                 transfrom.transform.pos[0] = origin.x();
@@ -8570,14 +8598,26 @@ class Sphere extends CollisionPrimitive {
 }
 class Plane extends CollisionPrimitive {
     update(transform) {
-        const { pos, size } = transform;
-        const p0 = new Ammo.btVector3(pos[0] - 0.5 * size[0], pos[1] - 0.5 * size[1], pos[2]);
-        const p1 = new Ammo.btVector3(pos[0] + 0.5 * size[0], pos[1] - 0.5 * size[1], pos[2]);
-        const p2 = new Ammo.btVector3(pos[0] - 0.5 * size[0], pos[1] + 0.5 * size[1], pos[2]);
-        const p3 = new Ammo.btVector3(pos[0] + 0.5 * size[0], pos[1] + 0.5 * size[1], pos[2]);
+        const { pos, size, rotation } = transform;
+        const p0 = fromValues$4(-0.5 * size[0], -0.5 * size[1], 0);
+        const p1 = fromValues$4(+0.5 * size[0], -0.5 * size[1], 0);
+        const p2 = fromValues$4(-0.5 * size[0], +0.5 * size[1], 0);
+        const p3 = fromValues$4(+0.5 * size[0], +0.5 * size[1], 0);
+        transformQuat$1(p0, p0, rotation);
+        transformQuat$1(p1, p1, rotation);
+        transformQuat$1(p2, p2, rotation);
+        transformQuat$1(p3, p3, rotation);
+        add$4(p0, p0, pos);
+        add$4(p1, p1, pos);
+        add$4(p2, p2, pos);
+        add$4(p3, p3, pos);
+        const p0a = new Ammo.btVector3(p0[0], p0[1], p0[2]);
+        const p1a = new Ammo.btVector3(p1[0], p1[1], p1[2]);
+        const p2a = new Ammo.btVector3(p2[0], p2[1], p2[2]);
+        const p3a = new Ammo.btVector3(p3[0], p3[1], p3[2]);
         const trimesh = new Ammo.btTriangleMesh();
-        trimesh.addTriangle(p0, p1, p2, true);
-        trimesh.addTriangle(p1, p2, p3, true);
+        trimesh.addTriangle(p0a, p1a, p2a, true);
+        trimesh.addTriangle(p1a, p2a, p3a, true);
         return new Ammo.btBvhTriangleMeshShape(trimesh, true);
     }
 }
@@ -8731,28 +8771,41 @@ class MapLoader {
             texMul: 25,
         }), "grass2.jpg", new PhysicsDef({
             isStatic: true,
+            bakedTransform: true,
         }), new Plane());
         Services.world.add(ground);
+        const q2 = create$2();
+        fromEuler(q2, 0, 0, 0);
+        const ground2 = new Object$1({
+            pos: fromValues$4(0, -25 - 25 * Math.cos((45 / 180) * Math.PI), 25 * Math.cos((45 / 180) * Math.PI)),
+            size: fromValues$4(50, 50, 1),
+            rotation: q2,
+        }, new SimpleModelDef("plane", {
+            texMul: 25,
+        }), "grass2.jpg", new PhysicsDef({
+            isStatic: true,
+            bakedTransform: true,
+        }), new Plane());
+        Services.world.add(ground2);
         // Create xmur3 state:
         const seed = xmur3("suchok");
         // Output four 32-bit hashes to provide the seed for sfc32.
         const rand = sfc32(seed(), seed(), seed(), seed());
-        for (let i = 0; i < 20; i++) {
-            const size = randomRange(0.5, 3, rand);
+        for (let i = 0; i < 0; i++) {
+            const size = randomRange(0.1, 0.9, rand);
             const x = randomRange(-25, 25, rand);
             const y = randomRange(-25, 25, rand);
             const q = create$2();
-            fromEuler(q, randomRange(0, 180, rand), randomRange(0, 180, rand), randomRange(0, 180, rand));
+            fromEuler(q, 0, 0, randomRange(0, 180, rand));
             const rock = new Object$1({
-                pos: fromValues$4(x, y, randomRange(0, 100, rand) + size / 2),
+                pos: fromValues$4(x, y, size / 2),
                 size: fromValues$4(size, size, size),
                 rotation: q,
-            }, new SimpleModelDef("sphere", {
+            }, new SimpleModelDef("cube", {
                 texMul: 3,
             }), "rock.jpg", new PhysicsDef({
-                friction: 0.9,
-                mass: 100,
-            }), new Sphere());
+                isStatic: true,
+            }), new Box());
             Services.world.add(rock);
         }
         const player = new Object$1({
@@ -8762,6 +8815,7 @@ class MapLoader {
         }, new CapsuleModelDef(), "blank", new PhysicsDef({
             noRotation: true,
             friction: 0.9,
+            collisionGroup: CollisionGroups.PLAYER,
         }), new Capsule());
         Services.world.add(player);
         Services.inputManager.setEntityToOrbit(player, 5);
@@ -8805,13 +8859,17 @@ class InputManager {
             this.applyOrbit();
         }
     }
-    processControlledEntity() {
+    processControlledEntity(dt) {
         const entity = this.controlledEntity;
         if (!entity) {
             return;
         }
         const physics = entity.get(PhysicsComponent);
-        if (physics && physics.body && this.orbit) {
+        const transform = entity.get(TransformComponent);
+        dt = (dt * 2) / 1000;
+        if (transform && physics && physics.body && this.orbit) {
+            physics.body.applyCentralImpulse(new Ammo.btVector3(0, 0, -9.8 * dt));
+            physics.body.setGravity(new Ammo.btVector3(0, 0, 0));
             let speed = 0;
             let desiredAngle = this.orbit.zAngle;
             if (this.isPressed("KeyW", "KeyS", "KeyA", "KeyD")) {
@@ -8830,8 +8888,24 @@ class InputManager {
             const q = create$2();
             fromEuler(q, 0, 0, -desiredAngle);
             transformQuat$1(velocity, velocity, q);
-            const currentVelocity = physics.body.getLinearVelocity();
-            velocity[2] = currentVelocity.z();
+            const pos = physics.body.getWorldTransform().getOrigin();
+            const next_x = pos.x() + velocity[0] * dt;
+            const next_y = pos.y() + velocity[1] * dt;
+            const offset = 0.1;
+            const z = pos.z() - offset - 0.55;
+            const FEET_OFFSET = transform.transform.size[2] * 0.5 + 0.55;
+            const center = fromValues$4(next_x, next_y, z);
+            const feet = fromValues$4(next_x, next_y, z - FEET_OFFSET);
+            const result = Services.physics.raycast(center, feet);
+            velocity[2] = physics.body.getLinearVelocity().z();
+            if (result.hit) {
+                const next_z = center[2] - result.distance + FEET_OFFSET;
+                if (next_z > pos.z()) {
+                    velocity[2] = 0;
+                    const t = physics.body.getWorldTransform();
+                    t.setOrigin(new Ammo.btVector3(pos.x(), pos.y(), next_z - 0.001));
+                }
+            }
             const ammoVelocity = new Ammo.btVector3(velocity[0], velocity[1], velocity[2]);
             physics.body.setLinearVelocity(ammoVelocity);
             physics.body.activate(true);
@@ -8884,7 +8958,7 @@ class InputManager {
         }
     }
     tick(dt) {
-        this.processControlledEntity();
+        this.processControlledEntity(dt);
     }
     postPhysics() {
         this.applyOrbit();

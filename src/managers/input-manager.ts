@@ -62,7 +62,7 @@ export class InputManager {
         }
     }
 
-    private processControlledEntity(): void {
+    private processControlledEntity(dt: number): void {
         const entity = this.controlledEntity
 
         if (!entity) {
@@ -70,8 +70,14 @@ export class InputManager {
         }
 
         const physics = entity.get(PhysicsComponent)
+        const transform = entity.get(TransformComponent)
 
-        if (physics && physics.body && this.orbit) {
+        dt = (dt * 2) / 1000
+
+        if (transform && physics && physics.body && this.orbit) {
+            physics.body.applyCentralImpulse(new Ammo.btVector3(0, 0, -9.8 * dt))
+            physics.body.setGravity(new Ammo.btVector3(0, 0, 0))
+
             let speed = 0
             let desiredAngle = this.orbit.zAngle
 
@@ -95,10 +101,31 @@ export class InputManager {
             quat.fromEuler(q, 0, 0, -desiredAngle)
             vec3.transformQuat(velocity, velocity, q)
 
-            const currentVelocity = physics.body.getLinearVelocity()
+            const pos = physics.body.getWorldTransform().getOrigin()
 
-            velocity[2] = currentVelocity.z()
+            const next_x = pos.x() + velocity[0] * dt
+            const next_y = pos.y() + velocity[1] * dt
 
+            const offset = 0.1
+
+            const z = pos.z() - offset - 0.55
+            const FEET_OFFSET = transform.transform.size[2] * 0.5 + 0.55
+
+            const center = vec3.fromValues(next_x, next_y, z)
+            const feet = vec3.fromValues(next_x, next_y, z - FEET_OFFSET)
+            const result = Services.physics.raycast(center, feet)
+            velocity[2] = physics.body.getLinearVelocity().z()
+
+            if (result.hit) {
+                const next_z = center[2] - result.distance + FEET_OFFSET
+
+                if (next_z > pos.z()) {
+                    velocity[2] = 0
+
+                    const t = physics.body.getWorldTransform()
+                    t.setOrigin(new Ammo.btVector3(pos.x(), pos.y(), next_z - 0.001))
+                }
+            }
             const ammoVelocity = new Ammo.btVector3(velocity[0], velocity[1], velocity[2])
             physics.body.setLinearVelocity(ammoVelocity)
             physics.body.activate(true)
@@ -163,7 +190,7 @@ export class InputManager {
     }
 
     tick(dt: number) {
-        this.processControlledEntity()
+        this.processControlledEntity(dt)
     }
 
     postPhysics() {
