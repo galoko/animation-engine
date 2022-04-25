@@ -11,6 +11,9 @@ import generalFrag from "../shaders/general.frag"
 import objectsVert from "../shaders/objects.vert"
 import objectsFrag from "../shaders/objects.frag"
 
+import coloredVert from "../shaders/colored.vert"
+import coloredFrag from "../shaders/colored.frag"
+
 import skinningVert from "../shaders/skinning.vert"
 import skinningFrag from "../shaders/skinning.frag"
 
@@ -24,6 +27,7 @@ import { TransformComponent, TransformData } from "../components/transformCompon
 import { ModelComponent } from "../components/modelComponent"
 import { TextureComponent } from "../components/textureComponent"
 import { getModelOptions, ModelOptions } from "../models/model-def"
+import { DebugLine } from "../models/debug-line"
 
 const ANIMATION_TEXTURE_SIZE = 1024
 
@@ -40,6 +44,7 @@ export class Render {
 
     private readonly generalShader: CompiledShader
     private readonly objectsShader: CompiledShader
+    private readonly coloredShader: CompiledShader
     private readonly skinningShader: CompiledShader
 
     private readonly matrices: WebGLTexture
@@ -50,6 +55,10 @@ export class Render {
 
     private readonly models: Set<Entity>
     private readonly skins: Set<Entity>
+
+    private readonly debugLinesData: Float32Array
+    private debugLinesDataIndex: number
+    private readonly debugLineBuffer: WebGLBuffer
 
     constructor(private readonly canvas: HTMLCanvasElement) {
         this.models = new Set()
@@ -95,6 +104,12 @@ export class Render {
             "model",
             "texMul",
         ])
+        this.coloredShader = compileShader(gl, coloredVert, coloredFrag, [
+            "p",
+            "c",
+            "mvp",
+            "texture",
+        ])
         this.skinningShader = compileShader(gl, skinningVert, skinningFrag, [
             "p",
             "n",
@@ -112,6 +127,14 @@ export class Render {
         gl.enable(gl.DEPTH_TEST)
 
         this.anisotropic = gl.getExtension("EXT_texture_filter_anisotropic")
+
+        this.debugLinesData = new Float32Array(DebugLine.MAX_DEBUG_LINES * DebugLine.STRIDE)
+
+        this.debugLineBuffer = gl.createBuffer()!
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.debugLineBuffer)
+        gl.bufferData(gl.ARRAY_BUFFER, this.debugLinesData.byteLength, gl.DYNAMIC_DRAW)
+
+        this.debugLinesDataIndex = 0
     }
 
     private handleResize() {
@@ -273,6 +296,41 @@ export class Render {
         }
     }
 
+    drawDebugLine(start: vec3, end: vec3, color1: number, color2: number): void {
+        if (this.debugLinesDataIndex + 2 > DebugLine.MAX_DEBUG_LINES) {
+            throw new Error("Too many debug lines.")
+        }
+
+        const colorToRGBA = (color: number) => {
+            return [
+                color & (0xff / 0xff),
+                (color >> 8) & (0xff / 0xff),
+                (color >> 16) & (0xff / 0xff),
+            ]
+        }
+
+        const [r1, g1, b1] = colorToRGBA(color1)
+        const [r2, g2, b2] = colorToRGBA(color2)
+
+        const i = this.debugLinesDataIndex * DebugLine.STRIDE
+
+        this.debugLinesData[i + 0] = start[0]
+        this.debugLinesData[i + 1] = start[1]
+        this.debugLinesData[i + 2] = start[2]
+        this.debugLinesData[i + 3] = r1
+        this.debugLinesData[i + 4] = g1
+        this.debugLinesData[i + 5] = b1
+
+        this.debugLinesData[i + 6] = end[0]
+        this.debugLinesData[i + 7] = end[1]
+        this.debugLinesData[i + 8] = end[2]
+        this.debugLinesData[i + 9] = r2
+        this.debugLinesData[i + 10] = g2
+        this.debugLinesData[i + 11] = b2
+
+        this.debugLinesDataIndex += 2
+    }
+
     draw(): void {
         const { gl } = this
 
@@ -297,6 +355,37 @@ export class Render {
                     modelEntry.transform
                 )
             }
+        }
+
+        if (this.debugLinesDataIndex > 0) {
+            // gl.disable(gl.DEPTH_TEST)
+
+            const { coloredShader } = this
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.debugLineBuffer)
+
+            this.defineVertexBuffer(gl, coloredShader, DebugLine.ATTRIBUTES, DebugLine.STRIDE)
+
+            gl.useProgram(coloredShader.program)
+
+            const mvp = mat4.create()
+            mat4.multiply(mvp, mvp, this.projectionMatrix)
+            mat4.multiply(mvp, mvp, this.viewMatrix)
+
+            gl.uniformMatrix4fv(coloredShader.mvp, false, mvp)
+
+            const filledDebugLinesData = new Float32Array(
+                this.debugLinesData.buffer,
+                0,
+                this.debugLinesDataIndex * DebugLine.STRIDE
+            )
+            gl.bufferSubData(gl.ARRAY_BUFFER, 0, filledDebugLinesData)
+
+            gl.drawArrays(gl.LINES, 0, this.debugLinesDataIndex)
+
+            this.debugLinesDataIndex = 0
+
+            // gl.enable(gl.DEPTH_TEST)
         }
     }
 }

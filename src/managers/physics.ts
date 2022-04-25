@@ -140,7 +140,7 @@ export class Physics {
     }
 
     tick(dt: number): void {
-        this.dynamicsWorld.stepSimulation(dt, 2)
+        this.dynamicsWorld.stepSimulation(dt, 1)
 
         this.syncBodies()
     }

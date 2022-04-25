@@ -17,8 +17,10 @@ export class MapLoader {
     }
 
     private loadTestMap() {
+        const a = -30
+
         const q = quat.create()
-        quat.fromEuler(q, -45, 0, 0)
+        quat.fromEuler(q, a, 0, 0)
 
         const ground = new Object(
             {
@@ -44,8 +46,8 @@ export class MapLoader {
             {
                 pos: vec3.fromValues(
                     0,
-                    -25 - 25 * Math.cos((45 / 180) * Math.PI),
-                    25 * Math.cos((45 / 180) * Math.PI)
+                    -25 - 25 * Math.cos((a / 180) * Math.PI),
+                    25 * Math.sin((-a / 180) * Math.PI)
                 ),
                 size: vec3.fromValues(50, 50, 1),
                 rotation: q2,

@@ -91,6 +91,10 @@ var objectsVert = "attribute vec3 p;\r\nattribute vec3 n;\r\nattribute vec2 uv;\
 
 var objectsFrag = "precision highp float;\r\n\r\nvarying highp vec2 texCoord;\r\nvarying highp vec3 normal;\r\n\r\nuniform sampler2D texture;\r\n\r\nvoid main(void) {\r\n    vec3 lightDir = normalize(vec3(0.656, 0.3, 0.14));\r\n    vec3 lightColor = vec3(1.0);\r\n\r\n    float diff = max(dot(normal, lightDir), 0.0);\r\n    vec3 diffuse = diff * lightColor;\r\n\r\n    float ambient = 0.5;\r\n    vec3 objectColor = texture2D(texture, texCoord).rgb;\r\n    vec3 result = min(ambient + diffuse, 1.0) * objectColor;\r\n\r\n    gl_FragColor = vec4(result, 1.0);\r\n}";
 
+var coloredVert = "attribute vec3 p;\r\nattribute vec3 c;\r\n\r\nuniform mat4 mvp;\r\nvarying highp vec3 color;\r\n\r\nvoid main(void) {\r\n    gl_Position = mvp * vec4(p, 1.0);\r\n\r\n    color = c;\r\n}";
+
+var coloredFrag = "precision highp float;\r\n\r\nvarying highp vec3 color;\r\n\r\nvoid main(void) {\r\n    gl_FragColor = vec4(color, 1.0);\r\n}";
+
 var skinningVert = "attribute vec3 p;\r\nattribute vec3 n;\r\nattribute vec2 uv;\r\n\r\nattribute vec4 w;\r\nattribute vec4 j;\r\n\r\nuniform mat4 mvp;\r\nuniform sampler2D matrices;\r\n\r\nvarying highp vec2 texCoord;\r\nvarying highp vec3 normal;\r\n\r\nmat4 getJointMatrix(float j) {\r\n    float v0 = (j * 4.0 + 0.5) / 1024.0;\r\n    float v1 = (j * 4.0 + 1.5) / 1024.0;\r\n    float v2 = (j * 4.0 + 2.5) / 1024.0;\r\n    float v3 = (j * 4.0 + 3.5) / 1024.0;\r\n\r\n    vec4 p0 = texture2D(matrices, vec2(v0, 0.5));\r\n    vec4 p1 = texture2D(matrices, vec2(v1, 0.5));\r\n    vec4 p2 = texture2D(matrices, vec2(v2, 0.5));\r\n    vec4 p3 = texture2D(matrices, vec2(v3, 0.5));\r\n\r\n    return mat4(p0, p1, p2, p3);\r\n}\r\n\r\nvoid main(void) {\r\n    mat4 skinningMatrix =\r\n        getJointMatrix(j[0]) * w[0] +\r\n        getJointMatrix(j[1]) * w[1] +\r\n        getJointMatrix(j[2]) * w[2] +\r\n        getJointMatrix(j[3]) * w[3];\r\n\r\n    gl_Position = mvp * skinningMatrix * vec4(p, 1.0);\r\n\r\n    texCoord = uv;\r\n    normal = (skinningMatrix * vec4(n, 0.0)).xyz;\r\n}";
 
 var skinningFrag = "precision highp float;\r\n\r\nvarying highp vec2 texCoord;\r\nvarying highp vec3 normal;\r\n\r\nuniform sampler2D texture;\r\n\r\nvoid main(void) {\r\n    vec3 lightDir = vec3(0, 0, 1);\r\n    vec3 lightColor = vec3(1.0);\r\n\r\n    float diff = max(dot(normal, lightDir), 0.0);\r\n    vec3 diffuse = diff * lightColor;\r\n\r\n    float ambient = 0.5;\r\n    vec3 objectColor = texture2D(texture, texCoord).rgb;\r\n    vec3 result = min(ambient + diffuse, 1.0) * objectColor;\r\n\r\n    gl_FragColor = vec4(result, 1.0);\r\n}";
@@ -7758,7 +7762,7 @@ var vec2 = /*#__PURE__*/Object.freeze({
     forEach: forEach
 });
 
-const STRIDE$2 = 1 + 3 + 4;
+const STRIDE$3 = 1 + 3 + 4;
 const HUMAN_BONES_START = 1000;
 const HUMAN_BONES_COUNT = 13;
 const BONE_NAME_TO_BONE_ID = [
@@ -7814,7 +7818,7 @@ function getHumanBoneParent(id) {
     return HUMAN_SKELETON.get(id);
 }
 class Bone {
-    static STRIDE = STRIDE$2;
+    static STRIDE = STRIDE$3;
     id;
     translation;
     rotation;
@@ -7849,7 +7853,7 @@ function calculateSkinningMatrices(skin, animation, s, buffer) {
     return result;
 }
 
-const ATTRIBUTES$1 = [
+const ATTRIBUTES$2 = [
     {
         name: "p",
         size: 3,
@@ -7871,15 +7875,15 @@ const ATTRIBUTES$1 = [
         size: 4,
     },
 ];
-const STRIDE$1 = ATTRIBUTES$1.reduce((acum, value) => acum + value.size, 0);
+const STRIDE$2 = ATTRIBUTES$2.reduce((acum, value) => acum + value.size, 0);
 class Skin {
     vertices;
     vertexCount;
     indices;
     indexCount;
     bones;
-    static ATTRIBUTES = ATTRIBUTES$1;
-    static STRIDE = STRIDE$1;
+    static ATTRIBUTES = ATTRIBUTES$2;
+    static STRIDE = STRIDE$2;
     inverseMatrices;
     boneIdToBoneIndex;
     constructor(vertices, vertexCount, indices, indexCount, bones) {
@@ -7945,7 +7949,7 @@ class Skin {
     }
 }
 
-const ATTRIBUTES = [
+const ATTRIBUTES$1 = [
     {
         name: "p",
         size: 3,
@@ -7959,14 +7963,14 @@ const ATTRIBUTES = [
         size: 2,
     },
 ];
-const STRIDE = ATTRIBUTES.reduce((acum, value) => acum + value.size, 0);
+const STRIDE$1 = ATTRIBUTES$1.reduce((acum, value) => acum + value.size, 0);
 class Model {
     vertices;
     vertexCount;
     indices;
     indexCount;
-    static ATTRIBUTES = ATTRIBUTES;
-    static STRIDE = STRIDE;
+    static ATTRIBUTES = ATTRIBUTES$1;
+    static STRIDE = STRIDE$1;
     constructor(vertices, vertexCount, indices, indexCount) {
         this.vertices = vertices;
         this.vertexCount = vertexCount;
@@ -8038,6 +8042,23 @@ function getModelOptions(options) {
 class ModelDef {
 }
 
+const ATTRIBUTES = [
+    {
+        name: "p",
+        size: 3,
+    },
+    {
+        name: "c",
+        size: 3,
+    },
+];
+const STRIDE = ATTRIBUTES.reduce((acum, value) => acum + value.size, 0);
+class DebugLine {
+    static ATTRIBUTES = ATTRIBUTES;
+    static STRIDE = STRIDE;
+    static MAX_DEBUG_LINES = 1000;
+}
+
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 const ANIMATION_TEXTURE_SIZE = 1024;
 const UP = fromValues$4(0, 0, 1);
@@ -8047,6 +8068,7 @@ class Render {
     anisotropic;
     generalShader;
     objectsShader;
+    coloredShader;
     skinningShader;
     matrices;
     matricesBuffer;
@@ -8054,6 +8076,9 @@ class Render {
     projectionMatrix;
     models;
     skins;
+    debugLinesData;
+    debugLinesDataIndex;
+    debugLineBuffer;
     constructor(canvas) {
         this.canvas = canvas;
         this.models = new Set();
@@ -8084,6 +8109,12 @@ class Render {
             "model",
             "texMul",
         ]);
+        this.coloredShader = compileShader(gl, coloredVert, coloredFrag, [
+            "p",
+            "c",
+            "mvp",
+            "texture",
+        ]);
         this.skinningShader = compileShader(gl, skinningVert, skinningFrag, [
             "p",
             "n",
@@ -8098,6 +8129,11 @@ class Render {
         gl.disable(gl.CULL_FACE);
         gl.enable(gl.DEPTH_TEST);
         this.anisotropic = gl.getExtension("EXT_texture_filter_anisotropic");
+        this.debugLinesData = new Float32Array(DebugLine.MAX_DEBUG_LINES * DebugLine.STRIDE);
+        this.debugLineBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.debugLineBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, this.debugLinesData.byteLength, gl.DYNAMIC_DRAW);
+        this.debugLinesDataIndex = 0;
     }
     handleResize() {
         const { canvas, gl } = this;
@@ -8177,6 +8213,34 @@ class Render {
             this.models.add(entity);
         }
     }
+    drawDebugLine(start, end, color1, color2) {
+        if (this.debugLinesDataIndex + 2 > DebugLine.MAX_DEBUG_LINES) {
+            throw new Error("Too many debug lines.");
+        }
+        const colorToRGBA = (color) => {
+            return [
+                color & (0xff / 0xff),
+                (color >> 8) & (0xff / 0xff),
+                (color >> 16) & (0xff / 0xff),
+            ];
+        };
+        const [r1, g1, b1] = colorToRGBA(color1);
+        const [r2, g2, b2] = colorToRGBA(color2);
+        const i = this.debugLinesDataIndex * DebugLine.STRIDE;
+        this.debugLinesData[i + 0] = start[0];
+        this.debugLinesData[i + 1] = start[1];
+        this.debugLinesData[i + 2] = start[2];
+        this.debugLinesData[i + 3] = r1;
+        this.debugLinesData[i + 4] = g1;
+        this.debugLinesData[i + 5] = b1;
+        this.debugLinesData[i + 6] = end[0];
+        this.debugLinesData[i + 7] = end[1];
+        this.debugLinesData[i + 8] = end[2];
+        this.debugLinesData[i + 9] = r2;
+        this.debugLinesData[i + 10] = g2;
+        this.debugLinesData[i + 11] = b2;
+        this.debugLinesDataIndex += 2;
+    }
     draw() {
         const { gl } = this;
         this.handleResize();
@@ -8190,6 +8254,22 @@ class Render {
             for (const modelEntry of modelEntities) {
                 this.drawModel(modelEntry.model, texture.texture, getModelOptions(modelEntry.options), modelEntry.transform);
             }
+        }
+        if (this.debugLinesDataIndex > 0) {
+            // gl.disable(gl.DEPTH_TEST)
+            const { coloredShader } = this;
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.debugLineBuffer);
+            this.defineVertexBuffer(gl, coloredShader, DebugLine.ATTRIBUTES, DebugLine.STRIDE);
+            gl.useProgram(coloredShader.program);
+            const mvp = create$5();
+            multiply$5(mvp, mvp, this.projectionMatrix);
+            multiply$5(mvp, mvp, this.viewMatrix);
+            gl.uniformMatrix4fv(coloredShader.mvp, false, mvp);
+            const filledDebugLinesData = new Float32Array(this.debugLinesData.buffer, 0, this.debugLinesDataIndex * DebugLine.STRIDE);
+            gl.bufferSubData(gl.ARRAY_BUFFER, 0, filledDebugLinesData);
+            gl.drawArrays(gl.LINES, 0, this.debugLinesDataIndex);
+            this.debugLinesDataIndex = 0;
+            // gl.enable(gl.DEPTH_TEST)
         }
     }
 }
@@ -8323,7 +8403,7 @@ class Physics {
         }
     }
     tick(dt) {
-        this.dynamicsWorld.stepSimulation(dt, 2);
+        this.dynamicsWorld.stepSimulation(dt, 1);
         this.syncBodies();
     }
 }
@@ -8527,7 +8607,8 @@ class GameLoop {
         requestAnimationFrame(this.tickBind);
     }
     tick(time) {
-        const dt = this.prevTime != undefined ? time - this.prevTime : 0;
+        // const dt = this.prevTime != undefined ? time - this.prevTime : 0
+        const dt = 1000 / 60;
         Services.inputManager.tick(dt);
         Services.physics.tick(dt);
         Services.inputManager.postPhysics();
@@ -8761,8 +8842,9 @@ class MapLoader {
         }
     }
     loadTestMap() {
+        const a = -30;
         const q = create$2();
-        fromEuler(q, -45, 0, 0);
+        fromEuler(q, a, 0, 0);
         const ground = new Object$1({
             pos: fromValues$4(0, 0, 0),
             size: fromValues$4(50, 50, 1),
@@ -8777,7 +8859,7 @@ class MapLoader {
         const q2 = create$2();
         fromEuler(q2, 0, 0, 0);
         const ground2 = new Object$1({
-            pos: fromValues$4(0, -25 - 25 * Math.cos((45 / 180) * Math.PI), 25 * Math.cos((45 / 180) * Math.PI)),
+            pos: fromValues$4(0, -25 - 25 * Math.cos((a / 180) * Math.PI), 25 * Math.sin((-a / 180) * Math.PI)),
             size: fromValues$4(50, 50, 1),
             rotation: q2,
         }, new SimpleModelDef("plane", {
@@ -8866,14 +8948,15 @@ class InputManager {
         }
         const physics = entity.get(PhysicsComponent);
         const transform = entity.get(TransformComponent);
-        dt = (dt * 2) / 1000;
+        dt = dt / 1000;
         if (transform && physics && physics.body && this.orbit) {
             physics.body.applyCentralImpulse(new Ammo.btVector3(0, 0, -9.8 * dt));
             physics.body.setGravity(new Ammo.btVector3(0, 0, 0));
             let speed = 0;
             let desiredAngle = this.orbit.zAngle;
             if (this.isPressed("KeyW", "KeyS", "KeyA", "KeyD")) {
-                speed = 7;
+                // speed = 17.24 // run
+                speed = 7.62; // walk
             }
             if (this.isPressed("KeyA")) {
                 desiredAngle -= this.isPressed("KeyW") ? 45 : this.isPressed("KeyS") ? -45 : 90;
@@ -8889,26 +8972,25 @@ class InputManager {
             fromEuler(q, 0, 0, -desiredAngle);
             transformQuat$1(velocity, velocity, q);
             const pos = physics.body.getWorldTransform().getOrigin();
-            const next_x = pos.x() + velocity[0] * dt;
-            const next_y = pos.y() + velocity[1] * dt;
-            const offset = 0.1;
-            const z = pos.z() - offset - 0.55;
-            const FEET_OFFSET = transform.transform.size[2] * 0.5 + 0.55;
+            const next_x = pos.x();
+            const next_y = pos.y();
+            const next_z = pos.z() - 9.8 * 0.9375 * dt; // gravity effect?
+            const z = next_z;
+            const FEET_OFFSET = transform.transform.size[2] * 0.5 + 0.4;
             const center = fromValues$4(next_x, next_y, z);
             const feet = fromValues$4(next_x, next_y, z - FEET_OFFSET);
             const result = Services.physics.raycast(center, feet);
             velocity[2] = physics.body.getLinearVelocity().z();
             if (result.hit) {
                 const next_z = center[2] - result.distance + FEET_OFFSET;
-                if (next_z > pos.z()) {
-                    velocity[2] = 0;
-                    const t = physics.body.getWorldTransform();
-                    t.setOrigin(new Ammo.btVector3(pos.x(), pos.y(), next_z - 0.001));
-                }
+                velocity[2] = 0;
+                const t = physics.body.getWorldTransform();
+                t.setOrigin(new Ammo.btVector3(pos.x(), pos.y(), next_z - 0.001));
             }
             const ammoVelocity = new Ammo.btVector3(velocity[0], velocity[1], velocity[2]);
             physics.body.setLinearVelocity(ammoVelocity);
             physics.body.activate(true);
+            Services.render.drawDebugLine(center, feet, 0xff0000, 0x00ff00);
         }
     }
     isPressed(...codes) {

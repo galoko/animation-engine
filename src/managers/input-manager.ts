@@ -72,7 +72,7 @@ export class InputManager {
         const physics = entity.get(PhysicsComponent)
         const transform = entity.get(TransformComponent)
 
-        dt = (dt * 2) / 1000
+        dt = dt / 1000
 
         if (transform && physics && physics.body && this.orbit) {
             physics.body.applyCentralImpulse(new Ammo.btVector3(0, 0, -9.8 * dt))
@@ -82,7 +82,8 @@ export class InputManager {
             let desiredAngle = this.orbit.zAngle
 
             if (this.isPressed("KeyW", "KeyS", "KeyA", "KeyD")) {
-                speed = 7
+                // speed = 17.24 // run
+                speed = 7.62 // walk
             }
 
             if (this.isPressed("KeyA")) {
@@ -103,13 +104,12 @@ export class InputManager {
 
             const pos = physics.body.getWorldTransform().getOrigin()
 
-            const next_x = pos.x() + velocity[0] * dt
-            const next_y = pos.y() + velocity[1] * dt
+            const next_x = pos.x()
+            const next_y = pos.y()
+            const next_z = pos.z() - 9.8 * 0.9375 * dt // gravity effect?
 
-            const offset = 0.1
-
-            const z = pos.z() - offset - 0.55
-            const FEET_OFFSET = transform.transform.size[2] * 0.5 + 0.55
+            const z = next_z
+            const FEET_OFFSET = transform.transform.size[2] * 0.5 + 0.4
 
             const center = vec3.fromValues(next_x, next_y, z)
             const feet = vec3.fromValues(next_x, next_y, z - FEET_OFFSET)
@@ -119,16 +119,16 @@ export class InputManager {
             if (result.hit) {
                 const next_z = center[2] - result.distance + FEET_OFFSET
 
-                if (next_z > pos.z()) {
-                    velocity[2] = 0
+                velocity[2] = 0
 
-                    const t = physics.body.getWorldTransform()
-                    t.setOrigin(new Ammo.btVector3(pos.x(), pos.y(), next_z - 0.001))
-                }
+                const t = physics.body.getWorldTransform()
+                t.setOrigin(new Ammo.btVector3(pos.x(), pos.y(), next_z - 0.001))
             }
             const ammoVelocity = new Ammo.btVector3(velocity[0], velocity[1], velocity[2])
             physics.body.setLinearVelocity(ammoVelocity)
             physics.body.activate(true)
+
+            Services.render.drawDebugLine(center, feet, 0xff0000, 0x00ff00)
         }
     }
 
