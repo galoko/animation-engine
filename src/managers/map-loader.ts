@@ -1,11 +1,15 @@
-import { quat, vec3 } from "gl-matrix"
+import { quat, vec3, vec4 } from "gl-matrix"
 import { Object } from "../entities/object"
 import { Box, Capsule, Plane, Sphere } from "../models/collision-primitives"
 import { CollisionGroups, PhysicsDef } from "../models/physics-def"
 import { CapsuleModelDef } from "../models/templates/capsule-def"
 import { SimpleModelDef } from "../models/templates/simple-model-def"
-import { randomRange, sfc32, xmur3 } from "../utils/random-utils"
 import { Services } from "./services"
+
+import { Biomes } from "../surface-generation/biomes/biomes"
+import * as Climate from "../surface-generation/biomes/climate"
+import { Pair } from "../surface-generation/biomes/consumer"
+import { OverworldBiomeBuilder } from "../surface-generation/biomes/overworld-biome-builder"
 
 export class MapLoader {
     async loadMap(mapName: string) {
@@ -17,10 +21,8 @@ export class MapLoader {
     }
 
     private loadTestMap() {
-        const a = -30
-
         const q = quat.create()
-        quat.fromEuler(q, a, 0, 0)
+        quat.fromEuler(q, 0, 0, 0)
 
         const ground = new Object(
             {
@@ -39,62 +41,6 @@ export class MapLoader {
             new Plane()
         )
         Services.world.add(ground)
-
-        const q2 = quat.create()
-        quat.fromEuler(q2, 0, 0, 0)
-        const ground2 = new Object(
-            {
-                pos: vec3.fromValues(
-                    0,
-                    -25 - 25 * Math.cos((a / 180) * Math.PI),
-                    25 * Math.sin((-a / 180) * Math.PI)
-                ),
-                size: vec3.fromValues(50, 50, 1),
-                rotation: q2,
-            },
-            new SimpleModelDef("plane", {
-                texMul: 25,
-            }),
-            "grass2.jpg",
-            new PhysicsDef({
-                isStatic: true,
-                bakedTransform: true,
-            }),
-            new Plane()
-        )
-        Services.world.add(ground2)
-
-        // Create xmur3 state:
-        const seed = xmur3("suchok")
-        // Output four 32-bit hashes to provide the seed for sfc32.
-        const rand = sfc32(seed(), seed(), seed(), seed())
-
-        for (let i = 0; i < 0; i++) {
-            const size = randomRange(0.1, 0.9, rand)
-
-            const x = randomRange(-25, 25, rand)
-            const y = randomRange(-25, 25, rand)
-
-            const q = quat.create()
-            quat.fromEuler(q, 0, 0, randomRange(0, 180, rand))
-
-            const rock = new Object(
-                {
-                    pos: vec3.fromValues(x, y, size / 2),
-                    size: vec3.fromValues(size, size, size),
-                    rotation: q,
-                },
-                new SimpleModelDef("cube", {
-                    texMul: 3,
-                }),
-                "rock.jpg",
-                new PhysicsDef({
-                    isStatic: true,
-                }),
-                new Box()
-            )
-            Services.world.add(rock)
-        }
 
         const player = new Object(
             {
@@ -115,5 +61,30 @@ export class MapLoader {
 
         Services.inputManager.setEntityToOrbit(player, 5)
         Services.inputManager.setControlledEntity(player)
+
+        // const builder = new OverworldBiomeBuilder()
+
+        // const output = [] as Pair<Climate.ParameterPoint, Biomes>[]
+        // builder.addBiomes(output)
+
+        // for ()
+
+        for (let x = 0; x < 5; x++) {
+            for (let y = 0; y < 5; y++) {
+                const box = new Object(
+                    {
+                        pos: vec3.fromValues(x, y, 1.8 / 2),
+                        size: vec3.fromValues(0.75, 0.75, 0.75),
+                        rotation: quat.create(),
+                    },
+                    new SimpleModelDef("cube", {
+                        colorOverride: vec4.fromValues(x / 5, y / 5, 0.5, 0.5),
+                        alpha: true,
+                    }),
+                    "blank"
+                )
+                Services.world.add(box)
+            }
+        }
     }
 }

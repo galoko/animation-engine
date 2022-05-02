@@ -13,15 +13,17 @@ export class Object extends Entity {
         transform: TransformData,
         modelDef: ModelDef,
         textureName: string,
-        physicsDef: PhysicsDef,
-        collisionPrimitive: CollisionPrimitive
+        physicsDef?: PhysicsDef,
+        collisionPrimitive?: CollisionPrimitive
     ) {
         super()
 
         this.registerComponent(new TransformComponent(transform))
         this.registerComponent(new ModelComponent(modelDef))
         this.registerComponent(new TextureComponent(textureName))
-        this.registerComponent(new PhysicsComponent(physicsDef))
-        this.registerComponent(new CollisionComponent(collisionPrimitive))
+        if (physicsDef && collisionPrimitive) {
+            this.registerComponent(new PhysicsComponent(physicsDef))
+            this.registerComponent(new CollisionComponent(collisionPrimitive))
+        }
     }
 }

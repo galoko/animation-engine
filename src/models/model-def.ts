@@ -1,8 +1,11 @@
+import { vec4 } from "gl-matrix"
 import { TransformData } from "../components/transformComponent"
 import { Model } from "./model"
 
 export type ModelOptions = {
     texMul: number
+    colorOverride: vec4
+    alpha: boolean
 }
 
 export type ModelDefEntry = {
@@ -13,6 +16,7 @@ export type ModelDefEntry = {
 
 const DEFAULT_MODEL_OPTIONS = {
     texMul: 1,
+    alpha: false,
 } as ModelOptions
 
 export function getModelOptions(options?: Partial<ModelOptions>): ModelOptions {

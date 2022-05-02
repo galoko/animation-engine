@@ -1,6 +1,6 @@
 import { Biomes } from "./biomes"
 import * as Climate from "./climate"
-import { Consumer, Pair } from "./consumer"
+import { Pair } from "./consumer"
 
 const VALLEY_SIZE = 0.05
 const LOW_START = 0.26666668
@@ -147,9 +147,9 @@ const EXTREME_HILLS = [
     [null, null, null, null, null],
 ]
 
-type BuilderOutput = Consumer<Pair<Climate.ParameterPoint, Biomes>>
+type BuilderOutput = Pair<Climate.ParameterPoint, Biomes>[]
 
-class OverworldBiomeBuilder {
+export class OverworldBiomeBuilder {
     // high order methods
 
     addBiomes(biomes: BuilderOutput): void {
@@ -213,47 +213,47 @@ class OverworldBiomeBuilder {
 
     // specific type biomes
 
-    private addPeaks(biomes: BuilderOutput, wierdness: Climate.Parameter): void {
+    private addPeaks(biomes: BuilderOutput, weirdness: Climate.Parameter): void {
         for (let temperatureIndex = 0; temperatureIndex < temperatures.length; ++temperatureIndex) {
             const temperature = temperatures[temperatureIndex]
 
             for (let humidityIndex = 0; humidityIndex < humidities.length; ++humidityIndex) {
                 const humidity = humidities[humidityIndex]
-                const middleBiome = this.pickMiddleBiome(temperatureIndex, humidityIndex, wierdness)
+                const middleBiome = this.pickMiddleBiome(temperatureIndex, humidityIndex, weirdness)
                 const middleOrBadlands = this.pickMiddleBiomeOrBadlandsIfHot(
                     temperatureIndex,
                     humidityIndex,
-                    wierdness
+                    weirdness
                 )
                 const middleOrBadlandsOrSlope = this.pickMiddleBiomeOrBadlandsIfHotOrSlopeIfCold(
                     temperatureIndex,
                     humidityIndex,
-                    wierdness
+                    weirdness
                 )
                 const plateauBiome = this.pickPlateauBiome(
                     temperatureIndex,
                     humidityIndex,
-                    wierdness
+                    weirdness
                 )
                 const extremeHillsBiome = this.pickExtremeHillsBiome(
                     temperatureIndex,
                     humidityIndex,
-                    wierdness
+                    weirdness
                 )
                 const maybeShattered = this.maybePickShatteredBiome(
                     temperatureIndex,
                     humidityIndex,
-                    wierdness,
+                    weirdness,
                     extremeHillsBiome
                 )
-                const peakyBiome = this.pickPeakBiome(temperatureIndex, humidityIndex, wierdness)
+                const peakyBiome = this.pickPeakBiome(temperatureIndex, humidityIndex, weirdness)
                 this.addSurfaceBiome(
                     biomes,
                     temperature,
                     humidity,
                     Climate.Parameter.span(coastContinentalness, farInlandContinentalness),
                     erosions[0],
-                    wierdness,
+                    weirdness,
                     0.0,
                     peakyBiome
                 )
@@ -263,7 +263,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     Climate.Parameter.span(coastContinentalness, nearInlandContinentalness),
                     erosions[1],
-                    wierdness,
+                    weirdness,
                     0.0,
                     middleOrBadlandsOrSlope
                 )
@@ -273,7 +273,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     Climate.Parameter.span(midInlandContinentalness, farInlandContinentalness),
                     erosions[1],
-                    wierdness,
+                    weirdness,
                     0.0,
                     peakyBiome
                 )
@@ -283,7 +283,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     Climate.Parameter.span(coastContinentalness, nearInlandContinentalness),
                     Climate.Parameter.span(erosions[2], erosions[3]),
-                    wierdness,
+                    weirdness,
                     0.0,
                     middleBiome
                 )
@@ -293,7 +293,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     Climate.Parameter.span(midInlandContinentalness, farInlandContinentalness),
                     erosions[2],
-                    wierdness,
+                    weirdness,
                     0.0,
                     plateauBiome
                 )
@@ -303,7 +303,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     midInlandContinentalness,
                     erosions[3],
-                    wierdness,
+                    weirdness,
                     0.0,
                     middleOrBadlands
                 )
@@ -313,7 +313,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     farInlandContinentalness,
                     erosions[3],
-                    wierdness,
+                    weirdness,
                     0.0,
                     plateauBiome
                 )
@@ -323,7 +323,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     Climate.Parameter.span(coastContinentalness, farInlandContinentalness),
                     erosions[4],
-                    wierdness,
+                    weirdness,
                     0.0,
                     middleBiome
                 )
@@ -333,7 +333,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     Climate.Parameter.span(coastContinentalness, nearInlandContinentalness),
                     erosions[5],
-                    wierdness,
+                    weirdness,
                     0.0,
                     maybeShattered
                 )
@@ -343,7 +343,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     Climate.Parameter.span(midInlandContinentalness, farInlandContinentalness),
                     erosions[5],
-                    wierdness,
+                    weirdness,
                     0.0,
                     extremeHillsBiome
                 )
@@ -353,7 +353,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     Climate.Parameter.span(coastContinentalness, farInlandContinentalness),
                     erosions[6],
-                    wierdness,
+                    weirdness,
                     0.0,
                     middleBiome
                 )
@@ -361,44 +361,48 @@ class OverworldBiomeBuilder {
         }
     }
 
-    private addHighSlice(biomes: BuilderOutput, erosion: Climate.Parameter): void {
+    private addHighSlice(biomes: BuilderOutput, weirdness: Climate.Parameter): void {
         for (let temperatureIndex = 0; temperatureIndex < temperatures.length; ++temperatureIndex) {
             const temperature = temperatures[temperatureIndex]
 
             for (let humidityIndex = 0; humidityIndex < humidities.length; ++humidityIndex) {
                 const humidity = humidities[humidityIndex]
-                const middleBiome = this.pickMiddleBiome(temperatureIndex, humidityIndex, erosion)
+                const middleBiome = this.pickMiddleBiome(temperatureIndex, humidityIndex, weirdness)
                 const middleOrBadlands = this.pickMiddleBiomeOrBadlandsIfHot(
                     temperatureIndex,
                     humidityIndex,
-                    erosion
+                    weirdness
                 )
                 const middleOrBadlandsOrSlope = this.pickMiddleBiomeOrBadlandsIfHotOrSlopeIfCold(
                     temperatureIndex,
                     humidityIndex,
-                    erosion
+                    weirdness
                 )
-                const plateauBiome = this.pickPlateauBiome(temperatureIndex, humidityIndex, erosion)
+                const plateauBiome = this.pickPlateauBiome(
+                    temperatureIndex,
+                    humidityIndex,
+                    weirdness
+                )
                 const extremeHillsBiome = this.pickExtremeHillsBiome(
                     temperatureIndex,
                     humidityIndex,
-                    erosion
+                    weirdness
                 )
                 const maybeShattered = this.maybePickShatteredBiome(
                     temperatureIndex,
                     humidityIndex,
-                    erosion,
+                    weirdness,
                     middleBiome
                 )
-                const slopeBiome = this.pickSlopeBiome(temperatureIndex, humidityIndex, erosion)
-                const peakyBiome = this.pickPeakBiome(temperatureIndex, humidityIndex, erosion)
+                const slopeBiome = this.pickSlopeBiome(temperatureIndex, humidityIndex, weirdness)
+                const peakyBiome = this.pickPeakBiome(temperatureIndex, humidityIndex, weirdness)
                 this.addSurfaceBiome(
                     biomes,
                     temperature,
                     humidity,
                     coastContinentalness,
                     Climate.Parameter.span(erosions[0], erosions[1]),
-                    erosion,
+                    weirdness,
                     0.0,
                     middleBiome
                 )
@@ -408,7 +412,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     nearInlandContinentalness,
                     erosions[0],
-                    erosion,
+                    weirdness,
                     0.0,
                     slopeBiome
                 )
@@ -418,7 +422,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     Climate.Parameter.span(midInlandContinentalness, farInlandContinentalness),
                     erosions[0],
-                    erosion,
+                    weirdness,
                     0.0,
                     peakyBiome
                 )
@@ -428,7 +432,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     nearInlandContinentalness,
                     erosions[1],
-                    erosion,
+                    weirdness,
                     0.0,
                     middleOrBadlandsOrSlope
                 )
@@ -438,7 +442,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     Climate.Parameter.span(midInlandContinentalness, farInlandContinentalness),
                     erosions[1],
-                    erosion,
+                    weirdness,
                     0.0,
                     slopeBiome
                 )
@@ -448,7 +452,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     Climate.Parameter.span(coastContinentalness, nearInlandContinentalness),
                     Climate.Parameter.span(erosions[2], erosions[3]),
-                    erosion,
+                    weirdness,
                     0.0,
                     middleBiome
                 )
@@ -458,7 +462,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     Climate.Parameter.span(midInlandContinentalness, farInlandContinentalness),
                     erosions[2],
-                    erosion,
+                    weirdness,
                     0.0,
                     plateauBiome
                 )
@@ -468,7 +472,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     midInlandContinentalness,
                     erosions[3],
-                    erosion,
+                    weirdness,
                     0.0,
                     middleOrBadlands
                 )
@@ -478,7 +482,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     farInlandContinentalness,
                     erosions[3],
-                    erosion,
+                    weirdness,
                     0.0,
                     plateauBiome
                 )
@@ -488,7 +492,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     Climate.Parameter.span(coastContinentalness, farInlandContinentalness),
                     erosions[4],
-                    erosion,
+                    weirdness,
                     0.0,
                     middleBiome
                 )
@@ -498,7 +502,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     Climate.Parameter.span(coastContinentalness, nearInlandContinentalness),
                     erosions[5],
-                    erosion,
+                    weirdness,
                     0.0,
                     maybeShattered
                 )
@@ -508,7 +512,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     Climate.Parameter.span(midInlandContinentalness, farInlandContinentalness),
                     erosions[5],
-                    erosion,
+                    weirdness,
                     0.0,
                     extremeHillsBiome
                 )
@@ -518,7 +522,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     Climate.Parameter.span(coastContinentalness, farInlandContinentalness),
                     erosions[6],
-                    erosion,
+                    weirdness,
                     0.0,
                     middleBiome
                 )
@@ -526,14 +530,14 @@ class OverworldBiomeBuilder {
         }
     }
 
-    private addMidSlice(biomes: BuilderOutput, erosion: Climate.Parameter): void {
+    private addMidSlice(biomes: BuilderOutput, weirdness: Climate.Parameter): void {
         this.addSurfaceBiome(
             biomes,
             FULL_RANGE,
             FULL_RANGE,
             coastContinentalness,
             Climate.Parameter.span(erosions[0], erosions[2]),
-            erosion,
+            weirdness,
             0.0,
             Biomes.STONY_SHORE
         )
@@ -543,7 +547,7 @@ class OverworldBiomeBuilder {
             FULL_RANGE,
             Climate.Parameter.span(nearInlandContinentalness, farInlandContinentalness),
             erosions[6],
-            erosion,
+            weirdness,
             0.0,
             Biomes.SWAMP
         )
@@ -553,43 +557,47 @@ class OverworldBiomeBuilder {
 
             for (let humidityIndex = 0; humidityIndex < humidities.length; ++humidityIndex) {
                 const humidity = humidities[humidityIndex]
-                const middleBiome = this.pickMiddleBiome(temperatureIndex, humidityIndex, erosion)
+                const middleBiome = this.pickMiddleBiome(temperatureIndex, humidityIndex, weirdness)
                 const middleOrBadlands = this.pickMiddleBiomeOrBadlandsIfHot(
                     temperatureIndex,
                     humidityIndex,
-                    erosion
+                    weirdness
                 )
                 const middleOrBadlandsOrSlope = this.pickMiddleBiomeOrBadlandsIfHotOrSlopeIfCold(
                     temperatureIndex,
                     humidityIndex,
-                    erosion
+                    weirdness
                 )
                 const extremeHillsBiome = this.pickExtremeHillsBiome(
                     temperatureIndex,
                     humidityIndex,
-                    erosion
+                    weirdness
                 )
-                const plateauBiome = this.pickPlateauBiome(temperatureIndex, humidityIndex, erosion)
+                const plateauBiome = this.pickPlateauBiome(
+                    temperatureIndex,
+                    humidityIndex,
+                    weirdness
+                )
                 const beachBiome = this.pickBeachBiome(temperatureIndex)
                 const maybeShattered = this.maybePickShatteredBiome(
                     temperatureIndex,
                     humidityIndex,
-                    erosion,
+                    weirdness,
                     middleBiome
                 )
                 const shatteredCoastBiome = this.pickShatteredCoastBiome(
                     temperatureIndex,
                     humidityIndex,
-                    erosion
+                    weirdness
                 )
-                const slopeBiome = this.pickSlopeBiome(temperatureIndex, humidityIndex, erosion)
+                const slopeBiome = this.pickSlopeBiome(temperatureIndex, humidityIndex, weirdness)
                 this.addSurfaceBiome(
                     biomes,
                     temperature,
                     humidity,
                     Climate.Parameter.span(nearInlandContinentalness, farInlandContinentalness),
                     erosions[0],
-                    erosion,
+                    weirdness,
                     0.0,
                     slopeBiome
                 )
@@ -599,7 +607,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     Climate.Parameter.span(nearInlandContinentalness, midInlandContinentalness),
                     erosions[1],
-                    erosion,
+                    weirdness,
                     0.0,
                     middleOrBadlandsOrSlope
                 )
@@ -609,7 +617,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     farInlandContinentalness,
                     erosions[1],
-                    erosion,
+                    weirdness,
                     0.0,
                     temperatureIndex == 0 ? slopeBiome : plateauBiome
                 )
@@ -619,7 +627,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     nearInlandContinentalness,
                     erosions[2],
-                    erosion,
+                    weirdness,
                     0.0,
                     middleBiome
                 )
@@ -629,7 +637,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     midInlandContinentalness,
                     erosions[2],
-                    erosion,
+                    weirdness,
                     0.0,
                     middleOrBadlands
                 )
@@ -639,7 +647,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     farInlandContinentalness,
                     erosions[2],
-                    erosion,
+                    weirdness,
                     0.0,
                     plateauBiome
                 )
@@ -649,7 +657,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     Climate.Parameter.span(coastContinentalness, nearInlandContinentalness),
                     erosions[3],
-                    erosion,
+                    weirdness,
                     0.0,
                     middleBiome
                 )
@@ -659,18 +667,18 @@ class OverworldBiomeBuilder {
                     humidity,
                     Climate.Parameter.span(midInlandContinentalness, farInlandContinentalness),
                     erosions[3],
-                    erosion,
+                    weirdness,
                     0.0,
                     middleOrBadlands
                 )
-                if (erosion.max < 0) {
+                if (weirdness.max < 0) {
                     this.addSurfaceBiome(
                         biomes,
                         temperature,
                         humidity,
                         coastContinentalness,
                         erosions[4],
-                        erosion,
+                        weirdness,
                         0.0,
                         beachBiome
                     )
@@ -680,7 +688,7 @@ class OverworldBiomeBuilder {
                         humidity,
                         Climate.Parameter.span(nearInlandContinentalness, farInlandContinentalness),
                         erosions[4],
-                        erosion,
+                        weirdness,
                         0.0,
                         middleBiome
                     )
@@ -691,7 +699,7 @@ class OverworldBiomeBuilder {
                         humidity,
                         Climate.Parameter.span(coastContinentalness, farInlandContinentalness),
                         erosions[4],
-                        erosion,
+                        weirdness,
                         0.0,
                         middleBiome
                     )
@@ -703,7 +711,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     coastContinentalness,
                     erosions[5],
-                    erosion,
+                    weirdness,
                     0.0,
                     shatteredCoastBiome
                 )
@@ -713,7 +721,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     nearInlandContinentalness,
                     erosions[5],
-                    erosion,
+                    weirdness,
                     0.0,
                     maybeShattered
                 )
@@ -723,18 +731,18 @@ class OverworldBiomeBuilder {
                     humidity,
                     Climate.Parameter.span(midInlandContinentalness, farInlandContinentalness),
                     erosions[5],
-                    erosion,
+                    weirdness,
                     0.0,
                     extremeHillsBiome
                 )
-                if (erosion.max < 0) {
+                if (weirdness.max < 0) {
                     this.addSurfaceBiome(
                         biomes,
                         temperature,
                         humidity,
                         coastContinentalness,
                         erosions[6],
-                        erosion,
+                        weirdness,
                         0.0,
                         beachBiome
                     )
@@ -745,7 +753,7 @@ class OverworldBiomeBuilder {
                         humidity,
                         coastContinentalness,
                         erosions[6],
-                        erosion,
+                        weirdness,
                         0.0,
                         middleBiome
                     )
@@ -758,7 +766,7 @@ class OverworldBiomeBuilder {
                         humidity,
                         Climate.Parameter.span(nearInlandContinentalness, farInlandContinentalness),
                         erosions[6],
-                        erosion,
+                        weirdness,
                         0.0,
                         middleBiome
                     )
@@ -767,14 +775,14 @@ class OverworldBiomeBuilder {
         }
     }
 
-    private addLowSlice(biomes: BuilderOutput, erosion: Climate.Parameter): void {
+    private addLowSlice(biomes: BuilderOutput, weirdness: Climate.Parameter): void {
         this.addSurfaceBiome(
             biomes,
             FULL_RANGE,
             FULL_RANGE,
             coastContinentalness,
             Climate.Parameter.span(erosions[0], erosions[2]),
-            erosion,
+            weirdness,
             0.0,
             Biomes.STONY_SHORE
         )
@@ -784,7 +792,7 @@ class OverworldBiomeBuilder {
             FULL_RANGE,
             Climate.Parameter.span(nearInlandContinentalness, farInlandContinentalness),
             erosions[6],
-            erosion,
+            weirdness,
             0.0,
             Biomes.SWAMP
         )
@@ -794,28 +802,28 @@ class OverworldBiomeBuilder {
 
             for (let humidityIndex = 0; humidityIndex < humidities.length; ++humidityIndex) {
                 const humidity = humidities[humidityIndex]
-                const resourcekey = this.pickMiddleBiome(temperatureIndex, humidityIndex, erosion)
+                const resourcekey = this.pickMiddleBiome(temperatureIndex, humidityIndex, weirdness)
                 const resourcekey1 = this.pickMiddleBiomeOrBadlandsIfHot(
                     temperatureIndex,
                     humidityIndex,
-                    erosion
+                    weirdness
                 )
                 const resourcekey2 = this.pickMiddleBiomeOrBadlandsIfHotOrSlopeIfCold(
                     temperatureIndex,
                     humidityIndex,
-                    erosion
+                    weirdness
                 )
                 const resourcekey3 = this.pickBeachBiome(temperatureIndex)
                 const resourcekey4 = this.maybePickShatteredBiome(
                     temperatureIndex,
                     humidityIndex,
-                    erosion,
+                    weirdness,
                     resourcekey
                 )
                 const resourcekey5 = this.pickShatteredCoastBiome(
                     temperatureIndex,
                     humidityIndex,
-                    erosion
+                    weirdness
                 )
                 this.addSurfaceBiome(
                     biomes,
@@ -823,7 +831,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     nearInlandContinentalness,
                     Climate.Parameter.span(erosions[0], erosions[1]),
-                    erosion,
+                    weirdness,
                     0.0,
                     resourcekey1
                 )
@@ -833,7 +841,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     Climate.Parameter.span(midInlandContinentalness, farInlandContinentalness),
                     Climate.Parameter.span(erosions[0], erosions[1]),
-                    erosion,
+                    weirdness,
                     0.0,
                     resourcekey2
                 )
@@ -843,7 +851,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     nearInlandContinentalness,
                     Climate.Parameter.span(erosions[2], erosions[3]),
-                    erosion,
+                    weirdness,
                     0.0,
                     resourcekey
                 )
@@ -853,7 +861,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     Climate.Parameter.span(midInlandContinentalness, farInlandContinentalness),
                     Climate.Parameter.span(erosions[2], erosions[3]),
-                    erosion,
+                    weirdness,
                     0.0,
                     resourcekey1
                 )
@@ -863,7 +871,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     coastContinentalness,
                     Climate.Parameter.span(erosions[3], erosions[4]),
-                    erosion,
+                    weirdness,
                     0.0,
                     resourcekey3
                 )
@@ -873,7 +881,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     Climate.Parameter.span(nearInlandContinentalness, farInlandContinentalness),
                     erosions[4],
-                    erosion,
+                    weirdness,
                     0.0,
                     resourcekey
                 )
@@ -883,7 +891,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     coastContinentalness,
                     erosions[5],
-                    erosion,
+                    weirdness,
                     0.0,
                     resourcekey5
                 )
@@ -893,7 +901,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     nearInlandContinentalness,
                     erosions[5],
-                    erosion,
+                    weirdness,
                     0.0,
                     resourcekey4
                 )
@@ -903,7 +911,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     Climate.Parameter.span(midInlandContinentalness, farInlandContinentalness),
                     erosions[5],
-                    erosion,
+                    weirdness,
                     0.0,
                     resourcekey
                 )
@@ -913,7 +921,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     coastContinentalness,
                     erosions[6],
-                    erosion,
+                    weirdness,
                     0.0,
                     resourcekey3
                 )
@@ -924,7 +932,7 @@ class OverworldBiomeBuilder {
                         humidity,
                         Climate.Parameter.span(nearInlandContinentalness, farInlandContinentalness),
                         erosions[6],
-                        erosion,
+                        weirdness,
                         0.0,
                         resourcekey
                     )
@@ -933,16 +941,16 @@ class OverworldBiomeBuilder {
         }
     }
 
-    private addValleys(biomes: BuilderOutput, erosion: Climate.Parameter): void {
+    private addValleys(biomes: BuilderOutput, wierdness: Climate.Parameter): void {
         this.addSurfaceBiome(
             biomes,
             FROZEN_RANGE,
             FULL_RANGE,
             coastContinentalness,
             Climate.Parameter.span(erosions[0], erosions[1]),
-            erosion,
+            wierdness,
             0.0,
-            erosion.max < 0 ? Biomes.STONY_SHORE : Biomes.FROZEN_RIVER
+            wierdness.max < 0 ? Biomes.STONY_SHORE : Biomes.FROZEN_RIVER
         )
         this.addSurfaceBiome(
             biomes,
@@ -950,9 +958,9 @@ class OverworldBiomeBuilder {
             FULL_RANGE,
             coastContinentalness,
             Climate.Parameter.span(erosions[0], erosions[1]),
-            erosion,
+            wierdness,
             0.0,
-            erosion.max < 0 ? Biomes.STONY_SHORE : Biomes.RIVER
+            wierdness.max < 0 ? Biomes.STONY_SHORE : Biomes.RIVER
         )
         this.addSurfaceBiome(
             biomes,
@@ -960,7 +968,7 @@ class OverworldBiomeBuilder {
             FULL_RANGE,
             nearInlandContinentalness,
             Climate.Parameter.span(erosions[0], erosions[1]),
-            erosion,
+            wierdness,
             0.0,
             Biomes.FROZEN_RIVER
         )
@@ -970,7 +978,7 @@ class OverworldBiomeBuilder {
             FULL_RANGE,
             nearInlandContinentalness,
             Climate.Parameter.span(erosions[0], erosions[1]),
-            erosion,
+            wierdness,
             0.0,
             Biomes.RIVER
         )
@@ -980,7 +988,7 @@ class OverworldBiomeBuilder {
             FULL_RANGE,
             Climate.Parameter.span(coastContinentalness, farInlandContinentalness),
             Climate.Parameter.span(erosions[2], erosions[5]),
-            erosion,
+            wierdness,
             0.0,
             Biomes.FROZEN_RIVER
         )
@@ -990,7 +998,7 @@ class OverworldBiomeBuilder {
             FULL_RANGE,
             Climate.Parameter.span(coastContinentalness, farInlandContinentalness),
             Climate.Parameter.span(erosions[2], erosions[5]),
-            erosion,
+            wierdness,
             0.0,
             Biomes.RIVER
         )
@@ -1000,7 +1008,7 @@ class OverworldBiomeBuilder {
             FULL_RANGE,
             coastContinentalness,
             erosions[6],
-            erosion,
+            wierdness,
             0.0,
             Biomes.FROZEN_RIVER
         )
@@ -1010,7 +1018,7 @@ class OverworldBiomeBuilder {
             FULL_RANGE,
             coastContinentalness,
             erosions[6],
-            erosion,
+            wierdness,
             0.0,
             Biomes.RIVER
         )
@@ -1020,7 +1028,7 @@ class OverworldBiomeBuilder {
             FULL_RANGE,
             Climate.Parameter.span(inlandContinentalness, farInlandContinentalness),
             erosions[6],
-            erosion,
+            wierdness,
             0.0,
             Biomes.SWAMP
         )
@@ -1030,7 +1038,7 @@ class OverworldBiomeBuilder {
             FULL_RANGE,
             Climate.Parameter.span(inlandContinentalness, farInlandContinentalness),
             erosions[6],
-            erosion,
+            wierdness,
             0.0,
             Biomes.FROZEN_RIVER
         )
@@ -1043,7 +1051,7 @@ class OverworldBiomeBuilder {
                 const resourcekey = this.pickMiddleBiomeOrBadlandsIfHot(
                     temperatureIndex,
                     humidityIndex,
-                    erosion
+                    wierdness
                 )
                 this.addSurfaceBiome(
                     biomes,
@@ -1051,7 +1059,7 @@ class OverworldBiomeBuilder {
                     humidity,
                     Climate.Parameter.span(midInlandContinentalness, farInlandContinentalness),
                     Climate.Parameter.span(erosions[0], erosions[1]),
-                    erosion,
+                    wierdness,
                     0.0,
                     resourcekey
                 )
@@ -1087,9 +1095,9 @@ class OverworldBiomeBuilder {
     private pickMiddleBiome(
         temperatureIndex: number,
         humidityIndex: number,
-        erosion: Climate.Parameter
+        weirdness: Climate.Parameter
     ): Biomes {
-        if (erosion.max < 0) {
+        if (weirdness.max < 0) {
             return MIDDLE_BIOMES[temperatureIndex][humidityIndex]
         } else {
             const resourcekey = MIDDLE_BIOMES_VARIANT[temperatureIndex][humidityIndex]
@@ -1102,30 +1110,30 @@ class OverworldBiomeBuilder {
     private pickMiddleBiomeOrBadlandsIfHot(
         temperatureIndex: number,
         humidityIndex: number,
-        erosion: Climate.Parameter
+        weirdness: Climate.Parameter
     ): Biomes {
         return temperatureIndex == 4
-            ? this.pickBadlandsBiome(humidityIndex, erosion)
-            : this.pickMiddleBiome(temperatureIndex, humidityIndex, erosion)
+            ? this.pickBadlandsBiome(humidityIndex, weirdness)
+            : this.pickMiddleBiome(temperatureIndex, humidityIndex, weirdness)
     }
 
     private pickMiddleBiomeOrBadlandsIfHotOrSlopeIfCold(
         temperatureIndex: number,
         humidityIndex: number,
-        erosion: Climate.Parameter
+        weirdness: Climate.Parameter
     ): Biomes {
         return temperatureIndex == 0
-            ? this.pickSlopeBiome(temperatureIndex, humidityIndex, erosion)
-            : this.pickMiddleBiomeOrBadlandsIfHot(temperatureIndex, humidityIndex, erosion)
+            ? this.pickSlopeBiome(temperatureIndex, humidityIndex, weirdness)
+            : this.pickMiddleBiomeOrBadlandsIfHot(temperatureIndex, humidityIndex, weirdness)
     }
 
     private maybePickShatteredBiome(
         temperatureIndex: number,
         humidityIndex: number,
-        erosion: Climate.Parameter,
+        weirdness: Climate.Parameter,
         defaultBiome: Biomes
     ): Biomes {
-        return temperatureIndex > 1 && humidityIndex < 4 && erosion.max >= 0
+        return temperatureIndex > 1 && humidityIndex < 4 && weirdness.max >= 0
             ? Biomes.WINDSWEPT_SAVANNA
             : defaultBiome
     }
@@ -1133,13 +1141,13 @@ class OverworldBiomeBuilder {
     private pickShatteredCoastBiome(
         temperatureIndex: number,
         humidityIndex: number,
-        erosion: Climate.Parameter
+        weirdness: Climate.Parameter
     ): Biomes {
         const biome =
-            erosion.max >= 0
-                ? this.pickMiddleBiome(temperatureIndex, humidityIndex, erosion)
+            weirdness.max >= 0
+                ? this.pickMiddleBiome(temperatureIndex, humidityIndex, weirdness)
                 : this.pickBeachBiome(temperatureIndex)
-        return this.maybePickShatteredBiome(temperatureIndex, humidityIndex, erosion, biome)
+        return this.maybePickShatteredBiome(temperatureIndex, humidityIndex, weirdness, biome)
     }
 
     private pickBeachBiome(temperatureIndex: number): Biomes {
@@ -1150,9 +1158,9 @@ class OverworldBiomeBuilder {
         }
     }
 
-    private pickBadlandsBiome(humidityIndex: number, erosion: Climate.Parameter): Biomes {
+    private pickBadlandsBiome(humidityIndex: number, weirdness: Climate.Parameter): Biomes {
         if (humidityIndex < 2) {
-            return erosion.max < 0 ? Biomes.ERODED_BADLANDS : Biomes.BADLANDS
+            return weirdness.max < 0 ? Biomes.ERODED_BADLANDS : Biomes.BADLANDS
         } else {
             return humidityIndex < 3 ? Biomes.BADLANDS : Biomes.WOODED_BADLANDS
         }
@@ -1161,9 +1169,9 @@ class OverworldBiomeBuilder {
     private pickPlateauBiome(
         temperatureIndex: number,
         humidityIndex: number,
-        erosion: Climate.Parameter
+        weirdness: Climate.Parameter
     ): Biomes {
-        if (erosion.max < 0) {
+        if (weirdness.max < 0) {
             return PLATEAU_BIOMES[temperatureIndex][humidityIndex]
         } else {
             const biome = PLATEAU_BIOMES_VARIANT[temperatureIndex][humidityIndex]
@@ -1174,24 +1182,24 @@ class OverworldBiomeBuilder {
     private pickPeakBiome(
         temperatureIndex: number,
         humidityIndex: number,
-        erosion: Climate.Parameter
+        weirdness: Climate.Parameter
     ): Biomes {
         if (temperatureIndex <= 2) {
-            return erosion.max < 0 ? Biomes.JAGGED_PEAKS : Biomes.FROZEN_PEAKS
+            return weirdness.max < 0 ? Biomes.JAGGED_PEAKS : Biomes.FROZEN_PEAKS
         } else {
             return temperatureIndex == 3
                 ? Biomes.STONY_PEAKS
-                : this.pickBadlandsBiome(humidityIndex, erosion)
+                : this.pickBadlandsBiome(humidityIndex, weirdness)
         }
     }
 
     private pickSlopeBiome(
         temperatureIndex: number,
         humidityIndex: number,
-        erosion: Climate.Parameter
+        weirdness: Climate.Parameter
     ): Biomes {
         if (temperatureIndex >= 3) {
-            return this.pickPlateauBiome(temperatureIndex, humidityIndex, erosion)
+            return this.pickPlateauBiome(temperatureIndex, humidityIndex, weirdness)
         } else {
             return humidityIndex <= 1 ? Biomes.SNOWY_SLOPES : Biomes.GROVE
         }
@@ -1200,11 +1208,11 @@ class OverworldBiomeBuilder {
     private pickExtremeHillsBiome(
         temperatureIndex: number,
         humidityIndex: number,
-        erosion: Climate.Parameter
+        weirdness: Climate.Parameter
     ): Biomes {
         const extremeHillsBiome = EXTREME_HILLS[temperatureIndex][humidityIndex]
         return extremeHillsBiome == null
-            ? this.pickMiddleBiome(temperatureIndex, humidityIndex, erosion)
+            ? this.pickMiddleBiome(temperatureIndex, humidityIndex, weirdness)
             : extremeHillsBiome
     }
 
@@ -1216,11 +1224,11 @@ class OverworldBiomeBuilder {
         humidity: Climate.Parameter,
         continentalness: Climate.Parameter,
         erosion: Climate.Parameter,
-        wierdness: Climate.Parameter,
+        weirdness: Climate.Parameter,
         offset: number,
         biome: Biomes
     ) {
-        biomes.accept(
+        biomes.push(
             Pair.of(
                 Climate.parameters(
                     temperature,
@@ -1228,13 +1236,13 @@ class OverworldBiomeBuilder {
                     continentalness,
                     erosion,
                     Climate.Parameter.point(0.0),
-                    wierdness,
+                    weirdness,
                     offset
                 ),
                 biome
             )
         )
-        biomes.accept(
+        biomes.push(
             Pair.of(
                 Climate.parameters(
                     temperature,
@@ -1242,7 +1250,7 @@ class OverworldBiomeBuilder {
                     continentalness,
                     erosion,
                     Climate.Parameter.point(1.0),
-                    wierdness,
+                    weirdness,
                     offset
                 ),
                 biome
@@ -1256,11 +1264,11 @@ class OverworldBiomeBuilder {
         humidity: Climate.Parameter,
         continentalness: Climate.Parameter,
         erosion: Climate.Parameter,
-        currentErrosion: Climate.Parameter,
+        weirdness: Climate.Parameter,
         offset: number,
         biome: Biomes
     ) {
-        biomes.accept(
+        biomes.push(
             Pair.of(
                 Climate.parameters(
                     temperature,
@@ -1268,7 +1276,7 @@ class OverworldBiomeBuilder {
                     continentalness,
                     erosion,
                     Climate.Parameter.span(0.2, 0.9),
-                    currentErrosion,
+                    weirdness,
                     offset
                 ),
                 biome

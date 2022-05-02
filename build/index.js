@@ -8035,6 +8035,7 @@ class TextureComponent extends Component {
 
 const DEFAULT_MODEL_OPTIONS = {
     texMul: 1,
+    alpha: false,
 };
 function getModelOptions(options) {
     return Object.assign({ ...DEFAULT_MODEL_OPTIONS }, options || {});
@@ -8641,8 +8642,10 @@ class Object$1 extends Entity {
         this.registerComponent(new TransformComponent(transform));
         this.registerComponent(new ModelComponent(modelDef));
         this.registerComponent(new TextureComponent(textureName));
-        this.registerComponent(new PhysicsComponent(physicsDef));
-        this.registerComponent(new CollisionComponent(collisionPrimitive));
+        if (physicsDef && collisionPrimitive) {
+            this.registerComponent(new PhysicsComponent(physicsDef));
+            this.registerComponent(new CollisionComponent(collisionPrimitive));
+        }
     }
 }
 
@@ -8763,75 +8766,6 @@ class SimpleModelDef {
     }
 }
 
-function xmur3(str) {
-    let h = 1779033703 ^ str.length;
-    for (let i = 0; i < str.length; i++) {
-        h = Math.imul(h ^ str.charCodeAt(i), 3432918353);
-        h = (h << 13) | (h >>> 19);
-    }
-    return () => {
-        h = Math.imul(h ^ (h >>> 16), 2246822507);
-        h = Math.imul(h ^ (h >>> 13), 3266489909);
-        return (h ^= h >>> 16) >>> 0;
-    };
-}
-function sfc32(a, b, c, d) {
-    return () => {
-        a >>>= 0;
-        b >>>= 0;
-        c >>>= 0;
-        d >>>= 0;
-        let t = (a + b) | 0;
-        a = b ^ (b >>> 9);
-        b = (c + (c << 3)) | 0;
-        c = (c << 21) | (c >>> 11);
-        d = (d + 1) | 0;
-        t = (t + d) | 0;
-        c = (c + t) | 0;
-        return (t >>> 0) / 4294967296;
-    };
-}
-function mulberry32(a) {
-    return () => {
-        let t = (a += 0x6d2b79f5);
-        t = Math.imul(t ^ (t >>> 15), t | 1);
-        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
-}
-function xoshiro128ss(a, b, c, d) {
-    return () => {
-        const t = b << 9;
-        let r = a * 5;
-        r = ((r << 7) | (r >>> 25)) * 9;
-        c ^= a;
-        d ^= b;
-        b ^= c;
-        a ^= d;
-        c ^= t;
-        d = (d << 11) | (d >>> 21);
-        return (r >>> 0) / 4294967296;
-    };
-}
-function jsf32(a, b, c, d) {
-    return () => {
-        a |= 0;
-        b |= 0;
-        c |= 0;
-        d |= 0;
-        const t = (a - ((b << 27) | (b >>> 5))) | 0;
-        a = b ^ ((c << 17) | (c >>> 15));
-        b = (c + d) | 0;
-        c = (d + t) | 0;
-        d = (a + t) | 0;
-        return (d >>> 0) / 4294967296;
-    };
-}
-function randomRange(min, max, rand) {
-    const r = rand();
-    return min + (max - min) * r;
-}
-
 class MapLoader {
     async loadMap(mapName) {
         if (mapName === "test") {
@@ -8842,9 +8776,8 @@ class MapLoader {
         }
     }
     loadTestMap() {
-        const a = -30;
         const q = create$2();
-        fromEuler(q, a, 0, 0);
+        fromEuler(q, 0, 0, 0);
         const ground = new Object$1({
             pos: fromValues$4(0, 0, 0),
             size: fromValues$4(50, 50, 1),
@@ -8856,40 +8789,6 @@ class MapLoader {
             bakedTransform: true,
         }), new Plane());
         Services.world.add(ground);
-        const q2 = create$2();
-        fromEuler(q2, 0, 0, 0);
-        const ground2 = new Object$1({
-            pos: fromValues$4(0, -25 - 25 * Math.cos((a / 180) * Math.PI), 25 * Math.sin((-a / 180) * Math.PI)),
-            size: fromValues$4(50, 50, 1),
-            rotation: q2,
-        }, new SimpleModelDef("plane", {
-            texMul: 25,
-        }), "grass2.jpg", new PhysicsDef({
-            isStatic: true,
-            bakedTransform: true,
-        }), new Plane());
-        Services.world.add(ground2);
-        // Create xmur3 state:
-        const seed = xmur3("suchok");
-        // Output four 32-bit hashes to provide the seed for sfc32.
-        const rand = sfc32(seed(), seed(), seed(), seed());
-        for (let i = 0; i < 0; i++) {
-            const size = randomRange(0.1, 0.9, rand);
-            const x = randomRange(-25, 25, rand);
-            const y = randomRange(-25, 25, rand);
-            const q = create$2();
-            fromEuler(q, 0, 0, randomRange(0, 180, rand));
-            const rock = new Object$1({
-                pos: fromValues$4(x, y, size / 2),
-                size: fromValues$4(size, size, size),
-                rotation: q,
-            }, new SimpleModelDef("cube", {
-                texMul: 3,
-            }), "rock.jpg", new PhysicsDef({
-                isStatic: true,
-            }), new Box());
-            Services.world.add(rock);
-        }
         const player = new Object$1({
             pos: fromValues$4(0, 2.61, 1.8 / 2),
             size: fromValues$4(1, 1, 1.8),
@@ -8902,6 +8801,23 @@ class MapLoader {
         Services.world.add(player);
         Services.inputManager.setEntityToOrbit(player, 5);
         Services.inputManager.setControlledEntity(player);
+        // const builder = new OverworldBiomeBuilder()
+        // const output = [] as Pair<Climate.ParameterPoint, Biomes>[]
+        // builder.addBiomes(output)
+        // for ()
+        for (let x = 0; x < 5; x++) {
+            for (let y = 0; y < 5; y++) {
+                const box = new Object$1({
+                    pos: fromValues$4(x, y, 1.8 / 2),
+                    size: fromValues$4(0.75, 0.75, 0.75),
+                    rotation: create$2(),
+                }, new SimpleModelDef("cube", {
+                    colorOverride: fromValues$3(x / 5, y / 5, 0.5, 0.5),
+                    alpha: true,
+                }), "blank");
+                Services.world.add(box);
+            }
+        }
     }
 }
 

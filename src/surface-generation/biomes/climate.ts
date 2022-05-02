@@ -13,7 +13,7 @@ export class Parameter {
             if (typeof max === "number") {
                 throw new Error("")
             }
-            return new Parameter(quantizeCoord(min.min), quantizeCoord(max.max))
+            return new Parameter(min.min, max.max)
         }
     }
 
