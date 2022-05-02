@@ -1,3 +1,4 @@
+import { quat } from "gl-matrix"
 import { cloneTransform, TransformData } from "../../components/transformComponent"
 import { Services } from "../../managers/services"
 import { Model } from "../model"
@@ -38,7 +39,12 @@ export class CapsuleModelDef extends ModelDef {
         this.entries[1].transform.size[2] -= 1
 
         this.entries[2].transform = cloneTransform(transform)
-        this.entries[2].transform.size[2] = -1
+        this.entries[2].transform.size[2] = 1
+
+        const q = quat.create()
+        quat.fromEuler(q, 180, 0, 0)
+        quat.mul(this.entries[2].transform.rotation, this.entries[2].transform.rotation, q)
+
         this.entries[2].transform.pos[2] -= (height - 1) / 2
     }
 

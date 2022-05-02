@@ -89,7 +89,7 @@ var generalFrag = "varying lowp vec3 normal;\r\n\r\nvoid main(void) {\r\n    gl_
 
 var objectsVert = "attribute vec3 p;\r\nattribute vec3 n;\r\nattribute vec2 uv;\r\n\r\nuniform mat4 mvp;\r\nuniform mat4 model;\r\nuniform float texMul;\r\n\r\nvarying highp vec2 texCoord;\r\nvarying highp vec3 normal;\r\n\r\nvoid main(void) {\r\n    gl_Position = mvp * vec4(p, 1.0);\r\n\r\n    texCoord = uv * texMul;\r\n    normal = (model * vec4(n, 0.0)).xyz;\r\n}";
 
-var objectsFrag = "precision highp float;\r\n\r\nvarying highp vec2 texCoord;\r\nvarying highp vec3 normal;\r\n\r\nuniform sampler2D texture;\r\n\r\nvoid main(void) {\r\n    vec3 lightDir = normalize(vec3(0.656, 0.3, 0.14));\r\n    vec3 lightColor = vec3(1.0);\r\n\r\n    float diff = max(dot(normal, lightDir), 0.0);\r\n    vec3 diffuse = diff * lightColor;\r\n\r\n    float ambient = 0.5;\r\n    vec3 objectColor = texture2D(texture, texCoord).rgb;\r\n    vec3 result = min(ambient + diffuse, 1.0) * objectColor;\r\n\r\n    gl_FragColor = vec4(result, 1.0);\r\n}";
+var objectsFrag = "precision highp float;\r\n\r\nvarying highp vec2 texCoord;\r\nvarying highp vec3 normal;\r\n\r\nuniform sampler2D texture;\r\nuniform float useTexture;\r\nuniform vec4 color;\r\n\r\nvoid main(void) {\r\n    vec3 lightDir = normalize(vec3(0.656, 0.3, 0.14));\r\n    vec3 lightColor = vec3(1.0);\r\n\r\n    float diff = max(dot(normal, lightDir), 0.0);\r\n    vec3 diffuse = diff * lightColor;\r\n\r\n    float ambient = 0.5;\r\n    vec4 objectColor = useTexture > 0.5 ? texture2D(texture, texCoord) : color;\r\n    gl_FragColor = vec4(min(ambient + diffuse, 1.0) * objectColor.rgb, objectColor.a);\r\n}";
 
 var coloredVert = "attribute vec3 p;\r\nattribute vec3 c;\r\n\r\nuniform mat4 mvp;\r\nvarying highp vec3 color;\r\n\r\nvoid main(void) {\r\n    gl_Position = mvp * vec4(p, 1.0);\r\n\r\n    color = c;\r\n}";
 
@@ -8109,6 +8109,8 @@ class Render {
             "texture",
             "model",
             "texMul",
+            "useTexture",
+            "color",
         ]);
         this.coloredShader = compileShader(gl, coloredVert, coloredFrag, [
             "p",
@@ -8127,8 +8129,10 @@ class Render {
             "texture",
         ]);
         gl.clearColor(0.3, 0.4, 1.0, 1.0);
-        gl.disable(gl.CULL_FACE);
+        gl.enable(gl.CULL_FACE);
         gl.enable(gl.DEPTH_TEST);
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         this.anisotropic = gl.getExtension("EXT_texture_filter_anisotropic");
         this.debugLinesData = new Float32Array(DebugLine.MAX_DEBUG_LINES * DebugLine.STRIDE);
         this.debugLineBuffer = gl.createBuffer();
@@ -8183,6 +8187,13 @@ class Render {
         gl.uniformMatrix4fv(objectsShader.model, false, modelMatrix);
         gl.uniform1i(objectsShader.texture, 0);
         gl.uniform1f(objectsShader.texMul, options.texMul);
+        if (options.colorOverride) {
+            gl.uniform1f(objectsShader.useTexture, 0);
+            gl.uniform4fv(objectsShader.color, options.colorOverride);
+        }
+        else {
+            gl.uniform1f(objectsShader.useTexture, 1);
+        }
         gl.drawElements(gl.TRIANGLES, model.indexCount, gl.UNSIGNED_SHORT, 0);
     }
     drawSkin(skin, tex, animation, s, position) {
@@ -8733,7 +8744,10 @@ class CapsuleModelDef extends ModelDef {
         this.entries[1].transform = cloneTransform(transform);
         this.entries[1].transform.size[2] -= 1;
         this.entries[2].transform = cloneTransform(transform);
-        this.entries[2].transform.size[2] = -1;
+        this.entries[2].transform.size[2] = 1;
+        const q = create$2();
+        fromEuler(q, 180, 0, 0);
+        mul$2(this.entries[2].transform.rotation, this.entries[2].transform.rotation, q);
         this.entries[2].transform.pos[2] -= (height - 1) / 2;
     }
     getEntries() {

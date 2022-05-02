@@ -103,6 +103,8 @@ export class Render {
             "texture",
             "model",
             "texMul",
+            "useTexture",
+            "color",
         ])
         this.coloredShader = compileShader(gl, coloredVert, coloredFrag, [
             "p",
@@ -123,8 +125,11 @@ export class Render {
 
         gl.clearColor(0.3, 0.4, 1.0, 1.0)
 
-        gl.disable(gl.CULL_FACE)
+        gl.enable(gl.CULL_FACE)
         gl.enable(gl.DEPTH_TEST)
+
+        gl.enable(gl.BLEND)
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 
         this.anisotropic = gl.getExtension("EXT_texture_filter_anisotropic")
 
@@ -230,6 +235,12 @@ export class Render {
         gl.uniformMatrix4fv(objectsShader.model, false, modelMatrix)
         gl.uniform1i(objectsShader.texture, 0)
         gl.uniform1f(objectsShader.texMul, options.texMul)
+        if (options.colorOverride) {
+            gl.uniform1f(objectsShader.useTexture, 0)
+            gl.uniform4fv(objectsShader.color, options.colorOverride)
+        } else {
+            gl.uniform1f(objectsShader.useTexture, 1)
+        }
 
         gl.drawElements(gl.TRIANGLES, model.indexCount, gl.UNSIGNED_SHORT, 0)
     }
