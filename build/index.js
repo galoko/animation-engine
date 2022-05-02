@@ -8257,15 +8257,40 @@ class Render {
         const { gl } = this;
         this.handleResize();
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        const mvp = create$5();
+        multiply$5(mvp, mvp, this.projectionMatrix);
+        multiply$5(mvp, mvp, this.viewMatrix);
+        const transparentModels = [];
         for (const entity of this.models) {
             const transform = entity.get(TransformComponent);
             const model = entity.get(ModelComponent);
             const texture = entity.get(TextureComponent);
             model.modelDef.update(transform.transform);
             const modelEntities = model.modelDef.getEntries();
+            // first draw all opaque objects
             for (const modelEntry of modelEntities) {
-                this.drawModel(modelEntry.model, texture.texture, getModelOptions(modelEntry.options), modelEntry.transform);
+                if (modelEntry.options?.alpha !== true) {
+                    this.drawModel(modelEntry.model, texture.texture, getModelOptions(modelEntry.options), modelEntry.transform);
+                }
+                else {
+                    transparentModels.push({ entity, modelEntry });
+                }
             }
+        }
+        // then sort all transparent objects by depth
+        const pos = create$3();
+        for (const entry of transparentModels) {
+            const p = entry.modelEntry.transform.pos;
+            transformMat4$1(pos, fromValues$3(p[0], p[1], p[2], 1), mvp);
+            const z = pos[2] / pos[3];
+            entry.modelEntry.tempZ = z;
+        }
+        transparentModels.sort((a, b) => b.modelEntry.tempZ - a.modelEntry.tempZ);
+        // then draw all transparent objects from far to near
+        for (const entry of transparentModels) {
+            const { entity, modelEntry } = entry;
+            const texture = entity.get(TextureComponent);
+            this.drawModel(modelEntry.model, texture.texture, getModelOptions(modelEntry.options), modelEntry.transform);
         }
         if (this.debugLinesDataIndex > 0) {
             // gl.disable(gl.DEPTH_TEST)

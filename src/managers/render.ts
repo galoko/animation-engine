@@ -17,7 +17,7 @@ import coloredFrag from "../shaders/colored.frag"
 import skinningVert from "../shaders/skinning.vert"
 import skinningFrag from "../shaders/skinning.frag"
 
-import { mat4, vec3 } from "gl-matrix"
+import { mat4, vec3, vec4 } from "gl-matrix"
 import { calculateSkinningMatrices } from "./animation-processor"
 import { Skin } from "../models/skin"
 import { Model } from "../models/model"
@@ -26,7 +26,7 @@ import { Entity } from "../entities/entity"
 import { TransformComponent, TransformData } from "../components/transformComponent"
 import { ModelComponent } from "../components/modelComponent"
 import { TextureComponent } from "../components/textureComponent"
-import { getModelOptions, ModelOptions } from "../models/model-def"
+import { getModelOptions, ModelDefEntry, ModelOptions } from "../models/model-def"
 import { DebugLine } from "../models/debug-line"
 
 const ANIMATION_TEXTURE_SIZE = 1024
@@ -349,6 +349,12 @@ export class Render {
 
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
+        const mvp = mat4.create()
+        mat4.multiply(mvp, mvp, this.projectionMatrix)
+        mat4.multiply(mvp, mvp, this.viewMatrix)
+
+        const transparentModels = [] as { entity: Entity; modelEntry: ModelDefEntry }[]
+
         for (const entity of this.models) {
             const transform = entity.get(TransformComponent)!
             const model = entity.get(ModelComponent)!
@@ -358,14 +364,46 @@ export class Render {
 
             const modelEntities = model.modelDef.getEntries()
 
+            // first draw all opaque objects
             for (const modelEntry of modelEntities) {
-                this.drawModel(
-                    modelEntry.model,
-                    texture.texture!,
-                    getModelOptions(modelEntry.options),
-                    modelEntry.transform
-                )
+                if (modelEntry.options?.alpha !== true) {
+                    this.drawModel(
+                        modelEntry.model,
+                        texture.texture!,
+                        getModelOptions(modelEntry.options),
+                        modelEntry.transform
+                    )
+                } else {
+                    transparentModels.push({ entity, modelEntry })
+                }
             }
+        }
+
+        // then sort all transparent objects by depth
+
+        const pos = vec4.create()
+        for (const entry of transparentModels) {
+            const p = entry.modelEntry.transform.pos
+            vec4.transformMat4(pos, vec4.fromValues(p[0], p[1], p[2], 1), mvp)
+            const z = pos[2] / pos[3]
+
+            entry.modelEntry.tempZ = z
+        }
+
+        transparentModels.sort((a, b) => b.modelEntry.tempZ! - a.modelEntry.tempZ!)
+
+        // then draw all transparent objects from far to near
+        for (const entry of transparentModels) {
+            const { entity, modelEntry } = entry
+
+            const texture = entity.get(TextureComponent)!
+
+            this.drawModel(
+                modelEntry.model,
+                texture.texture!,
+                getModelOptions(modelEntry.options),
+                modelEntry.transform
+            )
         }
 
         if (this.debugLinesDataIndex > 0) {

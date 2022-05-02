@@ -12,6 +12,8 @@ export type ModelDefEntry = {
     model: Model
     transform: TransformData
     options?: Partial<ModelOptions>
+
+    tempZ?: number
 }
 
 const DEFAULT_MODEL_OPTIONS = {
