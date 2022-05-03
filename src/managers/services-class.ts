@@ -16,12 +16,15 @@ export class ServicesClass {
     readonly loop: GameLoop
 
     constructor(options: { ammo: typeof Ammo }) {
-        const canvas = document.createElement("canvas")
-        document.body.appendChild(canvas)
+        const canvasWebGL = document.createElement("canvas")
+        const canvas2D = document.createElement("canvas")
+        canvas2D.style.pointerEvents = "none"
+        document.body.appendChild(canvasWebGL)
+        document.body.appendChild(canvas2D)
 
-        this.render = new Render(canvas)
+        this.render = new Render(canvasWebGL, canvas2D)
         this.physics = new Physics(options.ammo)
-        this.inputManager = new InputManager(canvas)
+        this.inputManager = new InputManager(canvasWebGL)
         this.resources = new ResourceManager()
         this.world = new World()
         this.mapLoader = new MapLoader()

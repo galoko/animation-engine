@@ -8064,9 +8064,11 @@ class DebugLine {
 const ANIMATION_TEXTURE_SIZE = 1024;
 const UP = fromValues$4(0, 0, 1);
 class Render {
-    canvas;
+    canvasWebGL;
+    canvas2D;
     gl;
     anisotropic;
+    ctx;
     generalShader;
     objectsShader;
     coloredShader;
@@ -8080,11 +8082,14 @@ class Render {
     debugLinesData;
     debugLinesDataIndex;
     debugLineBuffer;
-    constructor(canvas) {
-        this.canvas = canvas;
+    persistentDebugRects = [];
+    texts = [];
+    constructor(canvasWebGL, canvas2D) {
+        this.canvasWebGL = canvasWebGL;
+        this.canvas2D = canvas2D;
         this.models = new Set();
         this.skins = new Set();
-        this.gl = this.canvas.getContext("webgl", {
+        this.gl = this.canvasWebGL.getContext("webgl", {
             antialias: true,
             powerPreference: "high-performance",
         });
@@ -8139,21 +8144,28 @@ class Render {
         gl.bindBuffer(gl.ARRAY_BUFFER, this.debugLineBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, this.debugLinesData.byteLength, gl.DYNAMIC_DRAW);
         this.debugLinesDataIndex = 0;
+        this.ctx = this.canvas2D.getContext("2d");
     }
     handleResize() {
-        const { canvas, gl } = this;
-        const dpr = 1;
+        const { canvasWebGL, canvas2D, gl } = this;
+        const dpr = devicePixelRatio;
         const newWidth = Math.floor(document.body.clientWidth * dpr);
         const newHeight = Math.floor(document.body.clientHeight * dpr);
-        if (canvas.width === newWidth && canvas.height === newHeight) {
+        if (canvasWebGL.width === newWidth && canvasWebGL.height === newHeight) {
             return;
         }
-        canvas.style.width = newWidth / dpr + "px";
-        canvas.style.height = newHeight / dpr + "px";
-        canvas.width = newWidth;
-        canvas.height = newHeight;
-        gl.viewport(0, 0, canvas.width, canvas.height);
-        perspective(this.projectionMatrix, (45 * Math.PI) / 180, canvas.width / canvas.height, 0.1, 100);
+        canvas2D.style.width = newWidth / dpr + "px";
+        canvas2D.style.height = newHeight / dpr + "px";
+        canvas2D.width = newWidth;
+        canvas2D.height = newHeight;
+        canvasWebGL.style.width = newWidth / dpr + "px";
+        canvasWebGL.style.height = newHeight / dpr + "px";
+        canvasWebGL.width = newWidth;
+        canvasWebGL.height = newHeight;
+        this.ctx.resetTransform();
+        this.ctx.scale(dpr, dpr);
+        gl.viewport(0, 0, canvasWebGL.width, canvasWebGL.height);
+        perspective(this.projectionMatrix, (45 * Math.PI) / 180, canvasWebGL.width / canvasWebGL.height, 0.1, 100);
     }
     defineVertexBuffer(gl, shader, attributes, stride) {
         let offset = 0;
@@ -8225,6 +8237,45 @@ class Render {
             this.models.add(entity);
         }
     }
+    addDebugRect(start, end, vertical, horizontal, depth) {
+        this.persistentDebugRects.push({
+            start,
+            end,
+            vertical,
+            horizontal,
+            depth,
+        });
+    }
+    addText(text, pos) {
+        this.texts.push({
+            text,
+            pos,
+        });
+    }
+    drawDebugRect(start, end, v, h, d) {
+        const points = [
+            start,
+            fromValues$4(start[0], start[1], end[2]),
+            fromValues$4(start[0], end[1], start[2]),
+            fromValues$4(end[0], start[1], start[2]),
+            end,
+            fromValues$4(end[0], end[1], start[2]),
+            fromValues$4(end[0], start[1], end[2]),
+            fromValues$4(start[0], end[1], end[2]), // 7
+        ];
+        this.drawDebugLine(points[0], points[1], v, v);
+        this.drawDebugLine(points[0], points[2], d, d);
+        this.drawDebugLine(points[0], points[3], h, h);
+        this.drawDebugLine(points[2], points[7], v, v);
+        this.drawDebugLine(points[3], points[6], v, v);
+        this.drawDebugLine(points[1], points[6], h, h);
+        this.drawDebugLine(points[2], points[5], h, h);
+        this.drawDebugLine(points[1], points[7], d, d);
+        this.drawDebugLine(points[3], points[5], d, d);
+        this.drawDebugLine(points[4], points[5], v, v);
+        this.drawDebugLine(points[4], points[6], d, d);
+        this.drawDebugLine(points[4], points[7], h, h);
+    }
     drawDebugLine(start, end, color1, color2) {
         if (this.debugLinesDataIndex + 2 > DebugLine.MAX_DEBUG_LINES) {
             throw new Error("Too many debug lines.");
@@ -8254,12 +8305,13 @@ class Render {
         this.debugLinesDataIndex += 2;
     }
     draw() {
-        const { gl } = this;
+        const { ctx, gl } = this;
         this.handleResize();
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         const mvp = create$5();
         multiply$5(mvp, mvp, this.projectionMatrix);
         multiply$5(mvp, mvp, this.viewMatrix);
+        const pos = create$3();
         const transparentModels = [];
         for (const entity of this.models) {
             const transform = entity.get(TransformComponent);
@@ -8278,7 +8330,6 @@ class Render {
             }
         }
         // then sort all transparent objects by depth
-        const pos = create$3();
         for (const entry of transparentModels) {
             const p = entry.modelEntry.transform.pos;
             transformMat4$1(pos, fromValues$3(p[0], p[1], p[2], 1), mvp);
@@ -8291,6 +8342,9 @@ class Render {
             const { entity, modelEntry } = entry;
             const texture = entity.get(TextureComponent);
             this.drawModel(modelEntry.model, texture.texture, getModelOptions(modelEntry.options), modelEntry.transform);
+        }
+        for (const debugRect of this.persistentDebugRects) {
+            this.drawDebugRect(debugRect.start, debugRect.end, debugRect.vertical, debugRect.horizontal, debugRect.depth);
         }
         if (this.debugLinesDataIndex > 0) {
             // gl.disable(gl.DEPTH_TEST)
@@ -8307,6 +8361,22 @@ class Render {
             gl.drawArrays(gl.LINES, 0, this.debugLinesDataIndex);
             this.debugLinesDataIndex = 0;
             // gl.enable(gl.DEPTH_TEST)
+        }
+        ctx.clearRect(0, 0, this.canvas2D.width, this.canvas2D.height);
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.strokeStyle = "white";
+        ctx.lineWidth = 3;
+        ctx.font = "25px Roboto";
+        for (const text of this.texts) {
+            const p = text.pos;
+            transformMat4$1(pos, fromValues$3(p[0], p[1], p[2], 1), mvp);
+            let x = pos[0] / pos[3];
+            let y = pos[1] / pos[3];
+            y = (-y + 1) / 2;
+            x = (x + 1) / 2;
+            ctx.strokeText(text.text, x * this.canvas2D.clientWidth, y * this.canvas2D.clientHeight);
+            ctx.fillText(text.text, x * this.canvas2D.clientWidth, y * this.canvas2D.clientHeight);
         }
     }
 }
@@ -8809,6 +8879,71 @@ class SimpleModelDef {
     }
 }
 
+var Biomes;
+(function (Biomes) {
+    Biomes["THE_VOID"] = "the_void";
+    Biomes["PLAINS"] = "plains";
+    Biomes["SUNFLOWER_PLAINS"] = "sunflower_plains";
+    Biomes["SNOWY_PLAINS"] = "snowy_plains";
+    Biomes["ICE_SPIKES"] = "ice_spikes";
+    Biomes["DESERT"] = "desert";
+    Biomes["SWAMP"] = "swamp";
+    Biomes["FOREST"] = "forest";
+    Biomes["FLOWER_FOREST"] = "flower_forest";
+    Biomes["BIRCH_FOREST"] = "birch_forest";
+    Biomes["DARK_FOREST"] = "dark_forest";
+    Biomes["OLD_GROWTH_BIRCH_FOREST"] = "old_growth_birch_forest";
+    Biomes["OLD_GROWTH_PINE_TAIGA"] = "old_growth_pine_taiga";
+    Biomes["OLD_GROWTH_SPRUCE_TAIGA"] = "old_growth_spruce_taiga";
+    Biomes["TAIGA"] = "taiga";
+    Biomes["SNOWY_TAIGA"] = "snowy_taiga";
+    Biomes["SAVANNA"] = "savanna";
+    Biomes["SAVANNA_PLATEAU"] = "savanna_plateau";
+    Biomes["WINDSWEPT_HILLS"] = "windswept_hills";
+    Biomes["WINDSWEPT_GRAVELLY_HILLS"] = "windswept_gravelly_hills";
+    Biomes["WINDSWEPT_FOREST"] = "windswept_forest";
+    Biomes["WINDSWEPT_SAVANNA"] = "windswept_savanna";
+    Biomes["JUNGLE"] = "jungle";
+    Biomes["SPARSE_JUNGLE"] = "sparse_jungle";
+    Biomes["BAMBOO_JUNGLE"] = "bamboo_jungle";
+    Biomes["BADLANDS"] = "badlands";
+    Biomes["ERODED_BADLANDS"] = "eroded_badlands";
+    Biomes["WOODED_BADLANDS"] = "wooded_badlands";
+    Biomes["MEADOW"] = "meadow";
+    Biomes["GROVE"] = "grove";
+    Biomes["SNOWY_SLOPES"] = "snowy_slopes";
+    Biomes["FROZEN_PEAKS"] = "frozen_peaks";
+    Biomes["JAGGED_PEAKS"] = "jagged_peaks";
+    Biomes["STONY_PEAKS"] = "stony_peaks";
+    Biomes["RIVER"] = "river";
+    Biomes["FROZEN_RIVER"] = "frozen_river";
+    Biomes["BEACH"] = "beach";
+    Biomes["SNOWY_BEACH"] = "snowy_beach";
+    Biomes["STONY_SHORE"] = "stony_shore";
+    Biomes["WARM_OCEAN"] = "warm_ocean";
+    Biomes["LUKEWARM_OCEAN"] = "lukewarm_ocean";
+    Biomes["DEEP_LUKEWARM_OCEAN"] = "deep_lukewarm_ocean";
+    Biomes["OCEAN"] = "ocean";
+    Biomes["DEEP_OCEAN"] = "deep_ocean";
+    Biomes["COLD_OCEAN"] = "cold_ocean";
+    Biomes["DEEP_COLD_OCEAN"] = "deep_cold_ocean";
+    Biomes["FROZEN_OCEAN"] = "frozen_ocean";
+    Biomes["DEEP_FROZEN_OCEAN"] = "deep_frozen_ocean";
+    Biomes["MUSHROOM_FIELDS"] = "mushroom_fields";
+    Biomes["DRIPSTONE_CAVES"] = "dripstone_caves";
+    Biomes["LUSH_CAVES"] = "lush_caves";
+    Biomes["NETHER_WASTES"] = "nether_wastes";
+    Biomes["WARPED_FOREST"] = "warped_forest";
+    Biomes["CRIMSON_FOREST"] = "crimson_forest";
+    Biomes["SOUL_SAND_VALLEY"] = "soul_sand_valley";
+    Biomes["BASALT_DELTAS"] = "basalt_deltas";
+    Biomes["THE_END"] = "the_end";
+    Biomes["END_HIGHLANDS"] = "end_highlands";
+    Biomes["END_MIDLANDS"] = "end_midlands";
+    Biomes["SMALL_END_ISLANDS"] = "small_end_islands";
+    Biomes["END_BARRENS"] = "end_barrens";
+})(Biomes || (Biomes = {}));
+
 class Parameter {
     min;
     max;
@@ -8894,71 +9029,6 @@ function parameters(temperature, humidity, continentalness, erosion, depth, weir
         return new ParameterPoint(temperature, humidity, continentalness, erosion, depth, weirdness, quantizeCoord(offset));
     }
 }
-
-var Biomes;
-(function (Biomes) {
-    Biomes["THE_VOID"] = "the_void";
-    Biomes["PLAINS"] = "plains";
-    Biomes["SUNFLOWER_PLAINS"] = "sunflower_plains";
-    Biomes["SNOWY_PLAINS"] = "snowy_plains";
-    Biomes["ICE_SPIKES"] = "ice_spikes";
-    Biomes["DESERT"] = "desert";
-    Biomes["SWAMP"] = "swamp";
-    Biomes["FOREST"] = "forest";
-    Biomes["FLOWER_FOREST"] = "flower_forest";
-    Biomes["BIRCH_FOREST"] = "birch_forest";
-    Biomes["DARK_FOREST"] = "dark_forest";
-    Biomes["OLD_GROWTH_BIRCH_FOREST"] = "old_growth_birch_forest";
-    Biomes["OLD_GROWTH_PINE_TAIGA"] = "old_growth_pine_taiga";
-    Biomes["OLD_GROWTH_SPRUCE_TAIGA"] = "old_growth_spruce_taiga";
-    Biomes["TAIGA"] = "taiga";
-    Biomes["SNOWY_TAIGA"] = "snowy_taiga";
-    Biomes["SAVANNA"] = "savanna";
-    Biomes["SAVANNA_PLATEAU"] = "savanna_plateau";
-    Biomes["WINDSWEPT_HILLS"] = "windswept_hills";
-    Biomes["WINDSWEPT_GRAVELLY_HILLS"] = "windswept_gravelly_hills";
-    Biomes["WINDSWEPT_FOREST"] = "windswept_forest";
-    Biomes["WINDSWEPT_SAVANNA"] = "windswept_savanna";
-    Biomes["JUNGLE"] = "jungle";
-    Biomes["SPARSE_JUNGLE"] = "sparse_jungle";
-    Biomes["BAMBOO_JUNGLE"] = "bamboo_jungle";
-    Biomes["BADLANDS"] = "badlands";
-    Biomes["ERODED_BADLANDS"] = "eroded_badlands";
-    Biomes["WOODED_BADLANDS"] = "wooded_badlands";
-    Biomes["MEADOW"] = "meadow";
-    Biomes["GROVE"] = "grove";
-    Biomes["SNOWY_SLOPES"] = "snowy_slopes";
-    Biomes["FROZEN_PEAKS"] = "frozen_peaks";
-    Biomes["JAGGED_PEAKS"] = "jagged_peaks";
-    Biomes["STONY_PEAKS"] = "stony_peaks";
-    Biomes["RIVER"] = "river";
-    Biomes["FROZEN_RIVER"] = "frozen_river";
-    Biomes["BEACH"] = "beach";
-    Biomes["SNOWY_BEACH"] = "snowy_beach";
-    Biomes["STONY_SHORE"] = "stony_shore";
-    Biomes["WARM_OCEAN"] = "warm_ocean";
-    Biomes["LUKEWARM_OCEAN"] = "lukewarm_ocean";
-    Biomes["DEEP_LUKEWARM_OCEAN"] = "deep_lukewarm_ocean";
-    Biomes["OCEAN"] = "ocean";
-    Biomes["DEEP_OCEAN"] = "deep_ocean";
-    Biomes["COLD_OCEAN"] = "cold_ocean";
-    Biomes["DEEP_COLD_OCEAN"] = "deep_cold_ocean";
-    Biomes["FROZEN_OCEAN"] = "frozen_ocean";
-    Biomes["DEEP_FROZEN_OCEAN"] = "deep_frozen_ocean";
-    Biomes["MUSHROOM_FIELDS"] = "mushroom_fields";
-    Biomes["DRIPSTONE_CAVES"] = "dripstone_caves";
-    Biomes["LUSH_CAVES"] = "lush_caves";
-    Biomes["NETHER_WASTES"] = "nether_wastes";
-    Biomes["WARPED_FOREST"] = "warped_forest";
-    Biomes["CRIMSON_FOREST"] = "crimson_forest";
-    Biomes["SOUL_SAND_VALLEY"] = "soul_sand_valley";
-    Biomes["BASALT_DELTAS"] = "basalt_deltas";
-    Biomes["THE_END"] = "the_end";
-    Biomes["END_HIGHLANDS"] = "end_highlands";
-    Biomes["END_MIDLANDS"] = "end_midlands";
-    Biomes["SMALL_END_ISLANDS"] = "small_end_islands";
-    Biomes["END_BARRENS"] = "end_barrens";
-})(Biomes || (Biomes = {}));
 
 class Pair {
     first;
@@ -9420,7 +9490,18 @@ class MapLoader {
         const builder = new OverworldBiomeBuilder();
         const output = [];
         builder.addBiomes(output);
-        let p = 0;
+        const min = fromValues$4(Infinity, Infinity, Infinity);
+        const max = fromValues$4(-Infinity, -Infinity, -Infinity);
+        const minBiome = fromValues$4(Infinity, Infinity, Infinity);
+        const maxBiome = fromValues$4(-Infinity, -Infinity, -Infinity);
+        const POS_MUL = 1;
+        const SIZE_MUL = 1;
+        const POS_TRANSFORM = create$5();
+        translate$1(POS_TRANSFORM, POS_TRANSFORM, fromValues$4(0, 0, 1.5));
+        scale$5(POS_TRANSFORM, POS_TRANSFORM, fromValues$4(POS_MUL, POS_MUL, POS_MUL));
+        const SIZE_TRANSFORM = create$5();
+        scale$5(SIZE_TRANSFORM, SIZE_TRANSFORM, fromValues$4(SIZE_MUL, SIZE_MUL, SIZE_MUL));
+        const biomeToShow = Biomes.FROZEN_RIVER;
         for (const item of output) {
             const xRange = item.first.temperature;
             const yRange = item.first.humidity;
@@ -9432,20 +9513,47 @@ class MapLoader {
             const sizeY = unquantizeCoord(yRange.length);
             const sizeZ = unquantizeCoord(zRange.length);
             const color = 1;
-            const POS_MUL = 3.5;
-            const SIZE_MUL = 1;
-            const pos = fromValues$4(x * POS_MUL, y * POS_MUL, 3 + z * POS_MUL);
+            const pos = fromValues$4(x, y, z);
+            const size = fromValues$4(sizeX, sizeY, sizeZ);
+            transformMat4$2(pos, pos, POS_TRANSFORM);
+            transformMat4$2(size, size, SIZE_TRANSFORM);
             const box = new Object$1({
                 pos,
-                size: fromValues$4(sizeX * SIZE_MUL, sizeY * SIZE_MUL, sizeZ * SIZE_MUL),
+                size,
                 rotation: create$2(),
             }, new SimpleModelDef("cube", {
-                colorOverride: fromValues$3(color, 0, 0, 0.6),
+                colorOverride: fromValues$3(color, 0, 0, 1),
                 alpha: true,
             }), "blank");
-            Services.world.add(box);
-            p++;
+            if (item.second === biomeToShow) {
+                min$2(minBiome, minBiome, fromValues$4(unquantizeCoord(xRange.min), unquantizeCoord(yRange.min), unquantizeCoord(zRange.min)));
+                max$2(maxBiome, maxBiome, fromValues$4(unquantizeCoord(xRange.max), unquantizeCoord(yRange.max), unquantizeCoord(zRange.max)));
+                Services.world.add(box);
+            }
+            min$2(min, min, fromValues$4(unquantizeCoord(xRange.min), unquantizeCoord(yRange.min), unquantizeCoord(zRange.min)));
+            max$2(max, max, fromValues$4(unquantizeCoord(xRange.max), unquantizeCoord(yRange.max), unquantizeCoord(zRange.max)));
         }
+        transformMat4$2(min, min, SIZE_TRANSFORM);
+        transformMat4$2(min, min, POS_TRANSFORM);
+        transformMat4$2(max, max, SIZE_TRANSFORM);
+        transformMat4$2(max, max, POS_TRANSFORM);
+        transformMat4$2(minBiome, minBiome, SIZE_TRANSFORM);
+        transformMat4$2(minBiome, minBiome, POS_TRANSFORM);
+        transformMat4$2(maxBiome, maxBiome, SIZE_TRANSFORM);
+        transformMat4$2(maxBiome, maxBiome, POS_TRANSFORM);
+        Services.render.addDebugRect(min, max, 0x00ff00, 0xff0000, 0x0000ff);
+        Services.render.addText("temperature", fromValues$4((min[0] + max[0]) * 0.5, max[1], max[2]));
+        Services.render.addText("cold", fromValues$4(min[0], max[1], max[2]));
+        Services.render.addText("hot", fromValues$4(max[0], max[1], max[2] + 0.1));
+        Services.render.addText("humidity", fromValues$4(max[0], (min[1] + max[1]) * 0.5, max[2]));
+        Services.render.addText("dry", fromValues$4(max[0], min[1], max[2]));
+        Services.render.addText("humid", fromValues$4(max[0], max[1], max[2]));
+        Services.render.addText("continentalness", fromValues$4(max[0], max[1], (min[2] + max[2]) * 0.5));
+        Services.render.addText("ocean", fromValues$4(max[0], max[1], min[2]));
+        Services.render.addText("center", fromValues$4(max[0], max[1], max[2] - 0.1));
+        const center = create$4();
+        lerp$4(center, minBiome, maxBiome, 0.5);
+        Services.render.addText(biomeToShow.toUpperCase(), center);
     }
 }
 
@@ -9600,11 +9708,14 @@ class ServicesClass {
     mapLoader;
     loop;
     constructor(options) {
-        const canvas = document.createElement("canvas");
-        document.body.appendChild(canvas);
-        this.render = new Render(canvas);
+        const canvasWebGL = document.createElement("canvas");
+        const canvas2D = document.createElement("canvas");
+        canvas2D.style.pointerEvents = "none";
+        document.body.appendChild(canvasWebGL);
+        document.body.appendChild(canvas2D);
+        this.render = new Render(canvasWebGL, canvas2D);
         this.physics = new Physics(options.ammo);
-        this.inputManager = new InputManager(canvas);
+        this.inputManager = new InputManager(canvasWebGL);
         this.resources = new ResourceManager();
         this.world = new World();
         this.mapLoader = new MapLoader();

@@ -1,4 +1,4 @@
-import { quat, vec3, vec4 } from "gl-matrix"
+import { mat4, quat, vec3, vec4 } from "gl-matrix"
 import { Object } from "../entities/object"
 import { Box, Capsule, Plane, Sphere } from "../models/collision-primitives"
 import { CollisionGroups, PhysicsDef } from "../models/physics-def"
@@ -67,7 +67,24 @@ export class MapLoader {
         const output = [] as Pair<Climate.ParameterPoint, Biomes>[]
         builder.addBiomes(output)
 
-        let p = 0
+        const min = vec3.fromValues(Infinity, Infinity, Infinity)
+        const max = vec3.fromValues(-Infinity, -Infinity, -Infinity)
+
+        const minBiome = vec3.fromValues(Infinity, Infinity, Infinity)
+        const maxBiome = vec3.fromValues(-Infinity, -Infinity, -Infinity)
+
+        const POS_MUL = 1
+        const SIZE_MUL = 1
+
+        const POS_TRANSFORM = mat4.create()
+        mat4.translate(POS_TRANSFORM, POS_TRANSFORM, vec3.fromValues(0, 0, 1.5))
+        mat4.scale(POS_TRANSFORM, POS_TRANSFORM, vec3.fromValues(POS_MUL, POS_MUL, POS_MUL))
+
+        const SIZE_TRANSFORM = mat4.create()
+        mat4.scale(SIZE_TRANSFORM, SIZE_TRANSFORM, vec3.fromValues(SIZE_MUL, SIZE_MUL, SIZE_MUL))
+
+        const biomeToShow = Biomes.FROZEN_RIVER
+
         for (const item of output) {
             const xRange = item.first.temperature
             const yRange = item.first.humidity
@@ -83,26 +100,105 @@ export class MapLoader {
 
             const color = 1
 
-            const POS_MUL = 3.5
-            const SIZE_MUL = 1
+            const pos = vec3.fromValues(x, y, z)
+            const size = vec3.fromValues(sizeX, sizeY, sizeZ)
 
-            const pos = vec3.fromValues(x * POS_MUL, y * POS_MUL, 3 + z * POS_MUL)
+            vec3.transformMat4(pos, pos, POS_TRANSFORM)
+            vec3.transformMat4(size, size, SIZE_TRANSFORM)
 
             const box = new Object(
                 {
                     pos,
-                    size: vec3.fromValues(sizeX * SIZE_MUL, sizeY * SIZE_MUL, sizeZ * SIZE_MUL),
+                    size,
                     rotation: quat.create(),
                 },
                 new SimpleModelDef("cube", {
-                    colorOverride: vec4.fromValues(color, 0, 0, 0.6),
+                    colorOverride: vec4.fromValues(color, 0, 0, 1),
                     alpha: true,
                 }),
                 "blank"
             )
-            Services.world.add(box)
+            if (item.second === biomeToShow) {
+                vec3.min(
+                    minBiome,
+                    minBiome,
+                    vec3.fromValues(
+                        Climate.unquantizeCoord(xRange.min),
+                        Climate.unquantizeCoord(yRange.min),
+                        Climate.unquantizeCoord(zRange.min)
+                    )
+                )
 
-            p++
+                vec3.max(
+                    maxBiome,
+                    maxBiome,
+                    vec3.fromValues(
+                        Climate.unquantizeCoord(xRange.max),
+                        Climate.unquantizeCoord(yRange.max),
+                        Climate.unquantizeCoord(zRange.max)
+                    )
+                )
+
+                Services.world.add(box)
+            }
+
+            vec3.min(
+                min,
+                min,
+                vec3.fromValues(
+                    Climate.unquantizeCoord(xRange.min),
+                    Climate.unquantizeCoord(yRange.min),
+                    Climate.unquantizeCoord(zRange.min)
+                )
+            )
+
+            vec3.max(
+                max,
+                max,
+                vec3.fromValues(
+                    Climate.unquantizeCoord(xRange.max),
+                    Climate.unquantizeCoord(yRange.max),
+                    Climate.unquantizeCoord(zRange.max)
+                )
+            )
         }
+
+        vec3.transformMat4(min, min, SIZE_TRANSFORM)
+        vec3.transformMat4(min, min, POS_TRANSFORM)
+        vec3.transformMat4(max, max, SIZE_TRANSFORM)
+        vec3.transformMat4(max, max, POS_TRANSFORM)
+
+        vec3.transformMat4(minBiome, minBiome, SIZE_TRANSFORM)
+        vec3.transformMat4(minBiome, minBiome, POS_TRANSFORM)
+        vec3.transformMat4(maxBiome, maxBiome, SIZE_TRANSFORM)
+        vec3.transformMat4(maxBiome, maxBiome, POS_TRANSFORM)
+
+        Services.render.addDebugRect(min, max, 0x00ff00, 0xff0000, 0x0000ff)
+
+        Services.render.addText(
+            "temperature",
+            vec3.fromValues((min[0] + max[0]) * 0.5, max[1], max[2])
+        )
+        Services.render.addText("cold", vec3.fromValues(min[0], max[1], max[2]))
+        Services.render.addText("hot", vec3.fromValues(max[0], max[1], max[2] + 0.1))
+
+        Services.render.addText(
+            "humidity",
+            vec3.fromValues(max[0], (min[1] + max[1]) * 0.5, max[2])
+        )
+        Services.render.addText("dry", vec3.fromValues(max[0], min[1], max[2]))
+        Services.render.addText("humid", vec3.fromValues(max[0], max[1], max[2]))
+
+        Services.render.addText(
+            "continentalness",
+            vec3.fromValues(max[0], max[1], (min[2] + max[2]) * 0.5)
+        )
+
+        Services.render.addText("ocean", vec3.fromValues(max[0], max[1], min[2]))
+        Services.render.addText("center", vec3.fromValues(max[0], max[1], max[2] - 0.1))
+
+        const center = vec3.create()
+        vec3.lerp(center, minBiome, maxBiome, 0.5)
+        Services.render.addText(biomeToShow.toUpperCase(), center)
     }
 }

@@ -38,9 +38,24 @@ export type AttributeDef = {
     size: number
 }
 
+type DebugRect = {
+    start: vec3
+    end: vec3
+    vertical: number
+    horizontal: number
+    depth: number
+}
+
+type Text = {
+    text: string
+    pos: vec3
+}
+
 export class Render {
     public readonly gl: WebGLRenderingContext
     public readonly anisotropic: EXT_texture_filter_anisotropic | null
+
+    public readonly ctx: CanvasRenderingContext2D
 
     private readonly generalShader: CompiledShader
     private readonly objectsShader: CompiledShader
@@ -60,11 +75,17 @@ export class Render {
     private debugLinesDataIndex: number
     private readonly debugLineBuffer: WebGLBuffer
 
-    constructor(private readonly canvas: HTMLCanvasElement) {
+    private readonly persistentDebugRects: DebugRect[] = []
+    private readonly texts: Text[] = []
+
+    constructor(
+        private readonly canvasWebGL: HTMLCanvasElement,
+        private readonly canvas2D: HTMLCanvasElement
+    ) {
         this.models = new Set()
         this.skins = new Set()
 
-        this.gl = this.canvas.getContext("webgl", {
+        this.gl = this.canvasWebGL.getContext("webgl", {
             antialias: true,
             powerPreference: "high-performance",
         })!
@@ -140,32 +161,41 @@ export class Render {
         gl.bufferData(gl.ARRAY_BUFFER, this.debugLinesData.byteLength, gl.DYNAMIC_DRAW)
 
         this.debugLinesDataIndex = 0
+
+        this.ctx = this.canvas2D.getContext("2d")!
     }
 
     private handleResize() {
-        const { canvas, gl } = this
+        const { canvasWebGL, canvas2D, gl } = this
 
-        const dpr = 1
+        const dpr = devicePixelRatio
 
         const newWidth = Math.floor(document.body.clientWidth * dpr)
         const newHeight = Math.floor(document.body.clientHeight * dpr)
 
-        if (canvas.width === newWidth && canvas.height === newHeight) {
+        if (canvasWebGL.width === newWidth && canvasWebGL.height === newHeight) {
             return
         }
 
-        canvas.style.width = newWidth / dpr + "px"
-        canvas.style.height = newHeight / dpr + "px"
+        canvas2D.style.width = newWidth / dpr + "px"
+        canvas2D.style.height = newHeight / dpr + "px"
+        canvas2D.width = newWidth
+        canvas2D.height = newHeight
 
-        canvas.width = newWidth
-        canvas.height = newHeight
+        canvasWebGL.style.width = newWidth / dpr + "px"
+        canvasWebGL.style.height = newHeight / dpr + "px"
+        canvasWebGL.width = newWidth
+        canvasWebGL.height = newHeight
 
-        gl.viewport(0, 0, canvas.width, canvas.height)
+        this.ctx.resetTransform()
+        this.ctx.scale(dpr, dpr)
+
+        gl.viewport(0, 0, canvasWebGL.width, canvasWebGL.height)
 
         mat4.perspective(
             this.projectionMatrix,
             (45 * Math.PI) / 180,
-            canvas.width / canvas.height,
+            canvasWebGL.width / canvasWebGL.height,
             0.1,
             100
         )
@@ -307,6 +337,58 @@ export class Render {
         }
     }
 
+    addDebugRect(
+        start: vec3,
+        end: vec3,
+        vertical: number,
+        horizontal: number,
+        depth: number
+    ): void {
+        this.persistentDebugRects.push({
+            start,
+            end,
+            vertical,
+            horizontal,
+            depth,
+        })
+    }
+
+    addText(text: string, pos: vec3) {
+        this.texts.push({
+            text,
+            pos,
+        })
+    }
+
+    drawDebugRect(start: vec3, end: vec3, v: number, h: number, d: number): void {
+        const points = [
+            start, // 0
+            vec3.fromValues(start[0], start[1], end[2]), // 1
+            vec3.fromValues(start[0], end[1], start[2]), // 2
+            vec3.fromValues(end[0], start[1], start[2]), // 3
+
+            end, // 4
+            vec3.fromValues(end[0], end[1], start[2]), // 5
+            vec3.fromValues(end[0], start[1], end[2]), // 6
+            vec3.fromValues(start[0], end[1], end[2]), // 7
+        ]
+
+        this.drawDebugLine(points[0], points[1], v, v)
+        this.drawDebugLine(points[0], points[2], d, d)
+        this.drawDebugLine(points[0], points[3], h, h)
+
+        this.drawDebugLine(points[2], points[7], v, v)
+        this.drawDebugLine(points[3], points[6], v, v)
+        this.drawDebugLine(points[1], points[6], h, h)
+        this.drawDebugLine(points[2], points[5], h, h)
+        this.drawDebugLine(points[1], points[7], d, d)
+        this.drawDebugLine(points[3], points[5], d, d)
+
+        this.drawDebugLine(points[4], points[5], v, v)
+        this.drawDebugLine(points[4], points[6], d, d)
+        this.drawDebugLine(points[4], points[7], h, h)
+    }
+
     drawDebugLine(start: vec3, end: vec3, color1: number, color2: number): void {
         if (this.debugLinesDataIndex + 2 > DebugLine.MAX_DEBUG_LINES) {
             throw new Error("Too many debug lines.")
@@ -343,7 +425,7 @@ export class Render {
     }
 
     draw(): void {
-        const { gl } = this
+        const { ctx, gl } = this
 
         this.handleResize()
 
@@ -352,6 +434,7 @@ export class Render {
         const mvp = mat4.create()
         mat4.multiply(mvp, mvp, this.projectionMatrix)
         mat4.multiply(mvp, mvp, this.viewMatrix)
+        const pos = vec4.create()
 
         const transparentModels = [] as { entity: Entity; modelEntry: ModelDefEntry }[]
 
@@ -381,7 +464,6 @@ export class Render {
 
         // then sort all transparent objects by depth
 
-        const pos = vec4.create()
         for (const entry of transparentModels) {
             const p = entry.modelEntry.transform.pos
             vec4.transformMat4(pos, vec4.fromValues(p[0], p[1], p[2], 1), mvp)
@@ -403,6 +485,16 @@ export class Render {
                 texture.texture!,
                 getModelOptions(modelEntry.options),
                 modelEntry.transform
+            )
+        }
+
+        for (const debugRect of this.persistentDebugRects) {
+            this.drawDebugRect(
+                debugRect.start,
+                debugRect.end,
+                debugRect.vertical,
+                debugRect.horizontal,
+                debugRect.depth
             )
         }
 
@@ -435,6 +527,26 @@ export class Render {
             this.debugLinesDataIndex = 0
 
             // gl.enable(gl.DEPTH_TEST)
+        }
+
+        ctx.clearRect(0, 0, this.canvas2D.width, this.canvas2D.height)
+        ctx.textAlign = "center"
+        ctx.textBaseline = "middle"
+        ctx.strokeStyle = "white"
+        ctx.lineWidth = 3
+        ctx.font = "25px Roboto"
+        for (const text of this.texts) {
+            const p = text.pos
+            vec4.transformMat4(pos, vec4.fromValues(p[0], p[1], p[2], 1), mvp)
+
+            let x = pos[0] / pos[3]
+            let y = pos[1] / pos[3]
+
+            y = (-y + 1) / 2
+            x = (x + 1) / 2
+
+            ctx.strokeText(text.text, x * this.canvas2D.clientWidth, y * this.canvas2D.clientHeight)
+            ctx.fillText(text.text, x * this.canvas2D.clientWidth, y * this.canvas2D.clientHeight)
         }
     }
 }
