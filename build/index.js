@@ -8063,6 +8063,9 @@ class DebugLine {
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 const ANIMATION_TEXTURE_SIZE = 1024;
 const UP = fromValues$4(0, 0, 1);
+function colorToRGBA(color) {
+    return [((color >> 16) & 0xff) / 0xff, ((color >> 8) & 0xff) / 0xff, (color & 0xff) / 0xff];
+}
 class Render {
     canvasWebGL;
     canvas2D;
@@ -8280,13 +8283,6 @@ class Render {
         if (this.debugLinesDataIndex + 2 > DebugLine.MAX_DEBUG_LINES) {
             throw new Error("Too many debug lines.");
         }
-        const colorToRGBA = (color) => {
-            return [
-                color & (0xff / 0xff),
-                (color >> 8) & (0xff / 0xff),
-                (color >> 16) & (0xff / 0xff),
-            ];
-        };
         const [r1, g1, b1] = colorToRGBA(color1);
         const [r2, g2, b2] = colorToRGBA(color2);
         const i = this.debugLinesDataIndex * DebugLine.STRIDE;
@@ -8368,6 +8364,7 @@ class Render {
         ctx.strokeStyle = "white";
         ctx.lineWidth = 3;
         ctx.font = "25px Roboto";
+        ctx.globalAlpha = 0.5;
         for (const text of this.texts) {
             const p = text.pos;
             transformMat4$1(pos, fromValues$3(p[0], p[1], p[2], 1), mvp);
@@ -8746,7 +8743,7 @@ class Entity {
     }
 }
 
-class Object$1 extends Entity {
+class SimpleObject extends Entity {
     constructor(transform, modelDef, textureName, physicsDef, collisionPrimitive) {
         super();
         this.registerComponent(new TransformComponent(transform));
@@ -9452,6 +9449,68 @@ class OverworldBiomeBuilder {
     }
 }
 
+const BIOME_TO_COLOR = {};
+BIOME_TO_COLOR[Biomes.THE_VOID] = 0x000000;
+BIOME_TO_COLOR[Biomes.PLAINS] = 0x00cc00;
+BIOME_TO_COLOR[Biomes.SUNFLOWER_PLAINS] = 0xffff66;
+BIOME_TO_COLOR[Biomes.SNOWY_PLAINS] = 0xccffff;
+BIOME_TO_COLOR[Biomes.ICE_SPIKES] = 0xccffff;
+BIOME_TO_COLOR[Biomes.DESERT] = 0xffcc66;
+BIOME_TO_COLOR[Biomes.SWAMP] = 0x006666;
+BIOME_TO_COLOR[Biomes.FOREST] = 0x009933;
+BIOME_TO_COLOR[Biomes.FLOWER_FOREST] = 0xcae03a;
+BIOME_TO_COLOR[Biomes.BIRCH_FOREST] = 0xd6dea6;
+BIOME_TO_COLOR[Biomes.DARK_FOREST] = 0x183615;
+BIOME_TO_COLOR[Biomes.OLD_GROWTH_BIRCH_FOREST] = 0x0;
+BIOME_TO_COLOR[Biomes.OLD_GROWTH_PINE_TAIGA] = 0x0;
+BIOME_TO_COLOR[Biomes.OLD_GROWTH_SPRUCE_TAIGA] = 0x0;
+BIOME_TO_COLOR[Biomes.TAIGA] = 0x071705;
+BIOME_TO_COLOR[Biomes.SNOWY_TAIGA] = 0x364034;
+BIOME_TO_COLOR[Biomes.SAVANNA] = 0x849626;
+BIOME_TO_COLOR[Biomes.SAVANNA_PLATEAU] = 0x909c54;
+BIOME_TO_COLOR[Biomes.WINDSWEPT_HILLS] = 0x2e612c;
+BIOME_TO_COLOR[Biomes.WINDSWEPT_GRAVELLY_HILLS] = 0x445744;
+BIOME_TO_COLOR[Biomes.WINDSWEPT_FOREST] = 0x2f4d2f;
+BIOME_TO_COLOR[Biomes.WINDSWEPT_SAVANNA] = 0x656e47;
+BIOME_TO_COLOR[Biomes.JUNGLE] = 0x18c71a;
+BIOME_TO_COLOR[Biomes.SPARSE_JUNGLE] = 0x8ac26e;
+BIOME_TO_COLOR[Biomes.BAMBOO_JUNGLE] = 0x38b832;
+BIOME_TO_COLOR[Biomes.BADLANDS] = 0xbd6920;
+BIOME_TO_COLOR[Biomes.ERODED_BADLANDS] = 0xb3743e;
+BIOME_TO_COLOR[Biomes.WOODED_BADLANDS] = 0xc79044;
+BIOME_TO_COLOR[Biomes.MEADOW] = 0x4cc22f;
+BIOME_TO_COLOR[Biomes.GROVE] = 0x80997a;
+BIOME_TO_COLOR[Biomes.SNOWY_SLOPES] = 0xe2e6e1;
+BIOME_TO_COLOR[Biomes.FROZEN_PEAKS] = 0xb8c8d4;
+BIOME_TO_COLOR[Biomes.JAGGED_PEAKS] = 0x95999c;
+BIOME_TO_COLOR[Biomes.STONY_PEAKS] = 0x686869;
+BIOME_TO_COLOR[Biomes.RIVER] = 0x4a73a8;
+BIOME_TO_COLOR[Biomes.FROZEN_RIVER] = 0x7ba2d4;
+BIOME_TO_COLOR[Biomes.BEACH] = 0xf2f754;
+BIOME_TO_COLOR[Biomes.SNOWY_BEACH] = 0xcbcca3;
+BIOME_TO_COLOR[Biomes.STONY_SHORE] = 0xccd2d9;
+BIOME_TO_COLOR[Biomes.WARM_OCEAN] = 0x117dfa;
+BIOME_TO_COLOR[Biomes.LUKEWARM_OCEAN] = 0x3186e8;
+BIOME_TO_COLOR[Biomes.DEEP_LUKEWARM_OCEAN] = 0x2262ab;
+BIOME_TO_COLOR[Biomes.OCEAN] = 0x4883c7;
+BIOME_TO_COLOR[Biomes.DEEP_OCEAN] = 0x335e8f;
+BIOME_TO_COLOR[Biomes.COLD_OCEAN] = 0x5a7a9e;
+BIOME_TO_COLOR[Biomes.DEEP_COLD_OCEAN] = 0x3c5169;
+BIOME_TO_COLOR[Biomes.FROZEN_OCEAN] = 0x5a6e85;
+BIOME_TO_COLOR[Biomes.DEEP_FROZEN_OCEAN] = 0x3a4552;
+BIOME_TO_COLOR[Biomes.MUSHROOM_FIELDS] = 0xd67e74;
+BIOME_TO_COLOR[Biomes.DRIPSTONE_CAVES] = 0x0;
+BIOME_TO_COLOR[Biomes.LUSH_CAVES] = 0x0;
+BIOME_TO_COLOR[Biomes.NETHER_WASTES] = 0x0;
+BIOME_TO_COLOR[Biomes.WARPED_FOREST] = 0x0;
+BIOME_TO_COLOR[Biomes.CRIMSON_FOREST] = 0x0;
+BIOME_TO_COLOR[Biomes.SOUL_SAND_VALLEY] = 0x0;
+BIOME_TO_COLOR[Biomes.BASALT_DELTAS] = 0x0;
+BIOME_TO_COLOR[Biomes.THE_END] = 0x0;
+BIOME_TO_COLOR[Biomes.END_HIGHLANDS] = 0x0;
+BIOME_TO_COLOR[Biomes.END_MIDLANDS] = 0x0;
+BIOME_TO_COLOR[Biomes.SMALL_END_ISLANDS] = 0x0;
+BIOME_TO_COLOR[Biomes.END_BARRENS] = 0x0;
 class MapLoader {
     async loadMap(mapName) {
         if (mapName === "test") {
@@ -9464,7 +9523,7 @@ class MapLoader {
     loadTestMap() {
         const q = create$2();
         fromEuler(q, 0, 0, 0);
-        const ground = new Object$1({
+        const ground = new SimpleObject({
             pos: fromValues$4(0, 0, 0),
             size: fromValues$4(50, 50, 1),
             rotation: q,
@@ -9475,7 +9534,7 @@ class MapLoader {
             bakedTransform: true,
         }), new Plane());
         Services.world.add(ground);
-        const player = new Object$1({
+        const player = new SimpleObject({
             pos: fromValues$4(0, 2.61, 1.8 / 2),
             size: fromValues$4(1, 1, 1.8),
             rotation: create$2(),
@@ -9492,8 +9551,6 @@ class MapLoader {
         builder.addBiomes(output);
         const min = fromValues$4(Infinity, Infinity, Infinity);
         const max = fromValues$4(-Infinity, -Infinity, -Infinity);
-        const minBiome = fromValues$4(Infinity, Infinity, Infinity);
-        const maxBiome = fromValues$4(-Infinity, -Infinity, -Infinity);
         const POS_MUL = 1;
         const SIZE_MUL = 1;
         const POS_TRANSFORM = create$5();
@@ -9501,34 +9558,63 @@ class MapLoader {
         scale$5(POS_TRANSFORM, POS_TRANSFORM, fromValues$4(POS_MUL, POS_MUL, POS_MUL));
         const SIZE_TRANSFORM = create$5();
         scale$5(SIZE_TRANSFORM, SIZE_TRANSFORM, fromValues$4(SIZE_MUL, SIZE_MUL, SIZE_MUL));
-        const biomeToShow = Biomes.FROZEN_RIVER;
+        const biomesToShow = [
+            Biomes.BEACH,
+            Biomes.DESERT,
+            Biomes.FOREST,
+            // Biomes.SWAMP,
+            Biomes.PLAINS,
+            // Biomes.MEADOW,
+            // Biomes.OCEAN,
+            // Biomes.FROZEN_OCEAN,
+            Biomes.WARM_OCEAN,
+            Biomes.LUKEWARM_OCEAN,
+            Biomes.DEEP_LUKEWARM_OCEAN,
+            Biomes.DEEP_OCEAN,
+            Biomes.COLD_OCEAN,
+            Biomes.DEEP_COLD_OCEAN,
+            Biomes.FROZEN_OCEAN,
+            Biomes.DEEP_FROZEN_OCEAN,
+            // Biomes.MUSHROOM_FIELDS,
+        ];
+        const biomeBounds = {};
         for (const item of output) {
-            const xRange = item.first.temperature;
-            const yRange = item.first.humidity;
-            const zRange = item.first.continentalness;
+            const { first: point, second: biome } = item;
+            const xRange = point.temperature;
+            const yRange = point.humidity;
+            const zRange = point.continentalness;
             const x = unquantizeCoord(xRange.center);
             const y = unquantizeCoord(yRange.center);
             const z = unquantizeCoord(zRange.center);
             const sizeX = unquantizeCoord(xRange.length);
             const sizeY = unquantizeCoord(yRange.length);
             const sizeZ = unquantizeCoord(zRange.length);
-            const color = 1;
+            const color = BIOME_TO_COLOR[biome];
+            const rgba = colorToRGBA(color);
             const pos = fromValues$4(x, y, z);
             const size = fromValues$4(sizeX, sizeY, sizeZ);
             transformMat4$2(pos, pos, POS_TRANSFORM);
             transformMat4$2(size, size, SIZE_TRANSFORM);
-            const box = new Object$1({
+            const box = new SimpleObject({
                 pos,
                 size,
                 rotation: create$2(),
             }, new SimpleModelDef("cube", {
-                colorOverride: fromValues$3(color, 0, 0, 1),
+                colorOverride: fromValues$3(rgba[0], rgba[1], rgba[2], 0.8),
                 alpha: true,
             }), "blank");
-            if (item.second === biomeToShow) {
-                min$2(minBiome, minBiome, fromValues$4(unquantizeCoord(xRange.min), unquantizeCoord(yRange.min), unquantizeCoord(zRange.min)));
-                max$2(maxBiome, maxBiome, fromValues$4(unquantizeCoord(xRange.max), unquantizeCoord(yRange.max), unquantizeCoord(zRange.max)));
-                Services.world.add(box);
+            if (biomesToShow.includes(biome)) {
+                let bounds = biomeBounds[biome];
+                if (bounds === undefined) {
+                    bounds = {
+                        min: fromValues$4(Infinity, Infinity, Infinity),
+                        max: fromValues$4(-Infinity, -Infinity, -Infinity),
+                    };
+                    biomeBounds[biome] = bounds;
+                }
+                min$2(bounds.min, bounds.min, fromValues$4(unquantizeCoord(xRange.min), unquantizeCoord(yRange.min), unquantizeCoord(zRange.min)));
+                max$2(bounds.max, bounds.max, fromValues$4(unquantizeCoord(xRange.max), unquantizeCoord(yRange.max), unquantizeCoord(zRange.max)));
+                // Services.world.add(box)
             }
             min$2(min, min, fromValues$4(unquantizeCoord(xRange.min), unquantizeCoord(yRange.min), unquantizeCoord(zRange.min)));
             max$2(max, max, fromValues$4(unquantizeCoord(xRange.max), unquantizeCoord(yRange.max), unquantizeCoord(zRange.max)));
@@ -9537,10 +9623,6 @@ class MapLoader {
         transformMat4$2(min, min, POS_TRANSFORM);
         transformMat4$2(max, max, SIZE_TRANSFORM);
         transformMat4$2(max, max, POS_TRANSFORM);
-        transformMat4$2(minBiome, minBiome, SIZE_TRANSFORM);
-        transformMat4$2(minBiome, minBiome, POS_TRANSFORM);
-        transformMat4$2(maxBiome, maxBiome, SIZE_TRANSFORM);
-        transformMat4$2(maxBiome, maxBiome, POS_TRANSFORM);
         Services.render.addDebugRect(min, max, 0x00ff00, 0xff0000, 0x0000ff);
         Services.render.addText("temperature", fromValues$4((min[0] + max[0]) * 0.5, max[1], max[2]));
         Services.render.addText("cold", fromValues$4(min[0], max[1], max[2]));
@@ -9551,9 +9633,29 @@ class MapLoader {
         Services.render.addText("continentalness", fromValues$4(max[0], max[1], (min[2] + max[2]) * 0.5));
         Services.render.addText("ocean", fromValues$4(max[0], max[1], min[2]));
         Services.render.addText("center", fromValues$4(max[0], max[1], max[2] - 0.1));
-        const center = create$4();
-        lerp$4(center, minBiome, maxBiome, 0.5);
-        Services.render.addText(biomeToShow.toUpperCase(), center);
+        for (const biome of Object.keys(biomeBounds)) {
+            const center = create$4();
+            const bounds = biomeBounds[biome];
+            transformMat4$2(bounds.min, bounds.min, SIZE_TRANSFORM);
+            transformMat4$2(bounds.min, bounds.min, POS_TRANSFORM);
+            transformMat4$2(bounds.max, bounds.max, SIZE_TRANSFORM);
+            transformMat4$2(bounds.max, bounds.max, POS_TRANSFORM);
+            lerp$4(center, bounds.min, bounds.max, 0.5);
+            Services.render.addText(biome.toUpperCase(), center);
+            const size = clone$4(bounds.max);
+            sub$2(size, size, bounds.min);
+            const color = BIOME_TO_COLOR[biome];
+            const rgba = colorToRGBA(color);
+            const box = new SimpleObject({
+                pos: center,
+                size,
+                rotation: create$2(),
+            }, new SimpleModelDef("cube", {
+                colorOverride: fromValues$3(rgba[0], rgba[1], rgba[2], 0.6),
+                alpha: true,
+            }), "blank");
+            Services.world.add(box);
+        }
     }
 }
 

@@ -8,7 +8,7 @@ import { PhysicsDef } from "../models/physics-def"
 import { Entity } from "./entity"
 import { PhysicsComponent } from "../components/phyicsComponent"
 
-export class Object extends Entity {
+export class SimpleObject extends Entity {
     constructor(
         transform: TransformData,
         modelDef: ModelDef,

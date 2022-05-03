@@ -51,6 +51,9 @@ type Text = {
     pos: vec3
 }
 
+export function colorToRGBA(color: number) {
+    return [((color >> 16) & 0xff) / 0xff, ((color >> 8) & 0xff) / 0xff, (color & 0xff) / 0xff]
+}
 export class Render {
     public readonly gl: WebGLRenderingContext
     public readonly anisotropic: EXT_texture_filter_anisotropic | null
@@ -394,14 +397,6 @@ export class Render {
             throw new Error("Too many debug lines.")
         }
 
-        const colorToRGBA = (color: number) => {
-            return [
-                color & (0xff / 0xff),
-                (color >> 8) & (0xff / 0xff),
-                (color >> 16) & (0xff / 0xff),
-            ]
-        }
-
         const [r1, g1, b1] = colorToRGBA(color1)
         const [r2, g2, b2] = colorToRGBA(color2)
 
@@ -535,6 +530,7 @@ export class Render {
         ctx.strokeStyle = "white"
         ctx.lineWidth = 3
         ctx.font = "25px Roboto"
+        ctx.globalAlpha = 0.5
         for (const text of this.texts) {
             const p = text.pos
             vec4.transformMat4(pos, vec4.fromValues(p[0], p[1], p[2], 1), mvp)
