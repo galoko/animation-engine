@@ -26,6 +26,14 @@ export class Parameter {
         const v1 = this.min - value
         return v0 > 0 ? v0 : Math.max(v1, 0)
     }
+
+    get center(): number {
+        return (this.min + this.max) * 0.5
+    }
+
+    get length(): number {
+        return this.max - this.min
+    }
 }
 
 export class ParameterPoint {

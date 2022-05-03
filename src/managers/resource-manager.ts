@@ -13,10 +13,20 @@ export enum ResourceType {
 
 // TODO implement cache
 export class ResourceManager {
-    private pendingList: Promise<unknown>[] = []
+    private pendingList: Map<string, Promise<unknown>> = new Map()
 
     private getUrl(name: string, ext: string): string {
         return `build/${name}.${ext}`
+    }
+
+    async require<T>(url: string, requestMaker: () => Promise<T>): Promise<T> {
+        let promise = this.pendingList.get(url)
+        if (promise === undefined) {
+            promise = requestMaker()
+            this.pendingList.set(url, promise)
+        }
+
+        return promise as Promise<T>
     }
 
     async requireTexture(name: string): Promise<WebGLTexture> {
@@ -28,34 +38,29 @@ export class ResourceManager {
             name = name.slice(0, extIndex)
         }
 
-        const promise = loadTexture(
-            Services.render.gl,
-            Services.render.anisotropic,
-            this.getUrl(name, ext)
+        const url = this.getUrl(name, ext)
+
+        return this.require(url, () =>
+            loadTexture(Services.render.gl, Services.render.anisotropic, url)
         )
-        this.pendingList.push(promise)
-        return promise
     }
 
     async requireModel(name: string): Promise<Model> {
-        const promise = loadModelFromURL(Services.render.gl, this.getUrl(name, "mdl"))
-        this.pendingList.push(promise)
-        return promise
+        const url = this.getUrl(name, "mdl")
+        return this.require(url, () => loadModelFromURL(Services.render.gl, url))
     }
 
     async requireSkin(name: string): Promise<Skin> {
-        const promise = loadSkinFromURL(Services.render.gl, this.getUrl(name, "skn"))
-        this.pendingList.push(promise)
-        return promise
+        const url = this.getUrl(name, "skn")
+        return this.require(url, () => loadSkinFromURL(Services.render.gl, url))
     }
 
     async requireAnimation(name: string): Promise<Animation> {
-        const promise = loadAnimationFromURL(this.getUrl(name, "anm"))
-        this.pendingList.push(promise)
-        return promise
+        const url = this.getUrl(name, "anm")
+        return this.require(url, () => loadAnimationFromURL(url))
     }
 
     async waitForLoading(): Promise<void> {
-        return Promise.all(this.pendingList) as unknown as Promise<void>
+        return Promise.all(this.pendingList.values()) as unknown as Promise<void>
     }
 }

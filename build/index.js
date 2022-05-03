@@ -8595,9 +8595,17 @@ var ResourceType;
 })(ResourceType || (ResourceType = {}));
 // TODO implement cache
 class ResourceManager {
-    pendingList = [];
+    pendingList = new Map();
     getUrl(name, ext) {
         return `build/${name}.${ext}`;
+    }
+    async require(url, requestMaker) {
+        let promise = this.pendingList.get(url);
+        if (promise === undefined) {
+            promise = requestMaker();
+            this.pendingList.set(url, promise);
+        }
+        return promise;
     }
     async requireTexture(name) {
         let ext = "png";
@@ -8606,27 +8614,23 @@ class ResourceManager {
             ext = name.slice(extIndex + 1);
             name = name.slice(0, extIndex);
         }
-        const promise = loadTexture(Services.render.gl, Services.render.anisotropic, this.getUrl(name, ext));
-        this.pendingList.push(promise);
-        return promise;
+        const url = this.getUrl(name, ext);
+        return this.require(url, () => loadTexture(Services.render.gl, Services.render.anisotropic, url));
     }
     async requireModel(name) {
-        const promise = loadModelFromURL(Services.render.gl, this.getUrl(name, "mdl"));
-        this.pendingList.push(promise);
-        return promise;
+        const url = this.getUrl(name, "mdl");
+        return this.require(url, () => loadModelFromURL(Services.render.gl, url));
     }
     async requireSkin(name) {
-        const promise = loadSkinFromURL(Services.render.gl, this.getUrl(name, "skn"));
-        this.pendingList.push(promise);
-        return promise;
+        const url = this.getUrl(name, "skn");
+        return this.require(url, () => loadSkinFromURL(Services.render.gl, url));
     }
     async requireAnimation(name) {
-        const promise = loadAnimationFromURL(this.getUrl(name, "anm"));
-        this.pendingList.push(promise);
-        return promise;
+        const url = this.getUrl(name, "anm");
+        return this.require(url, () => loadAnimationFromURL(url));
     }
     async waitForLoading() {
-        return Promise.all(this.pendingList);
+        return Promise.all(this.pendingList.values());
     }
 }
 
@@ -8805,6 +8809,579 @@ class SimpleModelDef {
     }
 }
 
+class Parameter {
+    min;
+    max;
+    constructor(min, max) {
+        this.min = min;
+        this.max = max;
+    }
+    static span(min, max) {
+        if (typeof min === "number") {
+            if (typeof max !== "number") {
+                throw new Error("");
+            }
+            return new Parameter(quantizeCoord(min), quantizeCoord(max));
+        }
+        else {
+            if (typeof max === "number") {
+                throw new Error("");
+            }
+            return new Parameter(min.min, max.max);
+        }
+    }
+    static point(value) {
+        return Parameter.span(value, value);
+    }
+    distance(value) {
+        const v0 = value - this.max;
+        const v1 = this.min - value;
+        return v0 > 0 ? v0 : Math.max(v1, 0);
+    }
+    get center() {
+        return (this.min + this.max) * 0.5;
+    }
+    get length() {
+        return this.max - this.min;
+    }
+}
+class ParameterPoint {
+    temperature;
+    humidity;
+    continentalness;
+    erosion;
+    depth;
+    weirdness;
+    offset;
+    constructor(temperature, humidity, continentalness, erosion, depth, weirdness, offset) {
+        this.temperature = temperature;
+        this.humidity = humidity;
+        this.continentalness = continentalness;
+        this.erosion = erosion;
+        this.depth = depth;
+        this.weirdness = weirdness;
+        this.offset = offset;
+    }
+}
+const QUANTIZATION_FACTOR = 10000;
+function quantizeCoord(coord) {
+    return Math.trunc(coord * QUANTIZATION_FACTOR);
+}
+function unquantizeCoord(coord) {
+    return coord / QUANTIZATION_FACTOR;
+}
+function parameters(temperature, humidity, continentalness, erosion, depth, weirdness, offset) {
+    if (typeof temperature === "number") {
+        if (typeof temperature !== "number" ||
+            typeof humidity !== "number" ||
+            typeof continentalness !== "number" ||
+            typeof erosion !== "number" ||
+            typeof depth !== "number" ||
+            typeof weirdness !== "number") {
+            throw new Error("");
+        }
+        return new ParameterPoint(Parameter.point(temperature), Parameter.point(humidity), Parameter.point(continentalness), Parameter.point(erosion), Parameter.point(depth), Parameter.point(weirdness), quantizeCoord(offset));
+    }
+    else {
+        if (typeof temperature === "number" ||
+            typeof humidity === "number" ||
+            typeof continentalness === "number" ||
+            typeof erosion === "number" ||
+            typeof depth === "number" ||
+            typeof weirdness === "number") {
+            throw new Error("");
+        }
+        return new ParameterPoint(temperature, humidity, continentalness, erosion, depth, weirdness, quantizeCoord(offset));
+    }
+}
+
+var Biomes;
+(function (Biomes) {
+    Biomes["THE_VOID"] = "the_void";
+    Biomes["PLAINS"] = "plains";
+    Biomes["SUNFLOWER_PLAINS"] = "sunflower_plains";
+    Biomes["SNOWY_PLAINS"] = "snowy_plains";
+    Biomes["ICE_SPIKES"] = "ice_spikes";
+    Biomes["DESERT"] = "desert";
+    Biomes["SWAMP"] = "swamp";
+    Biomes["FOREST"] = "forest";
+    Biomes["FLOWER_FOREST"] = "flower_forest";
+    Biomes["BIRCH_FOREST"] = "birch_forest";
+    Biomes["DARK_FOREST"] = "dark_forest";
+    Biomes["OLD_GROWTH_BIRCH_FOREST"] = "old_growth_birch_forest";
+    Biomes["OLD_GROWTH_PINE_TAIGA"] = "old_growth_pine_taiga";
+    Biomes["OLD_GROWTH_SPRUCE_TAIGA"] = "old_growth_spruce_taiga";
+    Biomes["TAIGA"] = "taiga";
+    Biomes["SNOWY_TAIGA"] = "snowy_taiga";
+    Biomes["SAVANNA"] = "savanna";
+    Biomes["SAVANNA_PLATEAU"] = "savanna_plateau";
+    Biomes["WINDSWEPT_HILLS"] = "windswept_hills";
+    Biomes["WINDSWEPT_GRAVELLY_HILLS"] = "windswept_gravelly_hills";
+    Biomes["WINDSWEPT_FOREST"] = "windswept_forest";
+    Biomes["WINDSWEPT_SAVANNA"] = "windswept_savanna";
+    Biomes["JUNGLE"] = "jungle";
+    Biomes["SPARSE_JUNGLE"] = "sparse_jungle";
+    Biomes["BAMBOO_JUNGLE"] = "bamboo_jungle";
+    Biomes["BADLANDS"] = "badlands";
+    Biomes["ERODED_BADLANDS"] = "eroded_badlands";
+    Biomes["WOODED_BADLANDS"] = "wooded_badlands";
+    Biomes["MEADOW"] = "meadow";
+    Biomes["GROVE"] = "grove";
+    Biomes["SNOWY_SLOPES"] = "snowy_slopes";
+    Biomes["FROZEN_PEAKS"] = "frozen_peaks";
+    Biomes["JAGGED_PEAKS"] = "jagged_peaks";
+    Biomes["STONY_PEAKS"] = "stony_peaks";
+    Biomes["RIVER"] = "river";
+    Biomes["FROZEN_RIVER"] = "frozen_river";
+    Biomes["BEACH"] = "beach";
+    Biomes["SNOWY_BEACH"] = "snowy_beach";
+    Biomes["STONY_SHORE"] = "stony_shore";
+    Biomes["WARM_OCEAN"] = "warm_ocean";
+    Biomes["LUKEWARM_OCEAN"] = "lukewarm_ocean";
+    Biomes["DEEP_LUKEWARM_OCEAN"] = "deep_lukewarm_ocean";
+    Biomes["OCEAN"] = "ocean";
+    Biomes["DEEP_OCEAN"] = "deep_ocean";
+    Biomes["COLD_OCEAN"] = "cold_ocean";
+    Biomes["DEEP_COLD_OCEAN"] = "deep_cold_ocean";
+    Biomes["FROZEN_OCEAN"] = "frozen_ocean";
+    Biomes["DEEP_FROZEN_OCEAN"] = "deep_frozen_ocean";
+    Biomes["MUSHROOM_FIELDS"] = "mushroom_fields";
+    Biomes["DRIPSTONE_CAVES"] = "dripstone_caves";
+    Biomes["LUSH_CAVES"] = "lush_caves";
+    Biomes["NETHER_WASTES"] = "nether_wastes";
+    Biomes["WARPED_FOREST"] = "warped_forest";
+    Biomes["CRIMSON_FOREST"] = "crimson_forest";
+    Biomes["SOUL_SAND_VALLEY"] = "soul_sand_valley";
+    Biomes["BASALT_DELTAS"] = "basalt_deltas";
+    Biomes["THE_END"] = "the_end";
+    Biomes["END_HIGHLANDS"] = "end_highlands";
+    Biomes["END_MIDLANDS"] = "end_midlands";
+    Biomes["SMALL_END_ISLANDS"] = "small_end_islands";
+    Biomes["END_BARRENS"] = "end_barrens";
+})(Biomes || (Biomes = {}));
+
+class Pair {
+    first;
+    second;
+    constructor(first, second) {
+        this.first = first;
+        this.second = second;
+    }
+    static of(first, second) {
+        return new Pair(first, second);
+    }
+}
+
+const VALLEY_SIZE = 0.05;
+const LOW_START = 0.26666668;
+const HIGH_START = 0.4;
+const HIGH_END = 0.93333334;
+const PEAK_SIZE = 0.1;
+const PEAK_START = 0.56666666;
+const PEAK_END = 0.7666667;
+const NEAR_INLAND_START = -0.11;
+const MID_INLAND_START = 0.03;
+const FAR_INLAND_START = 0.3;
+const EROSION_INDEX_1_START = -0.78;
+const EROSION_INDEX_2_START = -0.375;
+const FULL_RANGE = Parameter.span(-1, 1);
+const temperatures = [
+    Parameter.span(-1.0, -0.45),
+    Parameter.span(-0.45, -0.15),
+    Parameter.span(-0.15, 0.2),
+    Parameter.span(0.2, 0.55),
+    Parameter.span(0.55, 1.0),
+];
+const humidities = [
+    Parameter.span(-1.0, -0.35),
+    Parameter.span(-0.35, -PEAK_SIZE),
+    Parameter.span(-PEAK_SIZE, PEAK_SIZE),
+    Parameter.span(PEAK_SIZE, FAR_INLAND_START),
+    Parameter.span(FAR_INLAND_START, 1.0),
+];
+const erosions = [
+    Parameter.span(-1.0, EROSION_INDEX_1_START),
+    Parameter.span(EROSION_INDEX_1_START, EROSION_INDEX_2_START),
+    Parameter.span(EROSION_INDEX_2_START, -0.2225),
+    Parameter.span(-0.2225, VALLEY_SIZE),
+    Parameter.span(VALLEY_SIZE, 0.45),
+    Parameter.span(0.45, 0.55),
+    Parameter.span(0.55, 1.0),
+];
+const FROZEN_RANGE = temperatures[0];
+const UNFROZEN_RANGE = Parameter.span(temperatures[1], temperatures[4]);
+const mushroomFieldsContinentalness = Parameter.span(-1.2, -1.05);
+const deepOceanContinentalness = Parameter.span(-1.05, -0.455);
+const oceanContinentalness = Parameter.span(-0.455, -0.19);
+const coastContinentalness = Parameter.span(-0.19, NEAR_INLAND_START);
+const inlandContinentalness = Parameter.span(NEAR_INLAND_START, 0.55);
+const nearInlandContinentalness = Parameter.span(NEAR_INLAND_START, MID_INLAND_START);
+const midInlandContinentalness = Parameter.span(MID_INLAND_START, FAR_INLAND_START);
+const farInlandContinentalness = Parameter.span(FAR_INLAND_START, 1.0);
+const OCEANS = [
+    [
+        Biomes.DEEP_FROZEN_OCEAN,
+        Biomes.DEEP_COLD_OCEAN,
+        Biomes.DEEP_OCEAN,
+        Biomes.DEEP_LUKEWARM_OCEAN,
+        Biomes.WARM_OCEAN,
+    ],
+    [
+        Biomes.FROZEN_OCEAN,
+        Biomes.COLD_OCEAN,
+        Biomes.OCEAN,
+        Biomes.LUKEWARM_OCEAN,
+        Biomes.WARM_OCEAN,
+    ],
+];
+const MIDDLE_BIOMES = [
+    [
+        Biomes.SNOWY_PLAINS,
+        Biomes.SNOWY_PLAINS,
+        Biomes.SNOWY_PLAINS,
+        Biomes.SNOWY_TAIGA,
+        Biomes.TAIGA,
+    ],
+    [Biomes.PLAINS, Biomes.PLAINS, Biomes.FOREST, Biomes.TAIGA, Biomes.OLD_GROWTH_SPRUCE_TAIGA],
+    [Biomes.FLOWER_FOREST, Biomes.PLAINS, Biomes.FOREST, Biomes.BIRCH_FOREST, Biomes.DARK_FOREST],
+    [Biomes.SAVANNA, Biomes.SAVANNA, Biomes.FOREST, Biomes.JUNGLE, Biomes.JUNGLE],
+    [Biomes.DESERT, Biomes.DESERT, Biomes.DESERT, Biomes.DESERT, Biomes.DESERT],
+];
+const MIDDLE_BIOMES_VARIANT = [
+    [Biomes.ICE_SPIKES, null, Biomes.SNOWY_TAIGA, null, null],
+    [null, null, null, null, Biomes.OLD_GROWTH_PINE_TAIGA],
+    [Biomes.SUNFLOWER_PLAINS, null, null, Biomes.OLD_GROWTH_BIRCH_FOREST, null],
+    [null, null, Biomes.PLAINS, Biomes.SPARSE_JUNGLE, Biomes.BAMBOO_JUNGLE],
+    [null, null, null, null, null],
+];
+const PLATEAU_BIOMES = [
+    [
+        Biomes.SNOWY_PLAINS,
+        Biomes.SNOWY_PLAINS,
+        Biomes.SNOWY_PLAINS,
+        Biomes.SNOWY_TAIGA,
+        Biomes.SNOWY_TAIGA,
+    ],
+    [Biomes.MEADOW, Biomes.MEADOW, Biomes.FOREST, Biomes.TAIGA, Biomes.OLD_GROWTH_SPRUCE_TAIGA],
+    [Biomes.MEADOW, Biomes.MEADOW, Biomes.MEADOW, Biomes.MEADOW, Biomes.DARK_FOREST],
+    [Biomes.SAVANNA_PLATEAU, Biomes.SAVANNA_PLATEAU, Biomes.FOREST, Biomes.FOREST, Biomes.JUNGLE],
+    [
+        Biomes.BADLANDS,
+        Biomes.BADLANDS,
+        Biomes.BADLANDS,
+        Biomes.WOODED_BADLANDS,
+        Biomes.WOODED_BADLANDS,
+    ],
+];
+const PLATEAU_BIOMES_VARIANT = [
+    [Biomes.ICE_SPIKES, null, null, null, null],
+    [null, null, Biomes.MEADOW, Biomes.MEADOW, Biomes.OLD_GROWTH_PINE_TAIGA],
+    [null, null, Biomes.FOREST, Biomes.BIRCH_FOREST, null],
+    [null, null, null, null, null],
+    [Biomes.ERODED_BADLANDS, Biomes.ERODED_BADLANDS, null, null, null],
+];
+const EXTREME_HILLS = [
+    [
+        Biomes.WINDSWEPT_GRAVELLY_HILLS,
+        Biomes.WINDSWEPT_GRAVELLY_HILLS,
+        Biomes.WINDSWEPT_HILLS,
+        Biomes.WINDSWEPT_FOREST,
+        Biomes.WINDSWEPT_FOREST,
+    ],
+    [
+        Biomes.WINDSWEPT_GRAVELLY_HILLS,
+        Biomes.WINDSWEPT_GRAVELLY_HILLS,
+        Biomes.WINDSWEPT_HILLS,
+        Biomes.WINDSWEPT_FOREST,
+        Biomes.WINDSWEPT_FOREST,
+    ],
+    [
+        Biomes.WINDSWEPT_HILLS,
+        Biomes.WINDSWEPT_HILLS,
+        Biomes.WINDSWEPT_HILLS,
+        Biomes.WINDSWEPT_FOREST,
+        Biomes.WINDSWEPT_FOREST,
+    ],
+    [null, null, null, null, null],
+    [null, null, null, null, null],
+];
+class OverworldBiomeBuilder {
+    // high order methods
+    addBiomes(biomes) {
+        this.addOffCoastBiomes(biomes);
+        this.addInlandBiomes(biomes);
+        this.addUndergroundBiomes(biomes);
+    }
+    addOffCoastBiomes(biomes) {
+        this.addSurfaceBiome(biomes, FULL_RANGE, FULL_RANGE, mushroomFieldsContinentalness, FULL_RANGE, FULL_RANGE, 0.0, Biomes.MUSHROOM_FIELDS);
+        for (let i = 0; i < temperatures.length; ++i) {
+            const temperature = temperatures[i];
+            this.addSurfaceBiome(biomes, temperature, FULL_RANGE, deepOceanContinentalness, FULL_RANGE, FULL_RANGE, 0.0, OCEANS[0][i]);
+            this.addSurfaceBiome(biomes, temperature, FULL_RANGE, oceanContinentalness, FULL_RANGE, FULL_RANGE, 0.0, OCEANS[1][i]);
+        }
+    }
+    addInlandBiomes(biomes) {
+        this.addMidSlice(biomes, Parameter.span(-1.0, -HIGH_END));
+        this.addHighSlice(biomes, Parameter.span(-HIGH_END, -PEAK_END));
+        this.addPeaks(biomes, Parameter.span(-PEAK_END, -PEAK_START));
+        this.addHighSlice(biomes, Parameter.span(-PEAK_START, -HIGH_START));
+        this.addMidSlice(biomes, Parameter.span(-HIGH_START, -LOW_START));
+        this.addLowSlice(biomes, Parameter.span(-LOW_START, -VALLEY_SIZE));
+        this.addValleys(biomes, Parameter.span(-VALLEY_SIZE, VALLEY_SIZE));
+        this.addLowSlice(biomes, Parameter.span(VALLEY_SIZE, LOW_START));
+        this.addMidSlice(biomes, Parameter.span(LOW_START, HIGH_START));
+        this.addHighSlice(biomes, Parameter.span(HIGH_START, PEAK_START));
+        this.addPeaks(biomes, Parameter.span(PEAK_START, PEAK_END));
+        this.addHighSlice(biomes, Parameter.span(PEAK_END, HIGH_END));
+        this.addMidSlice(biomes, Parameter.span(HIGH_END, 1.0));
+    }
+    // specific type biomes
+    addPeaks(biomes, weirdness) {
+        for (let temperatureIndex = 0; temperatureIndex < temperatures.length; ++temperatureIndex) {
+            const temperature = temperatures[temperatureIndex];
+            for (let humidityIndex = 0; humidityIndex < humidities.length; ++humidityIndex) {
+                const humidity = humidities[humidityIndex];
+                const middleBiome = this.pickMiddleBiome(temperatureIndex, humidityIndex, weirdness);
+                const middleOrBadlands = this.pickMiddleBiomeOrBadlandsIfHot(temperatureIndex, humidityIndex, weirdness);
+                const middleOrBadlandsOrSlope = this.pickMiddleBiomeOrBadlandsIfHotOrSlopeIfCold(temperatureIndex, humidityIndex, weirdness);
+                const plateauBiome = this.pickPlateauBiome(temperatureIndex, humidityIndex, weirdness);
+                const extremeHillsBiome = this.pickExtremeHillsBiome(temperatureIndex, humidityIndex, weirdness);
+                const maybeShattered = this.maybePickShatteredBiome(temperatureIndex, humidityIndex, weirdness, extremeHillsBiome);
+                const peakyBiome = this.pickPeakBiome(temperatureIndex, humidityIndex, weirdness);
+                this.addSurfaceBiome(biomes, temperature, humidity, Parameter.span(coastContinentalness, farInlandContinentalness), erosions[0], weirdness, 0.0, peakyBiome);
+                this.addSurfaceBiome(biomes, temperature, humidity, Parameter.span(coastContinentalness, nearInlandContinentalness), erosions[1], weirdness, 0.0, middleOrBadlandsOrSlope);
+                this.addSurfaceBiome(biomes, temperature, humidity, Parameter.span(midInlandContinentalness, farInlandContinentalness), erosions[1], weirdness, 0.0, peakyBiome);
+                this.addSurfaceBiome(biomes, temperature, humidity, Parameter.span(coastContinentalness, nearInlandContinentalness), Parameter.span(erosions[2], erosions[3]), weirdness, 0.0, middleBiome);
+                this.addSurfaceBiome(biomes, temperature, humidity, Parameter.span(midInlandContinentalness, farInlandContinentalness), erosions[2], weirdness, 0.0, plateauBiome);
+                this.addSurfaceBiome(biomes, temperature, humidity, midInlandContinentalness, erosions[3], weirdness, 0.0, middleOrBadlands);
+                this.addSurfaceBiome(biomes, temperature, humidity, farInlandContinentalness, erosions[3], weirdness, 0.0, plateauBiome);
+                this.addSurfaceBiome(biomes, temperature, humidity, Parameter.span(coastContinentalness, farInlandContinentalness), erosions[4], weirdness, 0.0, middleBiome);
+                this.addSurfaceBiome(biomes, temperature, humidity, Parameter.span(coastContinentalness, nearInlandContinentalness), erosions[5], weirdness, 0.0, maybeShattered);
+                this.addSurfaceBiome(biomes, temperature, humidity, Parameter.span(midInlandContinentalness, farInlandContinentalness), erosions[5], weirdness, 0.0, extremeHillsBiome);
+                this.addSurfaceBiome(biomes, temperature, humidity, Parameter.span(coastContinentalness, farInlandContinentalness), erosions[6], weirdness, 0.0, middleBiome);
+            }
+        }
+    }
+    addHighSlice(biomes, weirdness) {
+        for (let temperatureIndex = 0; temperatureIndex < temperatures.length; ++temperatureIndex) {
+            const temperature = temperatures[temperatureIndex];
+            for (let humidityIndex = 0; humidityIndex < humidities.length; ++humidityIndex) {
+                const humidity = humidities[humidityIndex];
+                const middleBiome = this.pickMiddleBiome(temperatureIndex, humidityIndex, weirdness);
+                const middleOrBadlands = this.pickMiddleBiomeOrBadlandsIfHot(temperatureIndex, humidityIndex, weirdness);
+                const middleOrBadlandsOrSlope = this.pickMiddleBiomeOrBadlandsIfHotOrSlopeIfCold(temperatureIndex, humidityIndex, weirdness);
+                const plateauBiome = this.pickPlateauBiome(temperatureIndex, humidityIndex, weirdness);
+                const extremeHillsBiome = this.pickExtremeHillsBiome(temperatureIndex, humidityIndex, weirdness);
+                const maybeShattered = this.maybePickShatteredBiome(temperatureIndex, humidityIndex, weirdness, middleBiome);
+                const slopeBiome = this.pickSlopeBiome(temperatureIndex, humidityIndex, weirdness);
+                const peakyBiome = this.pickPeakBiome(temperatureIndex, humidityIndex, weirdness);
+                this.addSurfaceBiome(biomes, temperature, humidity, coastContinentalness, Parameter.span(erosions[0], erosions[1]), weirdness, 0.0, middleBiome);
+                this.addSurfaceBiome(biomes, temperature, humidity, nearInlandContinentalness, erosions[0], weirdness, 0.0, slopeBiome);
+                this.addSurfaceBiome(biomes, temperature, humidity, Parameter.span(midInlandContinentalness, farInlandContinentalness), erosions[0], weirdness, 0.0, peakyBiome);
+                this.addSurfaceBiome(biomes, temperature, humidity, nearInlandContinentalness, erosions[1], weirdness, 0.0, middleOrBadlandsOrSlope);
+                this.addSurfaceBiome(biomes, temperature, humidity, Parameter.span(midInlandContinentalness, farInlandContinentalness), erosions[1], weirdness, 0.0, slopeBiome);
+                this.addSurfaceBiome(biomes, temperature, humidity, Parameter.span(coastContinentalness, nearInlandContinentalness), Parameter.span(erosions[2], erosions[3]), weirdness, 0.0, middleBiome);
+                this.addSurfaceBiome(biomes, temperature, humidity, Parameter.span(midInlandContinentalness, farInlandContinentalness), erosions[2], weirdness, 0.0, plateauBiome);
+                this.addSurfaceBiome(biomes, temperature, humidity, midInlandContinentalness, erosions[3], weirdness, 0.0, middleOrBadlands);
+                this.addSurfaceBiome(biomes, temperature, humidity, farInlandContinentalness, erosions[3], weirdness, 0.0, plateauBiome);
+                this.addSurfaceBiome(biomes, temperature, humidity, Parameter.span(coastContinentalness, farInlandContinentalness), erosions[4], weirdness, 0.0, middleBiome);
+                this.addSurfaceBiome(biomes, temperature, humidity, Parameter.span(coastContinentalness, nearInlandContinentalness), erosions[5], weirdness, 0.0, maybeShattered);
+                this.addSurfaceBiome(biomes, temperature, humidity, Parameter.span(midInlandContinentalness, farInlandContinentalness), erosions[5], weirdness, 0.0, extremeHillsBiome);
+                this.addSurfaceBiome(biomes, temperature, humidity, Parameter.span(coastContinentalness, farInlandContinentalness), erosions[6], weirdness, 0.0, middleBiome);
+            }
+        }
+    }
+    addMidSlice(biomes, weirdness) {
+        this.addSurfaceBiome(biomes, FULL_RANGE, FULL_RANGE, coastContinentalness, Parameter.span(erosions[0], erosions[2]), weirdness, 0.0, Biomes.STONY_SHORE);
+        this.addSurfaceBiome(biomes, UNFROZEN_RANGE, FULL_RANGE, Parameter.span(nearInlandContinentalness, farInlandContinentalness), erosions[6], weirdness, 0.0, Biomes.SWAMP);
+        for (let temperatureIndex = 0; temperatureIndex < temperatures.length; ++temperatureIndex) {
+            const temperature = temperatures[temperatureIndex];
+            for (let humidityIndex = 0; humidityIndex < humidities.length; ++humidityIndex) {
+                const humidity = humidities[humidityIndex];
+                const middleBiome = this.pickMiddleBiome(temperatureIndex, humidityIndex, weirdness);
+                const middleOrBadlands = this.pickMiddleBiomeOrBadlandsIfHot(temperatureIndex, humidityIndex, weirdness);
+                const middleOrBadlandsOrSlope = this.pickMiddleBiomeOrBadlandsIfHotOrSlopeIfCold(temperatureIndex, humidityIndex, weirdness);
+                const extremeHillsBiome = this.pickExtremeHillsBiome(temperatureIndex, humidityIndex, weirdness);
+                const plateauBiome = this.pickPlateauBiome(temperatureIndex, humidityIndex, weirdness);
+                const beachBiome = this.pickBeachBiome(temperatureIndex);
+                const maybeShattered = this.maybePickShatteredBiome(temperatureIndex, humidityIndex, weirdness, middleBiome);
+                const shatteredCoastBiome = this.pickShatteredCoastBiome(temperatureIndex, humidityIndex, weirdness);
+                const slopeBiome = this.pickSlopeBiome(temperatureIndex, humidityIndex, weirdness);
+                this.addSurfaceBiome(biomes, temperature, humidity, Parameter.span(nearInlandContinentalness, farInlandContinentalness), erosions[0], weirdness, 0.0, slopeBiome);
+                this.addSurfaceBiome(biomes, temperature, humidity, Parameter.span(nearInlandContinentalness, midInlandContinentalness), erosions[1], weirdness, 0.0, middleOrBadlandsOrSlope);
+                this.addSurfaceBiome(biomes, temperature, humidity, farInlandContinentalness, erosions[1], weirdness, 0.0, temperatureIndex == 0 ? slopeBiome : plateauBiome);
+                this.addSurfaceBiome(biomes, temperature, humidity, nearInlandContinentalness, erosions[2], weirdness, 0.0, middleBiome);
+                this.addSurfaceBiome(biomes, temperature, humidity, midInlandContinentalness, erosions[2], weirdness, 0.0, middleOrBadlands);
+                this.addSurfaceBiome(biomes, temperature, humidity, farInlandContinentalness, erosions[2], weirdness, 0.0, plateauBiome);
+                this.addSurfaceBiome(biomes, temperature, humidity, Parameter.span(coastContinentalness, nearInlandContinentalness), erosions[3], weirdness, 0.0, middleBiome);
+                this.addSurfaceBiome(biomes, temperature, humidity, Parameter.span(midInlandContinentalness, farInlandContinentalness), erosions[3], weirdness, 0.0, middleOrBadlands);
+                if (weirdness.max < 0) {
+                    this.addSurfaceBiome(biomes, temperature, humidity, coastContinentalness, erosions[4], weirdness, 0.0, beachBiome);
+                    this.addSurfaceBiome(biomes, temperature, humidity, Parameter.span(nearInlandContinentalness, farInlandContinentalness), erosions[4], weirdness, 0.0, middleBiome);
+                }
+                else {
+                    this.addSurfaceBiome(biomes, temperature, humidity, Parameter.span(coastContinentalness, farInlandContinentalness), erosions[4], weirdness, 0.0, middleBiome);
+                }
+                this.addSurfaceBiome(biomes, temperature, humidity, coastContinentalness, erosions[5], weirdness, 0.0, shatteredCoastBiome);
+                this.addSurfaceBiome(biomes, temperature, humidity, nearInlandContinentalness, erosions[5], weirdness, 0.0, maybeShattered);
+                this.addSurfaceBiome(biomes, temperature, humidity, Parameter.span(midInlandContinentalness, farInlandContinentalness), erosions[5], weirdness, 0.0, extremeHillsBiome);
+                if (weirdness.max < 0) {
+                    this.addSurfaceBiome(biomes, temperature, humidity, coastContinentalness, erosions[6], weirdness, 0.0, beachBiome);
+                }
+                else {
+                    this.addSurfaceBiome(biomes, temperature, humidity, coastContinentalness, erosions[6], weirdness, 0.0, middleBiome);
+                }
+                if (temperatureIndex == 0) {
+                    this.addSurfaceBiome(biomes, temperature, humidity, Parameter.span(nearInlandContinentalness, farInlandContinentalness), erosions[6], weirdness, 0.0, middleBiome);
+                }
+            }
+        }
+    }
+    addLowSlice(biomes, weirdness) {
+        this.addSurfaceBiome(biomes, FULL_RANGE, FULL_RANGE, coastContinentalness, Parameter.span(erosions[0], erosions[2]), weirdness, 0.0, Biomes.STONY_SHORE);
+        this.addSurfaceBiome(biomes, UNFROZEN_RANGE, FULL_RANGE, Parameter.span(nearInlandContinentalness, farInlandContinentalness), erosions[6], weirdness, 0.0, Biomes.SWAMP);
+        for (let temperatureIndex = 0; temperatureIndex < temperatures.length; ++temperatureIndex) {
+            const temperature = temperatures[temperatureIndex];
+            for (let humidityIndex = 0; humidityIndex < humidities.length; ++humidityIndex) {
+                const humidity = humidities[humidityIndex];
+                const resourcekey = this.pickMiddleBiome(temperatureIndex, humidityIndex, weirdness);
+                const resourcekey1 = this.pickMiddleBiomeOrBadlandsIfHot(temperatureIndex, humidityIndex, weirdness);
+                const resourcekey2 = this.pickMiddleBiomeOrBadlandsIfHotOrSlopeIfCold(temperatureIndex, humidityIndex, weirdness);
+                const resourcekey3 = this.pickBeachBiome(temperatureIndex);
+                const resourcekey4 = this.maybePickShatteredBiome(temperatureIndex, humidityIndex, weirdness, resourcekey);
+                const resourcekey5 = this.pickShatteredCoastBiome(temperatureIndex, humidityIndex, weirdness);
+                this.addSurfaceBiome(biomes, temperature, humidity, nearInlandContinentalness, Parameter.span(erosions[0], erosions[1]), weirdness, 0.0, resourcekey1);
+                this.addSurfaceBiome(biomes, temperature, humidity, Parameter.span(midInlandContinentalness, farInlandContinentalness), Parameter.span(erosions[0], erosions[1]), weirdness, 0.0, resourcekey2);
+                this.addSurfaceBiome(biomes, temperature, humidity, nearInlandContinentalness, Parameter.span(erosions[2], erosions[3]), weirdness, 0.0, resourcekey);
+                this.addSurfaceBiome(biomes, temperature, humidity, Parameter.span(midInlandContinentalness, farInlandContinentalness), Parameter.span(erosions[2], erosions[3]), weirdness, 0.0, resourcekey1);
+                this.addSurfaceBiome(biomes, temperature, humidity, coastContinentalness, Parameter.span(erosions[3], erosions[4]), weirdness, 0.0, resourcekey3);
+                this.addSurfaceBiome(biomes, temperature, humidity, Parameter.span(nearInlandContinentalness, farInlandContinentalness), erosions[4], weirdness, 0.0, resourcekey);
+                this.addSurfaceBiome(biomes, temperature, humidity, coastContinentalness, erosions[5], weirdness, 0.0, resourcekey5);
+                this.addSurfaceBiome(biomes, temperature, humidity, nearInlandContinentalness, erosions[5], weirdness, 0.0, resourcekey4);
+                this.addSurfaceBiome(biomes, temperature, humidity, Parameter.span(midInlandContinentalness, farInlandContinentalness), erosions[5], weirdness, 0.0, resourcekey);
+                this.addSurfaceBiome(biomes, temperature, humidity, coastContinentalness, erosions[6], weirdness, 0.0, resourcekey3);
+                if (temperatureIndex == 0) {
+                    this.addSurfaceBiome(biomes, temperature, humidity, Parameter.span(nearInlandContinentalness, farInlandContinentalness), erosions[6], weirdness, 0.0, resourcekey);
+                }
+            }
+        }
+    }
+    addValleys(biomes, wierdness) {
+        this.addSurfaceBiome(biomes, FROZEN_RANGE, FULL_RANGE, coastContinentalness, Parameter.span(erosions[0], erosions[1]), wierdness, 0.0, wierdness.max < 0 ? Biomes.STONY_SHORE : Biomes.FROZEN_RIVER);
+        this.addSurfaceBiome(biomes, UNFROZEN_RANGE, FULL_RANGE, coastContinentalness, Parameter.span(erosions[0], erosions[1]), wierdness, 0.0, wierdness.max < 0 ? Biomes.STONY_SHORE : Biomes.RIVER);
+        this.addSurfaceBiome(biomes, FROZEN_RANGE, FULL_RANGE, nearInlandContinentalness, Parameter.span(erosions[0], erosions[1]), wierdness, 0.0, Biomes.FROZEN_RIVER);
+        this.addSurfaceBiome(biomes, UNFROZEN_RANGE, FULL_RANGE, nearInlandContinentalness, Parameter.span(erosions[0], erosions[1]), wierdness, 0.0, Biomes.RIVER);
+        this.addSurfaceBiome(biomes, FROZEN_RANGE, FULL_RANGE, Parameter.span(coastContinentalness, farInlandContinentalness), Parameter.span(erosions[2], erosions[5]), wierdness, 0.0, Biomes.FROZEN_RIVER);
+        this.addSurfaceBiome(biomes, UNFROZEN_RANGE, FULL_RANGE, Parameter.span(coastContinentalness, farInlandContinentalness), Parameter.span(erosions[2], erosions[5]), wierdness, 0.0, Biomes.RIVER);
+        this.addSurfaceBiome(biomes, FROZEN_RANGE, FULL_RANGE, coastContinentalness, erosions[6], wierdness, 0.0, Biomes.FROZEN_RIVER);
+        this.addSurfaceBiome(biomes, UNFROZEN_RANGE, FULL_RANGE, coastContinentalness, erosions[6], wierdness, 0.0, Biomes.RIVER);
+        this.addSurfaceBiome(biomes, UNFROZEN_RANGE, FULL_RANGE, Parameter.span(inlandContinentalness, farInlandContinentalness), erosions[6], wierdness, 0.0, Biomes.SWAMP);
+        this.addSurfaceBiome(biomes, FROZEN_RANGE, FULL_RANGE, Parameter.span(inlandContinentalness, farInlandContinentalness), erosions[6], wierdness, 0.0, Biomes.FROZEN_RIVER);
+        for (let temperatureIndex = 0; temperatureIndex < temperatures.length; ++temperatureIndex) {
+            const temperature = temperatures[temperatureIndex];
+            for (let humidityIndex = 0; humidityIndex < humidities.length; ++humidityIndex) {
+                const humidity = humidities[humidityIndex];
+                const resourcekey = this.pickMiddleBiomeOrBadlandsIfHot(temperatureIndex, humidityIndex, wierdness);
+                this.addSurfaceBiome(biomes, temperature, humidity, Parameter.span(midInlandContinentalness, farInlandContinentalness), Parameter.span(erosions[0], erosions[1]), wierdness, 0.0, resourcekey);
+            }
+        }
+    }
+    addUndergroundBiomes(biomes) {
+        this.addUndergroundBiome(biomes, FULL_RANGE, FULL_RANGE, Parameter.span(0.8, 1.0), FULL_RANGE, FULL_RANGE, 0.0, Biomes.DRIPSTONE_CAVES);
+        this.addUndergroundBiome(biomes, FULL_RANGE, Parameter.span(0.7, 1.0), FULL_RANGE, FULL_RANGE, FULL_RANGE, 0.0, Biomes.LUSH_CAVES);
+    }
+    // biome pickers
+    pickMiddleBiome(temperatureIndex, humidityIndex, weirdness) {
+        if (weirdness.max < 0) {
+            return MIDDLE_BIOMES[temperatureIndex][humidityIndex];
+        }
+        else {
+            const resourcekey = MIDDLE_BIOMES_VARIANT[temperatureIndex][humidityIndex];
+            return resourcekey == null
+                ? MIDDLE_BIOMES[temperatureIndex][humidityIndex]
+                : resourcekey;
+        }
+    }
+    pickMiddleBiomeOrBadlandsIfHot(temperatureIndex, humidityIndex, weirdness) {
+        return temperatureIndex == 4
+            ? this.pickBadlandsBiome(humidityIndex, weirdness)
+            : this.pickMiddleBiome(temperatureIndex, humidityIndex, weirdness);
+    }
+    pickMiddleBiomeOrBadlandsIfHotOrSlopeIfCold(temperatureIndex, humidityIndex, weirdness) {
+        return temperatureIndex == 0
+            ? this.pickSlopeBiome(temperatureIndex, humidityIndex, weirdness)
+            : this.pickMiddleBiomeOrBadlandsIfHot(temperatureIndex, humidityIndex, weirdness);
+    }
+    maybePickShatteredBiome(temperatureIndex, humidityIndex, weirdness, defaultBiome) {
+        return temperatureIndex > 1 && humidityIndex < 4 && weirdness.max >= 0
+            ? Biomes.WINDSWEPT_SAVANNA
+            : defaultBiome;
+    }
+    pickShatteredCoastBiome(temperatureIndex, humidityIndex, weirdness) {
+        const biome = weirdness.max >= 0
+            ? this.pickMiddleBiome(temperatureIndex, humidityIndex, weirdness)
+            : this.pickBeachBiome(temperatureIndex);
+        return this.maybePickShatteredBiome(temperatureIndex, humidityIndex, weirdness, biome);
+    }
+    pickBeachBiome(temperatureIndex) {
+        if (temperatureIndex == 0) {
+            return Biomes.SNOWY_BEACH;
+        }
+        else {
+            return temperatureIndex == 4 ? Biomes.DESERT : Biomes.BEACH;
+        }
+    }
+    pickBadlandsBiome(humidityIndex, weirdness) {
+        if (humidityIndex < 2) {
+            return weirdness.max < 0 ? Biomes.ERODED_BADLANDS : Biomes.BADLANDS;
+        }
+        else {
+            return humidityIndex < 3 ? Biomes.BADLANDS : Biomes.WOODED_BADLANDS;
+        }
+    }
+    pickPlateauBiome(temperatureIndex, humidityIndex, weirdness) {
+        if (weirdness.max < 0) {
+            return PLATEAU_BIOMES[temperatureIndex][humidityIndex];
+        }
+        else {
+            const biome = PLATEAU_BIOMES_VARIANT[temperatureIndex][humidityIndex];
+            return biome == null ? PLATEAU_BIOMES[temperatureIndex][humidityIndex] : biome;
+        }
+    }
+    pickPeakBiome(temperatureIndex, humidityIndex, weirdness) {
+        if (temperatureIndex <= 2) {
+            return weirdness.max < 0 ? Biomes.JAGGED_PEAKS : Biomes.FROZEN_PEAKS;
+        }
+        else {
+            return temperatureIndex == 3
+                ? Biomes.STONY_PEAKS
+                : this.pickBadlandsBiome(humidityIndex, weirdness);
+        }
+    }
+    pickSlopeBiome(temperatureIndex, humidityIndex, weirdness) {
+        if (temperatureIndex >= 3) {
+            return this.pickPlateauBiome(temperatureIndex, humidityIndex, weirdness);
+        }
+        else {
+            return humidityIndex <= 1 ? Biomes.SNOWY_SLOPES : Biomes.GROVE;
+        }
+    }
+    pickExtremeHillsBiome(temperatureIndex, humidityIndex, weirdness) {
+        const extremeHillsBiome = EXTREME_HILLS[temperatureIndex][humidityIndex];
+        return extremeHillsBiome == null
+            ? this.pickMiddleBiome(temperatureIndex, humidityIndex, weirdness)
+            : extremeHillsBiome;
+    }
+    // push result
+    addSurfaceBiome(biomes, temperature, humidity, continentalness, erosion, weirdness, offset, biome) {
+        biomes.push(Pair.of(parameters(temperature, humidity, continentalness, erosion, Parameter.point(0.0), weirdness, offset), biome));
+        biomes.push(Pair.of(parameters(temperature, humidity, continentalness, erosion, Parameter.point(1.0), weirdness, offset), biome));
+    }
+    addUndergroundBiome(biomes, temperature, humidity, continentalness, erosion, weirdness, offset, biome) {
+        biomes.push(Pair.of(parameters(temperature, humidity, continentalness, erosion, Parameter.span(0.2, 0.9), weirdness, offset), biome));
+    }
+}
+
 class MapLoader {
     async loadMap(mapName) {
         if (mapName === "test") {
@@ -8840,22 +9417,34 @@ class MapLoader {
         Services.world.add(player);
         Services.inputManager.setEntityToOrbit(player, 5);
         Services.inputManager.setControlledEntity(player);
-        // const builder = new OverworldBiomeBuilder()
-        // const output = [] as Pair<Climate.ParameterPoint, Biomes>[]
-        // builder.addBiomes(output)
-        // for ()
-        for (let x = 0; x < 5; x++) {
-            for (let y = 0; y < 5; y++) {
-                const box = new Object$1({
-                    pos: fromValues$4(x, y, 1.8 / 2),
-                    size: fromValues$4(0.75, 0.75, 0.75),
-                    rotation: create$2(),
-                }, new SimpleModelDef("cube", {
-                    colorOverride: fromValues$3(x / 5, y / 5, 0.5, 0.5),
-                    alpha: true,
-                }), "blank");
-                Services.world.add(box);
-            }
+        const builder = new OverworldBiomeBuilder();
+        const output = [];
+        builder.addBiomes(output);
+        let p = 0;
+        for (const item of output) {
+            const xRange = item.first.temperature;
+            const yRange = item.first.humidity;
+            const zRange = item.first.continentalness;
+            const x = unquantizeCoord(xRange.center);
+            const y = unquantizeCoord(yRange.center);
+            const z = unquantizeCoord(zRange.center);
+            const sizeX = unquantizeCoord(xRange.length);
+            const sizeY = unquantizeCoord(yRange.length);
+            const sizeZ = unquantizeCoord(zRange.length);
+            const color = 1;
+            const POS_MUL = 3.5;
+            const SIZE_MUL = 1;
+            const pos = fromValues$4(x * POS_MUL, y * POS_MUL, 3 + z * POS_MUL);
+            const box = new Object$1({
+                pos,
+                size: fromValues$4(sizeX * SIZE_MUL, sizeY * SIZE_MUL, sizeZ * SIZE_MUL),
+                rotation: create$2(),
+            }, new SimpleModelDef("cube", {
+                colorOverride: fromValues$3(color, 0, 0, 0.6),
+                alpha: true,
+            }), "blank");
+            Services.world.add(box);
+            p++;
         }
     }
 }

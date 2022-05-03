@@ -62,29 +62,47 @@ export class MapLoader {
         Services.inputManager.setEntityToOrbit(player, 5)
         Services.inputManager.setControlledEntity(player)
 
-        // const builder = new OverworldBiomeBuilder()
+        const builder = new OverworldBiomeBuilder()
 
-        // const output = [] as Pair<Climate.ParameterPoint, Biomes>[]
-        // builder.addBiomes(output)
+        const output = [] as Pair<Climate.ParameterPoint, Biomes>[]
+        builder.addBiomes(output)
 
-        // for ()
+        let p = 0
+        for (const item of output) {
+            const xRange = item.first.temperature
+            const yRange = item.first.humidity
+            const zRange = item.first.continentalness
 
-        for (let x = 0; x < 5; x++) {
-            for (let y = 0; y < 5; y++) {
-                const box = new Object(
-                    {
-                        pos: vec3.fromValues(x, y, 1.8 / 2),
-                        size: vec3.fromValues(0.75, 0.75, 0.75),
-                        rotation: quat.create(),
-                    },
-                    new SimpleModelDef("cube", {
-                        colorOverride: vec4.fromValues(x / 5, y / 5, 0.5, 0.5),
-                        alpha: true,
-                    }),
-                    "blank"
-                )
-                Services.world.add(box)
-            }
+            const x = Climate.unquantizeCoord(xRange.center)
+            const y = Climate.unquantizeCoord(yRange.center)
+            const z = Climate.unquantizeCoord(zRange.center)
+
+            const sizeX = Climate.unquantizeCoord(xRange.length)
+            const sizeY = Climate.unquantizeCoord(yRange.length)
+            const sizeZ = Climate.unquantizeCoord(zRange.length)
+
+            const color = 1
+
+            const POS_MUL = 3.5
+            const SIZE_MUL = 1
+
+            const pos = vec3.fromValues(x * POS_MUL, y * POS_MUL, 3 + z * POS_MUL)
+
+            const box = new Object(
+                {
+                    pos,
+                    size: vec3.fromValues(sizeX * SIZE_MUL, sizeY * SIZE_MUL, sizeZ * SIZE_MUL),
+                    rotation: quat.create(),
+                },
+                new SimpleModelDef("cube", {
+                    colorOverride: vec4.fromValues(color, 0, 0, 0.6),
+                    alpha: true,
+                }),
+                "blank"
+            )
+            Services.world.add(box)
+
+            p++
         }
     }
 }
