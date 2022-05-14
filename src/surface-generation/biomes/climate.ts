@@ -1,3 +1,9 @@
+import { Pair } from "./consumer"
+
+export interface Sampler {
+    sample(x: number, y: number, z: number): TargetPoint
+}
+
 export class Parameter {
     constructor(public min: number, public max: number) {}
 
@@ -36,6 +42,17 @@ export class Parameter {
     }
 }
 
+export class TargetPoint {
+    constructor(
+        public temperature: number,
+        public humidity: number,
+        public continentalness: number,
+        public erosion: number,
+        public depth: number,
+        public weirdness: number
+    ) {}
+}
+
 export class ParameterPoint {
     constructor(
         public temperature: Parameter,
@@ -46,6 +63,26 @@ export class ParameterPoint {
         public weirdness: Parameter,
         public offset: number
     ) {}
+
+    fitness(targetPoint: TargetPoint): number {
+        const temperatureDistance = this.temperature.distance(targetPoint.temperature)
+        const humidityDistance = this.humidity.distance(targetPoint.humidity)
+        const continentalnessDistance = this.continentalness.distance(targetPoint.continentalness)
+        const erosionDistance = this.erosion.distance(targetPoint.erosion)
+        const depthDistance = this.depth.distance(targetPoint.depth)
+        const weirdnessDistance = this.weirdness.distance(targetPoint.weirdness)
+        const offsetDistance = 0 - this.offset
+
+        return (
+            temperatureDistance * temperatureDistance +
+            humidityDistance * humidityDistance +
+            continentalnessDistance * continentalnessDistance +
+            erosionDistance * erosionDistance +
+            depthDistance * depthDistance +
+            weirdnessDistance * weirdnessDistance +
+            offsetDistance * offsetDistance
+        )
+    }
 }
 
 const QUANTIZATION_FACTOR = 10000
@@ -130,4 +167,26 @@ export function parameters(
             quantizeCoord(offset)
         )
     }
+}
+
+export function findValueBruteForce<T>(
+    targetPoint: TargetPoint,
+    values: Pair<ParameterPoint, T>[]
+): T {
+    let minDistance = Infinity
+    let result: T | undefined
+
+    for (const pair of values) {
+        const distance = pair.first.fitness(targetPoint)
+        if (distance < minDistance) {
+            minDistance = distance
+            result = pair.second
+        }
+    }
+
+    if (result === undefined) {
+        throw new Error("Result not found.")
+    }
+
+    return result
 }

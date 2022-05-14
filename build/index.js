@@ -9558,25 +9558,7 @@ class MapLoader {
         scale$5(POS_TRANSFORM, POS_TRANSFORM, fromValues$4(POS_MUL, POS_MUL, POS_MUL));
         const SIZE_TRANSFORM = create$5();
         scale$5(SIZE_TRANSFORM, SIZE_TRANSFORM, fromValues$4(SIZE_MUL, SIZE_MUL, SIZE_MUL));
-        const biomesToShow = [
-            Biomes.BEACH,
-            Biomes.DESERT,
-            Biomes.FOREST,
-            // Biomes.SWAMP,
-            Biomes.PLAINS,
-            // Biomes.MEADOW,
-            // Biomes.OCEAN,
-            // Biomes.FROZEN_OCEAN,
-            Biomes.WARM_OCEAN,
-            Biomes.LUKEWARM_OCEAN,
-            Biomes.DEEP_LUKEWARM_OCEAN,
-            Biomes.DEEP_OCEAN,
-            Biomes.COLD_OCEAN,
-            Biomes.DEEP_COLD_OCEAN,
-            Biomes.FROZEN_OCEAN,
-            Biomes.DEEP_FROZEN_OCEAN,
-            // Biomes.MUSHROOM_FIELDS,
-        ];
+        const biomesToShow = [Biomes.BIRCH_FOREST, Biomes.FOREST, Biomes.DARK_FOREST];
         const biomeBounds = {};
         for (const item of output) {
             const { first: point, second: biome } = item;

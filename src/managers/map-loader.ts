@@ -144,27 +144,7 @@ export class MapLoader {
         const SIZE_TRANSFORM = mat4.create()
         mat4.scale(SIZE_TRANSFORM, SIZE_TRANSFORM, vec3.fromValues(SIZE_MUL, SIZE_MUL, SIZE_MUL))
 
-        const biomesToShow = [
-            Biomes.BEACH,
-            Biomes.DESERT,
-            Biomes.FOREST,
-            // Biomes.SWAMP,
-            Biomes.PLAINS,
-            // Biomes.MEADOW,
-            // Biomes.OCEAN,
-            // Biomes.FROZEN_OCEAN,
-
-            Biomes.WARM_OCEAN,
-            Biomes.LUKEWARM_OCEAN,
-            Biomes.DEEP_LUKEWARM_OCEAN,
-            Biomes.DEEP_OCEAN,
-            Biomes.COLD_OCEAN,
-            Biomes.DEEP_COLD_OCEAN,
-            Biomes.FROZEN_OCEAN,
-            Biomes.DEEP_FROZEN_OCEAN,
-
-            // Biomes.MUSHROOM_FIELDS,
-        ]
+        const biomesToShow = [Biomes.BIRCH_FOREST, Biomes.FOREST, Biomes.DARK_FOREST]
 
         const biomeBounds: Partial<{
             [key in Biomes]: {
