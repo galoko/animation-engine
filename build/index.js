@@ -4309,7 +4309,7 @@ function cross$2(out, a, b) {
  * @returns {vec3} out
  */
 
-function lerp$4(out, a, b, t) {
+function lerp$5(out, a, b, t) {
   var ax = a[0];
   var ay = a[1];
   var az = a[2];
@@ -4730,7 +4730,7 @@ var vec3 = /*#__PURE__*/Object.freeze({
     normalize: normalize$4,
     dot: dot$4,
     cross: cross$2,
-    lerp: lerp$4,
+    lerp: lerp$5,
     hermite: hermite,
     bezier: bezier,
     random: random$3,
@@ -5179,7 +5179,7 @@ function cross$1(out, u, v, w) {
  * @returns {vec4} out
  */
 
-function lerp$3(out, a, b, t) {
+function lerp$4(out, a, b, t) {
   var ax = a[0];
   var ay = a[1];
   var az = a[2];
@@ -5445,7 +5445,7 @@ var vec4 = /*#__PURE__*/Object.freeze({
     normalize: normalize$3,
     dot: dot$3,
     cross: cross$1,
-    lerp: lerp$3,
+    lerp: lerp$4,
     random: random$2,
     transformMat4: transformMat4$1,
     transformQuat: transformQuat,
@@ -6022,7 +6022,7 @@ var dot$2 = dot$3;
  * @function
  */
 
-var lerp$2 = lerp$3;
+var lerp$3 = lerp$4;
 /**
  * Calculates the length of a quat
  *
@@ -6200,7 +6200,7 @@ var quat = /*#__PURE__*/Object.freeze({
     mul: mul$2,
     scale: scale$2,
     dot: dot$2,
-    lerp: lerp$2,
+    lerp: lerp$3,
     length: length$2,
     len: len$2,
     squaredLength: squaredLength$2,
@@ -6879,7 +6879,7 @@ var dot$1 = dot$2;
  * @returns {quat2} out
  */
 
-function lerp$1(out, a, b, t) {
+function lerp$2(out, a, b, t) {
   var mt = 1 - t;
   if (dot$1(a, b) < 0) t = -t;
   out[0] = a[0] * mt + b[0] * t;
@@ -7076,7 +7076,7 @@ var quat2 = /*#__PURE__*/Object.freeze({
     mul: mul$1,
     scale: scale$1,
     dot: dot$1,
-    lerp: lerp$1,
+    lerp: lerp$2,
     invert: invert,
     conjugate: conjugate,
     length: length$1,
@@ -7451,7 +7451,7 @@ function cross(out, a, b) {
  * @returns {vec2} out
  */
 
-function lerp(out, a, b, t) {
+function lerp$1(out, a, b, t) {
   var ax = a[0],
       ay = a[1];
   out[0] = ax + t * (b[0] - ax);
@@ -7740,7 +7740,7 @@ var vec2 = /*#__PURE__*/Object.freeze({
     normalize: normalize,
     dot: dot,
     cross: cross,
-    lerp: lerp,
+    lerp: lerp$1,
     random: random,
     transformMat2: transformMat2,
     transformMat2d: transformMat2d,
@@ -8977,6 +8977,22 @@ class Parameter {
         return this.max - this.min;
     }
 }
+class TargetPoint {
+    temperature;
+    humidity;
+    continentalness;
+    erosion;
+    depth;
+    weirdness;
+    constructor(temperature, humidity, continentalness, erosion, depth, weirdness) {
+        this.temperature = temperature;
+        this.humidity = humidity;
+        this.continentalness = continentalness;
+        this.erosion = erosion;
+        this.depth = depth;
+        this.weirdness = weirdness;
+    }
+}
 class ParameterPoint {
     temperature;
     humidity;
@@ -8993,6 +9009,22 @@ class ParameterPoint {
         this.depth = depth;
         this.weirdness = weirdness;
         this.offset = offset;
+    }
+    fitness(targetPoint) {
+        const temperatureDistance = this.temperature.distance(targetPoint.temperature);
+        const humidityDistance = this.humidity.distance(targetPoint.humidity);
+        const continentalnessDistance = this.continentalness.distance(targetPoint.continentalness);
+        const erosionDistance = this.erosion.distance(targetPoint.erosion);
+        const depthDistance = this.depth.distance(targetPoint.depth);
+        const weirdnessDistance = this.weirdness.distance(targetPoint.weirdness);
+        const offsetDistance = 0 - this.offset;
+        return (temperatureDistance * temperatureDistance +
+            humidityDistance * humidityDistance +
+            continentalnessDistance * continentalnessDistance +
+            erosionDistance * erosionDistance +
+            depthDistance * depthDistance +
+            weirdnessDistance * weirdnessDistance +
+            offsetDistance * offsetDistance);
     }
 }
 const QUANTIZATION_FACTOR = 10000;
@@ -9025,6 +9057,21 @@ function parameters(temperature, humidity, continentalness, erosion, depth, weir
         }
         return new ParameterPoint(temperature, humidity, continentalness, erosion, depth, weirdness, quantizeCoord(offset));
     }
+}
+function findValueBruteForce(targetPoint, values) {
+    let minDistance = Infinity;
+    let result;
+    for (const pair of values) {
+        const distance = pair.first.fitness(targetPoint);
+        if (distance < minDistance) {
+            minDistance = distance;
+            result = pair.second;
+        }
+    }
+    if (result === undefined) {
+        throw new Error("Result not found.");
+    }
+    return result;
 }
 
 class Pair {
@@ -9622,7 +9669,7 @@ class MapLoader {
             transformMat4$2(bounds.min, bounds.min, POS_TRANSFORM);
             transformMat4$2(bounds.max, bounds.max, SIZE_TRANSFORM);
             transformMat4$2(bounds.max, bounds.max, POS_TRANSFORM);
-            lerp$4(center, bounds.min, bounds.max, 0.5);
+            lerp$5(center, bounds.min, bounds.max, 0.5);
             Services.render.addText(biome.toUpperCase(), center);
             const size = clone$4(bounds.max);
             sub$2(size, size, bounds.min);
@@ -9812,10 +9859,734 @@ class ServicesClass {
     }
 }
 
+function unsignedShift64(num, shift) {
+    return BigInt.asUintN(64, num) >> shift;
+}
+function clamp64(num) {
+    return BigInt.asIntN(64, num);
+}
+function rotateLeft64(n, bits) {
+    const b = BigInt.asUintN(64, n);
+    const shifted = b << bits;
+    const lo = BigInt.asUintN(64, shifted >> 64n);
+    const hi = BigInt.asUintN(64, shifted);
+    return lo | hi;
+}
+function toUnsignedLong(n) {
+    return BigInt.asUintN(64, BigInt(n));
+}
+function toUnsignedInt(n) {
+    return BigInt.asUintN(32, BigInt(n));
+}
+function toLong(n) {
+    return BigInt(n);
+}
+function toInt(n) {
+    return Number(BigInt.asIntN(32, n));
+}
+function remainderUnsigned32(divident, divisor) {
+    const result = toUnsignedInt(divident) % toUnsignedInt(divisor);
+    return toInt(result);
+}
+function fromBytes64(b1, b2, b3, b4, b5, b6, b7, b8) {
+    return clamp64((BigInt(b1) << 56n) |
+        (BigInt(b2) << 48n) |
+        (BigInt(b3) << 40n) |
+        (BigInt(b4) << 32n) |
+        (BigInt(b5) << 24n) |
+        (BigInt(b6) << 16n) |
+        (BigInt(b7) << 8n) |
+        BigInt(b8));
+}
+function binarySearch(startIndex, endIndex, predicate) {
+    let i = endIndex - startIndex;
+    while (i > 0) {
+        const j = Math.trunc(i / 2);
+        const k = startIndex + j;
+        if (predicate(k)) {
+            i = j;
+        }
+        else {
+            startIndex = k + 1;
+            i -= j + 1;
+        }
+    }
+    return startIndex;
+}
+function lerp(t, v0, v1) {
+    return v0 + t * (v1 - v0);
+}
+function square(num) {
+    return num * num;
+}
+function getSeed(p_14131_, p_14132_, p_14133_) {
+    let i = toLong(toInt(toLong(p_14131_) * 3129871n)) ^
+        clamp64(toLong(p_14133_) * 116129781n) ^
+        toLong(p_14132_);
+    i = clamp64(i * i * 42317861n + i * 11n);
+    return i >> 16n;
+}
+
+var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
+
+function getDefaultExportFromCjs (x) {
+	return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, 'default') ? x['default'] : x;
+}
+
+function getDefaultExportFromNamespaceIfPresent (n) {
+	return n && Object.prototype.hasOwnProperty.call(n, 'default') ? n['default'] : n;
+}
+
+function getDefaultExportFromNamespaceIfNotNamed (n) {
+	return n && Object.prototype.hasOwnProperty.call(n, 'default') && Object.keys(n).length === 1 ? n['default'] : n;
+}
+
+function getAugmentedNamespace(n) {
+	if (n.__esModule) return n;
+	var a = Object.defineProperty({}, '__esModule', {value: true});
+	Object.keys(n).forEach(function (k) {
+		var d = Object.getOwnPropertyDescriptor(n, k);
+		Object.defineProperty(a, k, d.get ? d : {
+			enumerable: true,
+			get: function () {
+				return n[k];
+			}
+		});
+	});
+	return a;
+}
+
+function commonjsRequire (path) {
+	throw new Error('Could not dynamically require "' + path + '". Please configure the dynamicRequireTargets or/and ignoreDynamicRequires option of @rollup/plugin-commonjs appropriately for this require call to work.');
+}
+
+var md5$1 = {exports: {}};
+
+var crypt$1 = {exports: {}};
+
+(function() {
+  var base64map
+      = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/',
+
+  crypt = {
+    // Bit-wise rotation left
+    rotl: function(n, b) {
+      return (n << b) | (n >>> (32 - b));
+    },
+
+    // Bit-wise rotation right
+    rotr: function(n, b) {
+      return (n << (32 - b)) | (n >>> b);
+    },
+
+    // Swap big-endian to little-endian and vice versa
+    endian: function(n) {
+      // If number given, swap endian
+      if (n.constructor == Number) {
+        return crypt.rotl(n, 8) & 0x00FF00FF | crypt.rotl(n, 24) & 0xFF00FF00;
+      }
+
+      // Else, assume array and swap all items
+      for (var i = 0; i < n.length; i++)
+        n[i] = crypt.endian(n[i]);
+      return n;
+    },
+
+    // Generate an array of any length of random bytes
+    randomBytes: function(n) {
+      for (var bytes = []; n > 0; n--)
+        bytes.push(Math.floor(Math.random() * 256));
+      return bytes;
+    },
+
+    // Convert a byte array to big-endian 32-bit words
+    bytesToWords: function(bytes) {
+      for (var words = [], i = 0, b = 0; i < bytes.length; i++, b += 8)
+        words[b >>> 5] |= bytes[i] << (24 - b % 32);
+      return words;
+    },
+
+    // Convert big-endian 32-bit words to a byte array
+    wordsToBytes: function(words) {
+      for (var bytes = [], b = 0; b < words.length * 32; b += 8)
+        bytes.push((words[b >>> 5] >>> (24 - b % 32)) & 0xFF);
+      return bytes;
+    },
+
+    // Convert a byte array to a hex string
+    bytesToHex: function(bytes) {
+      for (var hex = [], i = 0; i < bytes.length; i++) {
+        hex.push((bytes[i] >>> 4).toString(16));
+        hex.push((bytes[i] & 0xF).toString(16));
+      }
+      return hex.join('');
+    },
+
+    // Convert a hex string to a byte array
+    hexToBytes: function(hex) {
+      for (var bytes = [], c = 0; c < hex.length; c += 2)
+        bytes.push(parseInt(hex.substr(c, 2), 16));
+      return bytes;
+    },
+
+    // Convert a byte array to a base-64 string
+    bytesToBase64: function(bytes) {
+      for (var base64 = [], i = 0; i < bytes.length; i += 3) {
+        var triplet = (bytes[i] << 16) | (bytes[i + 1] << 8) | bytes[i + 2];
+        for (var j = 0; j < 4; j++)
+          if (i * 8 + j * 6 <= bytes.length * 8)
+            base64.push(base64map.charAt((triplet >>> 6 * (3 - j)) & 0x3F));
+          else
+            base64.push('=');
+      }
+      return base64.join('');
+    },
+
+    // Convert a base-64 string to a byte array
+    base64ToBytes: function(base64) {
+      // Remove non-base-64 characters
+      base64 = base64.replace(/[^A-Z0-9+\/]/ig, '');
+
+      for (var bytes = [], i = 0, imod4 = 0; i < base64.length;
+          imod4 = ++i % 4) {
+        if (imod4 == 0) continue;
+        bytes.push(((base64map.indexOf(base64.charAt(i - 1))
+            & (Math.pow(2, -2 * imod4 + 8) - 1)) << (imod4 * 2))
+            | (base64map.indexOf(base64.charAt(i)) >>> (6 - imod4 * 2)));
+      }
+      return bytes;
+    }
+  };
+
+  crypt$1.exports = crypt;
+})();
+
+var crypt = crypt$1.exports;
+
+var charenc = {
+  // UTF-8 encoding
+  utf8: {
+    // Convert a string to a byte array
+    stringToBytes: function(str) {
+      return charenc.bin.stringToBytes(unescape(encodeURIComponent(str)));
+    },
+
+    // Convert a byte array to a string
+    bytesToString: function(bytes) {
+      return decodeURIComponent(escape(charenc.bin.bytesToString(bytes)));
+    }
+  },
+
+  // Binary encoding
+  bin: {
+    // Convert a string to a byte array
+    stringToBytes: function(str) {
+      for (var bytes = [], i = 0; i < str.length; i++)
+        bytes.push(str.charCodeAt(i) & 0xFF);
+      return bytes;
+    },
+
+    // Convert a byte array to a string
+    bytesToString: function(bytes) {
+      for (var str = [], i = 0; i < bytes.length; i++)
+        str.push(String.fromCharCode(bytes[i]));
+      return str.join('');
+    }
+  }
+};
+
+var charenc_1 = charenc;
+
+/*!
+ * Determine if an object is a Buffer
+ *
+ * @author   Feross Aboukhadijeh <https://feross.org>
+ * @license  MIT
+ */
+
+// The _isBuffer check is for Safari 5-7 support, because it's missing
+// Object.prototype.constructor. Remove this eventually
+var isBuffer_1 = function (obj) {
+  return obj != null && (isBuffer(obj) || isSlowBuffer(obj) || !!obj._isBuffer)
+};
+
+function isBuffer (obj) {
+  return !!obj.constructor && typeof obj.constructor.isBuffer === 'function' && obj.constructor.isBuffer(obj)
+}
+
+// For Node v0.10 support. Remove this eventually.
+function isSlowBuffer (obj) {
+  return typeof obj.readFloatLE === 'function' && typeof obj.slice === 'function' && isBuffer(obj.slice(0, 0))
+}
+
+(function(){
+  var crypt = crypt$1.exports,
+      utf8 = charenc_1.utf8,
+      isBuffer = isBuffer_1,
+      bin = charenc_1.bin,
+
+  // The core
+  md5 = function (message, options) {
+    // Convert to byte array
+    if (message.constructor == String)
+      if (options && options.encoding === 'binary')
+        message = bin.stringToBytes(message);
+      else
+        message = utf8.stringToBytes(message);
+    else if (isBuffer(message))
+      message = Array.prototype.slice.call(message, 0);
+    else if (!Array.isArray(message) && message.constructor !== Uint8Array)
+      message = message.toString();
+    // else, assume byte array already
+
+    var m = crypt.bytesToWords(message),
+        l = message.length * 8,
+        a =  1732584193,
+        b = -271733879,
+        c = -1732584194,
+        d =  271733878;
+
+    // Swap endian
+    for (var i = 0; i < m.length; i++) {
+      m[i] = ((m[i] <<  8) | (m[i] >>> 24)) & 0x00FF00FF |
+             ((m[i] << 24) | (m[i] >>>  8)) & 0xFF00FF00;
+    }
+
+    // Padding
+    m[l >>> 5] |= 0x80 << (l % 32);
+    m[(((l + 64) >>> 9) << 4) + 14] = l;
+
+    // Method shortcuts
+    var FF = md5._ff,
+        GG = md5._gg,
+        HH = md5._hh,
+        II = md5._ii;
+
+    for (var i = 0; i < m.length; i += 16) {
+
+      var aa = a,
+          bb = b,
+          cc = c,
+          dd = d;
+
+      a = FF(a, b, c, d, m[i+ 0],  7, -680876936);
+      d = FF(d, a, b, c, m[i+ 1], 12, -389564586);
+      c = FF(c, d, a, b, m[i+ 2], 17,  606105819);
+      b = FF(b, c, d, a, m[i+ 3], 22, -1044525330);
+      a = FF(a, b, c, d, m[i+ 4],  7, -176418897);
+      d = FF(d, a, b, c, m[i+ 5], 12,  1200080426);
+      c = FF(c, d, a, b, m[i+ 6], 17, -1473231341);
+      b = FF(b, c, d, a, m[i+ 7], 22, -45705983);
+      a = FF(a, b, c, d, m[i+ 8],  7,  1770035416);
+      d = FF(d, a, b, c, m[i+ 9], 12, -1958414417);
+      c = FF(c, d, a, b, m[i+10], 17, -42063);
+      b = FF(b, c, d, a, m[i+11], 22, -1990404162);
+      a = FF(a, b, c, d, m[i+12],  7,  1804603682);
+      d = FF(d, a, b, c, m[i+13], 12, -40341101);
+      c = FF(c, d, a, b, m[i+14], 17, -1502002290);
+      b = FF(b, c, d, a, m[i+15], 22,  1236535329);
+
+      a = GG(a, b, c, d, m[i+ 1],  5, -165796510);
+      d = GG(d, a, b, c, m[i+ 6],  9, -1069501632);
+      c = GG(c, d, a, b, m[i+11], 14,  643717713);
+      b = GG(b, c, d, a, m[i+ 0], 20, -373897302);
+      a = GG(a, b, c, d, m[i+ 5],  5, -701558691);
+      d = GG(d, a, b, c, m[i+10],  9,  38016083);
+      c = GG(c, d, a, b, m[i+15], 14, -660478335);
+      b = GG(b, c, d, a, m[i+ 4], 20, -405537848);
+      a = GG(a, b, c, d, m[i+ 9],  5,  568446438);
+      d = GG(d, a, b, c, m[i+14],  9, -1019803690);
+      c = GG(c, d, a, b, m[i+ 3], 14, -187363961);
+      b = GG(b, c, d, a, m[i+ 8], 20,  1163531501);
+      a = GG(a, b, c, d, m[i+13],  5, -1444681467);
+      d = GG(d, a, b, c, m[i+ 2],  9, -51403784);
+      c = GG(c, d, a, b, m[i+ 7], 14,  1735328473);
+      b = GG(b, c, d, a, m[i+12], 20, -1926607734);
+
+      a = HH(a, b, c, d, m[i+ 5],  4, -378558);
+      d = HH(d, a, b, c, m[i+ 8], 11, -2022574463);
+      c = HH(c, d, a, b, m[i+11], 16,  1839030562);
+      b = HH(b, c, d, a, m[i+14], 23, -35309556);
+      a = HH(a, b, c, d, m[i+ 1],  4, -1530992060);
+      d = HH(d, a, b, c, m[i+ 4], 11,  1272893353);
+      c = HH(c, d, a, b, m[i+ 7], 16, -155497632);
+      b = HH(b, c, d, a, m[i+10], 23, -1094730640);
+      a = HH(a, b, c, d, m[i+13],  4,  681279174);
+      d = HH(d, a, b, c, m[i+ 0], 11, -358537222);
+      c = HH(c, d, a, b, m[i+ 3], 16, -722521979);
+      b = HH(b, c, d, a, m[i+ 6], 23,  76029189);
+      a = HH(a, b, c, d, m[i+ 9],  4, -640364487);
+      d = HH(d, a, b, c, m[i+12], 11, -421815835);
+      c = HH(c, d, a, b, m[i+15], 16,  530742520);
+      b = HH(b, c, d, a, m[i+ 2], 23, -995338651);
+
+      a = II(a, b, c, d, m[i+ 0],  6, -198630844);
+      d = II(d, a, b, c, m[i+ 7], 10,  1126891415);
+      c = II(c, d, a, b, m[i+14], 15, -1416354905);
+      b = II(b, c, d, a, m[i+ 5], 21, -57434055);
+      a = II(a, b, c, d, m[i+12],  6,  1700485571);
+      d = II(d, a, b, c, m[i+ 3], 10, -1894986606);
+      c = II(c, d, a, b, m[i+10], 15, -1051523);
+      b = II(b, c, d, a, m[i+ 1], 21, -2054922799);
+      a = II(a, b, c, d, m[i+ 8],  6,  1873313359);
+      d = II(d, a, b, c, m[i+15], 10, -30611744);
+      c = II(c, d, a, b, m[i+ 6], 15, -1560198380);
+      b = II(b, c, d, a, m[i+13], 21,  1309151649);
+      a = II(a, b, c, d, m[i+ 4],  6, -145523070);
+      d = II(d, a, b, c, m[i+11], 10, -1120210379);
+      c = II(c, d, a, b, m[i+ 2], 15,  718787259);
+      b = II(b, c, d, a, m[i+ 9], 21, -343485551);
+
+      a = (a + aa) >>> 0;
+      b = (b + bb) >>> 0;
+      c = (c + cc) >>> 0;
+      d = (d + dd) >>> 0;
+    }
+
+    return crypt.endian([a, b, c, d]);
+  };
+
+  // Auxiliary functions
+  md5._ff  = function (a, b, c, d, x, s, t) {
+    var n = a + (b & c | ~b & d) + (x >>> 0) + t;
+    return ((n << s) | (n >>> (32 - s))) + b;
+  };
+  md5._gg  = function (a, b, c, d, x, s, t) {
+    var n = a + (b & d | c & ~d) + (x >>> 0) + t;
+    return ((n << s) | (n >>> (32 - s))) + b;
+  };
+  md5._hh  = function (a, b, c, d, x, s, t) {
+    var n = a + (b ^ c ^ d) + (x >>> 0) + t;
+    return ((n << s) | (n >>> (32 - s))) + b;
+  };
+  md5._ii  = function (a, b, c, d, x, s, t) {
+    var n = a + (c ^ (b | ~d)) + (x >>> 0) + t;
+    return ((n << s) | (n >>> (32 - s))) + b;
+  };
+
+  // Package private blocksize
+  md5._blocksize = 16;
+  md5._digestsize = 16;
+
+  md5$1.exports = function (message, options) {
+    if (message === undefined || message === null)
+      throw new Error('Illegal argument ' + message);
+
+    var digestbytes = crypt.wordsToBytes(md5(message, options));
+    return options && options.asBytes ? digestbytes :
+        options && options.asString ? bin.bytesToString(digestbytes) :
+        crypt.bytesToHex(digestbytes);
+  };
+
+})();
+
+var md5 = md5$1.exports;
+
+class PositionalRandomFactory {
+}
+// abstract
+class RandomSource {
+    nextIntBetweenInclusive(min, max) {
+        return this.nextInt(max - min + 1) + min;
+    }
+    consumeCount(count) {
+        for (let i = 0; i < count; ++i) {
+            this.nextInt();
+        }
+    }
+}
+class Seed128bit {
+    seedLo;
+    seedHi;
+    constructor(seedLo, seedHi) {
+        this.seedLo = seedLo;
+        this.seedHi = seedHi;
+    }
+}
+class RandomSupport {
+    static GOLDEN_RATIO_64 = -7046029254386353131n;
+    static SILVER_RATIO_64 = 7640891576956012809n;
+    static SEED_UNIQUIFIER = 8682522807148012n;
+    static mixStafford13(seed) {
+        seed = clamp64((seed ^ unsignedShift64(seed, 30n)) * -4658895280553007687n);
+        seed = clamp64((seed ^ unsignedShift64(seed, 27n)) * -7723592293110705685n);
+        return clamp64(seed ^ unsignedShift64(seed, 31n));
+    }
+    static upgradeSeedTo128bit(seed) {
+        const lo = seed ^ RandomSupport.SILVER_RATIO_64;
+        const hi = clamp64(lo + RandomSupport.GOLDEN_RATIO_64);
+        return new Seed128bit(RandomSupport.mixStafford13(lo), RandomSupport.mixStafford13(hi));
+    }
+    static seedUniquifier() {
+        RandomSupport.SEED_UNIQUIFIER = clamp64(RandomSupport.SEED_UNIQUIFIER * 1181783497276652981n);
+        return RandomSupport.SEED_UNIQUIFIER ^ (BigInt(performance.now()) * 1000000n);
+    }
+}
+// implementations
+class Xoroshiro128PlusPlus {
+    seedLo;
+    seedHi;
+    constructor(lo, hi) {
+        if (lo instanceof Seed128bit) {
+            hi = lo.seedHi;
+            lo = lo.seedLo;
+        }
+        if (hi === undefined) {
+            throw new Error();
+        }
+        this.seedLo = lo;
+        this.seedHi = hi;
+        if ((this.seedLo | this.seedHi) == 0n) {
+            this.seedLo = RandomSupport.GOLDEN_RATIO_64;
+            this.seedHi = RandomSupport.SILVER_RATIO_64;
+        }
+    }
+    nextLong() {
+        const i = this.seedLo;
+        let j = this.seedHi;
+        const k = clamp64(rotateLeft64(clamp64(i + j), 17n) + i);
+        j ^= i;
+        this.seedLo = rotateLeft64(i, 49n) ^ j ^ clamp64(j << 21n);
+        this.seedHi = rotateLeft64(j, 28n);
+        return k;
+    }
+}
+class MarsagliaPolarGaussian {
+    randomSource;
+    nextNextGaussian;
+    haveNextNextGaussian;
+    constructor(randomSource) {
+        this.randomSource = randomSource;
+    }
+    reset() {
+        this.haveNextNextGaussian = false;
+    }
+    nextGaussian() {
+        if (this.haveNextNextGaussian) {
+            this.haveNextNextGaussian = false;
+            return this.nextNextGaussian;
+        }
+        else {
+            // eslint-disable-next-line no-constant-condition
+            while (true) {
+                const d0 = 2.0 * this.randomSource.nextDouble() - 1.0;
+                const d1 = 2.0 * this.randomSource.nextDouble() - 1.0;
+                const d2 = square(d0) + square(d1);
+                if (!(d2 >= 1.0)) {
+                    if (d2 != 0.0) {
+                        const d3 = Math.sqrt((-2.0 * Math.log(d2)) / d2);
+                        this.nextNextGaussian = d1 * d3;
+                        this.haveNextNextGaussian = true;
+                        return d0 * d3;
+                    }
+                }
+            }
+        }
+    }
+}
+// source implementations
+class XoroshiroRandomSource extends RandomSource {
+    static FLOAT_UNIT = 5.9604645e-8;
+    static DOUBLE_UNIT = 1.110223e-16;
+    randomNumberGenerator;
+    gaussianSource = new MarsagliaPolarGaussian(this);
+    constructor(lo, hi) {
+        super();
+        if (hi === undefined) {
+            this.randomNumberGenerator = new Xoroshiro128PlusPlus(RandomSupport.upgradeSeedTo128bit(lo));
+        }
+        else {
+            this.randomNumberGenerator = new Xoroshiro128PlusPlus(lo, hi);
+        }
+    }
+    fork() {
+        return new XoroshiroRandomSource(this.randomNumberGenerator.nextLong(), this.randomNumberGenerator.nextLong());
+    }
+    forkPositional() {
+        return new XoroshiroPositionalRandomFactory(this.randomNumberGenerator.nextLong(), this.randomNumberGenerator.nextLong());
+    }
+    setSeed(seed) {
+        this.randomNumberGenerator = new Xoroshiro128PlusPlus(RandomSupport.upgradeSeedTo128bit(seed));
+        this.gaussianSource.reset();
+    }
+    nextInt(p_190118_) {
+        if (p_190118_ !== undefined) {
+            let i = toUnsignedLong(this.nextInt());
+            let j = clamp64(i * toLong(p_190118_));
+            let k = j & 4294967295n;
+            if (k < toLong(p_190118_)) {
+                for (let l = remainderUnsigned32(~p_190118_ + 1, p_190118_); k < toLong(l); k = j & 4294967295n) {
+                    i = toUnsignedLong(this.nextInt());
+                    j = i * toLong(p_190118_);
+                }
+            }
+            const i1 = j >> 32n;
+            return toInt(i1);
+        }
+        else {
+            return Number(BigInt.asIntN(32, this.randomNumberGenerator.nextLong()));
+        }
+    }
+    nextLong() {
+        return this.randomNumberGenerator.nextLong();
+    }
+    nextBoolean() {
+        return (this.randomNumberGenerator.nextLong() & 1n) != 0n;
+    }
+    nextFloat() {
+        return Number(this.nextBits(24)) * XoroshiroRandomSource.FLOAT_UNIT;
+    }
+    nextDouble() {
+        return Number(this.nextBits(53)) * XoroshiroRandomSource.DOUBLE_UNIT;
+    }
+    nextGaussian() {
+        return this.gaussianSource.nextGaussian();
+    }
+    consumeCount(count) {
+        for (let i = 0; i < count; ++i) {
+            this.randomNumberGenerator.nextLong();
+        }
+    }
+    nextBits(bits) {
+        return unsignedShift64(this.randomNumberGenerator.nextLong(), toLong(64 - bits));
+    }
+}
+class XoroshiroPositionalRandomFactory extends PositionalRandomFactory {
+    seedLo;
+    seedHi;
+    constructor(seedLo, seedHi) {
+        super();
+        this.seedLo = seedLo;
+        this.seedHi = seedHi;
+    }
+    at(x, y, z) {
+        const i = getSeed(x, y, z);
+        const j = i ^ this.seedLo;
+        return new XoroshiroRandomSource(j, this.seedHi);
+    }
+    fromHashOf(p_190134_) {
+        const abyte = md5(p_190134_, {
+            encoding: "utf8",
+            asBytes: true,
+        });
+        const i = fromBytes64(abyte[0], abyte[1], abyte[2], abyte[3], abyte[4], abyte[5], abyte[6], abyte[7]);
+        const j = fromBytes64(abyte[8], abyte[9], abyte[10], abyte[11], abyte[12], abyte[13], abyte[14], abyte[15]);
+        return new XoroshiroRandomSource(i ^ this.seedLo, j ^ this.seedHi);
+    }
+}
+class BitRandomSource extends RandomSource {
+    static FLOAT_MULTIPLIER = 5.9604645e-8;
+    static DOUBLE_MULTIPLIER = 1.110223e-16;
+    nextInt(bound) {
+        if (bound !== undefined) {
+            if ((bound & (bound - 1)) == 0) {
+                return toInt((toLong(bound) * toLong(this.next(31))) >> 31n);
+            }
+            else {
+                let i, clapmedI;
+                do {
+                    i = this.next(31);
+                    clapmedI = i % bound;
+                } while (i - clapmedI + (bound - 1) < 0);
+                return clapmedI;
+            }
+        }
+        else {
+            return this.next(32);
+        }
+    }
+    nextLong() {
+        const i = this.next(32);
+        const j = this.next(32);
+        const k = toLong(i) << 32n;
+        return clamp64(k + toLong(j));
+    }
+    nextBoolean() {
+        return this.next(1) != 0;
+    }
+    nextFloat() {
+        return this.next(24) * BitRandomSource.FLOAT_MULTIPLIER;
+    }
+    nextDouble() {
+        const i = this.next(26);
+        const j = this.next(27);
+        const k = clamp64((toLong(i) << 27n) + toLong(j));
+        return Number(k) * BitRandomSource.DOUBLE_MULTIPLIER;
+    }
+}
+class LegacyRandomSource extends BitRandomSource {
+    static MODULUS_BITS = 48;
+    static MODULUS_MASK = 281474976710655n;
+    static MULTIPLIER = 25214903917n;
+    static INCREMENT = 11n;
+    seed;
+    gaussianSource = new MarsagliaPolarGaussian(this);
+    constructor(seed) {
+        super();
+        this.setSeed(seed);
+    }
+    fork() {
+        return new LegacyRandomSource(this.nextLong());
+    }
+    forkPositional() {
+        return new LegacyPositionalRandomFactory(this.nextLong());
+    }
+    setSeed(p_188585_) {
+        this.seed = (p_188585_ ^ 25214903917n) & 281474976710655n;
+        this.gaussianSource.reset();
+    }
+    next(bits) {
+        const seed = clamp64((this.seed * 25214903917n + 11n) & 281474976710655n);
+        return toInt(seed >> (48n - toLong(bits)));
+    }
+    nextGaussian() {
+        return this.gaussianSource.nextGaussian();
+    }
+}
+function hashCode(s) {
+    let h = 0;
+    for (let i = 0; i < s.length; i++)
+        h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
+    return h;
+}
+class LegacyPositionalRandomFactory extends PositionalRandomFactory {
+    seed;
+    constructor(seed) {
+        super();
+        this.seed = seed;
+    }
+    at(x, y, z) {
+        const i = getSeed(x, y, z);
+        const j = i ^ this.seed;
+        return new LegacyRandomSource(j);
+    }
+    fromHashOf(s) {
+        const i = hashCode(s);
+        return new LegacyRandomSource(toLong(i) ^ this.seed);
+    }
+}
+
+function same(n1, n2, e) {
+    return Math.abs(n2 - n1) <= e;
+}
+function test() {
+    const builder = new OverworldBiomeBuilder();
+    const output = [];
+    builder.addBiomes(output);
+    const src = new XoroshiroRandomSource(1515125125n, 15125125232n);
+    const fork = src.forkPositional();
+    const i = fork.fromHashOf("padla");
+    const l = i.nextLong();
+    const hash = hashCode("padlapadlapadlapadlapadlapadla");
+    // eslint-disable-next-line no-debugger
+    debugger;
+}
+
 async function main() {
     const ammo = await Ammo();
     setServices(new ServicesClass({ ammo }));
     await Services.start();
 }
-main();
+test();
+// main()
 //# sourceMappingURL=index.js.map

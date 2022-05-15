@@ -2,6 +2,7 @@ import { BiomeSource } from "./biome-source"
 import { Biomes } from "./biomes"
 import { Blocks } from "./blocks"
 import { Sampler } from "./climate"
+import { RuleSource, SurfaceRuleData } from "./surface-rules"
 import { TerrainShaper } from "./terrain-shaper"
 
 export class ChunkPos {

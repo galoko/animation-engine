@@ -15,11 +15,11 @@ function makeStateRule(p_194811_: Blocks): RuleSource {
 }
 
 export class VerticalAnchor {
-    public static absolute(p_158923_: number): VerticalAnchor {}
+    public static absolute(height: number): VerticalAnchor {}
 
-    public static aboveBottom(p_158931_: number): VerticalAnchor {}
+    public static aboveBottom(height: number): VerticalAnchor {}
 
-    public static belowTop(p_158936_: number): VerticalAnchor {}
+    public static belowTop(height: number): VerticalAnchor {}
 
     public static bottom(): VerticalAnchor {}
 
@@ -167,31 +167,31 @@ export class SurfaceRuleData {
             VerticalAnchor.absolute(63),
             0
         )
-        const surfacerules$conditionsource6 = SurfaceRules.waterBlockCheck(-1, 0)
+        const isWaterAboveTheBlock = SurfaceRules.waterBlockCheck(-1, 0)
         const isWater = SurfaceRules.waterBlockCheck(0, 0)
         const surfacerules$conditionsource8 = SurfaceRules.waterStartCheck(-6, -1)
         const isHole = SurfaceRules.hole()
         const isFrozenOcean = SurfaceRules.isBiome(Biomes.FROZEN_OCEAN, Biomes.DEEP_FROZEN_OCEAN)
         const isSteep = SurfaceRules.steep()
-        const surfacerules$rulesource = SurfaceRules.sequence(
-            SurfaceRules.ifTrue(surfacerules$conditionsource6, GRASS_BLOCK),
+        const replaceGrassWithDirtIfWaterIsAbove = SurfaceRules.sequence(
+            SurfaceRules.ifTrue(isWaterAboveTheBlock, GRASS_BLOCK),
             DIRT
         )
-        const surfacerules$rulesource1 = SurfaceRules.sequence(
+        const replaceSandstoneWithSandOnCeiling = SurfaceRules.sequence(
             SurfaceRules.ifTrue(SurfaceRules.ON_CEILING, SANDSTONE),
             SAND
         )
-        const surfacerules$rulesource2 = SurfaceRules.sequence(
+        const replaceStoneWithGravelOnCeiling = SurfaceRules.sequence(
             SurfaceRules.ifTrue(SurfaceRules.ON_CEILING, STONE),
             GRAVEL
         )
-        const surfacerules$conditionsource12 = SurfaceRules.isBiome(
+        const isWarmOceanDesertOrBeach = SurfaceRules.isBiome(
             Biomes.WARM_OCEAN,
             Biomes.DESERT,
             Biomes.BEACH,
             Biomes.SNOWY_BEACH
         )
-        const surfacerules$rulesource3 = SurfaceRules.sequence(
+        const ceilingRules = SurfaceRules.sequence(
             SurfaceRules.ifTrue(
                 SurfaceRules.isBiome(Biomes.STONY_PEAKS),
                 SurfaceRules.sequence(
@@ -207,7 +207,7 @@ export class SurfaceRuleData {
                 SurfaceRules.sequence(
                     SurfaceRules.ifTrue(
                         SurfaceRules.noiseCondition(Noises.GRAVEL, -0.05, 0.05),
-                        surfacerules$rulesource2
+                        replaceStoneWithGravelOnCeiling
                     ),
                     STONE
                 )
@@ -216,14 +216,14 @@ export class SurfaceRuleData {
                 SurfaceRules.isBiome(Biomes.WINDSWEPT_HILLS),
                 SurfaceRules.ifTrue(SurfaceRules.surfaceNoiseAbove(1.0), STONE)
             ),
-            SurfaceRules.ifTrue(surfacerules$conditionsource12, surfacerules$rulesource1),
+            SurfaceRules.ifTrue(isWarmOceanDesertOrBeach, replaceSandstoneWithSandOnCeiling),
             SurfaceRules.ifTrue(SurfaceRules.isBiome(Biomes.DRIPSTONE_CAVES), STONE)
         )
-        const surfacerules$rulesource4 = SurfaceRules.ifTrue(
+        const powderSnow = SurfaceRules.ifTrue(
             SurfaceRules.noiseCondition(Noises.POWDER_SNOW, 0.45, 0.58),
             POWDER_SNOW
         )
-        const surfacerules$rulesource5 = SurfaceRules.ifTrue(
+        const anotherPowderSnow = SurfaceRules.ifTrue(
             SurfaceRules.noiseCondition(Noises.POWDER_SNOW, 0.35, 0.6),
             POWDER_SNOW
         )
@@ -245,18 +245,14 @@ export class SurfaceRuleData {
             ),
             SurfaceRules.ifTrue(
                 SurfaceRules.isBiome(Biomes.SNOWY_SLOPES),
-                SurfaceRules.sequence(
-                    SurfaceRules.ifTrue(isSteep, STONE),
-                    surfacerules$rulesource4,
-                    SNOW_BLOCK
-                )
+                SurfaceRules.sequence(SurfaceRules.ifTrue(isSteep, STONE), powderSnow, SNOW_BLOCK)
             ),
             SurfaceRules.ifTrue(SurfaceRules.isBiome(Biomes.JAGGED_PEAKS), STONE),
             SurfaceRules.ifTrue(
                 SurfaceRules.isBiome(Biomes.GROVE),
-                SurfaceRules.sequence(surfacerules$rulesource4, DIRT)
+                SurfaceRules.sequence(powderSnow, DIRT)
             ),
-            surfacerules$rulesource3,
+            ceilingRules,
             SurfaceRules.ifTrue(
                 SurfaceRules.isBiome(Biomes.WINDSWEPT_SAVANNA),
                 SurfaceRules.ifTrue(SurfaceRules.surfaceNoiseAbove(1.75), STONE)
@@ -266,11 +262,11 @@ export class SurfaceRuleData {
                 SurfaceRules.sequence(
                     SurfaceRules.ifTrue(
                         SurfaceRules.surfaceNoiseAbove(2.0),
-                        surfacerules$rulesource2
+                        replaceStoneWithGravelOnCeiling
                     ),
                     SurfaceRules.ifTrue(SurfaceRules.surfaceNoiseAbove(1.0), STONE),
                     SurfaceRules.ifTrue(SurfaceRules.surfaceNoiseAbove(-1.0), DIRT),
-                    surfacerules$rulesource2
+                    replaceStoneWithGravelOnCeiling
                 )
             ),
             DIRT
@@ -292,7 +288,7 @@ export class SurfaceRuleData {
                 SurfaceRules.isBiome(Biomes.SNOWY_SLOPES),
                 SurfaceRules.sequence(
                     SurfaceRules.ifTrue(isSteep, STONE),
-                    surfacerules$rulesource5,
+                    anotherPowderSnow,
                     SNOW_BLOCK
                 )
             ),
@@ -302,9 +298,9 @@ export class SurfaceRuleData {
             ),
             SurfaceRules.ifTrue(
                 SurfaceRules.isBiome(Biomes.GROVE),
-                SurfaceRules.sequence(surfacerules$rulesource5, SNOW_BLOCK)
+                SurfaceRules.sequence(anotherPowderSnow, SNOW_BLOCK)
             ),
-            surfacerules$rulesource3,
+            ceilingRules,
             SurfaceRules.ifTrue(
                 SurfaceRules.isBiome(Biomes.WINDSWEPT_SAVANNA),
                 SurfaceRules.sequence(
@@ -317,14 +313,14 @@ export class SurfaceRuleData {
                 SurfaceRules.sequence(
                     SurfaceRules.ifTrue(
                         SurfaceRules.surfaceNoiseAbove(2.0),
-                        surfacerules$rulesource2
+                        replaceStoneWithGravelOnCeiling
                     ),
                     SurfaceRules.ifTrue(SurfaceRules.surfaceNoiseAbove(1.0), STONE),
                     SurfaceRules.ifTrue(
                         SurfaceRules.surfaceNoiseAbove(-1.0),
-                        surfacerules$rulesource
+                        replaceGrassWithDirtIfWaterIsAbove
                     ),
-                    surfacerules$rulesource2
+                    replaceStoneWithGravelOnCeiling
                 )
             ),
             SurfaceRules.ifTrue(
@@ -336,7 +332,7 @@ export class SurfaceRuleData {
             ),
             SurfaceRules.ifTrue(SurfaceRules.isBiome(Biomes.ICE_SPIKES), SNOW_BLOCK),
             SurfaceRules.ifTrue(SurfaceRules.isBiome(Biomes.MUSHROOM_FIELDS), MYCELIUM),
-            surfacerules$rulesource
+            replaceGrassWithDirtIfWaterIsAbove
         )
         const surfacerules$conditionsource13 = SurfaceRules.noiseCondition(
             Noises.SURFACE,
@@ -365,7 +361,7 @@ export class SurfaceRuleData {
                                 SurfaceRules.ifTrue(surfacerules$conditionsource13, COARSE_DIRT),
                                 SurfaceRules.ifTrue(surfacerules$conditionsource14, COARSE_DIRT),
                                 SurfaceRules.ifTrue(surfacerules$conditionsource15, COARSE_DIRT),
-                                surfacerules$rulesource
+                                replaceGrassWithDirtIfWaterIsAbove
                             )
                         )
                     ),
@@ -405,7 +401,7 @@ export class SurfaceRuleData {
                                 )
                             ),
                             SurfaceRules.ifTrue(
-                                surfacerules$conditionsource6,
+                                isWaterAboveTheBlock,
                                 SurfaceRules.sequence(
                                     SurfaceRules.ifTrue(SurfaceRules.ON_CEILING, RED_SANDSTONE),
                                     RED_SAND
@@ -413,7 +409,7 @@ export class SurfaceRuleData {
                             ),
                             SurfaceRules.ifTrue(SurfaceRules.not(isHole), ORANGE_TERRACOTTA),
                             SurfaceRules.ifTrue(surfacerules$conditionsource8, WHITE_TERRACOTTA),
-                            surfacerules$rulesource2
+                            replaceStoneWithGravelOnCeiling
                         )
                     ),
                     SurfaceRules.ifTrue(
@@ -438,7 +434,7 @@ export class SurfaceRuleData {
             SurfaceRules.ifTrue(
                 SurfaceRules.ON_FLOOR,
                 SurfaceRules.ifTrue(
-                    surfacerules$conditionsource6,
+                    isWaterAboveTheBlock,
                     SurfaceRules.sequence(
                         SurfaceRules.ifTrue(
                             isFrozenOcean,
@@ -464,7 +460,7 @@ export class SurfaceRuleData {
                     ),
                     SurfaceRules.ifTrue(SurfaceRules.UNDER_FLOOR, surfacerules$rulesource6),
                     SurfaceRules.ifTrue(
-                        surfacerules$conditionsource12,
+                        isWarmOceanDesertOrBeach,
                         SurfaceRules.ifTrue(
                             SurfaceRules.stoneDepthCheck(0, true, true, CaveSurface.FLOOR),
                             SANDSTONE
@@ -485,9 +481,9 @@ export class SurfaceRuleData {
                             Biomes.LUKEWARM_OCEAN,
                             Biomes.DEEP_LUKEWARM_OCEAN
                         ),
-                        surfacerules$rulesource1
+                        replaceSandstoneWithSandOnCeiling
                     ),
-                    surfacerules$rulesource2
+                    replaceStoneWithGravelOnCeiling
                 )
             )
         )
