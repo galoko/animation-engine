@@ -1,5 +1,5 @@
 import { Pair } from "../consumer"
-import { RandomSource } from "../random"
+import { RandomSource, RandomSupport } from "../random"
 import { ImprovedNoise } from "./improved-noise"
 import * as Mth from "../mth"
 
@@ -124,7 +124,7 @@ export class PerlinNoise {
     }
 
     private static skipOctave(randomSource: RandomSource): void {
-        randomSource.consumeCount(262)
+        RandomSupport.consumeCount(randomSource, 262)
     }
 
     public getValue(

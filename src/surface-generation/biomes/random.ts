@@ -24,24 +24,14 @@ export abstract class RandomSource {
     abstract fork(): RandomSource
     abstract forkPositional(): PositionalRandomFactory
 
-    abstract setSeed(seed: BigInt): void
-
-    nextIntBetweenInclusive(min: number, max: number): number {
-        return this.nextInt(max - min + 1) + min
-    }
+    abstract setSeed(seed: bigint): void
 
     abstract nextInt(bound?: number): number
-    abstract nextLong(): BigInt
+    abstract nextLong(): bigint
     abstract nextBoolean(): boolean
     abstract nextFloat(): number
     abstract nextDouble(): number
     abstract nextGaussian(): number
-
-    consumeCount(count: number): void {
-        for (let i = 0; i < count; ++i) {
-            this.nextInt()
-        }
-    }
 }
 
 export class Seed128bit {
@@ -71,6 +61,20 @@ export class RandomSupport {
         )
 
         return RandomSupport.SEED_UNIQUIFIER ^ (BigInt(performance.now()) * 1000000n)
+    }
+
+    public static nextIntBetweenInclusive(
+        randomSource: RandomSource,
+        min: number,
+        max: number
+    ): number {
+        return randomSource.nextInt(max - min + 1) + min
+    }
+
+    public static consumeCount(randomSource: RandomSource, count: number): void {
+        for (let i = 0; i < count; ++i) {
+            randomSource.nextInt()
+        }
     }
 }
 
@@ -145,15 +149,13 @@ export class MarsagliaPolarGaussian {
 
 // source implementations
 
-export class XoroshiroRandomSource extends RandomSource {
+export class XoroshiroRandomSource implements RandomSource {
     private static readonly FLOAT_UNIT = 5.9604645e-8
     private static readonly DOUBLE_UNIT = 1.110223e-16
     private randomNumberGenerator: Xoroshiro128PlusPlus
     private readonly gaussianSource = new MarsagliaPolarGaussian(this)
 
     constructor(lo: bigint, hi?: bigint) {
-        super()
-
         if (hi === undefined) {
             this.randomNumberGenerator = new Xoroshiro128PlusPlus(
                 RandomSupport.upgradeSeedTo128bit(lo)
@@ -278,11 +280,18 @@ class XoroshiroPositionalRandomFactory extends PositionalRandomFactory {
     }
 }
 
-export abstract class BitRandomSource extends RandomSource {
+export abstract class BitRandomSource implements RandomSource {
     private static readonly FLOAT_MULTIPLIER = 5.9604645e-8
     private static readonly DOUBLE_MULTIPLIER = 1.110223e-16
 
     abstract next(bits: number): number
+
+    abstract fork(): RandomSource
+    abstract forkPositional(): PositionalRandomFactory
+
+    abstract setSeed(seed: bigint): void
+
+    abstract nextGaussian(): number
 
     nextInt(bound?: number): number {
         if (bound !== undefined) {
@@ -386,3 +395,185 @@ class LegacyPositionalRandomFactory extends PositionalRandomFactory {
         return new LegacyRandomSource(toLong(i) ^ this.seed)
     }
 }
+
+// random
+
+class Random {
+    private static readonly multiplier = 0x5deece66dn
+    private static readonly addend = 0xbn
+    private static readonly mask = (1n << 48n) - 1n
+
+    private static readonly FLOAT_UNIT = 1.0 / Number(1n << 24n)
+    private static readonly DOUBLE_UNIT = 1.0 / Number(1n << 53n)
+
+    private seed: bigint
+
+    private nextNextGaussian: number
+    private haveNextNextGaussian = false
+
+    constructor(seed: bigint) {
+        this.setSeed(seed)
+    }
+
+    public setSeed(seed: bigint): void {
+        this.seed = Random.initialScramble(seed)
+        this.haveNextNextGaussian = false
+    }
+
+    private static initialScramble(seed: bigint): bigint {
+        return (seed ^ Random.multiplier) & Random.mask
+    }
+
+    next(bits: number): number {
+        const oldseed = this.seed
+        const nextseed = (oldseed * Random.multiplier + Random.addend) & Random.mask
+        this.seed = nextseed
+        return toInt(unsignedShift64(nextseed, toLong(48 - bits)))
+    }
+
+    nextInt(bound?: number): number {
+        if (bound === undefined) {
+            return this.next(32)
+        } else {
+            let r = this.next(31)
+            const m = bound - 1
+            if ((bound & m) == 0)
+                // i.e., bound is a power of 2
+                r = toInt((toLong(bound) * toLong(r)) >> 31n)
+            else {
+                // reject over-represented candidates
+                for (let u = r; u - (r = u % bound) + m < 0; u = this.next(31));
+            }
+            return r
+        }
+    }
+
+    nextLong(): bigint {
+        // it's okay that the bottom word remains signed.
+        return (toLong(this.next(32)) << 32n) + toLong(this.next(32))
+    }
+
+    nextBoolean(): boolean {
+        return this.next(1) != 0
+    }
+
+    nextFloat(): number {
+        return this.next(24) / Random.FLOAT_UNIT
+    }
+
+    nextDouble(): number {
+        return Number((toLong(this.next(26)) << 27n) + toLong(this.next(27))) * Random.DOUBLE_UNIT
+    }
+
+    nextGaussian(): number {
+        // See Knuth, TAOCP, Vol. 2, 3rd edition, Section 3.4.1 Algorithm C.
+        if (this.haveNextNextGaussian) {
+            this.haveNextNextGaussian = false
+            return this.nextNextGaussian
+        } else {
+            let v1, v2, s
+            do {
+                v1 = 2 * this.nextDouble() - 1 // between -1 and 1
+                v2 = 2 * this.nextDouble() - 1 // between -1 and 1
+                s = v1 * v1 + v2 * v2
+            } while (s >= 1 || s == 0)
+            const multiplier = Math.sqrt((-2 * Math.log(s)) / s)
+            this.nextNextGaussian = v2 * multiplier
+            this.haveNextNextGaussian = true
+            return v1 * multiplier
+        }
+    }
+}
+
+// world gen
+export class WorldgenRandom extends Random {
+    private count: number
+
+    constructor(private readonly randomSource: RandomSource) {
+        super(0n)
+        this.count = 0
+    }
+
+    getCount(): number {
+        return this.count
+    }
+
+    fork(): RandomSource {
+        return this.randomSource.fork()
+    }
+
+    forkPositional(): PositionalRandomFactory {
+        return this.randomSource.forkPositional()
+    }
+
+    next(bits: number): number {
+        ++this.count
+        const randomsource = this.randomSource
+        if (randomsource instanceof LegacyRandomSource) {
+            const legacyrandomsource = randomsource
+            return legacyrandomsource.next(bits)
+        } else {
+            return toInt(unsignedShift64(this.randomSource.nextLong(), toLong(64 - bits)))
+        }
+    }
+
+    setSeed(seed: bigint): void {
+        if (this.randomSource != null) {
+            this.randomSource.setSeed(seed)
+        }
+    }
+
+    setDecorationSeed(seed: bigint, x: number, y: number): bigint {
+        this.setSeed(seed)
+        const xSeed = this.nextLong() | 1n
+        const ySeed = this.nextLong() | 1n
+        const finalSeed = (clamp64(toLong(x) * xSeed) + clamp64(toLong(y) * ySeed)) ^ seed
+        this.setSeed(finalSeed)
+        return finalSeed
+    }
+
+    setFeatureSeed(seed: bigint, x: number, y: number): void {
+        const finalSeed = clamp64(seed + toLong(x) + toLong(toInt(10000n * toLong(y))))
+        this.setSeed(finalSeed)
+    }
+
+    setLargeFeatureSeed(seed: bigint, x: number, y: number): void {
+        this.setSeed(seed)
+        const xSeed = this.nextLong()
+        const ySeed = this.nextLong()
+        const finalSeed = clamp64(toLong(x) * xSeed) ^ clamp64(toLong(y) * ySeed) ^ seed
+        this.setSeed(finalSeed)
+    }
+
+    setLargeFeatureWithSalt(salt: bigint, x: number, y: number, z: number): void {
+        const finalSeed = clamp64(
+            clamp64(toLong(x) * 341873128712n) +
+                clamp64(toLong(y) * 132897987541n) +
+                salt +
+                toLong(z)
+        )
+        this.setSeed(finalSeed)
+    }
+
+    public static seedSlimeChunk(x: number, y: number, seed: bigint, salt: bigint): Random {
+        return new Random(
+            (seed +
+                toLong(toInt(toLong(x) * toLong(x) * 4987142n)) +
+                toLong(toInt(toLong(x) * 5947611n)) +
+                toLong(toInt(toLong(y) * toLong(y))) * 4392871n +
+                toLong(toInt(toLong(y) * 389711n))) ^
+                salt
+        )
+    }
+}
+
+export enum Algorithm {
+    LEGACY,
+    XOROSHIRO,
+}
+
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+export const AlgorithmClasses: { [key in Algorithm]: new (seed: bigint) => RandomSource } = {}
+AlgorithmClasses[Algorithm.LEGACY] = LegacyRandomSource
+AlgorithmClasses[Algorithm.XOROSHIRO] = XoroshiroRandomSource
