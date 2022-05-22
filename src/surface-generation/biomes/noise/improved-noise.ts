@@ -1,154 +1,265 @@
+import { RandomSource } from "../random"
+import { SimplexNoise } from "./simplex-noise"
+import * as Mth from "../mth"
 
 export class ImprovedNoise {
-    private static readonly SHIFT_UP_EPSILON = 1.0E-7;
-    private readonly p: Int8Array;
-    public readonly  xo: number;
-    public readonly  yo: number;
-    public readonly zo: number;
- 
-    public ImprovedNoise( p_164307_: RandomSource) {
-       this.xo = p_164307_.nextDouble() * 256.0;
-       this.yo = p_164307_.nextDouble() * 256.0;
-       this.zo = p_164307_.nextDouble() * 256.0;
-       this.p = new Int8Array(256)
- 
-       for(int i = 0; i < 256; ++i) {
-          this.p[i] = (byte)i;
-       }
- 
-       for(int k = 0; k < 256; ++k) {
-          int j = p_164307_.nextInt(256 - k);
-          byte b0 = this.p[k];
-          this.p[k] = this.p[k + j];
-          this.p[k + j] = b0;
-       }
- 
+    private static readonly SHIFT_UP_EPSILON = 1.0e-7
+    private readonly p: Int8Array
+    public readonly xo: number
+    public readonly yo: number
+    public readonly zo: number
+
+    constructor(randomSource: RandomSource) {
+        this.xo = randomSource.nextDouble() * 256.0
+        this.yo = randomSource.nextDouble() * 256.0
+        this.zo = randomSource.nextDouble() * 256.0
+        this.p = new Int8Array(256)
+
+        for (let i = 0; i < 256; ++i) {
+            this.p[i] = i
+        }
+
+        for (let i = 0; i < 256; ++i) {
+            const value = randomSource.nextInt(256 - i)
+            const temp = this.p[i]
+            this.p[i] = this.p[i + value]
+            this.p[i + value] = temp
+        }
     }
- 
-    public double noise(double p_164309_, double p_164310_, double p_164311_) {
-       return this.noise(p_164309_, p_164310_, p_164311_, 0.0, 0.0);
+
+    noise(x: number, y: number, z: number, yFractStep = 0, maxYfract = 0): number {
+        const xWithOffset = x + this.xo
+        const yWithOffset = y + this.yo
+        const zWithOffset = z + this.zo
+        const intX = Mth.floor(xWithOffset)
+        const intY = Mth.floor(yWithOffset)
+        const intZ = Mth.floor(zWithOffset)
+        const xFract = xWithOffset - intX
+        const yFract = yWithOffset - intY
+        const zFract = zWithOffset - intZ
+        let yFractOffset
+        if (yFractStep != 0.0) {
+            let yFractToUse
+            if (maxYfract >= 0.0 && maxYfract < yFract) {
+                yFractToUse = maxYfract
+            } else {
+                yFractToUse = yFract
+            }
+
+            yFractOffset =
+                Mth.floor(yFractToUse / yFractStep + ImprovedNoise.SHIFT_UP_EPSILON) * yFractStep
+        } else {
+            yFractOffset = 0.0
+        }
+
+        return this.sampleAndLerp(intX, intY, intZ, xFract, yFract - yFractOffset, zFract, yFract)
     }
- 
-    /** @deprecated */
-    @Deprecated
-    public double noise(double p_75328_, double p_75329_, double p_75330_, double p_75331_, double p_75332_) {
-       double d0 = p_75328_ + this.xo;
-       double d1 = p_75329_ + this.yo;
-       double d2 = p_75330_ + this.zo;
-       int i = Mth.floor(d0);
-       int j = Mth.floor(d1);
-       int k = Mth.floor(d2);
-       double d3 = d0 - (double)i;
-       double d4 = d1 - (double)j;
-       double d5 = d2 - (double)k;
-       double d6;
-       if (p_75331_ != 0.0) {
-          double d7;
-          if (p_75332_ >= 0.0 && p_75332_ < d4) {
-             d7 = p_75332_;
-          } else {
-             d7 = d4;
-          }
- 
-          d6 = (double)Mth.floor(d7 / p_75331_ + (double)1.0E-7F) * p_75331_;
-       } else {
-          d6 = 0.0;
-       }
- 
-       return this.sampleAndLerp(i, j, k, d3, d4 - d6, d5, d4);
+
+    private static gradDot(gradintIndex: number, x: number, y: number, z: number): number {
+        return SimplexNoise.dot(SimplexNoise.GRADIENT[gradintIndex & 15], x, y, z)
     }
- 
-    public double noiseWithDerivative(double p_164313_, double p_164314_, double p_164315_, double[] p_164316_) {
-       double d0 = p_164313_ + this.xo;
-       double d1 = p_164314_ + this.yo;
-       double d2 = p_164315_ + this.zo;
-       int i = Mth.floor(d0);
-       int j = Mth.floor(d1);
-       int k = Mth.floor(d2);
-       double d3 = d0 - (double)i;
-       double d4 = d1 - (double)j;
-       double d5 = d2 - (double)k;
-       return this.sampleWithDerivative(i, j, k, d3, d4, d5, p_164316_);
+
+    private get_p(index: number): number {
+        return this.p[index & 255] & 255
     }
- 
-    private static double gradDot(int p_75336_, double p_75337_, double p_75338_, double p_75339_) {
-       return SimplexNoise.dot(SimplexNoise.GRADIENT[p_75336_ & 15], p_75337_, p_75338_, p_75339_);
+
+    private sampleAndLerp(
+        x: number,
+        y: number,
+        z: number,
+        xt: number,
+        yt: number,
+        zt: number,
+        yt2: number
+    ): number {
+        const noiseX0 = this.get_p(x)
+        const noiseX1 = this.get_p(x + 1)
+        const noiseY00 = this.get_p(noiseX0 + y)
+        const noiseY01 = this.get_p(noiseX0 + y + 1)
+        const noiseY10 = this.get_p(noiseX1 + y)
+        const noiseY11 = this.get_p(noiseX1 + y + 1)
+        // cube 2x2x2
+        const len0 = ImprovedNoise.gradDot(this.get_p(noiseY00 + z), xt, yt, zt)
+        const len1 = ImprovedNoise.gradDot(this.get_p(noiseY10 + z), xt - 1.0, yt, zt)
+        const len2 = ImprovedNoise.gradDot(this.get_p(noiseY01 + z), xt, yt - 1.0, zt)
+        const len3 = ImprovedNoise.gradDot(this.get_p(noiseY11 + z), xt - 1.0, yt - 1.0, zt)
+        const len4 = ImprovedNoise.gradDot(this.get_p(noiseY00 + z + 1), xt, yt, zt - 1.0)
+        const len5 = ImprovedNoise.gradDot(this.get_p(noiseY10 + z + 1), xt - 1.0, yt, zt - 1.0)
+        const len6 = ImprovedNoise.gradDot(this.get_p(noiseY01 + z + 1), xt, yt - 1.0, zt - 1.0)
+        const len7 = ImprovedNoise.gradDot(
+            this.get_p(noiseY11 + z + 1),
+            xt - 1.0,
+            yt - 1.0,
+            zt - 1.0
+        )
+        const smoothXt = Mth.smoothstep(xt)
+        const smoothYt = Mth.smoothstep(yt2)
+        const smoothZt = Mth.smoothstep(zt)
+        return Mth.lerp3(
+            smoothXt,
+            smoothYt,
+            smoothZt,
+            len0,
+            len1,
+            len2,
+            len3,
+            len4,
+            len5,
+            len6,
+            len7
+        )
     }
- 
-    private int p(int p_75334_) {
-       return this.p[p_75334_ & 255] & 255;
+
+    // unused
+
+    noiseWithDerivative(x: number, y: number, z: number, output: number[]): number {
+        const xWithOffset = x + this.xo
+        const yWithOffset = y + this.yo
+        const zWithOffset = z + this.zo
+        const intXwithOffset = Mth.floor(xWithOffset)
+        const intYwithOffset = Mth.floor(yWithOffset)
+        const intZwithOffset = Mth.floor(zWithOffset)
+        const xFract = xWithOffset - intXwithOffset
+        const yFract = yWithOffset - intYwithOffset
+        const zFract = zWithOffset - intZwithOffset
+        return this.sampleWithDerivative(
+            intXwithOffset,
+            intYwithOffset,
+            intZwithOffset,
+            xFract,
+            yFract,
+            zFract,
+            output
+        )
     }
- 
-    private double sampleAndLerp(int p_164318_, int p_164319_, int p_164320_, double p_164321_, double p_164322_, double p_164323_, double p_164324_) {
-       int i = this.p(p_164318_);
-       int j = this.p(p_164318_ + 1);
-       int k = this.p(i + p_164319_);
-       int l = this.p(i + p_164319_ + 1);
-       int i1 = this.p(j + p_164319_);
-       int j1 = this.p(j + p_164319_ + 1);
-       double d0 = gradDot(this.p(k + p_164320_), p_164321_, p_164322_, p_164323_);
-       double d1 = gradDot(this.p(i1 + p_164320_), p_164321_ - 1.0, p_164322_, p_164323_);
-       double d2 = gradDot(this.p(l + p_164320_), p_164321_, p_164322_ - 1.0, p_164323_);
-       double d3 = gradDot(this.p(j1 + p_164320_), p_164321_ - 1.0, p_164322_ - 1.0, p_164323_);
-       double d4 = gradDot(this.p(k + p_164320_ + 1), p_164321_, p_164322_, p_164323_ - 1.0);
-       double d5 = gradDot(this.p(i1 + p_164320_ + 1), p_164321_ - 1.0, p_164322_, p_164323_ - 1.0);
-       double d6 = gradDot(this.p(l + p_164320_ + 1), p_164321_, p_164322_ - 1.0, p_164323_ - 1.0);
-       double d7 = gradDot(this.p(j1 + p_164320_ + 1), p_164321_ - 1.0, p_164322_ - 1.0, p_164323_ - 1.0);
-       double d8 = Mth.smoothstep(p_164321_);
-       double d9 = Mth.smoothstep(p_164324_);
-       double d10 = Mth.smoothstep(p_164323_);
-       return Mth.lerp3(d8, d9, d10, d0, d1, d2, d3, d4, d5, d6, d7);
-    }
- 
-    private double sampleWithDerivative(int p_164326_, int p_164327_, int p_164328_, double p_164329_, double p_164330_, double p_164331_, double[] p_164332_) {
-       int i = this.p(p_164326_);
-       int j = this.p(p_164326_ + 1);
-       int k = this.p(i + p_164327_);
-       int l = this.p(i + p_164327_ + 1);
-       int i1 = this.p(j + p_164327_);
-       int j1 = this.p(j + p_164327_ + 1);
-       int k1 = this.p(k + p_164328_);
-       int l1 = this.p(i1 + p_164328_);
-       int i2 = this.p(l + p_164328_);
-       int j2 = this.p(j1 + p_164328_);
-       int k2 = this.p(k + p_164328_ + 1);
-       int l2 = this.p(i1 + p_164328_ + 1);
-       int i3 = this.p(l + p_164328_ + 1);
-       int j3 = this.p(j1 + p_164328_ + 1);
-       int[] aint = SimplexNoise.GRADIENT[k1 & 15];
-       int[] aint1 = SimplexNoise.GRADIENT[l1 & 15];
-       int[] aint2 = SimplexNoise.GRADIENT[i2 & 15];
-       int[] aint3 = SimplexNoise.GRADIENT[j2 & 15];
-       int[] aint4 = SimplexNoise.GRADIENT[k2 & 15];
-       int[] aint5 = SimplexNoise.GRADIENT[l2 & 15];
-       int[] aint6 = SimplexNoise.GRADIENT[i3 & 15];
-       int[] aint7 = SimplexNoise.GRADIENT[j3 & 15];
-       double d0 = SimplexNoise.dot(aint, p_164329_, p_164330_, p_164331_);
-       double d1 = SimplexNoise.dot(aint1, p_164329_ - 1.0, p_164330_, p_164331_);
-       double d2 = SimplexNoise.dot(aint2, p_164329_, p_164330_ - 1.0, p_164331_);
-       double d3 = SimplexNoise.dot(aint3, p_164329_ - 1.0, p_164330_ - 1.0, p_164331_);
-       double d4 = SimplexNoise.dot(aint4, p_164329_, p_164330_, p_164331_ - 1.0);
-       double d5 = SimplexNoise.dot(aint5, p_164329_ - 1.0, p_164330_, p_164331_ - 1.0);
-       double d6 = SimplexNoise.dot(aint6, p_164329_, p_164330_ - 1.0, p_164331_ - 1.0);
-       double d7 = SimplexNoise.dot(aint7, p_164329_ - 1.0, p_164330_ - 1.0, p_164331_ - 1.0);
-       double d8 = Mth.smoothstep(p_164329_);
-       double d9 = Mth.smoothstep(p_164330_);
-       double d10 = Mth.smoothstep(p_164331_);
-       double d11 = Mth.lerp3(d8, d9, d10, (double)aint[0], (double)aint1[0], (double)aint2[0], (double)aint3[0], (double)aint4[0], (double)aint5[0], (double)aint6[0], (double)aint7[0]);
-       double d12 = Mth.lerp3(d8, d9, d10, (double)aint[1], (double)aint1[1], (double)aint2[1], (double)aint3[1], (double)aint4[1], (double)aint5[1], (double)aint6[1], (double)aint7[1]);
-       double d13 = Mth.lerp3(d8, d9, d10, (double)aint[2], (double)aint1[2], (double)aint2[2], (double)aint3[2], (double)aint4[2], (double)aint5[2], (double)aint6[2], (double)aint7[2]);
-       double d14 = Mth.lerp2(d9, d10, d1 - d0, d3 - d2, d5 - d4, d7 - d6);
-       double d15 = Mth.lerp2(d10, d8, d2 - d0, d6 - d4, d3 - d1, d7 - d5);
-       double d16 = Mth.lerp2(d8, d9, d4 - d0, d5 - d1, d6 - d2, d7 - d3);
-       double d17 = Mth.smoothstepDerivative(p_164329_);
-       double d18 = Mth.smoothstepDerivative(p_164330_);
-       double d19 = Mth.smoothstepDerivative(p_164331_);
-       double d20 = d11 + d17 * d14;
-       double d21 = d12 + d18 * d15;
-       double d22 = d13 + d19 * d16;
-       p_164332_[0] += d20;
-       p_164332_[1] += d21;
-       p_164332_[2] += d22;
-       return Mth.lerp3(d8, d9, d10, d0, d1, d2, d3, d4, d5, d6, d7);
+
+    private sampleWithDerivative(
+        x: number,
+        y: number,
+        z: number,
+        xFract: number,
+        yFract: number,
+        zFract: number,
+        output: number[]
+    ): number {
+        const noiseX0 = this.get_p(x)
+        const noiseX1 = this.get_p(x + 1)
+        const noiseY00 = this.get_p(noiseX0 + y)
+        const noiseY01 = this.get_p(noiseX0 + y + 1)
+        const noiseY10 = this.get_p(noiseX1 + y)
+        const noiseY11 = this.get_p(noiseX1 + y + 1)
+        const noiseZ000 = this.get_p(noiseY00 + z)
+        const noiseZ100 = this.get_p(noiseY10 + z)
+        const noiseZ010 = this.get_p(noiseY01 + z)
+        const noiseZ110 = this.get_p(noiseY11 + z)
+        const noiseZ001 = this.get_p(noiseY00 + z + 1)
+        const noiseZ101 = this.get_p(noiseY10 + z + 1)
+        const noiseZ011 = this.get_p(noiseY01 + z + 1)
+        const noiseZ111 = this.get_p(noiseY11 + z + 1)
+        // here we have 2x2x2 cube
+        const gradient0 = SimplexNoise.GRADIENT[noiseZ000 & 15]
+        const gradient1 = SimplexNoise.GRADIENT[noiseZ100 & 15]
+        const gradient2 = SimplexNoise.GRADIENT[noiseZ010 & 15]
+        const gradient3 = SimplexNoise.GRADIENT[noiseZ110 & 15]
+        const gradient4 = SimplexNoise.GRADIENT[noiseZ001 & 15]
+        const gradient5 = SimplexNoise.GRADIENT[noiseZ101 & 15]
+        const gradient6 = SimplexNoise.GRADIENT[noiseZ011 & 15]
+        const gradient7 = SimplexNoise.GRADIENT[noiseZ111 & 15]
+        const len0 = SimplexNoise.dot(gradient0, xFract, yFract, zFract)
+        const len1 = SimplexNoise.dot(gradient1, xFract - 1.0, yFract, zFract)
+        const len2 = SimplexNoise.dot(gradient2, xFract, yFract - 1.0, zFract)
+        const len3 = SimplexNoise.dot(gradient3, xFract - 1.0, yFract - 1.0, zFract)
+        const len4 = SimplexNoise.dot(gradient4, xFract, yFract, zFract - 1.0)
+        const len5 = SimplexNoise.dot(gradient5, xFract - 1.0, yFract, zFract - 1.0)
+        const len6 = SimplexNoise.dot(gradient6, xFract, yFract - 1.0, zFract - 1.0)
+        const len7 = SimplexNoise.dot(gradient7, xFract - 1.0, yFract - 1.0, zFract - 1.0)
+        const smoothXfract = Mth.smoothstep(xFract)
+        const smoothYfract = Mth.smoothstep(yFract)
+        const smoothZfract = Mth.smoothstep(zFract)
+        const interpolatedGradientX = Mth.lerp3(
+            smoothXfract,
+            smoothYfract,
+            smoothZfract,
+            gradient0[0],
+            gradient1[0],
+            gradient2[0],
+            gradient3[0],
+            gradient4[0],
+            gradient5[0],
+            gradient6[0],
+            gradient7[0]
+        )
+        const interpolatedGradientY = Mth.lerp3(
+            smoothXfract,
+            smoothYfract,
+            smoothZfract,
+            gradient0[1],
+            gradient1[1],
+            gradient2[1],
+            gradient3[1],
+            gradient4[1],
+            gradient5[1],
+            gradient6[1],
+            gradient7[1]
+        )
+        const interpolatedGradientZ = Mth.lerp3(
+            smoothXfract,
+            smoothYfract,
+            smoothZfract,
+            gradient0[2],
+            gradient1[2],
+            gradient2[2],
+            gradient3[2],
+            gradient4[2],
+            gradient5[2],
+            gradient6[2],
+            gradient7[2]
+        )
+        const xLen = Mth.lerp2(
+            smoothYfract,
+            smoothZfract,
+            len1 - len0,
+            len3 - len2,
+            len5 - len4,
+            len7 - len6
+        )
+        const yLen = Mth.lerp2(
+            smoothZfract,
+            smoothXfract,
+            len2 - len0,
+            len6 - len4,
+            len3 - len1,
+            len7 - len5
+        )
+        const zLen = Mth.lerp2(
+            smoothXfract,
+            smoothYfract,
+            len4 - len0,
+            len5 - len1,
+            len6 - len2,
+            len7 - len3
+        )
+        const xDerivSmooth = Mth.smoothstepDerivative(xFract)
+        const yDerivSmooth = Mth.smoothstepDerivative(yFract)
+        const zDerivSmooth = Mth.smoothstepDerivative(zFract)
+        const outputX = interpolatedGradientX + xDerivSmooth * xLen
+        const outputY = interpolatedGradientY + yDerivSmooth * yLen
+        const outputZ = interpolatedGradientZ + zDerivSmooth * zLen
+        output[0] += outputX
+        output[1] += outputY
+        output[2] += outputZ
+        return Mth.lerp3(
+            smoothXfract,
+            smoothYfract,
+            smoothZfract,
+            len0,
+            len1,
+            len2,
+            len3,
+            len4,
+            len5,
+            len6,
+            len7
+        )
     }
 }

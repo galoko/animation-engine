@@ -1,3 +1,5 @@
+import { NoiseParameters } from "./noise/normal-noise"
+
 export enum Noises {
     TEMPERATURE = "temperature",
     VEGETATION = "vegetation",
@@ -182,7 +184,7 @@ function register(
     firstAmplitude: number,
     ...amplitudes: number[]
 ) {
-    NOISES[noise] = new NormalNoise.NoiseParameters(firstOctave, firstAmplitude, amplitudes)
+    NOISES[noise] = new NoiseParameters(firstOctave, firstAmplitude, ...amplitudes)
 }
 
 registerNoises()

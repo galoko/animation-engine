@@ -184,19 +184,19 @@ export class XoroshiroRandomSource extends RandomSource {
         this.gaussianSource.reset()
     }
 
-    public nextInt(p_190118_?: number): number {
-        if (p_190118_ !== undefined) {
+    public nextInt(bound?: number): number {
+        if (bound !== undefined) {
             let i = toUnsignedLong(this.nextInt())
-            let j = clamp64(i * toLong(p_190118_))
+            let j = clamp64(i * toLong(bound))
             let k = j & 4294967295n
-            if (k < toLong(p_190118_)) {
+            if (k < toLong(bound)) {
                 for (
-                    let l = remainderUnsigned32(~p_190118_ + 1, p_190118_);
+                    let l = remainderUnsigned32(~bound + 1, bound);
                     k < toLong(l);
                     k = j & 4294967295n
                 ) {
                     i = toUnsignedLong(this.nextInt())
-                    j = i * toLong(p_190118_)
+                    j = i * toLong(bound)
                 }
             }
 
@@ -244,13 +244,13 @@ class XoroshiroPositionalRandomFactory extends PositionalRandomFactory {
     }
 
     public at(x: number, y: number, z: number): RandomSource {
-        const i = Mth.getSeed(x, y, z)
-        const j = i ^ this.seedLo
-        return new XoroshiroRandomSource(j, this.seedHi)
+        const coordinateSeed = Mth.getSeed(x, y, z)
+        const finalSeedLo = coordinateSeed ^ this.seedLo
+        return new XoroshiroRandomSource(finalSeedLo, this.seedHi)
     }
 
-    public fromHashOf(p_190134_: string): RandomSource {
-        const abyte = md5(p_190134_, {
+    public fromHashOf(s: string): RandomSource {
+        const abyte = md5(s, {
             encoding: "utf8",
             asBytes: true,
         })
@@ -326,7 +326,7 @@ export abstract class BitRandomSource extends RandomSource {
 }
 
 export class LegacyRandomSource extends BitRandomSource {
-    private static readonly MODULUS_BITS = 48
+    private static readonly MODULUS_BITS = 48n
     private static readonly MODULUS_MASK = 281474976710655n
     private static readonly MULTIPLIER = 25214903917n
     private static readonly INCREMENT = 11n
@@ -346,14 +346,17 @@ export class LegacyRandomSource extends BitRandomSource {
         return new LegacyPositionalRandomFactory(this.nextLong())
     }
 
-    public setSeed(p_188585_: bigint): void {
-        this.seed = (p_188585_ ^ 25214903917n) & 281474976710655n
+    public setSeed(seed: bigint): void {
+        this.seed = (seed ^ LegacyRandomSource.MULTIPLIER) & LegacyRandomSource.MODULUS_MASK
         this.gaussianSource.reset()
     }
 
     public next(bits: number): number {
-        const seed = clamp64((this.seed * 25214903917n + 11n) & 281474976710655n)
-        return toInt(seed >> (48n - toLong(bits)))
+        this.seed = clamp64(
+            (this.seed * LegacyRandomSource.MULTIPLIER + LegacyRandomSource.INCREMENT) &
+                LegacyRandomSource.MODULUS_MASK
+        )
+        return toInt(this.seed >> (LegacyRandomSource.MODULUS_BITS - toLong(bits)))
     }
 
     public nextGaussian(): number {
@@ -373,9 +376,9 @@ class LegacyPositionalRandomFactory extends PositionalRandomFactory {
     }
 
     public at(x: number, y: number, z: number): RandomSource {
-        const i = Mth.getSeed(x, y, z)
-        const j = i ^ this.seed
-        return new LegacyRandomSource(j)
+        const coordinateSeed = Mth.getSeed(x, y, z)
+        const finalSeed = coordinateSeed ^ this.seed
+        return new LegacyRandomSource(finalSeed)
     }
 
     public fromHashOf(s: string): RandomSource {

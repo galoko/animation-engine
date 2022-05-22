@@ -4093,7 +4093,7 @@ function ceil$2(out, a) {
  * @returns {vec3} out
  */
 
-function floor$2(out, a) {
+function floor$3(out, a) {
   out[0] = Math.floor(a[0]);
   out[1] = Math.floor(a[1]);
   out[2] = Math.floor(a[2]);
@@ -4716,7 +4716,7 @@ var vec3 = /*#__PURE__*/Object.freeze({
     multiply: multiply$4,
     divide: divide$2,
     ceil: ceil$2,
-    floor: floor$2,
+    floor: floor$3,
     min: min$2,
     max: max$2,
     round: round$2,
@@ -4931,7 +4931,7 @@ function ceil$1(out, a) {
  * @returns {vec4} out
  */
 
-function floor$1(out, a) {
+function floor$2(out, a) {
   out[0] = Math.floor(a[0]);
   out[1] = Math.floor(a[1]);
   out[2] = Math.floor(a[2]);
@@ -5430,7 +5430,7 @@ var vec4 = /*#__PURE__*/Object.freeze({
     multiply: multiply$3,
     divide: divide$1,
     ceil: ceil$1,
-    floor: floor$1,
+    floor: floor$2,
     min: min$1,
     max: max$1,
     round: round$1,
@@ -7241,7 +7241,7 @@ function ceil(out, a) {
  * @returns {vec2} out
  */
 
-function floor(out, a) {
+function floor$1(out, a) {
   out[0] = Math.floor(a[0]);
   out[1] = Math.floor(a[1]);
   return out;
@@ -7725,7 +7725,7 @@ var vec2 = /*#__PURE__*/Object.freeze({
     multiply: multiply,
     divide: divide,
     ceil: ceil,
-    floor: floor,
+    floor: floor$1,
     min: min,
     max: max,
     round: round,
@@ -9859,6 +9859,932 @@ class ServicesClass {
     }
 }
 
+var Blocks;
+(function (Blocks) {
+    Blocks["AIR"] = "air";
+    Blocks["STONE"] = "stone";
+    Blocks["GRANITE"] = "granite";
+    Blocks["POLISHED_GRANITE"] = "polished_granite";
+    Blocks["DIORITE"] = "diorite";
+    Blocks["POLISHED_DIORITE"] = "polished_diorite";
+    Blocks["ANDESITE"] = "andesite";
+    Blocks["POLISHED_ANDESITE"] = "polished_andesite";
+    Blocks["GRASS_BLOCK"] = "grass_block";
+    Blocks["DIRT"] = "dirt";
+    Blocks["COARSE_DIRT"] = "coarse_dirt";
+    Blocks["PODZOL"] = "podzol";
+    Blocks["COBBLESTONE"] = "cobblestone";
+    Blocks["OAK_PLANKS"] = "oak_planks";
+    Blocks["SPRUCE_PLANKS"] = "spruce_planks";
+    Blocks["BIRCH_PLANKS"] = "birch_planks";
+    Blocks["JUNGLE_PLANKS"] = "jungle_planks";
+    Blocks["ACACIA_PLANKS"] = "acacia_planks";
+    Blocks["DARK_OAK_PLANKS"] = "dark_oak_planks";
+    Blocks["OAK_SAPLING"] = "oak_sapling";
+    Blocks["SPRUCE_SAPLING"] = "spruce_sapling";
+    Blocks["BIRCH_SAPLING"] = "birch_sapling";
+    Blocks["JUNGLE_SAPLING"] = "jungle_sapling";
+    Blocks["ACACIA_SAPLING"] = "acacia_sapling";
+    Blocks["DARK_OAK_SAPLING"] = "dark_oak_sapling";
+    Blocks["BEDROCK"] = "bedrock";
+    Blocks["WATER"] = "water";
+    Blocks["LAVA"] = "lava";
+    Blocks["SAND"] = "sand";
+    Blocks["RED_SAND"] = "red_sand";
+    Blocks["GRAVEL"] = "gravel";
+    Blocks["GOLD_ORE"] = "gold_ore";
+    Blocks["DEEPSLATE_GOLD_ORE"] = "deepslate_gold_ore";
+    Blocks["IRON_ORE"] = "iron_ore";
+    Blocks["DEEPSLATE_IRON_ORE"] = "deepslate_iron_ore";
+    Blocks["COAL_ORE"] = "coal_ore";
+    Blocks["DEEPSLATE_COAL_ORE"] = "deepslate_coal_ore";
+    Blocks["NETHER_GOLD_ORE"] = "nether_gold_ore";
+    Blocks["OAK_LOG"] = "oak_log";
+    Blocks["SPRUCE_LOG"] = "spruce_log";
+    Blocks["BIRCH_LOG"] = "birch_log";
+    Blocks["JUNGLE_LOG"] = "jungle_log";
+    Blocks["ACACIA_LOG"] = "acacia_log";
+    Blocks["DARK_OAK_LOG"] = "dark_oak_log";
+    Blocks["STRIPPED_SPRUCE_LOG"] = "stripped_spruce_log";
+    Blocks["STRIPPED_BIRCH_LOG"] = "stripped_birch_log";
+    Blocks["STRIPPED_JUNGLE_LOG"] = "stripped_jungle_log";
+    Blocks["STRIPPED_ACACIA_LOG"] = "stripped_acacia_log";
+    Blocks["STRIPPED_DARK_OAK_LOG"] = "stripped_dark_oak_log";
+    Blocks["STRIPPED_OAK_LOG"] = "stripped_oak_log";
+    Blocks["OAK_WOOD"] = "oak_wood";
+    Blocks["SPRUCE_WOOD"] = "spruce_wood";
+    Blocks["BIRCH_WOOD"] = "birch_wood";
+    Blocks["JUNGLE_WOOD"] = "jungle_wood";
+    Blocks["ACACIA_WOOD"] = "acacia_wood";
+    Blocks["DARK_OAK_WOOD"] = "dark_oak_wood";
+    Blocks["STRIPPED_OAK_WOOD"] = "stripped_oak_wood";
+    Blocks["STRIPPED_SPRUCE_WOOD"] = "stripped_spruce_wood";
+    Blocks["STRIPPED_BIRCH_WOOD"] = "stripped_birch_wood";
+    Blocks["STRIPPED_JUNGLE_WOOD"] = "stripped_jungle_wood";
+    Blocks["STRIPPED_ACACIA_WOOD"] = "stripped_acacia_wood";
+    Blocks["STRIPPED_DARK_OAK_WOOD"] = "stripped_dark_oak_wood";
+    Blocks["OAK_LEAVES"] = "oak_leaves";
+    Blocks["SPRUCE_LEAVES"] = "spruce_leaves";
+    Blocks["BIRCH_LEAVES"] = "birch_leaves";
+    Blocks["JUNGLE_LEAVES"] = "jungle_leaves";
+    Blocks["ACACIA_LEAVES"] = "acacia_leaves";
+    Blocks["DARK_OAK_LEAVES"] = "dark_oak_leaves";
+    Blocks["AZALEA_LEAVES"] = "azalea_leaves";
+    Blocks["FLOWERING_AZALEA_LEAVES"] = "flowering_azalea_leaves";
+    Blocks["SPONGE"] = "sponge";
+    Blocks["WET_SPONGE"] = "wet_sponge";
+    Blocks["GLASS"] = "glass";
+    Blocks["LAPIS_ORE"] = "lapis_ore";
+    Blocks["DEEPSLATE_LAPIS_ORE"] = "deepslate_lapis_ore";
+    Blocks["LAPIS_BLOCK"] = "lapis_block";
+    Blocks["DISPENSER"] = "dispenser";
+    Blocks["SANDSTONE"] = "sandstone";
+    Blocks["CHISELED_SANDSTONE"] = "chiseled_sandstone";
+    Blocks["CUT_SANDSTONE"] = "cut_sandstone";
+    Blocks["NOTE_BLOCK"] = "note_block";
+    Blocks["WHITE_BED"] = "white_bed";
+    Blocks["ORANGE_BED"] = "orange_bed";
+    Blocks["MAGENTA_BED"] = "magenta_bed";
+    Blocks["LIGHT_BLUE_BED"] = "light_blue_bed";
+    Blocks["YELLOW_BED"] = "yellow_bed";
+    Blocks["LIME_BED"] = "lime_bed";
+    Blocks["PINK_BED"] = "pink_bed";
+    Blocks["GRAY_BED"] = "gray_bed";
+    Blocks["LIGHT_GRAY_BED"] = "light_gray_bed";
+    Blocks["CYAN_BED"] = "cyan_bed";
+    Blocks["PURPLE_BED"] = "purple_bed";
+    Blocks["BLUE_BED"] = "blue_bed";
+    Blocks["BROWN_BED"] = "brown_bed";
+    Blocks["GREEN_BED"] = "green_bed";
+    Blocks["RED_BED"] = "red_bed";
+    Blocks["BLACK_BED"] = "black_bed";
+    Blocks["POWERED_RAIL"] = "powered_rail";
+    Blocks["DETECTOR_RAIL"] = "detector_rail";
+    Blocks["STICKY_PISTON"] = "sticky_piston";
+    Blocks["COBWEB"] = "cobweb";
+    Blocks["GRASS"] = "grass";
+    Blocks["FERN"] = "fern";
+    Blocks["DEAD_BUSH"] = "dead_bush";
+    Blocks["SEAGRASS"] = "seagrass";
+    Blocks["TALL_SEAGRASS"] = "tall_seagrass";
+    Blocks["PISTON"] = "piston";
+    Blocks["PISTON_HEAD"] = "piston_head";
+    Blocks["WHITE_WOOL"] = "white_wool";
+    Blocks["ORANGE_WOOL"] = "orange_wool";
+    Blocks["MAGENTA_WOOL"] = "magenta_wool";
+    Blocks["LIGHT_BLUE_WOOL"] = "light_blue_wool";
+    Blocks["YELLOW_WOOL"] = "yellow_wool";
+    Blocks["LIME_WOOL"] = "lime_wool";
+    Blocks["PINK_WOOL"] = "pink_wool";
+    Blocks["GRAY_WOOL"] = "gray_wool";
+    Blocks["LIGHT_GRAY_WOOL"] = "light_gray_wool";
+    Blocks["CYAN_WOOL"] = "cyan_wool";
+    Blocks["PURPLE_WOOL"] = "purple_wool";
+    Blocks["BLUE_WOOL"] = "blue_wool";
+    Blocks["BROWN_WOOL"] = "brown_wool";
+    Blocks["GREEN_WOOL"] = "green_wool";
+    Blocks["RED_WOOL"] = "red_wool";
+    Blocks["BLACK_WOOL"] = "black_wool";
+    Blocks["MOVING_PISTON"] = "moving_piston";
+    Blocks["DANDELION"] = "dandelion";
+    Blocks["POPPY"] = "poppy";
+    Blocks["BLUE_ORCHID"] = "blue_orchid";
+    Blocks["ALLIUM"] = "allium";
+    Blocks["AZURE_BLUET"] = "azure_bluet";
+    Blocks["RED_TULIP"] = "red_tulip";
+    Blocks["ORANGE_TULIP"] = "orange_tulip";
+    Blocks["WHITE_TULIP"] = "white_tulip";
+    Blocks["PINK_TULIP"] = "pink_tulip";
+    Blocks["OXEYE_DAISY"] = "oxeye_daisy";
+    Blocks["CORNFLOWER"] = "cornflower";
+    Blocks["WITHER_ROSE"] = "wither_rose";
+    Blocks["LILY_OF_THE_VALLEY"] = "lily_of_the_valley";
+    Blocks["BROWN_MUSHROOM"] = "brown_mushroom";
+    Blocks["RED_MUSHROOM"] = "red_mushroom";
+    Blocks["GOLD_BLOCK"] = "gold_block";
+    Blocks["IRON_BLOCK"] = "iron_block";
+    Blocks["BRICKS"] = "bricks";
+    Blocks["TNT"] = "tnt";
+    Blocks["BOOKSHELF"] = "bookshelf";
+    Blocks["MOSSY_COBBLESTONE"] = "mossy_cobblestone";
+    Blocks["OBSIDIAN"] = "obsidian";
+    Blocks["TORCH"] = "torch";
+    Blocks["WALL_TORCH"] = "wall_torch";
+    Blocks["FIRE"] = "fire";
+    Blocks["SOUL_FIRE"] = "soul_fire";
+    Blocks["SPAWNER"] = "spawner";
+    Blocks["OAK_STAIRS"] = "oak_stairs";
+    Blocks["CHEST"] = "chest";
+    Blocks["REDSTONE_WIRE"] = "redstone_wire";
+    Blocks["DIAMOND_ORE"] = "diamond_ore";
+    Blocks["DEEPSLATE_DIAMOND_ORE"] = "deepslate_diamond_ore";
+    Blocks["DIAMOND_BLOCK"] = "diamond_block";
+    Blocks["CRAFTING_TABLE"] = "crafting_table";
+    Blocks["WHEAT"] = "wheat";
+    Blocks["FARMLAND"] = "farmland";
+    Blocks["FURNACE"] = "furnace";
+    Blocks["OAK_SIGN"] = "oak_sign";
+    Blocks["SPRUCE_SIGN"] = "spruce_sign";
+    Blocks["BIRCH_SIGN"] = "birch_sign";
+    Blocks["ACACIA_SIGN"] = "acacia_sign";
+    Blocks["JUNGLE_SIGN"] = "jungle_sign";
+    Blocks["DARK_OAK_SIGN"] = "dark_oak_sign";
+    Blocks["OAK_DOOR"] = "oak_door";
+    Blocks["LADDER"] = "ladder";
+    Blocks["RAIL"] = "rail";
+    Blocks["COBBLESTONE_STAIRS"] = "cobblestone_stairs";
+    Blocks["OAK_WALL_SIGN"] = "oak_wall_sign";
+    Blocks["SPRUCE_WALL_SIGN"] = "spruce_wall_sign";
+    Blocks["BIRCH_WALL_SIGN"] = "birch_wall_sign";
+    Blocks["ACACIA_WALL_SIGN"] = "acacia_wall_sign";
+    Blocks["JUNGLE_WALL_SIGN"] = "jungle_wall_sign";
+    Blocks["DARK_OAK_WALL_SIGN"] = "dark_oak_wall_sign";
+    Blocks["LEVER"] = "lever";
+    Blocks["STONE_PRESSURE_PLATE"] = "stone_pressure_plate";
+    Blocks["IRON_DOOR"] = "iron_door";
+    Blocks["OAK_PRESSURE_PLATE"] = "oak_pressure_plate";
+    Blocks["SPRUCE_PRESSURE_PLATE"] = "spruce_pressure_plate";
+    Blocks["BIRCH_PRESSURE_PLATE"] = "birch_pressure_plate";
+    Blocks["JUNGLE_PRESSURE_PLATE"] = "jungle_pressure_plate";
+    Blocks["ACACIA_PRESSURE_PLATE"] = "acacia_pressure_plate";
+    Blocks["DARK_OAK_PRESSURE_PLATE"] = "dark_oak_pressure_plate";
+    Blocks["REDSTONE_ORE"] = "redstone_ore";
+    Blocks["DEEPSLATE_REDSTONE_ORE"] = "deepslate_redstone_ore";
+    Blocks["REDSTONE_TORCH"] = "redstone_torch";
+    Blocks["REDSTONE_WALL_TORCH"] = "redstone_wall_torch";
+    Blocks["STONE_BUTTON"] = "stone_button";
+    Blocks["SNOW"] = "snow";
+    Blocks["ICE"] = "ice";
+    Blocks["SNOW_BLOCK"] = "snow_block";
+    Blocks["CACTUS"] = "cactus";
+    Blocks["CLAY"] = "clay";
+    Blocks["SUGAR_CANE"] = "sugar_cane";
+    Blocks["JUKEBOX"] = "jukebox";
+    Blocks["OAK_FENCE"] = "oak_fence";
+    Blocks["PUMPKIN"] = "pumpkin";
+    Blocks["NETHERRACK"] = "netherrack";
+    Blocks["SOUL_SAND"] = "soul_sand";
+    Blocks["SOUL_SOIL"] = "soul_soil";
+    Blocks["BASALT"] = "basalt";
+    Blocks["POLISHED_BASALT"] = "polished_basalt";
+    Blocks["SOUL_TORCH"] = "soul_torch";
+    Blocks["SOUL_WALL_TORCH"] = "soul_wall_torch";
+    Blocks["GLOWSTONE"] = "glowstone";
+    Blocks["NETHER_PORTAL"] = "nether_portal";
+    Blocks["CARVED_PUMPKIN"] = "carved_pumpkin";
+    Blocks["JACK_O_LANTERN"] = "jack_o_lantern";
+    Blocks["CAKE"] = "cake";
+    Blocks["REPEATER"] = "repeater";
+    Blocks["WHITE_STAINED_GLASS"] = "white_stained_glass";
+    Blocks["ORANGE_STAINED_GLASS"] = "orange_stained_glass";
+    Blocks["MAGENTA_STAINED_GLASS"] = "magenta_stained_glass";
+    Blocks["LIGHT_BLUE_STAINED_GLASS"] = "light_blue_stained_glass";
+    Blocks["YELLOW_STAINED_GLASS"] = "yellow_stained_glass";
+    Blocks["LIME_STAINED_GLASS"] = "lime_stained_glass";
+    Blocks["PINK_STAINED_GLASS"] = "pink_stained_glass";
+    Blocks["GRAY_STAINED_GLASS"] = "gray_stained_glass";
+    Blocks["LIGHT_GRAY_STAINED_GLASS"] = "light_gray_stained_glass";
+    Blocks["CYAN_STAINED_GLASS"] = "cyan_stained_glass";
+    Blocks["PURPLE_STAINED_GLASS"] = "purple_stained_glass";
+    Blocks["BLUE_STAINED_GLASS"] = "blue_stained_glass";
+    Blocks["BROWN_STAINED_GLASS"] = "brown_stained_glass";
+    Blocks["GREEN_STAINED_GLASS"] = "green_stained_glass";
+    Blocks["RED_STAINED_GLASS"] = "red_stained_glass";
+    Blocks["BLACK_STAINED_GLASS"] = "black_stained_glass";
+    Blocks["OAK_TRAPDOOR"] = "oak_trapdoor";
+    Blocks["SPRUCE_TRAPDOOR"] = "spruce_trapdoor";
+    Blocks["BIRCH_TRAPDOOR"] = "birch_trapdoor";
+    Blocks["JUNGLE_TRAPDOOR"] = "jungle_trapdoor";
+    Blocks["ACACIA_TRAPDOOR"] = "acacia_trapdoor";
+    Blocks["DARK_OAK_TRAPDOOR"] = "dark_oak_trapdoor";
+    Blocks["STONE_BRICKS"] = "stone_bricks";
+    Blocks["MOSSY_STONE_BRICKS"] = "mossy_stone_bricks";
+    Blocks["CRACKED_STONE_BRICKS"] = "cracked_stone_bricks";
+    Blocks["CHISELED_STONE_BRICKS"] = "chiseled_stone_bricks";
+    Blocks["INFESTED_STONE"] = "infested_stone";
+    Blocks["INFESTED_COBBLESTONE"] = "infested_cobblestone";
+    Blocks["INFESTED_STONE_BRICKS"] = "infested_stone_bricks";
+    Blocks["INFESTED_MOSSY_STONE_BRICKS"] = "infested_mossy_stone_bricks";
+    Blocks["INFESTED_CRACKED_STONE_BRICKS"] = "infested_cracked_stone_bricks";
+    Blocks["INFESTED_CHISELED_STONE_BRICKS"] = "infested_chiseled_stone_bricks";
+    Blocks["BROWN_MUSHROOM_BLOCK"] = "brown_mushroom_block";
+    Blocks["RED_MUSHROOM_BLOCK"] = "red_mushroom_block";
+    Blocks["MUSHROOM_STEM"] = "mushroom_stem";
+    Blocks["IRON_BARS"] = "iron_bars";
+    Blocks["CHAIN"] = "chain";
+    Blocks["GLASS_PANE"] = "glass_pane";
+    Blocks["MELON"] = "melon";
+    Blocks["ATTACHED_PUMPKIN_STEM"] = "attached_pumpkin_stem";
+    Blocks["ATTACHED_MELON_STEM"] = "attached_melon_stem";
+    Blocks["PUMPKIN_STEM"] = "pumpkin_stem";
+    Blocks["MELON_STEM"] = "melon_stem";
+    Blocks["VINE"] = "vine";
+    Blocks["GLOW_LICHEN"] = "glow_lichen";
+    Blocks["OAK_FENCE_GATE"] = "oak_fence_gate";
+    Blocks["BRICK_STAIRS"] = "brick_stairs";
+    Blocks["STONE_BRICK_STAIRS"] = "stone_brick_stairs";
+    Blocks["MYCELIUM"] = "mycelium";
+    Blocks["LILY_PAD"] = "lily_pad";
+    Blocks["NETHER_BRICKS"] = "nether_bricks";
+    Blocks["NETHER_BRICK_FENCE"] = "nether_brick_fence";
+    Blocks["NETHER_BRICK_STAIRS"] = "nether_brick_stairs";
+    Blocks["NETHER_WART"] = "nether_wart";
+    Blocks["ENCHANTING_TABLE"] = "enchanting_table";
+    Blocks["BREWING_STAND"] = "brewing_stand";
+    Blocks["CAULDRON"] = "cauldron";
+    Blocks["WATER_CAULDRON"] = "water_cauldron";
+    Blocks["LAVA_CAULDRON"] = "lava_cauldron";
+    Blocks["POWDER_SNOW_CAULDRON"] = "powder_snow_cauldron";
+    Blocks["END_PORTAL"] = "end_portal";
+    Blocks["END_PORTAL_FRAME"] = "end_portal_frame";
+    Blocks["END_STONE"] = "end_stone";
+    Blocks["DRAGON_EGG"] = "dragon_egg";
+    Blocks["REDSTONE_LAMP"] = "redstone_lamp";
+    Blocks["COCOA"] = "cocoa";
+    Blocks["SANDSTONE_STAIRS"] = "sandstone_stairs";
+    Blocks["EMERALD_ORE"] = "emerald_ore";
+    Blocks["DEEPSLATE_EMERALD_ORE"] = "deepslate_emerald_ore";
+    Blocks["ENDER_CHEST"] = "ender_chest";
+    Blocks["TRIPWIRE_HOOK"] = "tripwire_hook";
+    Blocks["TRIPWIRE"] = "tripwire";
+    Blocks["EMERALD_BLOCK"] = "emerald_block";
+    Blocks["SPRUCE_STAIRS"] = "spruce_stairs";
+    Blocks["BIRCH_STAIRS"] = "birch_stairs";
+    Blocks["JUNGLE_STAIRS"] = "jungle_stairs";
+    Blocks["COMMAND_BLOCK"] = "command_block";
+    Blocks["BEACON"] = "beacon";
+    Blocks["COBBLESTONE_WALL"] = "cobblestone_wall";
+    Blocks["MOSSY_COBBLESTONE_WALL"] = "mossy_cobblestone_wall";
+    Blocks["FLOWER_POT"] = "flower_pot";
+    Blocks["POTTED_OAK_SAPLING"] = "potted_oak_sapling";
+    Blocks["POTTED_SPRUCE_SAPLING"] = "potted_spruce_sapling";
+    Blocks["POTTED_BIRCH_SAPLING"] = "potted_birch_sapling";
+    Blocks["POTTED_JUNGLE_SAPLING"] = "potted_jungle_sapling";
+    Blocks["POTTED_ACACIA_SAPLING"] = "potted_acacia_sapling";
+    Blocks["POTTED_DARK_OAK_SAPLING"] = "potted_dark_oak_sapling";
+    Blocks["POTTED_FERN"] = "potted_fern";
+    Blocks["POTTED_DANDELION"] = "potted_dandelion";
+    Blocks["POTTED_POPPY"] = "potted_poppy";
+    Blocks["POTTED_BLUE_ORCHID"] = "potted_blue_orchid";
+    Blocks["POTTED_ALLIUM"] = "potted_allium";
+    Blocks["POTTED_AZURE_BLUET"] = "potted_azure_bluet";
+    Blocks["POTTED_RED_TULIP"] = "potted_red_tulip";
+    Blocks["POTTED_ORANGE_TULIP"] = "potted_orange_tulip";
+    Blocks["POTTED_WHITE_TULIP"] = "potted_white_tulip";
+    Blocks["POTTED_PINK_TULIP"] = "potted_pink_tulip";
+    Blocks["POTTED_OXEYE_DAISY"] = "potted_oxeye_daisy";
+    Blocks["POTTED_CORNFLOWER"] = "potted_cornflower";
+    Blocks["POTTED_LILY_OF_THE_VALLEY"] = "potted_lily_of_the_valley";
+    Blocks["POTTED_WITHER_ROSE"] = "potted_wither_rose";
+    Blocks["POTTED_RED_MUSHROOM"] = "potted_red_mushroom";
+    Blocks["POTTED_BROWN_MUSHROOM"] = "potted_brown_mushroom";
+    Blocks["POTTED_DEAD_BUSH"] = "potted_dead_bush";
+    Blocks["POTTED_CACTUS"] = "potted_cactus";
+    Blocks["CARROTS"] = "carrots";
+    Blocks["POTATOES"] = "potatoes";
+    Blocks["OAK_BUTTON"] = "oak_button";
+    Blocks["SPRUCE_BUTTON"] = "spruce_button";
+    Blocks["BIRCH_BUTTON"] = "birch_button";
+    Blocks["JUNGLE_BUTTON"] = "jungle_button";
+    Blocks["ACACIA_BUTTON"] = "acacia_button";
+    Blocks["DARK_OAK_BUTTON"] = "dark_oak_button";
+    Blocks["SKELETON_SKULL"] = "skeleton_skull";
+    Blocks["SKELETON_WALL_SKULL"] = "skeleton_wall_skull";
+    Blocks["WITHER_SKELETON_SKULL"] = "wither_skeleton_skull";
+    Blocks["WITHER_SKELETON_WALL_SKULL"] = "wither_skeleton_wall_skull";
+    Blocks["ZOMBIE_HEAD"] = "zombie_head";
+    Blocks["ZOMBIE_WALL_HEAD"] = "zombie_wall_head";
+    Blocks["PLAYER_HEAD"] = "player_head";
+    Blocks["PLAYER_WALL_HEAD"] = "player_wall_head";
+    Blocks["CREEPER_HEAD"] = "creeper_head";
+    Blocks["CREEPER_WALL_HEAD"] = "creeper_wall_head";
+    Blocks["DRAGON_HEAD"] = "dragon_head";
+    Blocks["DRAGON_WALL_HEAD"] = "dragon_wall_head";
+    Blocks["ANVIL"] = "anvil";
+    Blocks["CHIPPED_ANVIL"] = "chipped_anvil";
+    Blocks["DAMAGED_ANVIL"] = "damaged_anvil";
+    Blocks["TRAPPED_CHEST"] = "trapped_chest";
+    Blocks["LIGHT_WEIGHTED_PRESSURE_PLATE"] = "light_weighted_pressure_plate";
+    Blocks["HEAVY_WEIGHTED_PRESSURE_PLATE"] = "heavy_weighted_pressure_plate";
+    Blocks["COMPARATOR"] = "comparator";
+    Blocks["DAYLIGHT_DETECTOR"] = "daylight_detector";
+    Blocks["REDSTONE_BLOCK"] = "redstone_block";
+    Blocks["NETHER_QUARTZ_ORE"] = "nether_quartz_ore";
+    Blocks["HOPPER"] = "hopper";
+    Blocks["QUARTZ_BLOCK"] = "quartz_block";
+    Blocks["CHISELED_QUARTZ_BLOCK"] = "chiseled_quartz_block";
+    Blocks["QUARTZ_PILLAR"] = "quartz_pillar";
+    Blocks["QUARTZ_STAIRS"] = "quartz_stairs";
+    Blocks["ACTIVATOR_RAIL"] = "activator_rail";
+    Blocks["DROPPER"] = "dropper";
+    Blocks["WHITE_TERRACOTTA"] = "white_terracotta";
+    Blocks["ORANGE_TERRACOTTA"] = "orange_terracotta";
+    Blocks["MAGENTA_TERRACOTTA"] = "magenta_terracotta";
+    Blocks["LIGHT_BLUE_TERRACOTTA"] = "light_blue_terracotta";
+    Blocks["YELLOW_TERRACOTTA"] = "yellow_terracotta";
+    Blocks["LIME_TERRACOTTA"] = "lime_terracotta";
+    Blocks["PINK_TERRACOTTA"] = "pink_terracotta";
+    Blocks["GRAY_TERRACOTTA"] = "gray_terracotta";
+    Blocks["LIGHT_GRAY_TERRACOTTA"] = "light_gray_terracotta";
+    Blocks["CYAN_TERRACOTTA"] = "cyan_terracotta";
+    Blocks["PURPLE_TERRACOTTA"] = "purple_terracotta";
+    Blocks["BLUE_TERRACOTTA"] = "blue_terracotta";
+    Blocks["BROWN_TERRACOTTA"] = "brown_terracotta";
+    Blocks["GREEN_TERRACOTTA"] = "green_terracotta";
+    Blocks["RED_TERRACOTTA"] = "red_terracotta";
+    Blocks["BLACK_TERRACOTTA"] = "black_terracotta";
+    Blocks["WHITE_STAINED_GLASS_PANE"] = "white_stained_glass_pane";
+    Blocks["ORANGE_STAINED_GLASS_PANE"] = "orange_stained_glass_pane";
+    Blocks["MAGENTA_STAINED_GLASS_PANE"] = "magenta_stained_glass_pane";
+    Blocks["LIGHT_BLUE_STAINED_GLASS_PANE"] = "light_blue_stained_glass_pane";
+    Blocks["YELLOW_STAINED_GLASS_PANE"] = "yellow_stained_glass_pane";
+    Blocks["LIME_STAINED_GLASS_PANE"] = "lime_stained_glass_pane";
+    Blocks["PINK_STAINED_GLASS_PANE"] = "pink_stained_glass_pane";
+    Blocks["GRAY_STAINED_GLASS_PANE"] = "gray_stained_glass_pane";
+    Blocks["LIGHT_GRAY_STAINED_GLASS_PANE"] = "light_gray_stained_glass_pane";
+    Blocks["CYAN_STAINED_GLASS_PANE"] = "cyan_stained_glass_pane";
+    Blocks["PURPLE_STAINED_GLASS_PANE"] = "purple_stained_glass_pane";
+    Blocks["BLUE_STAINED_GLASS_PANE"] = "blue_stained_glass_pane";
+    Blocks["BROWN_STAINED_GLASS_PANE"] = "brown_stained_glass_pane";
+    Blocks["GREEN_STAINED_GLASS_PANE"] = "green_stained_glass_pane";
+    Blocks["RED_STAINED_GLASS_PANE"] = "red_stained_glass_pane";
+    Blocks["BLACK_STAINED_GLASS_PANE"] = "black_stained_glass_pane";
+    Blocks["ACACIA_STAIRS"] = "acacia_stairs";
+    Blocks["DARK_OAK_STAIRS"] = "dark_oak_stairs";
+    Blocks["SLIME_BLOCK"] = "slime_block";
+    Blocks["BARRIER"] = "barrier";
+    Blocks["LIGHT"] = "light";
+    Blocks["IRON_TRAPDOOR"] = "iron_trapdoor";
+    Blocks["PRISMARINE"] = "prismarine";
+    Blocks["PRISMARINE_BRICKS"] = "prismarine_bricks";
+    Blocks["DARK_PRISMARINE"] = "dark_prismarine";
+    Blocks["PRISMARINE_STAIRS"] = "prismarine_stairs";
+    Blocks["PRISMARINE_BRICK_STAIRS"] = "prismarine_brick_stairs";
+    Blocks["DARK_PRISMARINE_STAIRS"] = "dark_prismarine_stairs";
+    Blocks["PRISMARINE_SLAB"] = "prismarine_slab";
+    Blocks["PRISMARINE_BRICK_SLAB"] = "prismarine_brick_slab";
+    Blocks["DARK_PRISMARINE_SLAB"] = "dark_prismarine_slab";
+    Blocks["SEA_LANTERN"] = "sea_lantern";
+    Blocks["HAY_BLOCK"] = "hay_block";
+    Blocks["WHITE_CARPET"] = "white_carpet";
+    Blocks["ORANGE_CARPET"] = "orange_carpet";
+    Blocks["MAGENTA_CARPET"] = "magenta_carpet";
+    Blocks["LIGHT_BLUE_CARPET"] = "light_blue_carpet";
+    Blocks["YELLOW_CARPET"] = "yellow_carpet";
+    Blocks["LIME_CARPET"] = "lime_carpet";
+    Blocks["PINK_CARPET"] = "pink_carpet";
+    Blocks["GRAY_CARPET"] = "gray_carpet";
+    Blocks["LIGHT_GRAY_CARPET"] = "light_gray_carpet";
+    Blocks["CYAN_CARPET"] = "cyan_carpet";
+    Blocks["PURPLE_CARPET"] = "purple_carpet";
+    Blocks["BLUE_CARPET"] = "blue_carpet";
+    Blocks["BROWN_CARPET"] = "brown_carpet";
+    Blocks["GREEN_CARPET"] = "green_carpet";
+    Blocks["RED_CARPET"] = "red_carpet";
+    Blocks["BLACK_CARPET"] = "black_carpet";
+    Blocks["TERRACOTTA"] = "terracotta";
+    Blocks["COAL_BLOCK"] = "coal_block";
+    Blocks["PACKED_ICE"] = "packed_ice";
+    Blocks["SUNFLOWER"] = "sunflower";
+    Blocks["LILAC"] = "lilac";
+    Blocks["ROSE_BUSH"] = "rose_bush";
+    Blocks["PEONY"] = "peony";
+    Blocks["TALL_GRASS"] = "tall_grass";
+    Blocks["LARGE_FERN"] = "large_fern";
+    Blocks["WHITE_BANNER"] = "white_banner";
+    Blocks["ORANGE_BANNER"] = "orange_banner";
+    Blocks["MAGENTA_BANNER"] = "magenta_banner";
+    Blocks["LIGHT_BLUE_BANNER"] = "light_blue_banner";
+    Blocks["YELLOW_BANNER"] = "yellow_banner";
+    Blocks["LIME_BANNER"] = "lime_banner";
+    Blocks["PINK_BANNER"] = "pink_banner";
+    Blocks["GRAY_BANNER"] = "gray_banner";
+    Blocks["LIGHT_GRAY_BANNER"] = "light_gray_banner";
+    Blocks["CYAN_BANNER"] = "cyan_banner";
+    Blocks["PURPLE_BANNER"] = "purple_banner";
+    Blocks["BLUE_BANNER"] = "blue_banner";
+    Blocks["BROWN_BANNER"] = "brown_banner";
+    Blocks["GREEN_BANNER"] = "green_banner";
+    Blocks["RED_BANNER"] = "red_banner";
+    Blocks["BLACK_BANNER"] = "black_banner";
+    Blocks["WHITE_WALL_BANNER"] = "white_wall_banner";
+    Blocks["ORANGE_WALL_BANNER"] = "orange_wall_banner";
+    Blocks["MAGENTA_WALL_BANNER"] = "magenta_wall_banner";
+    Blocks["LIGHT_BLUE_WALL_BANNER"] = "light_blue_wall_banner";
+    Blocks["YELLOW_WALL_BANNER"] = "yellow_wall_banner";
+    Blocks["LIME_WALL_BANNER"] = "lime_wall_banner";
+    Blocks["PINK_WALL_BANNER"] = "pink_wall_banner";
+    Blocks["GRAY_WALL_BANNER"] = "gray_wall_banner";
+    Blocks["LIGHT_GRAY_WALL_BANNER"] = "light_gray_wall_banner";
+    Blocks["CYAN_WALL_BANNER"] = "cyan_wall_banner";
+    Blocks["PURPLE_WALL_BANNER"] = "purple_wall_banner";
+    Blocks["BLUE_WALL_BANNER"] = "blue_wall_banner";
+    Blocks["BROWN_WALL_BANNER"] = "brown_wall_banner";
+    Blocks["GREEN_WALL_BANNER"] = "green_wall_banner";
+    Blocks["RED_WALL_BANNER"] = "red_wall_banner";
+    Blocks["BLACK_WALL_BANNER"] = "black_wall_banner";
+    Blocks["RED_SANDSTONE"] = "red_sandstone";
+    Blocks["CHISELED_RED_SANDSTONE"] = "chiseled_red_sandstone";
+    Blocks["CUT_RED_SANDSTONE"] = "cut_red_sandstone";
+    Blocks["RED_SANDSTONE_STAIRS"] = "red_sandstone_stairs";
+    Blocks["OAK_SLAB"] = "oak_slab";
+    Blocks["SPRUCE_SLAB"] = "spruce_slab";
+    Blocks["BIRCH_SLAB"] = "birch_slab";
+    Blocks["JUNGLE_SLAB"] = "jungle_slab";
+    Blocks["ACACIA_SLAB"] = "acacia_slab";
+    Blocks["DARK_OAK_SLAB"] = "dark_oak_slab";
+    Blocks["STONE_SLAB"] = "stone_slab";
+    Blocks["SMOOTH_STONE_SLAB"] = "smooth_stone_slab";
+    Blocks["SANDSTONE_SLAB"] = "sandstone_slab";
+    Blocks["CUT_SANDSTONE_SLAB"] = "cut_sandstone_slab";
+    Blocks["PETRIFIED_OAK_SLAB"] = "petrified_oak_slab";
+    Blocks["COBBLESTONE_SLAB"] = "cobblestone_slab";
+    Blocks["BRICK_SLAB"] = "brick_slab";
+    Blocks["STONE_BRICK_SLAB"] = "stone_brick_slab";
+    Blocks["NETHER_BRICK_SLAB"] = "nether_brick_slab";
+    Blocks["QUARTZ_SLAB"] = "quartz_slab";
+    Blocks["RED_SANDSTONE_SLAB"] = "red_sandstone_slab";
+    Blocks["CUT_RED_SANDSTONE_SLAB"] = "cut_red_sandstone_slab";
+    Blocks["PURPUR_SLAB"] = "purpur_slab";
+    Blocks["SMOOTH_STONE"] = "smooth_stone";
+    Blocks["SMOOTH_SANDSTONE"] = "smooth_sandstone";
+    Blocks["SMOOTH_QUARTZ"] = "smooth_quartz";
+    Blocks["SMOOTH_RED_SANDSTONE"] = "smooth_red_sandstone";
+    Blocks["SPRUCE_FENCE_GATE"] = "spruce_fence_gate";
+    Blocks["BIRCH_FENCE_GATE"] = "birch_fence_gate";
+    Blocks["JUNGLE_FENCE_GATE"] = "jungle_fence_gate";
+    Blocks["ACACIA_FENCE_GATE"] = "acacia_fence_gate";
+    Blocks["DARK_OAK_FENCE_GATE"] = "dark_oak_fence_gate";
+    Blocks["SPRUCE_FENCE"] = "spruce_fence";
+    Blocks["BIRCH_FENCE"] = "birch_fence";
+    Blocks["JUNGLE_FENCE"] = "jungle_fence";
+    Blocks["ACACIA_FENCE"] = "acacia_fence";
+    Blocks["DARK_OAK_FENCE"] = "dark_oak_fence";
+    Blocks["SPRUCE_DOOR"] = "spruce_door";
+    Blocks["BIRCH_DOOR"] = "birch_door";
+    Blocks["JUNGLE_DOOR"] = "jungle_door";
+    Blocks["ACACIA_DOOR"] = "acacia_door";
+    Blocks["DARK_OAK_DOOR"] = "dark_oak_door";
+    Blocks["END_ROD"] = "end_rod";
+    Blocks["CHORUS_PLANT"] = "chorus_plant";
+    Blocks["CHORUS_FLOWER"] = "chorus_flower";
+    Blocks["PURPUR_BLOCK"] = "purpur_block";
+    Blocks["PURPUR_PILLAR"] = "purpur_pillar";
+    Blocks["PURPUR_STAIRS"] = "purpur_stairs";
+    Blocks["END_STONE_BRICKS"] = "end_stone_bricks";
+    Blocks["BEETROOTS"] = "beetroots";
+    Blocks["DIRT_PATH"] = "dirt_path";
+    Blocks["END_GATEWAY"] = "end_gateway";
+    Blocks["REPEATING_COMMAND_BLOCK"] = "repeating_command_block";
+    Blocks["CHAIN_COMMAND_BLOCK"] = "chain_command_block";
+    Blocks["FROSTED_ICE"] = "frosted_ice";
+    Blocks["MAGMA_BLOCK"] = "magma_block";
+    Blocks["NETHER_WART_BLOCK"] = "nether_wart_block";
+    Blocks["RED_NETHER_BRICKS"] = "red_nether_bricks";
+    Blocks["BONE_BLOCK"] = "bone_block";
+    Blocks["STRUCTURE_VOID"] = "structure_void";
+    Blocks["OBSERVER"] = "observer";
+    Blocks["SHULKER_BOX"] = "shulker_box";
+    Blocks["WHITE_SHULKER_BOX"] = "white_shulker_box";
+    Blocks["ORANGE_SHULKER_BOX"] = "orange_shulker_box";
+    Blocks["MAGENTA_SHULKER_BOX"] = "magenta_shulker_box";
+    Blocks["LIGHT_BLUE_SHULKER_BOX"] = "light_blue_shulker_box";
+    Blocks["YELLOW_SHULKER_BOX"] = "yellow_shulker_box";
+    Blocks["LIME_SHULKER_BOX"] = "lime_shulker_box";
+    Blocks["PINK_SHULKER_BOX"] = "pink_shulker_box";
+    Blocks["GRAY_SHULKER_BOX"] = "gray_shulker_box";
+    Blocks["LIGHT_GRAY_SHULKER_BOX"] = "light_gray_shulker_box";
+    Blocks["CYAN_SHULKER_BOX"] = "cyan_shulker_box";
+    Blocks["PURPLE_SHULKER_BOX"] = "purple_shulker_box";
+    Blocks["BLUE_SHULKER_BOX"] = "blue_shulker_box";
+    Blocks["BROWN_SHULKER_BOX"] = "brown_shulker_box";
+    Blocks["GREEN_SHULKER_BOX"] = "green_shulker_box";
+    Blocks["RED_SHULKER_BOX"] = "red_shulker_box";
+    Blocks["BLACK_SHULKER_BOX"] = "black_shulker_box";
+    Blocks["WHITE_GLAZED_TERRACOTTA"] = "white_glazed_terracotta";
+    Blocks["ORANGE_GLAZED_TERRACOTTA"] = "orange_glazed_terracotta";
+    Blocks["MAGENTA_GLAZED_TERRACOTTA"] = "magenta_glazed_terracotta";
+    Blocks["LIGHT_BLUE_GLAZED_TERRACOTTA"] = "light_blue_glazed_terracotta";
+    Blocks["YELLOW_GLAZED_TERRACOTTA"] = "yellow_glazed_terracotta";
+    Blocks["LIME_GLAZED_TERRACOTTA"] = "lime_glazed_terracotta";
+    Blocks["PINK_GLAZED_TERRACOTTA"] = "pink_glazed_terracotta";
+    Blocks["GRAY_GLAZED_TERRACOTTA"] = "gray_glazed_terracotta";
+    Blocks["LIGHT_GRAY_GLAZED_TERRACOTTA"] = "light_gray_glazed_terracotta";
+    Blocks["CYAN_GLAZED_TERRACOTTA"] = "cyan_glazed_terracotta";
+    Blocks["PURPLE_GLAZED_TERRACOTTA"] = "purple_glazed_terracotta";
+    Blocks["BLUE_GLAZED_TERRACOTTA"] = "blue_glazed_terracotta";
+    Blocks["BROWN_GLAZED_TERRACOTTA"] = "brown_glazed_terracotta";
+    Blocks["GREEN_GLAZED_TERRACOTTA"] = "green_glazed_terracotta";
+    Blocks["RED_GLAZED_TERRACOTTA"] = "red_glazed_terracotta";
+    Blocks["BLACK_GLAZED_TERRACOTTA"] = "black_glazed_terracotta";
+    Blocks["WHITE_CONCRETE"] = "white_concrete";
+    Blocks["ORANGE_CONCRETE"] = "orange_concrete";
+    Blocks["MAGENTA_CONCRETE"] = "magenta_concrete";
+    Blocks["LIGHT_BLUE_CONCRETE"] = "light_blue_concrete";
+    Blocks["YELLOW_CONCRETE"] = "yellow_concrete";
+    Blocks["LIME_CONCRETE"] = "lime_concrete";
+    Blocks["PINK_CONCRETE"] = "pink_concrete";
+    Blocks["GRAY_CONCRETE"] = "gray_concrete";
+    Blocks["LIGHT_GRAY_CONCRETE"] = "light_gray_concrete";
+    Blocks["CYAN_CONCRETE"] = "cyan_concrete";
+    Blocks["PURPLE_CONCRETE"] = "purple_concrete";
+    Blocks["BLUE_CONCRETE"] = "blue_concrete";
+    Blocks["BROWN_CONCRETE"] = "brown_concrete";
+    Blocks["GREEN_CONCRETE"] = "green_concrete";
+    Blocks["RED_CONCRETE"] = "red_concrete";
+    Blocks["BLACK_CONCRETE"] = "black_concrete";
+    Blocks["WHITE_CONCRETE_POWDER"] = "white_concrete_powder";
+    Blocks["ORANGE_CONCRETE_POWDER"] = "orange_concrete_powder";
+    Blocks["MAGENTA_CONCRETE_POWDER"] = "magenta_concrete_powder";
+    Blocks["LIGHT_BLUE_CONCRETE_POWDER"] = "light_blue_concrete_powder";
+    Blocks["YELLOW_CONCRETE_POWDER"] = "yellow_concrete_powder";
+    Blocks["LIME_CONCRETE_POWDER"] = "lime_concrete_powder";
+    Blocks["PINK_CONCRETE_POWDER"] = "pink_concrete_powder";
+    Blocks["GRAY_CONCRETE_POWDER"] = "gray_concrete_powder";
+    Blocks["LIGHT_GRAY_CONCRETE_POWDER"] = "light_gray_concrete_powder";
+    Blocks["CYAN_CONCRETE_POWDER"] = "cyan_concrete_powder";
+    Blocks["PURPLE_CONCRETE_POWDER"] = "purple_concrete_powder";
+    Blocks["BLUE_CONCRETE_POWDER"] = "blue_concrete_powder";
+    Blocks["BROWN_CONCRETE_POWDER"] = "brown_concrete_powder";
+    Blocks["GREEN_CONCRETE_POWDER"] = "green_concrete_powder";
+    Blocks["RED_CONCRETE_POWDER"] = "red_concrete_powder";
+    Blocks["BLACK_CONCRETE_POWDER"] = "black_concrete_powder";
+    Blocks["KELP"] = "kelp";
+    Blocks["KELP_PLANT"] = "kelp_plant";
+    Blocks["DRIED_KELP_BLOCK"] = "dried_kelp_block";
+    Blocks["TURTLE_EGG"] = "turtle_egg";
+    Blocks["DEAD_TUBE_CORAL_BLOCK"] = "dead_tube_coral_block";
+    Blocks["DEAD_BRAIN_CORAL_BLOCK"] = "dead_brain_coral_block";
+    Blocks["DEAD_BUBBLE_CORAL_BLOCK"] = "dead_bubble_coral_block";
+    Blocks["DEAD_FIRE_CORAL_BLOCK"] = "dead_fire_coral_block";
+    Blocks["DEAD_HORN_CORAL_BLOCK"] = "dead_horn_coral_block";
+    Blocks["TUBE_CORAL_BLOCK"] = "tube_coral_block";
+    Blocks["BRAIN_CORAL_BLOCK"] = "brain_coral_block";
+    Blocks["BUBBLE_CORAL_BLOCK"] = "bubble_coral_block";
+    Blocks["FIRE_CORAL_BLOCK"] = "fire_coral_block";
+    Blocks["HORN_CORAL_BLOCK"] = "horn_coral_block";
+    Blocks["DEAD_TUBE_CORAL"] = "dead_tube_coral";
+    Blocks["DEAD_BRAIN_CORAL"] = "dead_brain_coral";
+    Blocks["DEAD_BUBBLE_CORAL"] = "dead_bubble_coral";
+    Blocks["DEAD_FIRE_CORAL"] = "dead_fire_coral";
+    Blocks["DEAD_HORN_CORAL"] = "dead_horn_coral";
+    Blocks["TUBE_CORAL"] = "tube_coral";
+    Blocks["BRAIN_CORAL"] = "brain_coral";
+    Blocks["BUBBLE_CORAL"] = "bubble_coral";
+    Blocks["FIRE_CORAL"] = "fire_coral";
+    Blocks["HORN_CORAL"] = "horn_coral";
+    Blocks["DEAD_TUBE_CORAL_FAN"] = "dead_tube_coral_fan";
+    Blocks["DEAD_BRAIN_CORAL_FAN"] = "dead_brain_coral_fan";
+    Blocks["DEAD_BUBBLE_CORAL_FAN"] = "dead_bubble_coral_fan";
+    Blocks["DEAD_FIRE_CORAL_FAN"] = "dead_fire_coral_fan";
+    Blocks["DEAD_HORN_CORAL_FAN"] = "dead_horn_coral_fan";
+    Blocks["TUBE_CORAL_FAN"] = "tube_coral_fan";
+    Blocks["BRAIN_CORAL_FAN"] = "brain_coral_fan";
+    Blocks["BUBBLE_CORAL_FAN"] = "bubble_coral_fan";
+    Blocks["FIRE_CORAL_FAN"] = "fire_coral_fan";
+    Blocks["HORN_CORAL_FAN"] = "horn_coral_fan";
+    Blocks["DEAD_TUBE_CORAL_WALL_FAN"] = "dead_tube_coral_wall_fan";
+    Blocks["DEAD_BRAIN_CORAL_WALL_FAN"] = "dead_brain_coral_wall_fan";
+    Blocks["DEAD_BUBBLE_CORAL_WALL_FAN"] = "dead_bubble_coral_wall_fan";
+    Blocks["DEAD_FIRE_CORAL_WALL_FAN"] = "dead_fire_coral_wall_fan";
+    Blocks["DEAD_HORN_CORAL_WALL_FAN"] = "dead_horn_coral_wall_fan";
+    Blocks["TUBE_CORAL_WALL_FAN"] = "tube_coral_wall_fan";
+    Blocks["BRAIN_CORAL_WALL_FAN"] = "brain_coral_wall_fan";
+    Blocks["BUBBLE_CORAL_WALL_FAN"] = "bubble_coral_wall_fan";
+    Blocks["FIRE_CORAL_WALL_FAN"] = "fire_coral_wall_fan";
+    Blocks["HORN_CORAL_WALL_FAN"] = "horn_coral_wall_fan";
+    Blocks["SEA_PICKLE"] = "sea_pickle";
+    Blocks["BLUE_ICE"] = "blue_ice";
+    Blocks["CONDUIT"] = "conduit";
+    Blocks["BAMBOO_SAPLING"] = "bamboo_sapling";
+    Blocks["BAMBOO"] = "bamboo";
+    Blocks["POTTED_BAMBOO"] = "potted_bamboo";
+    Blocks["VOID_AIR"] = "void_air";
+    Blocks["CAVE_AIR"] = "cave_air";
+    Blocks["BUBBLE_COLUMN"] = "bubble_column";
+    Blocks["POLISHED_GRANITE_STAIRS"] = "polished_granite_stairs";
+    Blocks["SMOOTH_RED_SANDSTONE_STAIRS"] = "smooth_red_sandstone_stairs";
+    Blocks["MOSSY_STONE_BRICK_STAIRS"] = "mossy_stone_brick_stairs";
+    Blocks["POLISHED_DIORITE_STAIRS"] = "polished_diorite_stairs";
+    Blocks["MOSSY_COBBLESTONE_STAIRS"] = "mossy_cobblestone_stairs";
+    Blocks["END_STONE_BRICK_STAIRS"] = "end_stone_brick_stairs";
+    Blocks["STONE_STAIRS"] = "stone_stairs";
+    Blocks["SMOOTH_SANDSTONE_STAIRS"] = "smooth_sandstone_stairs";
+    Blocks["SMOOTH_QUARTZ_STAIRS"] = "smooth_quartz_stairs";
+    Blocks["GRANITE_STAIRS"] = "granite_stairs";
+    Blocks["ANDESITE_STAIRS"] = "andesite_stairs";
+    Blocks["RED_NETHER_BRICK_STAIRS"] = "red_nether_brick_stairs";
+    Blocks["POLISHED_ANDESITE_STAIRS"] = "polished_andesite_stairs";
+    Blocks["DIORITE_STAIRS"] = "diorite_stairs";
+    Blocks["POLISHED_GRANITE_SLAB"] = "polished_granite_slab";
+    Blocks["SMOOTH_RED_SANDSTONE_SLAB"] = "smooth_red_sandstone_slab";
+    Blocks["MOSSY_STONE_BRICK_SLAB"] = "mossy_stone_brick_slab";
+    Blocks["POLISHED_DIORITE_SLAB"] = "polished_diorite_slab";
+    Blocks["MOSSY_COBBLESTONE_SLAB"] = "mossy_cobblestone_slab";
+    Blocks["END_STONE_BRICK_SLAB"] = "end_stone_brick_slab";
+    Blocks["SMOOTH_SANDSTONE_SLAB"] = "smooth_sandstone_slab";
+    Blocks["SMOOTH_QUARTZ_SLAB"] = "smooth_quartz_slab";
+    Blocks["GRANITE_SLAB"] = "granite_slab";
+    Blocks["ANDESITE_SLAB"] = "andesite_slab";
+    Blocks["RED_NETHER_BRICK_SLAB"] = "red_nether_brick_slab";
+    Blocks["POLISHED_ANDESITE_SLAB"] = "polished_andesite_slab";
+    Blocks["DIORITE_SLAB"] = "diorite_slab";
+    Blocks["BRICK_WALL"] = "brick_wall";
+    Blocks["PRISMARINE_WALL"] = "prismarine_wall";
+    Blocks["RED_SANDSTONE_WALL"] = "red_sandstone_wall";
+    Blocks["MOSSY_STONE_BRICK_WALL"] = "mossy_stone_brick_wall";
+    Blocks["GRANITE_WALL"] = "granite_wall";
+    Blocks["STONE_BRICK_WALL"] = "stone_brick_wall";
+    Blocks["NETHER_BRICK_WALL"] = "nether_brick_wall";
+    Blocks["ANDESITE_WALL"] = "andesite_wall";
+    Blocks["RED_NETHER_BRICK_WALL"] = "red_nether_brick_wall";
+    Blocks["SANDSTONE_WALL"] = "sandstone_wall";
+    Blocks["END_STONE_BRICK_WALL"] = "end_stone_brick_wall";
+    Blocks["DIORITE_WALL"] = "diorite_wall";
+    Blocks["SCAFFOLDING"] = "scaffolding";
+    Blocks["LOOM"] = "loom";
+    Blocks["BARREL"] = "barrel";
+    Blocks["SMOKER"] = "smoker";
+    Blocks["BLAST_FURNACE"] = "blast_furnace";
+    Blocks["CARTOGRAPHY_TABLE"] = "cartography_table";
+    Blocks["FLETCHING_TABLE"] = "fletching_table";
+    Blocks["GRINDSTONE"] = "grindstone";
+    Blocks["LECTERN"] = "lectern";
+    Blocks["SMITHING_TABLE"] = "smithing_table";
+    Blocks["STONECUTTER"] = "stonecutter";
+    Blocks["BELL"] = "bell";
+    Blocks["LANTERN"] = "lantern";
+    Blocks["SOUL_LANTERN"] = "soul_lantern";
+    Blocks["CAMPFIRE"] = "campfire";
+    Blocks["SOUL_CAMPFIRE"] = "soul_campfire";
+    Blocks["SWEET_BERRY_BUSH"] = "sweet_berry_bush";
+    Blocks["WARPED_STEM"] = "warped_stem";
+    Blocks["STRIPPED_WARPED_STEM"] = "stripped_warped_stem";
+    Blocks["WARPED_HYPHAE"] = "warped_hyphae";
+    Blocks["STRIPPED_WARPED_HYPHAE"] = "stripped_warped_hyphae";
+    Blocks["WARPED_NYLIUM"] = "warped_nylium";
+    Blocks["WARPED_FUNGUS"] = "warped_fungus";
+    Blocks["WARPED_WART_BLOCK"] = "warped_wart_block";
+    Blocks["WARPED_ROOTS"] = "warped_roots";
+    Blocks["NETHER_SPROUTS"] = "nether_sprouts";
+    Blocks["CRIMSON_STEM"] = "crimson_stem";
+    Blocks["STRIPPED_CRIMSON_STEM"] = "stripped_crimson_stem";
+    Blocks["CRIMSON_HYPHAE"] = "crimson_hyphae";
+    Blocks["STRIPPED_CRIMSON_HYPHAE"] = "stripped_crimson_hyphae";
+    Blocks["CRIMSON_NYLIUM"] = "crimson_nylium";
+    Blocks["CRIMSON_FUNGUS"] = "crimson_fungus";
+    Blocks["SHROOMLIGHT"] = "shroomlight";
+    Blocks["WEEPING_VINES"] = "weeping_vines";
+    Blocks["WEEPING_VINES_PLANT"] = "weeping_vines_plant";
+    Blocks["TWISTING_VINES"] = "twisting_vines";
+    Blocks["TWISTING_VINES_PLANT"] = "twisting_vines_plant";
+    Blocks["CRIMSON_ROOTS"] = "crimson_roots";
+    Blocks["CRIMSON_PLANKS"] = "crimson_planks";
+    Blocks["WARPED_PLANKS"] = "warped_planks";
+    Blocks["CRIMSON_SLAB"] = "crimson_slab";
+    Blocks["WARPED_SLAB"] = "warped_slab";
+    Blocks["CRIMSON_PRESSURE_PLATE"] = "crimson_pressure_plate";
+    Blocks["WARPED_PRESSURE_PLATE"] = "warped_pressure_plate";
+    Blocks["CRIMSON_FENCE"] = "crimson_fence";
+    Blocks["WARPED_FENCE"] = "warped_fence";
+    Blocks["CRIMSON_TRAPDOOR"] = "crimson_trapdoor";
+    Blocks["WARPED_TRAPDOOR"] = "warped_trapdoor";
+    Blocks["CRIMSON_FENCE_GATE"] = "crimson_fence_gate";
+    Blocks["WARPED_FENCE_GATE"] = "warped_fence_gate";
+    Blocks["CRIMSON_STAIRS"] = "crimson_stairs";
+    Blocks["WARPED_STAIRS"] = "warped_stairs";
+    Blocks["CRIMSON_BUTTON"] = "crimson_button";
+    Blocks["WARPED_BUTTON"] = "warped_button";
+    Blocks["CRIMSON_DOOR"] = "crimson_door";
+    Blocks["WARPED_DOOR"] = "warped_door";
+    Blocks["CRIMSON_SIGN"] = "crimson_sign";
+    Blocks["WARPED_SIGN"] = "warped_sign";
+    Blocks["CRIMSON_WALL_SIGN"] = "crimson_wall_sign";
+    Blocks["WARPED_WALL_SIGN"] = "warped_wall_sign";
+    Blocks["STRUCTURE_BLOCK"] = "structure_block";
+    Blocks["JIGSAW"] = "jigsaw";
+    Blocks["COMPOSTER"] = "composter";
+    Blocks["TARGET"] = "target";
+    Blocks["BEE_NEST"] = "bee_nest";
+    Blocks["BEEHIVE"] = "beehive";
+    Blocks["HONEY_BLOCK"] = "honey_block";
+    Blocks["HONEYCOMB_BLOCK"] = "honeycomb_block";
+    Blocks["NETHERITE_BLOCK"] = "netherite_block";
+    Blocks["ANCIENT_DEBRIS"] = "ancient_debris";
+    Blocks["CRYING_OBSIDIAN"] = "crying_obsidian";
+    Blocks["RESPAWN_ANCHOR"] = "respawn_anchor";
+    Blocks["POTTED_CRIMSON_FUNGUS"] = "potted_crimson_fungus";
+    Blocks["POTTED_WARPED_FUNGUS"] = "potted_warped_fungus";
+    Blocks["POTTED_CRIMSON_ROOTS"] = "potted_crimson_roots";
+    Blocks["POTTED_WARPED_ROOTS"] = "potted_warped_roots";
+    Blocks["LODESTONE"] = "lodestone";
+    Blocks["BLACKSTONE"] = "blackstone";
+    Blocks["BLACKSTONE_STAIRS"] = "blackstone_stairs";
+    Blocks["BLACKSTONE_WALL"] = "blackstone_wall";
+    Blocks["BLACKSTONE_SLAB"] = "blackstone_slab";
+    Blocks["POLISHED_BLACKSTONE"] = "polished_blackstone";
+    Blocks["POLISHED_BLACKSTONE_BRICKS"] = "polished_blackstone_bricks";
+    Blocks["CRACKED_POLISHED_BLACKSTONE_BRICKS"] = "cracked_polished_blackstone_bricks";
+    Blocks["CHISELED_POLISHED_BLACKSTONE"] = "chiseled_polished_blackstone";
+    Blocks["POLISHED_BLACKSTONE_BRICK_SLAB"] = "polished_blackstone_brick_slab";
+    Blocks["POLISHED_BLACKSTONE_BRICK_STAIRS"] = "polished_blackstone_brick_stairs";
+    Blocks["POLISHED_BLACKSTONE_BRICK_WALL"] = "polished_blackstone_brick_wall";
+    Blocks["GILDED_BLACKSTONE"] = "gilded_blackstone";
+    Blocks["POLISHED_BLACKSTONE_STAIRS"] = "polished_blackstone_stairs";
+    Blocks["POLISHED_BLACKSTONE_SLAB"] = "polished_blackstone_slab";
+    Blocks["POLISHED_BLACKSTONE_PRESSURE_PLATE"] = "polished_blackstone_pressure_plate";
+    Blocks["POLISHED_BLACKSTONE_BUTTON"] = "polished_blackstone_button";
+    Blocks["POLISHED_BLACKSTONE_WALL"] = "polished_blackstone_wall";
+    Blocks["CHISELED_NETHER_BRICKS"] = "chiseled_nether_bricks";
+    Blocks["CRACKED_NETHER_BRICKS"] = "cracked_nether_bricks";
+    Blocks["QUARTZ_BRICKS"] = "quartz_bricks";
+    Blocks["CANDLE"] = "candle";
+    Blocks["WHITE_CANDLE"] = "white_candle";
+    Blocks["ORANGE_CANDLE"] = "orange_candle";
+    Blocks["MAGENTA_CANDLE"] = "magenta_candle";
+    Blocks["LIGHT_BLUE_CANDLE"] = "light_blue_candle";
+    Blocks["YELLOW_CANDLE"] = "yellow_candle";
+    Blocks["LIME_CANDLE"] = "lime_candle";
+    Blocks["PINK_CANDLE"] = "pink_candle";
+    Blocks["GRAY_CANDLE"] = "gray_candle";
+    Blocks["LIGHT_GRAY_CANDLE"] = "light_gray_candle";
+    Blocks["CYAN_CANDLE"] = "cyan_candle";
+    Blocks["PURPLE_CANDLE"] = "purple_candle";
+    Blocks["BLUE_CANDLE"] = "blue_candle";
+    Blocks["BROWN_CANDLE"] = "brown_candle";
+    Blocks["GREEN_CANDLE"] = "green_candle";
+    Blocks["RED_CANDLE"] = "red_candle";
+    Blocks["BLACK_CANDLE"] = "black_candle";
+    Blocks["CANDLE_CAKE"] = "candle_cake";
+    Blocks["WHITE_CANDLE_CAKE"] = "white_candle_cake";
+    Blocks["ORANGE_CANDLE_CAKE"] = "orange_candle_cake";
+    Blocks["MAGENTA_CANDLE_CAKE"] = "magenta_candle_cake";
+    Blocks["LIGHT_BLUE_CANDLE_CAKE"] = "light_blue_candle_cake";
+    Blocks["YELLOW_CANDLE_CAKE"] = "yellow_candle_cake";
+    Blocks["LIME_CANDLE_CAKE"] = "lime_candle_cake";
+    Blocks["PINK_CANDLE_CAKE"] = "pink_candle_cake";
+    Blocks["GRAY_CANDLE_CAKE"] = "gray_candle_cake";
+    Blocks["LIGHT_GRAY_CANDLE_CAKE"] = "light_gray_candle_cake";
+    Blocks["CYAN_CANDLE_CAKE"] = "cyan_candle_cake";
+    Blocks["PURPLE_CANDLE_CAKE"] = "purple_candle_cake";
+    Blocks["BLUE_CANDLE_CAKE"] = "blue_candle_cake";
+    Blocks["BROWN_CANDLE_CAKE"] = "brown_candle_cake";
+    Blocks["GREEN_CANDLE_CAKE"] = "green_candle_cake";
+    Blocks["RED_CANDLE_CAKE"] = "red_candle_cake";
+    Blocks["BLACK_CANDLE_CAKE"] = "black_candle_cake";
+    Blocks["AMETHYST_BLOCK"] = "amethyst_block";
+    Blocks["BUDDING_AMETHYST"] = "budding_amethyst";
+    Blocks["AMETHYST_CLUSTER"] = "amethyst_cluster";
+    Blocks["LARGE_AMETHYST_BUD"] = "large_amethyst_bud";
+    Blocks["MEDIUM_AMETHYST_BUD"] = "medium_amethyst_bud";
+    Blocks["SMALL_AMETHYST_BUD"] = "small_amethyst_bud";
+    Blocks["TUFF"] = "tuff";
+    Blocks["CALCITE"] = "calcite";
+    Blocks["TINTED_GLASS"] = "tinted_glass";
+    Blocks["POWDER_SNOW"] = "powder_snow";
+    Blocks["SCULK_SENSOR"] = "sculk_sensor";
+    Blocks["OXIDIZED_COPPER"] = "oxidized_copper";
+    Blocks["WEATHERED_COPPER"] = "weathered_copper";
+    Blocks["EXPOSED_COPPER"] = "exposed_copper";
+    Blocks["COPPER_BLOCK"] = "copper_block";
+    Blocks["COPPER_ORE"] = "copper_ore";
+    Blocks["DEEPSLATE_COPPER_ORE"] = "deepslate_copper_ore";
+    Blocks["OXIDIZED_CUT_COPPER"] = "oxidized_cut_copper";
+    Blocks["WEATHERED_CUT_COPPER"] = "weathered_cut_copper";
+    Blocks["EXPOSED_CUT_COPPER"] = "exposed_cut_copper";
+    Blocks["CUT_COPPER"] = "cut_copper";
+    Blocks["OXIDIZED_CUT_COPPER_STAIRS"] = "oxidized_cut_copper_stairs";
+    Blocks["WEATHERED_CUT_COPPER_STAIRS"] = "weathered_cut_copper_stairs";
+    Blocks["EXPOSED_CUT_COPPER_STAIRS"] = "exposed_cut_copper_stairs";
+    Blocks["CUT_COPPER_STAIRS"] = "cut_copper_stairs";
+    Blocks["OXIDIZED_CUT_COPPER_SLAB"] = "oxidized_cut_copper_slab";
+    Blocks["WEATHERED_CUT_COPPER_SLAB"] = "weathered_cut_copper_slab";
+    Blocks["EXPOSED_CUT_COPPER_SLAB"] = "exposed_cut_copper_slab";
+    Blocks["CUT_COPPER_SLAB"] = "cut_copper_slab";
+    Blocks["WAXED_COPPER_BLOCK"] = "waxed_copper_block";
+    Blocks["WAXED_WEATHERED_COPPER"] = "waxed_weathered_copper";
+    Blocks["WAXED_EXPOSED_COPPER"] = "waxed_exposed_copper";
+    Blocks["WAXED_OXIDIZED_COPPER"] = "waxed_oxidized_copper";
+    Blocks["WAXED_OXIDIZED_CUT_COPPER"] = "waxed_oxidized_cut_copper";
+    Blocks["WAXED_WEATHERED_CUT_COPPER"] = "waxed_weathered_cut_copper";
+    Blocks["WAXED_EXPOSED_CUT_COPPER"] = "waxed_exposed_cut_copper";
+    Blocks["WAXED_CUT_COPPER"] = "waxed_cut_copper";
+    Blocks["WAXED_OXIDIZED_CUT_COPPER_STAIRS"] = "waxed_oxidized_cut_copper_stairs";
+    Blocks["WAXED_WEATHERED_CUT_COPPER_STAIRS"] = "waxed_weathered_cut_copper_stairs";
+    Blocks["WAXED_EXPOSED_CUT_COPPER_STAIRS"] = "waxed_exposed_cut_copper_stairs";
+    Blocks["WAXED_CUT_COPPER_STAIRS"] = "waxed_cut_copper_stairs";
+    Blocks["WAXED_OXIDIZED_CUT_COPPER_SLAB"] = "waxed_oxidized_cut_copper_slab";
+    Blocks["WAXED_WEATHERED_CUT_COPPER_SLAB"] = "waxed_weathered_cut_copper_slab";
+    Blocks["WAXED_EXPOSED_CUT_COPPER_SLAB"] = "waxed_exposed_cut_copper_slab";
+    Blocks["WAXED_CUT_COPPER_SLAB"] = "waxed_cut_copper_slab";
+    Blocks["LIGHTNING_ROD"] = "lightning_rod";
+    Blocks["POINTED_DRIPSTONE"] = "pointed_dripstone";
+    Blocks["DRIPSTONE_BLOCK"] = "dripstone_block";
+    Blocks["CAVE_VINES"] = "cave_vines";
+    Blocks["CAVE_VINES_PLANT"] = "cave_vines_plant";
+    Blocks["SPORE_BLOSSOM"] = "spore_blossom";
+    Blocks["AZALEA"] = "azalea";
+    Blocks["FLOWERING_AZALEA"] = "flowering_azalea";
+    Blocks["MOSS_CARPET"] = "moss_carpet";
+    Blocks["MOSS_BLOCK"] = "moss_block";
+    Blocks["BIG_DRIPLEAF"] = "big_dripleaf";
+    Blocks["BIG_DRIPLEAF_STEM"] = "big_dripleaf_stem";
+    Blocks["SMALL_DRIPLEAF"] = "small_dripleaf";
+    Blocks["HANGING_ROOTS"] = "hanging_roots";
+    Blocks["ROOTED_DIRT"] = "rooted_dirt";
+    Blocks["DEEPSLATE"] = "deepslate";
+    Blocks["COBBLED_DEEPSLATE"] = "cobbled_deepslate";
+    Blocks["COBBLED_DEEPSLATE_STAIRS"] = "cobbled_deepslate_stairs";
+    Blocks["COBBLED_DEEPSLATE_SLAB"] = "cobbled_deepslate_slab";
+    Blocks["COBBLED_DEEPSLATE_WALL"] = "cobbled_deepslate_wall";
+    Blocks["POLISHED_DEEPSLATE"] = "polished_deepslate";
+    Blocks["POLISHED_DEEPSLATE_STAIRS"] = "polished_deepslate_stairs";
+    Blocks["POLISHED_DEEPSLATE_SLAB"] = "polished_deepslate_slab";
+    Blocks["POLISHED_DEEPSLATE_WALL"] = "polished_deepslate_wall";
+    Blocks["DEEPSLATE_TILES"] = "deepslate_tiles";
+    Blocks["DEEPSLATE_TILE_STAIRS"] = "deepslate_tile_stairs";
+    Blocks["DEEPSLATE_TILE_SLAB"] = "deepslate_tile_slab";
+    Blocks["DEEPSLATE_TILE_WALL"] = "deepslate_tile_wall";
+    Blocks["DEEPSLATE_BRICKS"] = "deepslate_bricks";
+    Blocks["DEEPSLATE_BRICK_STAIRS"] = "deepslate_brick_stairs";
+    Blocks["DEEPSLATE_BRICK_SLAB"] = "deepslate_brick_slab";
+    Blocks["DEEPSLATE_BRICK_WALL"] = "deepslate_brick_wall";
+    Blocks["CHISELED_DEEPSLATE"] = "chiseled_deepslate";
+    Blocks["CRACKED_DEEPSLATE_BRICKS"] = "cracked_deepslate_bricks";
+    Blocks["CRACKED_DEEPSLATE_TILES"] = "cracked_deepslate_tiles";
+    Blocks["INFESTED_DEEPSLATE"] = "infested_deepslate";
+    Blocks["SMOOTH_BASALT"] = "smooth_basalt";
+    Blocks["RAW_IRON_BLOCK"] = "raw_iron_block";
+    Blocks["RAW_COPPER_BLOCK"] = "raw_copper_block";
+    Blocks["RAW_GOLD_BLOCK"] = "raw_gold_block";
+    Blocks["POTTED_AZALEA"] = "potted_azalea_bush";
+    Blocks["POTTED_FLOWERING_AZALEA"] = "potted_flowering_azalea_bush";
+})(Blocks || (Blocks = {}));
+
+class SimplexNoise {
+    static GRADIENT = [
+        [1, 1, 0],
+        [-1, 1, 0],
+        [1, -1, 0],
+        [-1, -1, 0],
+        [1, 0, 1],
+        [-1, 0, 1],
+        [1, 0, -1],
+        [-1, 0, -1],
+        [0, 1, 1],
+        [0, -1, 1],
+        [0, 1, -1],
+        [0, -1, -1],
+        [1, 1, 0],
+        [0, -1, 1],
+        [-1, 1, 0],
+        [0, -1, -1],
+    ];
+    static dot(v, x, y, z) {
+        return v[0] * x + v[1] * y + v[2] * z;
+    }
+}
+
 function unsignedShift64(num, shift) {
     return BigInt.asUintN(64, num) >> shift;
 }
@@ -9873,7 +10799,7 @@ function rotateLeft64(n, bits) {
     return lo | hi;
 }
 function toUnsignedLong(n) {
-    return BigInt.asUintN(64, BigInt(n));
+    return BigInt.asUintN(64, BigInt(n)) & 0xffffffffn;
 }
 function toUnsignedInt(n) {
     return BigInt.asUintN(32, BigInt(n));
@@ -9916,6 +10842,18 @@ function binarySearch(startIndex, endIndex, predicate) {
 function lerp(t, v0, v1) {
     return v0 + t * (v1 - v0);
 }
+function lerp2(xt, yt, x0, x1, y0, y1) {
+    return lerp(yt, lerp(xt, x0, x1), lerp(xt, y0, y1));
+}
+function lerp3(xt, yt, zt, x0, x1, y0, y1, x2, x3, y2, y3) {
+    return lerp(zt, lerp2(xt, yt, x0, x1, y0, y1), lerp2(xt, yt, x2, x3, y2, y3));
+}
+function smoothstep(v) {
+    return v * v * v * (v * (v * 6.0 - 15.0) + 10.0);
+}
+function smoothstepDerivative(v) {
+    return 30.0 * v * v * (v - 1.0) * (v - 1.0);
+}
 function square(num) {
     return num * num;
 }
@@ -9925,6 +10863,1108 @@ function getSeed(p_14131_, p_14132_, p_14133_) {
         toLong(p_14132_);
     i = clamp64(i * i * 42317861n + i * 11n);
     return i >> 16n;
+}
+function floor(num) {
+    return Math.floor(num);
+}
+function lfloor(num) {
+    return Math.floor(num);
+}
+function floorDiv(x, y) {
+    return Math.floor(x / y);
+}
+function clampedLerp(v0, v1, t) {
+    if (t < 0.0) {
+        return v0;
+    }
+    else {
+        return t > 1.0 ? v1 : lerp(t, v0, v1);
+    }
+}
+
+class ImprovedNoise {
+    static SHIFT_UP_EPSILON = 1.0e-7;
+    p;
+    xo;
+    yo;
+    zo;
+    constructor(randomSource) {
+        this.xo = randomSource.nextDouble() * 256.0;
+        this.yo = randomSource.nextDouble() * 256.0;
+        this.zo = randomSource.nextDouble() * 256.0;
+        this.p = new Int8Array(256);
+        for (let i = 0; i < 256; ++i) {
+            this.p[i] = i;
+        }
+        for (let i = 0; i < 256; ++i) {
+            const value = randomSource.nextInt(256 - i);
+            const temp = this.p[i];
+            this.p[i] = this.p[i + value];
+            this.p[i + value] = temp;
+        }
+    }
+    noise(x, y, z, yFractStep = 0, maxYfract = 0) {
+        const xWithOffset = x + this.xo;
+        const yWithOffset = y + this.yo;
+        const zWithOffset = z + this.zo;
+        const intX = floor(xWithOffset);
+        const intY = floor(yWithOffset);
+        const intZ = floor(zWithOffset);
+        const xFract = xWithOffset - intX;
+        const yFract = yWithOffset - intY;
+        const zFract = zWithOffset - intZ;
+        let yFractOffset;
+        if (yFractStep != 0.0) {
+            let yFractToUse;
+            if (maxYfract >= 0.0 && maxYfract < yFract) {
+                yFractToUse = maxYfract;
+            }
+            else {
+                yFractToUse = yFract;
+            }
+            yFractOffset =
+                floor(yFractToUse / yFractStep + ImprovedNoise.SHIFT_UP_EPSILON) * yFractStep;
+        }
+        else {
+            yFractOffset = 0.0;
+        }
+        return this.sampleAndLerp(intX, intY, intZ, xFract, yFract - yFractOffset, zFract, yFract);
+    }
+    static gradDot(gradintIndex, x, y, z) {
+        return SimplexNoise.dot(SimplexNoise.GRADIENT[gradintIndex & 15], x, y, z);
+    }
+    get_p(index) {
+        return this.p[index & 255] & 255;
+    }
+    sampleAndLerp(x, y, z, xt, yt, zt, yt2) {
+        const noiseX0 = this.get_p(x);
+        const noiseX1 = this.get_p(x + 1);
+        const noiseY00 = this.get_p(noiseX0 + y);
+        const noiseY01 = this.get_p(noiseX0 + y + 1);
+        const noiseY10 = this.get_p(noiseX1 + y);
+        const noiseY11 = this.get_p(noiseX1 + y + 1);
+        // cube 2x2x2
+        const len0 = ImprovedNoise.gradDot(this.get_p(noiseY00 + z), xt, yt, zt);
+        const len1 = ImprovedNoise.gradDot(this.get_p(noiseY10 + z), xt - 1.0, yt, zt);
+        const len2 = ImprovedNoise.gradDot(this.get_p(noiseY01 + z), xt, yt - 1.0, zt);
+        const len3 = ImprovedNoise.gradDot(this.get_p(noiseY11 + z), xt - 1.0, yt - 1.0, zt);
+        const len4 = ImprovedNoise.gradDot(this.get_p(noiseY00 + z + 1), xt, yt, zt - 1.0);
+        const len5 = ImprovedNoise.gradDot(this.get_p(noiseY10 + z + 1), xt - 1.0, yt, zt - 1.0);
+        const len6 = ImprovedNoise.gradDot(this.get_p(noiseY01 + z + 1), xt, yt - 1.0, zt - 1.0);
+        const len7 = ImprovedNoise.gradDot(this.get_p(noiseY11 + z + 1), xt - 1.0, yt - 1.0, zt - 1.0);
+        const smoothXt = smoothstep(xt);
+        const smoothYt = smoothstep(yt2);
+        const smoothZt = smoothstep(zt);
+        return lerp3(smoothXt, smoothYt, smoothZt, len0, len1, len2, len3, len4, len5, len6, len7);
+    }
+    // unused
+    noiseWithDerivative(x, y, z, output) {
+        const xWithOffset = x + this.xo;
+        const yWithOffset = y + this.yo;
+        const zWithOffset = z + this.zo;
+        const intXwithOffset = floor(xWithOffset);
+        const intYwithOffset = floor(yWithOffset);
+        const intZwithOffset = floor(zWithOffset);
+        const xFract = xWithOffset - intXwithOffset;
+        const yFract = yWithOffset - intYwithOffset;
+        const zFract = zWithOffset - intZwithOffset;
+        return this.sampleWithDerivative(intXwithOffset, intYwithOffset, intZwithOffset, xFract, yFract, zFract, output);
+    }
+    sampleWithDerivative(x, y, z, xFract, yFract, zFract, output) {
+        const noiseX0 = this.get_p(x);
+        const noiseX1 = this.get_p(x + 1);
+        const noiseY00 = this.get_p(noiseX0 + y);
+        const noiseY01 = this.get_p(noiseX0 + y + 1);
+        const noiseY10 = this.get_p(noiseX1 + y);
+        const noiseY11 = this.get_p(noiseX1 + y + 1);
+        const noiseZ000 = this.get_p(noiseY00 + z);
+        const noiseZ100 = this.get_p(noiseY10 + z);
+        const noiseZ010 = this.get_p(noiseY01 + z);
+        const noiseZ110 = this.get_p(noiseY11 + z);
+        const noiseZ001 = this.get_p(noiseY00 + z + 1);
+        const noiseZ101 = this.get_p(noiseY10 + z + 1);
+        const noiseZ011 = this.get_p(noiseY01 + z + 1);
+        const noiseZ111 = this.get_p(noiseY11 + z + 1);
+        // here we have 2x2x2 cube
+        const gradient0 = SimplexNoise.GRADIENT[noiseZ000 & 15];
+        const gradient1 = SimplexNoise.GRADIENT[noiseZ100 & 15];
+        const gradient2 = SimplexNoise.GRADIENT[noiseZ010 & 15];
+        const gradient3 = SimplexNoise.GRADIENT[noiseZ110 & 15];
+        const gradient4 = SimplexNoise.GRADIENT[noiseZ001 & 15];
+        const gradient5 = SimplexNoise.GRADIENT[noiseZ101 & 15];
+        const gradient6 = SimplexNoise.GRADIENT[noiseZ011 & 15];
+        const gradient7 = SimplexNoise.GRADIENT[noiseZ111 & 15];
+        const len0 = SimplexNoise.dot(gradient0, xFract, yFract, zFract);
+        const len1 = SimplexNoise.dot(gradient1, xFract - 1.0, yFract, zFract);
+        const len2 = SimplexNoise.dot(gradient2, xFract, yFract - 1.0, zFract);
+        const len3 = SimplexNoise.dot(gradient3, xFract - 1.0, yFract - 1.0, zFract);
+        const len4 = SimplexNoise.dot(gradient4, xFract, yFract, zFract - 1.0);
+        const len5 = SimplexNoise.dot(gradient5, xFract - 1.0, yFract, zFract - 1.0);
+        const len6 = SimplexNoise.dot(gradient6, xFract, yFract - 1.0, zFract - 1.0);
+        const len7 = SimplexNoise.dot(gradient7, xFract - 1.0, yFract - 1.0, zFract - 1.0);
+        const smoothXfract = smoothstep(xFract);
+        const smoothYfract = smoothstep(yFract);
+        const smoothZfract = smoothstep(zFract);
+        const interpolatedGradientX = lerp3(smoothXfract, smoothYfract, smoothZfract, gradient0[0], gradient1[0], gradient2[0], gradient3[0], gradient4[0], gradient5[0], gradient6[0], gradient7[0]);
+        const interpolatedGradientY = lerp3(smoothXfract, smoothYfract, smoothZfract, gradient0[1], gradient1[1], gradient2[1], gradient3[1], gradient4[1], gradient5[1], gradient6[1], gradient7[1]);
+        const interpolatedGradientZ = lerp3(smoothXfract, smoothYfract, smoothZfract, gradient0[2], gradient1[2], gradient2[2], gradient3[2], gradient4[2], gradient5[2], gradient6[2], gradient7[2]);
+        const xLen = lerp2(smoothYfract, smoothZfract, len1 - len0, len3 - len2, len5 - len4, len7 - len6);
+        const yLen = lerp2(smoothZfract, smoothXfract, len2 - len0, len6 - len4, len3 - len1, len7 - len5);
+        const zLen = lerp2(smoothXfract, smoothYfract, len4 - len0, len5 - len1, len6 - len2, len7 - len3);
+        const xDerivSmooth = smoothstepDerivative(xFract);
+        const yDerivSmooth = smoothstepDerivative(yFract);
+        const zDerivSmooth = smoothstepDerivative(zFract);
+        const outputX = interpolatedGradientX + xDerivSmooth * xLen;
+        const outputY = interpolatedGradientY + yDerivSmooth * yLen;
+        const outputZ = interpolatedGradientZ + zDerivSmooth * zLen;
+        output[0] += outputX;
+        output[1] += outputY;
+        output[2] += outputZ;
+        return lerp3(smoothXfract, smoothYfract, smoothZfract, len0, len1, len2, len3, len4, len5, len6, len7);
+    }
+}
+
+class IntStream {
+    static rangeClosed(startInclusive, endInclusive) {
+        const result = [];
+        for (let i = startInclusive; i <= endInclusive; i++) {
+            result.push(i);
+        }
+        return result;
+    }
+}
+class PerlinNoise {
+    noiseLevels;
+    firstOctave;
+    amplitudes;
+    lowestFreqValueFactor;
+    lowestFreqInputFactor;
+    static createLegacyForBlendedNoise(randomSource, octaves) {
+        return new PerlinNoise(randomSource, PerlinNoise.makeAmplitudes(octaves), false);
+    }
+    static createLegacyForLegacyNormalNoise(randomSource, firstOctave, amplitudes) {
+        return new PerlinNoise(randomSource, Pair.of(firstOctave, amplitudes), false);
+    }
+    static create(randomSource, octaves) {
+        return new PerlinNoise(randomSource, PerlinNoise.makeAmplitudes(octaves), true);
+    }
+    static create2(randomSource, firstOctave, amplitudes) {
+        return new PerlinNoise(randomSource, Pair.of(firstOctave, amplitudes), true);
+    }
+    static makeAmplitudes(octaves) {
+        const minusFirstOctave = -octaves[0];
+        const lastOctave = octaves[octaves.length - 1];
+        const octaveLength = minusFirstOctave + lastOctave + 1;
+        const doublelist = new Array(octaveLength);
+        doublelist.fill(0);
+        for (const octave of octaves) {
+            doublelist[octave + minusFirstOctave] = 1.0;
+        }
+        return Pair.of(-minusFirstOctave, doublelist);
+    }
+    constructor(randomSource, octaveAndAmplitudes, notLegacy) {
+        this.firstOctave = octaveAndAmplitudes.first;
+        this.amplitudes = octaveAndAmplitudes.second;
+        const amplitudesCount = this.amplitudes.length;
+        const minusFirstOctave = -this.firstOctave;
+        this.noiseLevels = new Array(amplitudesCount);
+        if (notLegacy) {
+            const positionalrandomfactory = randomSource.forkPositional();
+            for (let k = 0; k < amplitudesCount; ++k) {
+                if (this.amplitudes[k] != 0.0) {
+                    const l = this.firstOctave + k;
+                    this.noiseLevels[k] = new ImprovedNoise(positionalrandomfactory.fromHashOf("octave_" + l));
+                }
+            }
+        }
+        else {
+            const improvednoise = new ImprovedNoise(randomSource);
+            if (minusFirstOctave >= 0 && minusFirstOctave < amplitudesCount) {
+                const d0 = this.amplitudes[minusFirstOctave];
+                if (d0 != 0.0) {
+                    this.noiseLevels[minusFirstOctave] = improvednoise;
+                }
+            }
+            for (let octaveIndex = minusFirstOctave - 1; octaveIndex >= 0; --octaveIndex) {
+                if (octaveIndex < amplitudesCount) {
+                    const d1 = this.amplitudes[octaveIndex];
+                    if (d1 != 0.0) {
+                        this.noiseLevels[octaveIndex] = new ImprovedNoise(randomSource);
+                    }
+                    else {
+                        PerlinNoise.skipOctave(randomSource);
+                    }
+                }
+                else {
+                    PerlinNoise.skipOctave(randomSource);
+                }
+            }
+            if (this.noiseLevels.filter(noise => noise).length !=
+                this.amplitudes.filter(amplitude => amplitude != 0).length) {
+                throw new Error("Failed to create correct number of noise levels for given non-zero amplitudes");
+            }
+            if (minusFirstOctave < amplitudesCount - 1) {
+                throw new Error("Positive octaves are temporarily disabled");
+            }
+        }
+        this.lowestFreqInputFactor = Math.pow(2.0, -minusFirstOctave);
+        this.lowestFreqValueFactor =
+            Math.pow(2.0, amplitudesCount - 1) / (Math.pow(2.0, amplitudesCount) - 1.0);
+    }
+    static skipOctave(randomSource) {
+        randomSource.consumeCount(262);
+    }
+    getValue(x, y, z, yStep = 0, maxYfract = 0, useYfractOverride = false) {
+        let value = 0.0;
+        let inputScale = this.lowestFreqInputFactor;
+        let outputScale = this.lowestFreqValueFactor;
+        for (let i = 0; i < this.noiseLevels.length; ++i) {
+            const improvednoise = this.noiseLevels[i];
+            if (improvednoise != null) {
+                const noise = improvednoise.noise(PerlinNoise.wrap(x * inputScale), useYfractOverride ? -improvednoise.yo : PerlinNoise.wrap(y * inputScale), PerlinNoise.wrap(z * inputScale), yStep * inputScale, maxYfract * inputScale);
+                value += this.amplitudes[i] * noise * outputScale;
+            }
+            inputScale *= 2.0;
+            outputScale /= 2.0;
+        }
+        return value;
+    }
+    getOctaveNoise(octave) {
+        return this.noiseLevels[this.noiseLevels.length - 1 - octave];
+    }
+    static wrap(num) {
+        return num - lfloor(num / 3.3554432e7 + 0.5) * 3.3554432e7;
+    }
+}
+
+class NoiseParameters {
+    firstOctave;
+    amplitudes;
+    constructor(firstOctave, firstAmplitude, ...amplitudes) {
+        this.firstOctave = firstOctave;
+        if (typeof firstAmplitude === "number") {
+            this.amplitudes = [firstAmplitude, ...amplitudes];
+        }
+        else {
+            this.amplitudes = firstAmplitude;
+        }
+    }
+}
+class NormalNoise {
+    static INPUT_FACTOR = 1.0181268882175227;
+    static TARGET_DEVIATION = 0.3333333333333333;
+    valueFactor;
+    first;
+    second;
+    static createLegacyNetherBiome(randomSource, parameters) {
+        return new NormalNoise(randomSource, parameters.firstOctave, parameters.amplitudes, false);
+    }
+    static create(randomSource, firstOctave, ...amplitudes) {
+        return new NormalNoise(randomSource, firstOctave, amplitudes, true);
+    }
+    static create2(p_192849_, p_192850_) {
+        return new NormalNoise(p_192849_, p_192850_.firstOctave, p_192850_.amplitudes, true);
+    }
+    static create3(randomSource, firstOctave, amplitudes) {
+        return new NormalNoise(randomSource, firstOctave, amplitudes, true);
+    }
+    constructor(randomSource, firstOctave, amplitudes, notLegacy) {
+        if (notLegacy) {
+            this.first = PerlinNoise.create2(randomSource, firstOctave, amplitudes);
+            this.second = PerlinNoise.create2(randomSource, firstOctave, amplitudes);
+        }
+        else {
+            this.first = PerlinNoise.createLegacyForLegacyNormalNoise(randomSource, firstOctave, amplitudes);
+            this.second = PerlinNoise.createLegacyForLegacyNormalNoise(randomSource, firstOctave, amplitudes);
+        }
+        let minAmplitudeIndex = Number.MAX_SAFE_INTEGER;
+        let maxAmplitudeIndex = Number.MIN_SAFE_INTEGER;
+        for (let amplitudeIndex = 0; amplitudeIndex < amplitudes.length; amplitudeIndex++) {
+            const amplitude = amplitudes[amplitudeIndex];
+            if (amplitude != 0.0) {
+                minAmplitudeIndex = Math.min(minAmplitudeIndex, amplitudeIndex);
+                maxAmplitudeIndex = Math.max(maxAmplitudeIndex, amplitudeIndex);
+            }
+        }
+        this.valueFactor =
+            0.16666666666666666 /
+                NormalNoise.expectedDeviation(maxAmplitudeIndex - minAmplitudeIndex);
+    }
+    static expectedDeviation(v) {
+        return 0.1 * (1.0 + 1.0 / (v + 1));
+    }
+    getValue(x, y, z) {
+        const inputX = x * NormalNoise.INPUT_FACTOR;
+        const inputY = y * NormalNoise.INPUT_FACTOR;
+        const inputZ = z * NormalNoise.INPUT_FACTOR;
+        return ((this.first.getValue(x, y, z) + this.second.getValue(inputX, inputY, inputZ)) *
+            this.valueFactor);
+    }
+    parameters() {
+        return new NoiseParameters(this.first.firstOctave, this.first.amplitudes);
+    }
+}
+
+var Noises;
+(function (Noises) {
+    Noises["TEMPERATURE"] = "temperature";
+    Noises["VEGETATION"] = "vegetation";
+    Noises["CONTINENTALNESS"] = "continentalness";
+    Noises["EROSION"] = "erosion";
+    Noises["TEMPERATURE_LARGE"] = "temperature_large";
+    Noises["VEGETATION_LARGE"] = "vegetation_large";
+    Noises["CONTINENTALNESS_LARGE"] = "continentalness_large";
+    Noises["EROSION_LARGE"] = "erosion_large";
+    Noises["RIDGE"] = "ridge";
+    Noises["SHIFT"] = "offset";
+    Noises["AQUIFER_BARRIER"] = "aquifer_barrier";
+    Noises["AQUIFER_FLUID_LEVEL_FLOODEDNESS"] = "aquifer_fluid_level_floodedness";
+    Noises["AQUIFER_LAVA"] = "aquifer_lava";
+    Noises["AQUIFER_FLUID_LEVEL_SPREAD"] = "aquifer_fluid_level_spread";
+    Noises["PILLAR"] = "pillar";
+    Noises["PILLAR_RARENESS"] = "pillar_rareness";
+    Noises["PILLAR_THICKNESS"] = "pillar_thickness";
+    Noises["SPAGHETTI_2"] = "spaghetti_2";
+    Noises["SPAGHETTI_2D_ELEVATION"] = "spaghetti_2d_elevation";
+    Noises["SPAGHETTI_2D_MODULATOR"] = "spaghetti_2d_modulator";
+    Noises["SPAGHETTI_2D_THICKNESS"] = "spaghetti_2d_thickness";
+    Noises["SPAGHETTI_3D_1"] = "spaghetti_3d_1";
+    Noises["SPAGHETTI_3D_2"] = "spaghetti_3d_2";
+    Noises["SPAGHETTI_3D_RARITY"] = "spaghetti_3d_rarity";
+    Noises["SPAGHETTI_3D_THICKNESS"] = "spaghetti_3d_thickness";
+    Noises["SPAGHETTI_ROUGHNESS"] = "spaghetti_roughness";
+    Noises["SPAGHETTI_ROUGHNESS_MODULATOR"] = "spaghetti_roughness_modulator";
+    Noises["CAVE_ENTRANCE"] = "cave_entrance";
+    Noises["CAVE_LAYER"] = "cave_layer";
+    Noises["CAVE_CHEESE"] = "cave_cheese";
+    Noises["ORE_VEININESS"] = "ore_veininess";
+    Noises["ORE_VEIN_A"] = "ore_vein_a";
+    Noises["ORE_VEIN_B"] = "ore_vein_b";
+    Noises["ORE_GAP"] = "ore_gap";
+    Noises["NOODLE"] = "noodle";
+    Noises["NOODLE_THICKNESS"] = "noodle_thickness";
+    Noises["NOODLE_RIDGE_A"] = "noodle_ridge_a";
+    Noises["NOODLE_RIDGE_B"] = "noodle_ridge_b";
+    Noises["JAGGED"] = "jagged";
+    Noises["SURFACE"] = "surface";
+    Noises["SURFACE_SECONDARY"] = "surface_secondary";
+    Noises["CLAY_BANDS_OFFSET"] = "clay_bands_offset";
+    Noises["BADLANDS_PILLAR"] = "badlands_pillar";
+    Noises["BADLANDS_PILLAR_ROOF"] = "badlands_pillar_roof";
+    Noises["BADLANDS_SURFACE"] = "badlands_surface";
+    Noises["ICEBERG_PILLAR"] = "iceberg_pillar";
+    Noises["ICEBERG_PILLAR_ROOF"] = "iceberg_pillar_roof";
+    Noises["ICEBERG_SURFACE"] = "iceberg_surface";
+    Noises["SWAMP"] = "surface_swamp";
+    Noises["CALCITE"] = "calcite";
+    Noises["GRAVEL"] = "gravel";
+    Noises["POWDER_SNOW"] = "powder_snow";
+    Noises["PACKED_ICE"] = "packed_ice";
+    Noises["ICE"] = "ice";
+    Noises["SOUL_SAND_LAYER"] = "soul_sand_layer";
+    Noises["GRAVEL_LAYER"] = "gravel_layer";
+    Noises["PATCH"] = "patch";
+    Noises["NETHERRACK"] = "netherrack";
+    Noises["NETHER_WART"] = "nether_wart";
+    Noises["NETHER_STATE_SELECTOR"] = "nether_state_selector";
+})(Noises || (Noises = {}));
+const NOISES = [];
+function registerNoises() {
+    registerBiomeNoises(0, Noises.TEMPERATURE, Noises.VEGETATION, Noises.CONTINENTALNESS, Noises.EROSION);
+    registerBiomeNoises(-2, Noises.TEMPERATURE_LARGE, Noises.VEGETATION_LARGE, Noises.CONTINENTALNESS_LARGE, Noises.EROSION_LARGE);
+    register(Noises.RIDGE, -7, 1.0, 2.0, 1.0, 0.0, 0.0, 0.0);
+    register(Noises.SHIFT, -3, 1.0, 1.0, 1.0, 0.0);
+    register(Noises.AQUIFER_BARRIER, -3, 1.0);
+    register(Noises.AQUIFER_FLUID_LEVEL_FLOODEDNESS, -7, 1.0);
+    register(Noises.AQUIFER_LAVA, -1, 1.0);
+    register(Noises.AQUIFER_FLUID_LEVEL_SPREAD, -5, 1.0);
+    register(Noises.PILLAR, -7, 1.0, 1.0);
+    register(Noises.PILLAR_RARENESS, -8, 1.0);
+    register(Noises.PILLAR_THICKNESS, -8, 1.0);
+    register(Noises.SPAGHETTI_2, -7, 1.0);
+    register(Noises.SPAGHETTI_2D_ELEVATION, -8, 1.0);
+    register(Noises.SPAGHETTI_2D_MODULATOR, -11, 1.0);
+    register(Noises.SPAGHETTI_2D_THICKNESS, -11, 1.0);
+    register(Noises.SPAGHETTI_3D_1, -7, 1.0);
+    register(Noises.SPAGHETTI_3D_2, -7, 1.0);
+    register(Noises.SPAGHETTI_3D_RARITY, -11, 1.0);
+    register(Noises.SPAGHETTI_3D_THICKNESS, -8, 1.0);
+    register(Noises.SPAGHETTI_ROUGHNESS, -5, 1.0);
+    register(Noises.SPAGHETTI_ROUGHNESS_MODULATOR, -8, 1.0);
+    register(Noises.CAVE_ENTRANCE, -7, 0.4, 0.5, 1.0);
+    register(Noises.CAVE_LAYER, -8, 1.0);
+    register(Noises.CAVE_CHEESE, -8, 0.5, 1.0, 2.0, 1.0, 2.0, 1.0, 0.0, 2.0, 0.0);
+    register(Noises.ORE_VEININESS, -8, 1.0);
+    register(Noises.ORE_VEIN_A, -7, 1.0);
+    register(Noises.ORE_VEIN_B, -7, 1.0);
+    register(Noises.ORE_GAP, -5, 1.0);
+    register(Noises.NOODLE, -8, 1.0);
+    register(Noises.NOODLE_THICKNESS, -8, 1.0);
+    register(Noises.NOODLE_RIDGE_A, -7, 1.0);
+    register(Noises.NOODLE_RIDGE_B, -7, 1.0);
+    register(Noises.JAGGED, -16, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0);
+    register(Noises.SURFACE, -6, 1.0, 1.0, 1.0);
+    register(Noises.SURFACE_SECONDARY, -6, 1.0, 1.0, 1.0);
+    register(Noises.CLAY_BANDS_OFFSET, -8, 1.0);
+    register(Noises.BADLANDS_PILLAR, -2, 1.0, 1.0, 1.0, 1.0);
+    register(Noises.BADLANDS_PILLAR_ROOF, -8, 1.0);
+    register(Noises.BADLANDS_SURFACE, -6, 1.0, 1.0, 1.0);
+    register(Noises.ICEBERG_PILLAR, -6, 1.0, 1.0, 1.0, 1.0);
+    register(Noises.ICEBERG_PILLAR_ROOF, -3, 1.0);
+    register(Noises.ICEBERG_SURFACE, -6, 1.0, 1.0, 1.0);
+    register(Noises.SWAMP, -2, 1.0);
+    register(Noises.CALCITE, -9, 1.0, 1.0, 1.0, 1.0);
+    register(Noises.GRAVEL, -8, 1.0, 1.0, 1.0, 1.0);
+    register(Noises.POWDER_SNOW, -6, 1.0, 1.0, 1.0, 1.0);
+    register(Noises.PACKED_ICE, -7, 1.0, 1.0, 1.0, 1.0);
+    register(Noises.ICE, -4, 1.0, 1.0, 1.0, 1.0);
+    register(Noises.SOUL_SAND_LAYER, -8, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.013333333333333334);
+    register(Noises.GRAVEL_LAYER, -8, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.013333333333333334);
+    register(Noises.PATCH, -5, 1.0, 0.0, 0.0, 0.0, 0.0, 0.013333333333333334);
+    register(Noises.NETHERRACK, -3, 1.0, 0.0, 0.0, 0.35);
+    register(Noises.NETHER_WART, -3, 1.0, 0.0, 0.0, 0.9);
+    register(Noises.NETHER_STATE_SELECTOR, -4, 1.0);
+}
+function registerBiomeNoises(octaveOffset, temperature, vegetation, continentalness, erosion) {
+    register(temperature, -10 + octaveOffset, 1.5, 0.0, 1.0, 0.0, 0.0, 0.0);
+    register(vegetation, -8 + octaveOffset, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0);
+    register(continentalness, -9 + octaveOffset, 1.0, 1.0, 2.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0);
+    register(erosion, -9 + octaveOffset, 1.0, 1.0, 0.0, 1.0, 1.0);
+}
+function register(noise, firstOctave, firstAmplitude, ...amplitudes) {
+    NOISES[noise] = new NoiseParameters(firstOctave, firstAmplitude, ...amplitudes);
+}
+registerNoises();
+
+class Context {
+}
+function makeStateRule(p_194811_) {
+    //return SurfaceRules.state(p_194811_.defaultBlockState());
+}
+class VerticalAnchor {
+    static absolute(height) { }
+    static aboveBottom(height) { }
+    static belowTop(height) { }
+    static bottom() { }
+    static top() { }
+}
+var CaveSurface;
+(function (CaveSurface) {
+    CaveSurface[CaveSurface["CEILING"] = 0] = "CEILING";
+    CaveSurface[CaveSurface["FLOOR"] = 1] = "FLOOR";
+})(CaveSurface || (CaveSurface = {}));
+class SurfaceRules {
+    static yBlockCheck(anchor, p_189402_) { }
+    static yStartCheck(anchor, p_189402_) { }
+    static waterBlockCheck(offset, surfaceDepthMultiplier) { }
+    static waterStartCheck(offset, surfaceDepthMultiplier) { }
+    static hole() { }
+    static abovePreliminarySurface() { }
+    static temperature() { }
+    static steep() { }
+    static isBiome(...biomes) { }
+    static ifTrue(cond, p_189396_) { }
+    static stoneDepthCheck(p_189386_, p_189387_, p_189388_, p_189389_) { }
+    static ON_FLOOR = SurfaceRules.stoneDepthCheck(0, false, false, CaveSurface.FLOOR);
+    static UNDER_FLOOR = SurfaceRules.stoneDepthCheck(0, true, false, CaveSurface.FLOOR);
+    static ON_CEILING = SurfaceRules.stoneDepthCheck(0, false, false, CaveSurface.CEILING);
+    static UNDER_CEILING = SurfaceRules.stoneDepthCheck(0, true, false, CaveSurface.CEILING);
+    static sequence(...rules) { }
+    static noiseCondition(noise, minNoiseValue, maxNoiseValue = Number.MAX_VALUE) { }
+    static not(cond) { }
+    static bandlands() { }
+    static verticalGradient(p_189404_, p_189405_, p_189406_) { }
+    static surfaceNoiseAbove(p_194809_) { }
+}
+const AIR = makeStateRule(Blocks.AIR);
+const BEDROCK = makeStateRule(Blocks.BEDROCK);
+const WHITE_TERRACOTTA = makeStateRule(Blocks.WHITE_TERRACOTTA);
+const ORANGE_TERRACOTTA = makeStateRule(Blocks.ORANGE_TERRACOTTA);
+const TERRACOTTA = makeStateRule(Blocks.TERRACOTTA);
+const RED_SAND = makeStateRule(Blocks.RED_SAND);
+const RED_SANDSTONE = makeStateRule(Blocks.RED_SANDSTONE);
+const STONE = makeStateRule(Blocks.STONE);
+const DEEPSLATE = makeStateRule(Blocks.DEEPSLATE);
+const DIRT = makeStateRule(Blocks.DIRT);
+const PODZOL = makeStateRule(Blocks.PODZOL);
+const COARSE_DIRT = makeStateRule(Blocks.COARSE_DIRT);
+const MYCELIUM = makeStateRule(Blocks.MYCELIUM);
+const GRASS_BLOCK = makeStateRule(Blocks.GRASS_BLOCK);
+const CALCITE = makeStateRule(Blocks.CALCITE);
+const GRAVEL = makeStateRule(Blocks.GRAVEL);
+const SAND = makeStateRule(Blocks.SAND);
+const SANDSTONE = makeStateRule(Blocks.SANDSTONE);
+const PACKED_ICE = makeStateRule(Blocks.PACKED_ICE);
+const SNOW_BLOCK = makeStateRule(Blocks.SNOW_BLOCK);
+const POWDER_SNOW = makeStateRule(Blocks.POWDER_SNOW);
+const ICE = makeStateRule(Blocks.ICE);
+const WATER = makeStateRule(Blocks.WATER);
+class SurfaceRuleData {
+    static overworld() {
+        return SurfaceRuleData.overworldLike(true, false, true);
+    }
+    static overworldLike(p_198381_, haveBedrockRoof, haveBedrockFloor) {
+        const surfacerules$conditionsource = SurfaceRules.yBlockCheck(VerticalAnchor.absolute(97), 2);
+        const surfacerules$conditionsource1 = SurfaceRules.yBlockCheck(VerticalAnchor.absolute(256), 0);
+        const surfacerules$conditionsource2 = SurfaceRules.yStartCheck(VerticalAnchor.absolute(63), -1);
+        const surfacerules$conditionsource3 = SurfaceRules.yStartCheck(VerticalAnchor.absolute(74), 1);
+        const surfacerules$conditionsource4 = SurfaceRules.yBlockCheck(VerticalAnchor.absolute(62), 0);
+        const surfacerules$conditionsource5 = SurfaceRules.yBlockCheck(VerticalAnchor.absolute(63), 0);
+        const isWaterAboveTheBlock = SurfaceRules.waterBlockCheck(-1, 0);
+        const isWater = SurfaceRules.waterBlockCheck(0, 0);
+        const surfacerules$conditionsource8 = SurfaceRules.waterStartCheck(-6, -1);
+        const isHole = SurfaceRules.hole();
+        const isFrozenOcean = SurfaceRules.isBiome(Biomes.FROZEN_OCEAN, Biomes.DEEP_FROZEN_OCEAN);
+        const isSteep = SurfaceRules.steep();
+        const replaceGrassWithDirtIfWaterIsAbove = SurfaceRules.sequence(SurfaceRules.ifTrue(isWaterAboveTheBlock, GRASS_BLOCK), DIRT);
+        const replaceSandstoneWithSandOnCeiling = SurfaceRules.sequence(SurfaceRules.ifTrue(SurfaceRules.ON_CEILING, SANDSTONE), SAND);
+        const replaceStoneWithGravelOnCeiling = SurfaceRules.sequence(SurfaceRules.ifTrue(SurfaceRules.ON_CEILING, STONE), GRAVEL);
+        const isWarmOceanDesertOrBeach = SurfaceRules.isBiome(Biomes.WARM_OCEAN, Biomes.DESERT, Biomes.BEACH, Biomes.SNOWY_BEACH);
+        const ceilingRules = SurfaceRules.sequence(SurfaceRules.ifTrue(SurfaceRules.isBiome(Biomes.STONY_PEAKS), SurfaceRules.sequence(SurfaceRules.ifTrue(SurfaceRules.noiseCondition(Noises.CALCITE, -0.0125, 0.0125), CALCITE), STONE)), SurfaceRules.ifTrue(SurfaceRules.isBiome(Biomes.STONY_SHORE), SurfaceRules.sequence(SurfaceRules.ifTrue(SurfaceRules.noiseCondition(Noises.GRAVEL, -0.05, 0.05), replaceStoneWithGravelOnCeiling), STONE)), SurfaceRules.ifTrue(SurfaceRules.isBiome(Biomes.WINDSWEPT_HILLS), SurfaceRules.ifTrue(SurfaceRules.surfaceNoiseAbove(1.0), STONE)), SurfaceRules.ifTrue(isWarmOceanDesertOrBeach, replaceSandstoneWithSandOnCeiling), SurfaceRules.ifTrue(SurfaceRules.isBiome(Biomes.DRIPSTONE_CAVES), STONE));
+        const powderSnow = SurfaceRules.ifTrue(SurfaceRules.noiseCondition(Noises.POWDER_SNOW, 0.45, 0.58), POWDER_SNOW);
+        const anotherPowderSnow = SurfaceRules.ifTrue(SurfaceRules.noiseCondition(Noises.POWDER_SNOW, 0.35, 0.6), POWDER_SNOW);
+        const surfacerules$rulesource6 = SurfaceRules.sequence(SurfaceRules.ifTrue(SurfaceRules.isBiome(Biomes.FROZEN_PEAKS), SurfaceRules.sequence(SurfaceRules.ifTrue(isSteep, PACKED_ICE), SurfaceRules.ifTrue(SurfaceRules.noiseCondition(Noises.PACKED_ICE, -0.5, 0.2), PACKED_ICE), SurfaceRules.ifTrue(SurfaceRules.noiseCondition(Noises.ICE, -0.0625, 0.025), ICE), SNOW_BLOCK)), SurfaceRules.ifTrue(SurfaceRules.isBiome(Biomes.SNOWY_SLOPES), SurfaceRules.sequence(SurfaceRules.ifTrue(isSteep, STONE), powderSnow, SNOW_BLOCK)), SurfaceRules.ifTrue(SurfaceRules.isBiome(Biomes.JAGGED_PEAKS), STONE), SurfaceRules.ifTrue(SurfaceRules.isBiome(Biomes.GROVE), SurfaceRules.sequence(powderSnow, DIRT)), ceilingRules, SurfaceRules.ifTrue(SurfaceRules.isBiome(Biomes.WINDSWEPT_SAVANNA), SurfaceRules.ifTrue(SurfaceRules.surfaceNoiseAbove(1.75), STONE)), SurfaceRules.ifTrue(SurfaceRules.isBiome(Biomes.WINDSWEPT_GRAVELLY_HILLS), SurfaceRules.sequence(SurfaceRules.ifTrue(SurfaceRules.surfaceNoiseAbove(2.0), replaceStoneWithGravelOnCeiling), SurfaceRules.ifTrue(SurfaceRules.surfaceNoiseAbove(1.0), STONE), SurfaceRules.ifTrue(SurfaceRules.surfaceNoiseAbove(-1.0), DIRT), replaceStoneWithGravelOnCeiling)), DIRT);
+        const surfacerules$rulesource7 = SurfaceRules.sequence(SurfaceRules.ifTrue(SurfaceRules.isBiome(Biomes.FROZEN_PEAKS), SurfaceRules.sequence(SurfaceRules.ifTrue(isSteep, PACKED_ICE), SurfaceRules.ifTrue(SurfaceRules.noiseCondition(Noises.PACKED_ICE, 0.0, 0.2), PACKED_ICE), SurfaceRules.ifTrue(SurfaceRules.noiseCondition(Noises.ICE, 0.0, 0.025), ICE), SNOW_BLOCK)), SurfaceRules.ifTrue(SurfaceRules.isBiome(Biomes.SNOWY_SLOPES), SurfaceRules.sequence(SurfaceRules.ifTrue(isSteep, STONE), anotherPowderSnow, SNOW_BLOCK)), SurfaceRules.ifTrue(SurfaceRules.isBiome(Biomes.JAGGED_PEAKS), SurfaceRules.sequence(SurfaceRules.ifTrue(isSteep, STONE), SNOW_BLOCK)), SurfaceRules.ifTrue(SurfaceRules.isBiome(Biomes.GROVE), SurfaceRules.sequence(anotherPowderSnow, SNOW_BLOCK)), ceilingRules, SurfaceRules.ifTrue(SurfaceRules.isBiome(Biomes.WINDSWEPT_SAVANNA), SurfaceRules.sequence(SurfaceRules.ifTrue(SurfaceRules.surfaceNoiseAbove(1.75), STONE), SurfaceRules.ifTrue(SurfaceRules.surfaceNoiseAbove(-0.5), COARSE_DIRT))), SurfaceRules.ifTrue(SurfaceRules.isBiome(Biomes.WINDSWEPT_GRAVELLY_HILLS), SurfaceRules.sequence(SurfaceRules.ifTrue(SurfaceRules.surfaceNoiseAbove(2.0), replaceStoneWithGravelOnCeiling), SurfaceRules.ifTrue(SurfaceRules.surfaceNoiseAbove(1.0), STONE), SurfaceRules.ifTrue(SurfaceRules.surfaceNoiseAbove(-1.0), replaceGrassWithDirtIfWaterIsAbove), replaceStoneWithGravelOnCeiling)), SurfaceRules.ifTrue(SurfaceRules.isBiome(Biomes.OLD_GROWTH_PINE_TAIGA, Biomes.OLD_GROWTH_SPRUCE_TAIGA), SurfaceRules.sequence(SurfaceRules.ifTrue(SurfaceRules.surfaceNoiseAbove(1.75), COARSE_DIRT), SurfaceRules.ifTrue(SurfaceRules.surfaceNoiseAbove(-0.95), PODZOL))), SurfaceRules.ifTrue(SurfaceRules.isBiome(Biomes.ICE_SPIKES), SNOW_BLOCK), SurfaceRules.ifTrue(SurfaceRules.isBiome(Biomes.MUSHROOM_FIELDS), MYCELIUM), replaceGrassWithDirtIfWaterIsAbove);
+        const surfacerules$conditionsource13 = SurfaceRules.noiseCondition(Noises.SURFACE, -0.909, -0.5454);
+        const surfacerules$conditionsource14 = SurfaceRules.noiseCondition(Noises.SURFACE, -0.1818, 0.1818);
+        const surfacerules$conditionsource15 = SurfaceRules.noiseCondition(Noises.SURFACE, 0.5454, 0.909);
+        const surfacerules$rulesource8 = SurfaceRules.sequence(SurfaceRules.ifTrue(SurfaceRules.ON_FLOOR, SurfaceRules.sequence(SurfaceRules.ifTrue(SurfaceRules.isBiome(Biomes.WOODED_BADLANDS), SurfaceRules.ifTrue(surfacerules$conditionsource, SurfaceRules.sequence(SurfaceRules.ifTrue(surfacerules$conditionsource13, COARSE_DIRT), SurfaceRules.ifTrue(surfacerules$conditionsource14, COARSE_DIRT), SurfaceRules.ifTrue(surfacerules$conditionsource15, COARSE_DIRT), replaceGrassWithDirtIfWaterIsAbove))), SurfaceRules.ifTrue(SurfaceRules.isBiome(Biomes.SWAMP), SurfaceRules.ifTrue(surfacerules$conditionsource4, SurfaceRules.ifTrue(SurfaceRules.not(surfacerules$conditionsource5), SurfaceRules.ifTrue(SurfaceRules.noiseCondition(Noises.SWAMP, 0.0), WATER)))))), SurfaceRules.ifTrue(SurfaceRules.isBiome(Biomes.BADLANDS, Biomes.ERODED_BADLANDS, Biomes.WOODED_BADLANDS), SurfaceRules.sequence(SurfaceRules.ifTrue(SurfaceRules.ON_FLOOR, SurfaceRules.sequence(SurfaceRules.ifTrue(surfacerules$conditionsource1, ORANGE_TERRACOTTA), SurfaceRules.ifTrue(surfacerules$conditionsource3, SurfaceRules.sequence(SurfaceRules.ifTrue(surfacerules$conditionsource13, TERRACOTTA), SurfaceRules.ifTrue(surfacerules$conditionsource14, TERRACOTTA), SurfaceRules.ifTrue(surfacerules$conditionsource15, TERRACOTTA), SurfaceRules.bandlands())), SurfaceRules.ifTrue(isWaterAboveTheBlock, SurfaceRules.sequence(SurfaceRules.ifTrue(SurfaceRules.ON_CEILING, RED_SANDSTONE), RED_SAND)), SurfaceRules.ifTrue(SurfaceRules.not(isHole), ORANGE_TERRACOTTA), SurfaceRules.ifTrue(surfacerules$conditionsource8, WHITE_TERRACOTTA), replaceStoneWithGravelOnCeiling)), SurfaceRules.ifTrue(surfacerules$conditionsource2, SurfaceRules.sequence(SurfaceRules.ifTrue(surfacerules$conditionsource5, SurfaceRules.ifTrue(SurfaceRules.not(surfacerules$conditionsource3), ORANGE_TERRACOTTA)), SurfaceRules.bandlands())), SurfaceRules.ifTrue(SurfaceRules.UNDER_FLOOR, SurfaceRules.ifTrue(surfacerules$conditionsource8, WHITE_TERRACOTTA)))), SurfaceRules.ifTrue(SurfaceRules.ON_FLOOR, SurfaceRules.ifTrue(isWaterAboveTheBlock, SurfaceRules.sequence(SurfaceRules.ifTrue(isFrozenOcean, SurfaceRules.ifTrue(isHole, SurfaceRules.sequence(SurfaceRules.ifTrue(isWater, AIR), SurfaceRules.ifTrue(SurfaceRules.temperature(), ICE), WATER))), surfacerules$rulesource7))), SurfaceRules.ifTrue(surfacerules$conditionsource8, SurfaceRules.sequence(SurfaceRules.ifTrue(SurfaceRules.ON_FLOOR, SurfaceRules.ifTrue(isFrozenOcean, SurfaceRules.ifTrue(isHole, WATER))), SurfaceRules.ifTrue(SurfaceRules.UNDER_FLOOR, surfacerules$rulesource6), SurfaceRules.ifTrue(isWarmOceanDesertOrBeach, SurfaceRules.ifTrue(SurfaceRules.stoneDepthCheck(0, true, true, CaveSurface.FLOOR), SANDSTONE)))), SurfaceRules.ifTrue(SurfaceRules.ON_FLOOR, SurfaceRules.sequence(SurfaceRules.ifTrue(SurfaceRules.isBiome(Biomes.FROZEN_PEAKS, Biomes.JAGGED_PEAKS), STONE), SurfaceRules.ifTrue(SurfaceRules.isBiome(Biomes.WARM_OCEAN, Biomes.LUKEWARM_OCEAN, Biomes.DEEP_LUKEWARM_OCEAN), replaceSandstoneWithSandOnCeiling), replaceStoneWithGravelOnCeiling)));
+        const builder = [];
+        if (haveBedrockRoof) {
+            builder.push(SurfaceRules.ifTrue(SurfaceRules.not(SurfaceRules.verticalGradient("bedrock_roof", VerticalAnchor.belowTop(5), VerticalAnchor.top())), BEDROCK));
+        }
+        if (haveBedrockFloor) {
+            builder.push(SurfaceRules.ifTrue(SurfaceRules.verticalGradient("bedrock_floor", VerticalAnchor.bottom(), VerticalAnchor.aboveBottom(5)), BEDROCK));
+        }
+        const surfacerules$rulesource9 = SurfaceRules.ifTrue(SurfaceRules.abovePreliminarySurface(), surfacerules$rulesource8);
+        builder.push(p_198381_ ? surfacerules$rulesource9 : surfacerules$rulesource8);
+        builder.push(SurfaceRules.ifTrue(SurfaceRules.verticalGradient("deepslate", VerticalAnchor.absolute(0), VerticalAnchor.absolute(8)), DEEPSLATE));
+        return SurfaceRules.sequence(...builder);
+    }
+}
+
+class CubicSpline {
+    static constant(value) {
+        return new Constant(value);
+    }
+    static builder(coordinate, valueTransformer) {
+        return new CubicSplineBuilder(coordinate, valueTransformer);
+    }
+}
+class CubicSplineBuilder {
+    coordinate;
+    valueTransformer;
+    locations = [];
+    values = [];
+    derivatives = [];
+    constructor(coordinate, valueTransformer) {
+        this.coordinate = coordinate;
+        this.valueTransformer = valueTransformer ? valueTransformer : value => value;
+    }
+    addPoint(t, value, derivative) {
+        if (typeof value === "number") {
+            value = new Constant(this.valueTransformer(value));
+        }
+        this.locations.push(t);
+        this.values.push(value);
+        this.derivatives.push(derivative);
+        return this;
+    }
+    build() {
+        return new Multipoint(this.coordinate, this.locations, this.values.slice(), this.derivatives);
+    }
+}
+class Constant extends CubicSpline {
+    value;
+    constructor(value) {
+        super();
+        this.value = value;
+    }
+    apply() {
+        return this.value;
+    }
+}
+class Multipoint extends CubicSpline {
+    coordinate;
+    locations;
+    values;
+    derivatives;
+    constructor(coordinate, locations, values, derivatives) {
+        super();
+        this.coordinate = coordinate;
+        this.locations = locations;
+        this.values = values;
+        this.derivatives = derivatives;
+    }
+    apply(value) {
+        const loc = this.coordinate(value);
+        const index = binarySearch(0, this.locations.length, index => loc < this.locations[index]) - 1;
+        const j = this.locations.length - 1;
+        if (index < 0) {
+            return this.values[0].apply(value) + this.derivatives[0] * (loc - this.locations[0]);
+        }
+        else if (index == j) {
+            return this.values[j].apply(value) + this.derivatives[j] * (loc - this.locations[j]);
+        }
+        else {
+            const prevLoc = this.locations[index];
+            const nextLoc = this.locations[index + 1];
+            const t = (loc - prevLoc) / (nextLoc - prevLoc);
+            const tofloatfunction = this.values[index];
+            const tofloatfunction1 = this.values[index + 1];
+            const d0 = this.derivatives[index];
+            const d1 = this.derivatives[index + 1];
+            const v0 = tofloatfunction.apply(value);
+            const v1 = tofloatfunction1.apply(value);
+            const v2 = d0 * (nextLoc - prevLoc) - (v1 - v0);
+            const v3 = -d1 * (nextLoc - prevLoc) + (v1 - v0);
+            return lerp(t, v0, v1) + t * (1 - t) * lerp(t, v2, v3);
+        }
+    }
+}
+
+class Point {
+    continents;
+    erosion;
+    ridges;
+    weirdness;
+    constructor(continents, erosion, ridges, weirdness) {
+        this.continents = continents;
+        this.erosion = erosion;
+        this.ridges = ridges;
+        this.weirdness = weirdness;
+    }
+    static CONTINENTS(value) {
+        return value.continents;
+    }
+    static EROSION(value) {
+        return value.erosion;
+    }
+    static RIDGES(value) {
+        return value.ridges;
+    }
+    static WEIRDNESS(value) {
+        return value.weirdness;
+    }
+}
+const NO_TRANSFORM = v => v;
+class TerrainShaper {
+    offsetSampler;
+    factorSampler;
+    jaggednessSampler;
+    constructor(offsetSampler, factorSampler, jaggednessSampler) {
+        this.offsetSampler = offsetSampler;
+        this.factorSampler = factorSampler;
+        this.jaggednessSampler = jaggednessSampler;
+        //
+    }
+    static getAmplifiedOffset(p_187325_) {
+        return p_187325_ < 0 ? p_187325_ : p_187325_ * 2;
+    }
+    static getAmplifiedFactor(p_187338_) {
+        return 1.25 - 6.25 / (p_187338_ + 5);
+    }
+    static getAmplifiedJaggedness(p_187342_) {
+        return p_187342_ * 2;
+    }
+    static overworld(isAmplified) {
+        const offsetTransformer = isAmplified ? TerrainShaper.getAmplifiedOffset : NO_TRANSFORM;
+        const factorTransformer = isAmplified ? TerrainShaper.getAmplifiedFactor : NO_TRANSFORM;
+        const jaggednessTransformer = isAmplified
+            ? TerrainShaper.getAmplifiedJaggedness
+            : NO_TRANSFORM;
+        const erosionOffset1 = TerrainShaper.buildErosionOffsetSpline(-0.15, 0.0, 0.0, 0.1, 0.0, -0.03, false, false, offsetTransformer);
+        const erosionOffset2 = TerrainShaper.buildErosionOffsetSpline(-0.1, 0.03, 0.1, 0.1, 0.01, -0.03, false, false, offsetTransformer);
+        const erosionOffset3 = TerrainShaper.buildErosionOffsetSpline(-0.1, 0.03, 0.1, 0.7, 0.01, -0.03, true, true, offsetTransformer);
+        const erosionOffset4 = TerrainShaper.buildErosionOffsetSpline(-0.05, 0.03, 0.1, 1.0, 0.01, 0.01, true, true, offsetTransformer);
+        const offsetSampler = CubicSpline.builder(Point.CONTINENTS, offsetTransformer)
+            .addPoint(-1.1, 0.044, 0.0)
+            .addPoint(-1.02, -0.2222, 0.0)
+            .addPoint(-0.51, -0.2222, 0.0)
+            .addPoint(-0.44, -0.12, 0.0)
+            .addPoint(-0.18, -0.12, 0.0)
+            .addPoint(-0.16, erosionOffset1, 0.0)
+            .addPoint(-0.15, erosionOffset1, 0.0)
+            .addPoint(-0.1, erosionOffset2, 0.0)
+            .addPoint(0.25, erosionOffset3, 0.0)
+            .addPoint(1.0, erosionOffset4, 0.0)
+            .build();
+        const factorSampler = CubicSpline.builder(Point.CONTINENTS, NO_TRANSFORM)
+            .addPoint(-0.19, 3.95, 0.0)
+            .addPoint(-0.15, TerrainShaper.getErosionFactor(6.25, true, NO_TRANSFORM), 0.0)
+            .addPoint(-0.1, TerrainShaper.getErosionFactor(5.47, true, factorTransformer), 0.0)
+            .addPoint(0.03, TerrainShaper.getErosionFactor(5.08, true, factorTransformer), 0.0)
+            .addPoint(0.06, TerrainShaper.getErosionFactor(4.69, false, factorTransformer), 0.0)
+            .build();
+        const jaggednessSampler = CubicSpline.builder(Point.CONTINENTS, jaggednessTransformer)
+            .addPoint(-0.11, 0.0, 0.0)
+            .addPoint(0.03, TerrainShaper.buildErosionJaggednessSpline(1.0, 0.5, 0.0, 0.0, jaggednessTransformer), 0.0)
+            .addPoint(0.65, TerrainShaper.buildErosionJaggednessSpline(1.0, 1.0, 1.0, 0.0, jaggednessTransformer), 0.0)
+            .build();
+        return new TerrainShaper(offsetSampler, factorSampler, jaggednessSampler);
+    }
+    static peaksAndValleys(base) {
+        return -(Math.abs(Math.abs(base) - 0.6666667) - 0.33333334) * 3.0;
+    }
+    static mountainContinentalness(p_187327_, p_187328_, p_187329_) {
+        const f2 = 1.0 - (1.0 - p_187328_) * 0.5;
+        const f3 = 0.5 * (1.0 - p_187328_);
+        const f4 = (p_187327_ + 1.17) * 0.46082947;
+        const f5 = f4 * f2 - f3;
+        return p_187327_ < p_187329_ ? Math.max(f5, -0.2222) : Math.max(f5, 0.0);
+    }
+    static calculateMountainRidgeZeroContinentalnessPoint(p_187344_) {
+        const f2 = 1.0 - (1.0 - p_187344_) * 0.5;
+        const f3 = 0.5 * (1.0 - p_187344_);
+        return f3 / (0.46082947 * f2) - 1.17;
+    }
+    static calculateSlope(p_187272_, p_187273_, p_187274_, p_187275_) {
+        return (p_187273_ - p_187272_) / (p_187275_ - p_187274_);
+    }
+    static buildMountainRidgeSplineWithPoints(p_187331_, p_187332_, transformer) {
+        const builder = CubicSpline.builder(Point.RIDGES, transformer);
+        const f2 = TerrainShaper.mountainContinentalness(-1.0, p_187331_, -0.7);
+        const f4 = TerrainShaper.mountainContinentalness(1.0, p_187331_, -0.7);
+        const f5 = TerrainShaper.calculateMountainRidgeZeroContinentalnessPoint(p_187331_);
+        if (-0.65 < f5 && f5 < 1.0) {
+            const f14 = TerrainShaper.mountainContinentalness(-0.65, p_187331_, -0.7);
+            const f9 = TerrainShaper.mountainContinentalness(-0.75, p_187331_, -0.7);
+            const f10 = TerrainShaper.calculateSlope(f2, f9, -1.0, -0.75);
+            builder.addPoint(-1.0, f2, f10);
+            builder.addPoint(-0.75, f9, 0.0);
+            builder.addPoint(-0.65, f14, 0.0);
+            const f11 = TerrainShaper.mountainContinentalness(f5, p_187331_, -0.7);
+            const f12 = TerrainShaper.calculateSlope(f11, f4, f5, 1.0);
+            builder.addPoint(f5 - 0.01, f11, 0.0);
+            builder.addPoint(f5, f11, f12);
+            builder.addPoint(1.0, f4, f12);
+        }
+        else {
+            const f7 = TerrainShaper.calculateSlope(f2, f4, -1.0, 1.0);
+            if (p_187332_) {
+                builder.addPoint(-1.0, Math.max(0.2, f2), 0.0);
+                builder.addPoint(0.0, lerp(0.5, f2, f4), f7);
+            }
+            else {
+                builder.addPoint(-1.0, f2, f7);
+            }
+            builder.addPoint(1.0, f4, f7);
+        }
+        return builder.build();
+    }
+    static buildErosionOffsetSpline(p_187285_, p_187286_, p_187287_, p_187288_, p_187289_, p_187290_, p_187291_, p_187292_, transformer) {
+        const cubicspline = TerrainShaper.buildMountainRidgeSplineWithPoints(lerp(p_187288_, 0.6, 1.5), p_187292_, transformer);
+        const cubicspline1 = TerrainShaper.buildMountainRidgeSplineWithPoints(lerp(p_187288_, 0.6, 1.0), p_187292_, transformer);
+        const cubicspline2 = TerrainShaper.buildMountainRidgeSplineWithPoints(p_187288_, p_187292_, transformer);
+        const cubicspline3 = TerrainShaper.ridgeSpline(p_187285_ - 0.15, 0.5 * p_187288_, lerp(0.5, 0.5, 0.5) * p_187288_, 0.5 * p_187288_, 0.6 * p_187288_, 0.5, transformer);
+        const cubicspline4 = TerrainShaper.ridgeSpline(p_187285_, p_187289_ * p_187288_, p_187286_ * p_187288_, 0.5 * p_187288_, 0.6 * p_187288_, 0.5, transformer);
+        const cubicspline5 = TerrainShaper.ridgeSpline(p_187285_, p_187289_, p_187289_, p_187286_, p_187287_, 0.5, transformer);
+        const cubicspline6 = TerrainShaper.ridgeSpline(p_187285_, p_187289_, p_187289_, p_187286_, p_187287_, 0.5, transformer);
+        const cubicspline7 = CubicSpline.builder(Point.RIDGES, transformer)
+            .addPoint(-1.0, p_187285_, 0.0)
+            .addPoint(-0.4, cubicspline5, 0.0)
+            .addPoint(0.0, p_187287_ + 0.07, 0.0)
+            .build();
+        const cubicspline8 = TerrainShaper.ridgeSpline(-0.02, p_187290_, p_187290_, p_187286_, p_187287_, 0.0, transformer);
+        const builder = CubicSpline.builder(Point.EROSION, transformer)
+            .addPoint(-0.85, cubicspline, 0.0)
+            .addPoint(-0.7, cubicspline1, 0.0)
+            .addPoint(-0.4, cubicspline2, 0.0)
+            .addPoint(-0.35, cubicspline3, 0.0)
+            .addPoint(-0.1, cubicspline4, 0.0)
+            .addPoint(0.2, cubicspline5, 0.0);
+        if (p_187291_) {
+            builder
+                .addPoint(0.4, cubicspline6, 0.0)
+                .addPoint(0.45, cubicspline7, 0.0)
+                .addPoint(0.55, cubicspline7, 0.0)
+                .addPoint(0.58, cubicspline6, 0.0);
+        }
+        builder.addPoint(0.7, cubicspline8, 0.0);
+        return builder.build();
+    }
+    static getErosionFactor(p_187308_, p_187309_, transformer) {
+        const cubicspline = CubicSpline.builder(Point.WEIRDNESS, transformer)
+            .addPoint(-0.2, 6.3, 0.0)
+            .addPoint(0.2, p_187308_, 0.0)
+            .build();
+        const builder = CubicSpline.builder(Point.EROSION, transformer)
+            .addPoint(-0.6, cubicspline, 0.0)
+            .addPoint(-0.5, CubicSpline.builder(Point.WEIRDNESS, transformer)
+            .addPoint(-0.05, 6.3, 0.0)
+            .addPoint(0.05, 2.67, 0.0)
+            .build(), 0.0)
+            .addPoint(-0.35, cubicspline, 0.0)
+            .addPoint(-0.25, cubicspline, 0.0)
+            .addPoint(-0.1, CubicSpline.builder(Point.WEIRDNESS, transformer)
+            .addPoint(-0.05, 2.67, 0.0)
+            .addPoint(0.05, 6.3, 0.0)
+            .build(), 0.0)
+            .addPoint(0.03, cubicspline, 0.0);
+        if (p_187309_) {
+            const cubicspline1 = CubicSpline.builder(Point.WEIRDNESS, transformer)
+                .addPoint(0.0, p_187308_, 0.0)
+                .addPoint(0.1, 0.625, 0.0)
+                .build();
+            const cubicspline2 = CubicSpline.builder(Point.RIDGES, transformer)
+                .addPoint(-0.9, p_187308_, 0.0)
+                .addPoint(-0.69, cubicspline1, 0.0)
+                .build();
+            builder
+                .addPoint(0.35, p_187308_, 0.0)
+                .addPoint(0.45, cubicspline2, 0.0)
+                .addPoint(0.55, cubicspline2, 0.0)
+                .addPoint(0.62, p_187308_, 0.0);
+        }
+        else {
+            const cubicspline3 = CubicSpline.builder(Point.RIDGES, transformer)
+                .addPoint(-0.7, cubicspline, 0.0)
+                .addPoint(-0.15, 1.37, 0.0)
+                .build();
+            const cubicspline4 = CubicSpline.builder(Point.RIDGES, transformer)
+                .addPoint(0.45, cubicspline, 0.0)
+                .addPoint(0.7, 1.56, 0.0)
+                .build();
+            builder
+                .addPoint(0.05, cubicspline4, 0.0)
+                .addPoint(0.4, cubicspline4, 0.0)
+                .addPoint(0.45, cubicspline3, 0.0)
+                .addPoint(0.55, cubicspline3, 0.0)
+                .addPoint(0.58, p_187308_, 0.0);
+        }
+        return builder.build();
+    }
+    static ridgeSpline(p_187277_, p_187278_, p_187279_, p_187280_, p_187281_, p_187282_, transformer) {
+        const f = Math.max(0.5 * (p_187278_ - p_187277_), p_187282_);
+        const f1 = 5.0 * (p_187279_ - p_187278_);
+        return CubicSpline.builder(Point.RIDGES, transformer)
+            .addPoint(-1.0, p_187277_, f)
+            .addPoint(-0.4, p_187278_, Math.min(f, f1))
+            .addPoint(0.0, p_187279_, f1)
+            .addPoint(0.4, p_187280_, 2.0 * (p_187280_ - p_187279_))
+            .addPoint(1.0, p_187281_, 0.7 * (p_187281_ - p_187280_))
+            .build();
+    }
+    static buildErosionJaggednessSpline(p_187295_, p_187296_, p_187297_, p_187298_, p_187299_) {
+        const cubicspline = TerrainShaper.buildRidgeJaggednessSpline(p_187295_, p_187297_, p_187299_);
+        const cubicspline1 = TerrainShaper.buildRidgeJaggednessSpline(p_187296_, p_187298_, p_187299_);
+        return CubicSpline.builder(Point.EROSION, p_187299_)
+            .addPoint(-1.0, cubicspline, 0.0)
+            .addPoint(-0.78, cubicspline1, 0.0)
+            .addPoint(-0.5775, cubicspline1, 0.0)
+            .addPoint(-0.375, 0.0, 0.0)
+            .build();
+    }
+    static buildWeirdnessJaggednessSpline(p_187305_, transformer) {
+        const v0 = 0.63 * p_187305_;
+        const v1 = 0.3 * p_187305_;
+        return CubicSpline.builder(Point.WEIRDNESS, transformer)
+            .addPoint(-0.01, v0, 0.0)
+            .addPoint(0.01, v1, 0.0)
+            .build();
+    }
+    static buildRidgeJaggednessSpline(weirdness1, weirdness0, transformer) {
+        const f = TerrainShaper.peaksAndValleys(0.4);
+        const f1 = TerrainShaper.peaksAndValleys(0.56666666);
+        const middlePeaksAndValleys = (f + f1) / 2.0;
+        const builder = CubicSpline.builder(Point.RIDGES, transformer);
+        builder.addPoint(f, 0.0, 0.0);
+        if (weirdness0 > 0.0) {
+            builder.addPoint(middlePeaksAndValleys, TerrainShaper.buildWeirdnessJaggednessSpline(weirdness0, transformer), 0.0);
+        }
+        else {
+            builder.addPoint(middlePeaksAndValleys, 0.0, 0.0);
+        }
+        if (weirdness1 > 0.0) {
+            builder.addPoint(1.0, TerrainShaper.buildWeirdnessJaggednessSpline(weirdness1, transformer), 0.0);
+        }
+        else {
+            builder.addPoint(1.0, 0.0, 0.0);
+        }
+        return builder.build();
+    }
+}
+
+class ChunkPos {
+    x;
+    y;
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+}
+// chunk access
+class ChunkAccess {
+    chunkPos;
+    constructor(chunkPos) {
+        this.chunkPos = chunkPos;
+        //
+    }
+}
+class ChunkGenerator {
+    biomeSource;
+    constructor(biomeSource) {
+        this.biomeSource = biomeSource;
+        //
+    }
+    getNoiseBiome(x, y, z) {
+        return this.biomeSource.getNoiseBiome(x, y, z, this.climateSampler());
+    }
+}
+class NoiseSamplingSettings {
+    xzScale;
+    yScale;
+    xzFactor;
+    yFactor;
+    constructor(xzScale, yScale, xzFactor, yFactor) {
+        this.xzScale = xzScale;
+        this.yScale = yScale;
+        this.xzFactor = xzFactor;
+        this.yFactor = yFactor;
+    }
+}
+class NoiseSlider {
+    target;
+    size;
+    offset;
+    constructor(target, size, offset) {
+        this.target = target;
+        this.size = size;
+        this.offset = offset;
+    }
+}
+class NoiseSettings {
+    minY;
+    height;
+    noiseSamplingSettings;
+    topSlideSettings;
+    bottomSlideSettings;
+    noiseSizeHorizontal;
+    noiseSizeVertical;
+    islandNoiseOverride;
+    isAmplified;
+    largeBiomes;
+    terrainShaper;
+    constructor(minY, height, noiseSamplingSettings, topSlideSettings, bottomSlideSettings, noiseSizeHorizontal, noiseSizeVertical, islandNoiseOverride, isAmplified, largeBiomes, terrainShaper) {
+        this.minY = minY;
+        this.height = height;
+        this.noiseSamplingSettings = noiseSamplingSettings;
+        this.topSlideSettings = topSlideSettings;
+        this.bottomSlideSettings = bottomSlideSettings;
+        this.noiseSizeHorizontal = noiseSizeHorizontal;
+        this.noiseSizeVertical = noiseSizeVertical;
+        this.islandNoiseOverride = islandNoiseOverride;
+        this.isAmplified = isAmplified;
+        this.largeBiomes = largeBiomes;
+        this.terrainShaper = terrainShaper;
+    }
+}
+class NoiseGeneratorSettings {
+    noiseSettings;
+    defaultBlock;
+    defaultFluid;
+    surfaceRule;
+    seaLevel;
+    disableMobGeneration;
+    aquifersEnabled;
+    noiseCavesEnabled;
+    oreVeinsEnabled;
+    noodleCavesEnabled;
+    useLegacyRandom;
+    static OVERWORLD = NoiseGeneratorSettings.overworld(false, false);
+    constructor(noiseSettings, defaultBlock, defaultFluid, surfaceRule, seaLevel, disableMobGeneration, aquifersEnabled, noiseCavesEnabled, oreVeinsEnabled, noodleCavesEnabled, useLegacyRandom) {
+        this.noiseSettings = noiseSettings;
+        this.defaultBlock = defaultBlock;
+        this.defaultFluid = defaultFluid;
+        this.surfaceRule = surfaceRule;
+        this.seaLevel = seaLevel;
+        this.disableMobGeneration = disableMobGeneration;
+        this.aquifersEnabled = aquifersEnabled;
+        this.noiseCavesEnabled = noiseCavesEnabled;
+        this.oreVeinsEnabled = oreVeinsEnabled;
+        this.noodleCavesEnabled = noodleCavesEnabled;
+        this.useLegacyRandom = useLegacyRandom;
+    }
+    static overworld(isAmplified, isLargeBiomes) {
+        return new NoiseGeneratorSettings(new NoiseSettings(-64, 384, new NoiseSamplingSettings(1, 1, 80, 160), new NoiseSlider(-0.078125, 2, isAmplified ? 0 : 8), new NoiseSlider(isAmplified ? 0.4 : 0.1171875, 3, 0), 1, 2, false, isAmplified, isLargeBiomes, TerrainShaper.overworld(isAmplified)), Blocks.STONE, Blocks.WATER, SurfaceRuleData.overworld(), 63, false, true, true, true, true, false);
+    }
+}
+class NoiseSampler {
+}
+class NoiseBasedChunkGenerator extends ChunkGenerator {
+    constructor() {
+        this.sampler = new NoiseSampler(noisesettings, noisegeneratorsettings.isNoiseCavesEnabled(), p_188617_, p_188614_, noisegeneratorsettings.getRandomSource());
+    }
+    climateSampler() {
+        return this.sampler;
+    }
+}
+
+class BlendedNoise {
+    minLimitNoise;
+    maxLimitNoise;
+    mainNoise;
+    cellWidth;
+    cellHeight;
+    xzScale;
+    yScale;
+    xzMainScale;
+    yMainScale;
+    constructor(minLimitNoise, maxLimitNoise, mainNoise, settings, cellWidth, cellHeight) {
+        this.minLimitNoise = minLimitNoise;
+        this.maxLimitNoise = maxLimitNoise;
+        this.mainNoise = mainNoise;
+        this.cellWidth = cellWidth;
+        this.cellHeight = cellHeight;
+        this.xzScale = 684.412 * settings.xzScale;
+        this.yScale = 684.412 * settings.yScale;
+        this.xzMainScale = this.xzScale / settings.xzFactor;
+        this.yMainScale = this.yScale / settings.yFactor;
+    }
+    static create(randomSource, settings, cellWidth, cellHeight) {
+        return new BlendedNoise(PerlinNoise.createLegacyForBlendedNoise(randomSource, IntStream.rangeClosed(-15, 0)), PerlinNoise.createLegacyForBlendedNoise(randomSource, IntStream.rangeClosed(-15, 0)), PerlinNoise.createLegacyForBlendedNoise(randomSource, IntStream.rangeClosed(-7, 0)), settings, cellWidth, cellHeight);
+    }
+    calculateNoise(x, y, z) {
+        const cellX = floorDiv(x, this.cellWidth);
+        const cellY = floorDiv(y, this.cellHeight);
+        const cellZ = floorDiv(z, this.cellWidth);
+        let minNoiseValue = 0.0;
+        let maxNoiseValue = 0.0;
+        let noiseValue = 0.0;
+        let scale = 1.0;
+        for (let octave = 0; octave < 8; ++octave) {
+            const improvedNoise = this.mainNoise.getOctaveNoise(octave);
+            if (improvedNoise != null) {
+                noiseValue +=
+                    improvedNoise.noise(PerlinNoise.wrap(cellX * this.xzMainScale * scale), PerlinNoise.wrap(cellY * this.yMainScale * scale), PerlinNoise.wrap(cellZ * this.xzMainScale * scale), this.yMainScale * scale, cellY * this.yMainScale * scale) / scale;
+            }
+            scale /= 2.0;
+        }
+        const t = (noiseValue / 10.0 + 1.0) / 2.0;
+        const isMaxOrHigher = t >= 1.0;
+        const isMinOrLower = t <= 0.0;
+        scale = 1.0;
+        for (let octave = 0; octave < 16; ++octave) {
+            const x = PerlinNoise.wrap(cellX * this.xzScale * scale);
+            const y = PerlinNoise.wrap(cellY * this.yScale * scale);
+            const z = PerlinNoise.wrap(cellZ * this.xzScale * scale);
+            const yScale = this.yScale * scale;
+            if (!isMaxOrHigher) {
+                const improvedNoise = this.minLimitNoise.getOctaveNoise(octave);
+                if (improvedNoise != null) {
+                    minNoiseValue += improvedNoise.noise(x, y, z, yScale, cellY * yScale) / scale;
+                }
+            }
+            if (!isMinOrLower) {
+                const improvedNoise = this.maxLimitNoise.getOctaveNoise(octave);
+                if (improvedNoise != null) {
+                    maxNoiseValue += improvedNoise.noise(x, y, z, yScale, cellY * yScale) / scale;
+                }
+            }
+            scale /= 2.0;
+        }
+        return clampedLerp(minNoiseValue / 512.0, maxNoiseValue / 512.0, t) / 128.0;
+    }
 }
 
 var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
@@ -10409,15 +12449,15 @@ class XoroshiroRandomSource extends RandomSource {
         this.randomNumberGenerator = new Xoroshiro128PlusPlus(RandomSupport.upgradeSeedTo128bit(seed));
         this.gaussianSource.reset();
     }
-    nextInt(p_190118_) {
-        if (p_190118_ !== undefined) {
+    nextInt(bound) {
+        if (bound !== undefined) {
             let i = toUnsignedLong(this.nextInt());
-            let j = clamp64(i * toLong(p_190118_));
+            let j = clamp64(i * toLong(bound));
             let k = j & 4294967295n;
-            if (k < toLong(p_190118_)) {
-                for (let l = remainderUnsigned32(~p_190118_ + 1, p_190118_); k < toLong(l); k = j & 4294967295n) {
+            if (k < toLong(bound)) {
+                for (let l = remainderUnsigned32(~bound + 1, bound); k < toLong(l); k = j & 4294967295n) {
                     i = toUnsignedLong(this.nextInt());
-                    j = i * toLong(p_190118_);
+                    j = i * toLong(bound);
                 }
             }
             const i1 = j >> 32n;
@@ -10460,12 +12500,12 @@ class XoroshiroPositionalRandomFactory extends PositionalRandomFactory {
         this.seedHi = seedHi;
     }
     at(x, y, z) {
-        const i = getSeed(x, y, z);
-        const j = i ^ this.seedLo;
-        return new XoroshiroRandomSource(j, this.seedHi);
+        const coordinateSeed = getSeed(x, y, z);
+        const finalSeedLo = coordinateSeed ^ this.seedLo;
+        return new XoroshiroRandomSource(finalSeedLo, this.seedHi);
     }
-    fromHashOf(p_190134_) {
-        const abyte = md5(p_190134_, {
+    fromHashOf(s) {
+        const abyte = md5(s, {
             encoding: "utf8",
             asBytes: true,
         });
@@ -10515,7 +12555,7 @@ class BitRandomSource extends RandomSource {
     }
 }
 class LegacyRandomSource extends BitRandomSource {
-    static MODULUS_BITS = 48;
+    static MODULUS_BITS = 48n;
     static MODULUS_MASK = 281474976710655n;
     static MULTIPLIER = 25214903917n;
     static INCREMENT = 11n;
@@ -10531,13 +12571,14 @@ class LegacyRandomSource extends BitRandomSource {
     forkPositional() {
         return new LegacyPositionalRandomFactory(this.nextLong());
     }
-    setSeed(p_188585_) {
-        this.seed = (p_188585_ ^ 25214903917n) & 281474976710655n;
+    setSeed(seed) {
+        this.seed = (seed ^ LegacyRandomSource.MULTIPLIER) & LegacyRandomSource.MODULUS_MASK;
         this.gaussianSource.reset();
     }
     next(bits) {
-        const seed = clamp64((this.seed * 25214903917n + 11n) & 281474976710655n);
-        return toInt(seed >> (48n - toLong(bits)));
+        this.seed = clamp64((this.seed * LegacyRandomSource.MULTIPLIER + LegacyRandomSource.INCREMENT) &
+            LegacyRandomSource.MODULUS_MASK);
+        return toInt(this.seed >> (LegacyRandomSource.MODULUS_BITS - toLong(bits)));
     }
     nextGaussian() {
         return this.gaussianSource.nextGaussian();
@@ -10556,9 +12597,9 @@ class LegacyPositionalRandomFactory extends PositionalRandomFactory {
         this.seed = seed;
     }
     at(x, y, z) {
-        const i = getSeed(x, y, z);
-        const j = i ^ this.seed;
-        return new LegacyRandomSource(j);
+        const coordinateSeed = getSeed(x, y, z);
+        const finalSeed = coordinateSeed ^ this.seed;
+        return new LegacyRandomSource(finalSeed);
     }
     fromHashOf(s) {
         const i = hashCode(s);
@@ -10570,16 +12611,26 @@ function same(n1, n2, e) {
     return Math.abs(n2 - n1) <= e;
 }
 function test() {
-    const builder = new OverworldBiomeBuilder();
-    const output = [];
-    builder.addBiomes(output);
-    const src = new XoroshiroRandomSource(1515125125n, 15125125232n);
-    const fork = src.forkPositional();
-    const i = fork.fromHashOf("padla");
-    const l = i.nextLong();
-    const hash = hashCode("padlapadlapadlapadlapadlapadla");
-    // eslint-disable-next-line no-debugger
-    debugger;
+    const noise = BlendedNoise.create(new XoroshiroRandomSource(5125125125n), new NoiseSamplingSettings(1, 1, 1, 1), 64, 64);
+    const canvas = document.createElement("canvas");
+    canvas.width = 1024;
+    canvas.height = 1024;
+    canvas.style.width = canvas.width * 6 + "px";
+    canvas.style.height = canvas.height * 6 + "px";
+    const ctx = canvas.getContext("2d");
+    const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    for (let x = 0; x < data.width; x++) {
+        for (let y = 0; y < data.height; y++) {
+            const value = noise.calculateNoise(x * 1000, y * 1000, 0);
+            const v = Math.trunc(((value + 1) / 2) * 255);
+            data.data[(y * data.width + x) * 4 + 0] = (v >> 16) & 255;
+            data.data[(y * data.width + x) * 4 + 1] = (v >> 8) & 255;
+            data.data[(y * data.width + x) * 4 + 2] = v & 255;
+            data.data[(y * data.width + x) * 4 + 3] = 255;
+        }
+    }
+    ctx.putImageData(data, 0, 0);
+    document.body.appendChild(canvas);
 }
 
 async function main() {
