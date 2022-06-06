@@ -17,6 +17,14 @@ export function rotateLeft64(n: bigint, bits: bigint) {
     return lo | hi
 }
 
+export function clamp(value: number, min: number, max: number): number {
+    if (value < min) {
+        return min
+    } else {
+        return value > max ? max : value
+    }
+}
+
 export function toUnsignedLong(n: number): bigint {
     return BigInt.asUintN(64, BigInt(n)) & 0xffffffffn
 }
@@ -143,6 +151,10 @@ export function lfloor(num: number): number {
 }
 
 export function floorDiv(x: number, y: number): number {
+    return Math.floor(x / y)
+}
+
+export function intFloorDiv(x: number, y: number): number {
     return Math.floor(x / y)
 }
 

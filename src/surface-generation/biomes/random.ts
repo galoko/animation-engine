@@ -574,6 +574,10 @@ export enum Algorithm {
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
-export const AlgorithmClasses: { [key in Algorithm]: new (seed: bigint) => RandomSource } = {}
+const AlgorithmClasses: { [key in Algorithm]: new (seed: bigint) => RandomSource } = {}
 AlgorithmClasses[Algorithm.LEGACY] = LegacyRandomSource
 AlgorithmClasses[Algorithm.XOROSHIRO] = XoroshiroRandomSource
+
+export function Algorithm_newInstance(algorithm: Algorithm, seed: bigint): RandomSource {
+    return new AlgorithmClasses[algorithm](seed)
+}

@@ -1,4 +1,5 @@
-import { NoiseParameters } from "./noise/normal-noise"
+import { NoiseParameters, NormalNoise } from "./noise/normal-noise"
+import { PositionalRandomFactory } from "./random"
 
 export enum Noises {
     TEMPERATURE = "temperature",
@@ -63,7 +64,11 @@ export enum Noises {
     NETHER_STATE_SELECTOR = "nether_state_selector",
 }
 
-export const NOISES = []
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+export const NOISES: {
+    [key in Noises]: NoiseParameters
+} = {}
 
 function registerNoises() {
     registerBiomeNoises(
@@ -188,3 +193,7 @@ function register(
 }
 
 registerNoises()
+
+export function Noises_instantiate(random: PositionalRandomFactory, noise: Noises): NormalNoise {
+    return NormalNoise.create(random.fromHashOf(noise), Noises[noise])
+}
