@@ -9,3 +9,5 @@ export class Pair<T, K> {
 export interface Consumer<T> {
     accept(value: T): void
 }
+
+export type Supplier<T> = () => T

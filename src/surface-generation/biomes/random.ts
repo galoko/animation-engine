@@ -13,6 +13,12 @@ import {
 // @ts-ignore
 import md5 from "md5"
 
+export function toResourceLocation(path: string): string {
+    const namespace = "minecraft"
+
+    return namespace + ":" + path
+}
+
 export abstract class PositionalRandomFactory {
     abstract fromHashOf(s: string): RandomSource
     abstract at(x: number, y: number, z: number): RandomSource
@@ -151,7 +157,7 @@ export class MarsagliaPolarGaussian {
 
 export class XoroshiroRandomSource implements RandomSource {
     private static readonly FLOAT_UNIT = 5.9604645e-8
-    private static readonly DOUBLE_UNIT = 1.110223e-16
+    private static readonly DOUBLE_UNIT = 1.1102230246251565e-16
     private randomNumberGenerator: Xoroshiro128PlusPlus
     private readonly gaussianSource = new MarsagliaPolarGaussian(this)
 
@@ -282,7 +288,7 @@ class XoroshiroPositionalRandomFactory extends PositionalRandomFactory {
 
 export abstract class BitRandomSource implements RandomSource {
     private static readonly FLOAT_MULTIPLIER = 5.9604645e-8
-    private static readonly DOUBLE_MULTIPLIER = 1.110223e-16
+    private static readonly DOUBLE_MULTIPLIER = 1.1102230246251565e-16
 
     abstract next(bits: number): number
 

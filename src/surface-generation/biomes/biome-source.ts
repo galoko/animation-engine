@@ -1,9 +1,10 @@
 import { Biomes } from "./biomes"
-import { Sampler, ParameterPoint, TargetPoint, findValueBruteForce } from "./climate"
+import * as Climate from "./climate"
+import { ParameterPoint, TargetPoint, findValueBruteForce } from "./climate"
 import { Pair } from "./consumer"
 
 export interface BiomeResolver {
-    getNoiseBiome(x: number, y: number, z: number, sampler: Sampler): Biomes
+    getNoiseBiome(x: number, y: number, z: number, sampler: Climate.Sampler): Biomes
 }
 
 export abstract class BiomeSource implements BiomeResolver {
@@ -13,7 +14,7 @@ export abstract class BiomeSource implements BiomeResolver {
         this.biomes = new Set(biomes)
     }
 
-    abstract getNoiseBiome(x: number, y: number, z: number, sampler: Sampler): Biomes
+    abstract getNoiseBiome(x: number, y: number, z: number, sampler: Climate.Sampler): Biomes
 }
 
 export class MultiNoiseBiomeSource extends BiomeSource {
@@ -21,9 +22,14 @@ export class MultiNoiseBiomeSource extends BiomeSource {
         super(parameters.map(e => e.second))
     }
 
-    getNoiseBiome(x: number, y: number, z: number, sampler: Sampler): Biomes
+    getNoiseBiome(x: number, y: number, z: number, sampler: Climate.Sampler): Biomes
     getNoiseBiome(targetPoint: TargetPoint): Biomes
-    getNoiseBiome(x: TargetPoint | number, y?: number, z?: number, sampler?: Sampler): Biomes {
+    getNoiseBiome(
+        x: TargetPoint | number,
+        y?: number,
+        z?: number,
+        sampler?: Climate.Sampler
+    ): Biomes {
         if (typeof x === "number") {
             if (y === undefined || z === undefined || !sampler) {
                 throw new Error()

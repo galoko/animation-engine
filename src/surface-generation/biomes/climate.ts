@@ -190,3 +190,21 @@ export function findValueBruteForce<T>(
 
     return result
 }
+
+export function target(
+    temperature: number,
+    humidity: number,
+    continentalness: number,
+    erosion: number,
+    depth: number,
+    weirdness: number
+): TargetPoint {
+    return new TargetPoint(
+        quantizeCoord(temperature),
+        quantizeCoord(humidity),
+        quantizeCoord(continentalness),
+        quantizeCoord(erosion),
+        quantizeCoord(depth),
+        quantizeCoord(weirdness)
+    )
+}

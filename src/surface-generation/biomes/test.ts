@@ -1,3 +1,5 @@
+import { NoiseGeneratorSettings, NoiseSampler } from "./chunk-generator"
+import { toInt } from "./mth"
 import { IntStream } from "./noise/perlin-noise"
 import { PerlinSimplexNoise } from "./noise/perlin-simplex-noise"
 import { WorldgenRandom, XoroshiroRandomSource } from "./random"
@@ -7,7 +9,9 @@ function same(n1, n2, e) {
 }
 
 export function test() {
-    const noise = new PerlinSimplexNoise(new XoroshiroRandomSource(5125125125n), [-2, -1, 0])
+    const settings = NoiseGeneratorSettings.OVERWORLD
+    const noiseSettings = settings.noiseSettings
+    const sampler = new NoiseSampler(noiseSettings, 0xdeadbeafdeadbeafn, settings.randomSource)
 
     const canvas = document.createElement("canvas")
     canvas.width = 1024
@@ -22,9 +26,13 @@ export function test() {
 
     for (let x = 0; x < data.width; x++) {
         for (let y = 0; y < data.height; y++) {
-            const value = noise.getValue(x * 1000, y * 1000, false)
+            // const x = 520
+            // const y = 538
+            const p = sampler.sample(x, y, 100)
+            // debugger
 
-            const v = ((value + 1) / 2) * 255
+            const v = Math.trunc(8388608 + p.temperature + p.depth + p.erosion + p.humidity) | 0
+
             data.data[(y * data.width + x) * 4 + 0] = (v >> 16) & 255
             data.data[(y * data.width + x) * 4 + 1] = (v >> 8) & 255
             data.data[(y * data.width + x) * 4 + 2] = v & 255

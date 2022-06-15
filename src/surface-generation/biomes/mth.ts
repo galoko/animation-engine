@@ -165,3 +165,7 @@ export function clampedLerp(v0: number, v1: number, t: number): number {
         return t > 1.0 ? v1 : lerp(t, v0, v1)
     }
 }
+
+export function frac(num: number): number {
+    return num - lfloor(num)
+}

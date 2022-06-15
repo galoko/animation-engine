@@ -34,16 +34,16 @@ export class TerrainShaper {
         //
     }
 
-    private static getAmplifiedOffset(p_187325_: number): number {
-        return p_187325_ < 0 ? p_187325_ : p_187325_ * 2
+    private static getAmplifiedOffset(value: number): number {
+        return value < 0 ? value : value * 2
     }
 
-    private static getAmplifiedFactor(p_187338_: number): number {
-        return 1.25 - 6.25 / (p_187338_ + 5)
+    private static getAmplifiedFactor(value: number): number {
+        return 1.25 - 6.25 / (value + 5)
     }
 
-    private static getAmplifiedJaggedness(p_187342_: number): number {
-        return p_187342_ * 2
+    private static getAmplifiedJaggedness(value: number): number {
+        return value * 2
     }
 
     static overworld(isAmplified: boolean): TerrainShaper {
@@ -143,20 +143,32 @@ export class TerrainShaper {
         return new TerrainShaper(offsetSampler, factorSampler, jaggednessSampler)
     }
 
-    public static peaksAndValleys(base: number): number {
-        return -(Math.abs(Math.abs(base) - 0.6666667) - 0.33333334) * 3.0
+    public offset(value: Point): number {
+        return this.offsetSampler.apply(value) + -0.50375
     }
 
-    private static mountainContinentalness(
-        p_187327_: number,
-        p_187328_: number,
-        p_187329_: number
-    ): number {
-        const f2 = 1.0 - (1.0 - p_187328_) * 0.5
-        const f3 = 0.5 * (1.0 - p_187328_)
-        const f4 = (p_187327_ + 1.17) * 0.46082947
+    public factor(value: Point): number {
+        return this.factorSampler.apply(value)
+    }
+
+    public jaggedness(value: Point): number {
+        return this.jaggednessSampler.apply(value)
+    }
+
+    public makePoint(continents: number, erosion: number, weirdness: number): Point {
+        return new Point(continents, erosion, TerrainShaper.peaksAndValleys(weirdness), weirdness)
+    }
+
+    public static peaksAndValleys(weirdness: number): number {
+        return -(Math.abs(Math.abs(weirdness) - 0.6666667) - 0.33333334) * 3.0
+    }
+
+    private static mountainContinentalness(x: number, y: number, z: number): number {
+        const f2 = 1.0 - (1.0 - y) * 0.5
+        const f3 = 0.5 * (1.0 - y)
+        const f4 = (x + 1.17) * 0.46082947
         const f5 = f4 * f2 - f3
-        return p_187327_ < p_187329_ ? Math.max(f5, -0.2222) : Math.max(f5, 0.0)
+        return x < z ? Math.max(f5, -0.2222) : Math.max(f5, 0.0)
     }
 
     private static calculateMountainRidgeZeroContinentalnessPoint(p_187344_: number): number {

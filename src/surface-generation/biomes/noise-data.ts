@@ -1,5 +1,5 @@
 import { NoiseParameters, NormalNoise } from "./noise/normal-noise"
-import { PositionalRandomFactory } from "./random"
+import { PositionalRandomFactory, toResourceLocation } from "./random"
 
 export enum Noises {
     TEMPERATURE = "temperature",
@@ -195,5 +195,5 @@ function register(
 registerNoises()
 
 export function Noises_instantiate(random: PositionalRandomFactory, noise: Noises): NormalNoise {
-    return NormalNoise.create(random.fromHashOf(noise), Noises[noise])
+    return NormalNoise.create2(random.fromHashOf(toResourceLocation(noise)), NOISES[noise])
 }
