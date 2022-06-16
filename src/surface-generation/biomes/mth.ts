@@ -169,3 +169,47 @@ export function clampedLerp(v0: number, v1: number, t: number): number {
 export function frac(num: number): number {
     return num - lfloor(num)
 }
+
+export function smallestEncompassingPowerOfTwo(num: number): number {
+    let result = num - 1
+    result |= result >> 1
+    result |= result >> 2
+    result |= result >> 4
+    result |= result >> 8
+    result |= result >> 16
+    return result + 1
+}
+
+const MULTIPLY_DE_BRUIJN_BIT_POSITION = [
+    0, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8, 31, 27, 13, 23, 21, 19, 16, 7, 26, 12,
+    18, 6, 11, 5, 10, 9,
+]
+
+export function isPowerOfTwo(num: number): boolean {
+    return num != 0 && (num & (num - 1)) == 0
+}
+
+export function ceillog2(num: number): number {
+    num = isPowerOfTwo(num) ? num : smallestEncompassingPowerOfTwo(num)
+    return MULTIPLY_DE_BRUIJN_BIT_POSITION[toInt((toLong(num) * 125613361n) >> 27n) & 31]
+}
+
+export function log2(num: number): number {
+    return ceillog2(num) - (isPowerOfTwo(num) ? 0 : 1)
+}
+
+export function inverseLerp(v: number, v0: number, v1: number): number {
+    return (v - v0) / (v1 - v0)
+}
+
+export function clampedMap(v: number, v0: number, v1: number, mv0: number, mv1: number): number {
+    return clampedLerp(mv0, mv1, inverseLerp(v, v0, v1))
+}
+
+export function map(v: number, v0: number, v1: number, mv0: number, mv1: number): number {
+    return lerp(inverseLerp(v, v0, v1), mv0, mv1)
+}
+
+export function quantize(value: number, quantizer: number): number {
+    return floor(value / quantizer) * quantizer
+}
