@@ -12,7 +12,7 @@ import { Pair } from "../surface-generation/biomes/consumer"
 import { OverworldBiomeBuilder } from "../surface-generation/biomes/overworld-biome-builder"
 import { colorToRGBA } from "./render"
 
-const BIOME_TO_COLOR: Partial<{ [key in Biomes]: number }> = {}
+export const BIOME_TO_COLOR: Partial<{ [key in Biomes]: number }> = {}
 BIOME_TO_COLOR[Biomes.THE_VOID] = 0x000000
 BIOME_TO_COLOR[Biomes.PLAINS] = 0x00cc00
 BIOME_TO_COLOR[Biomes.SUNFLOWER_PLAINS] = 0xffff66
@@ -24,9 +24,9 @@ BIOME_TO_COLOR[Biomes.FOREST] = 0x009933
 BIOME_TO_COLOR[Biomes.FLOWER_FOREST] = 0xcae03a
 BIOME_TO_COLOR[Biomes.BIRCH_FOREST] = 0xd6dea6
 BIOME_TO_COLOR[Biomes.DARK_FOREST] = 0x183615
-BIOME_TO_COLOR[Biomes.OLD_GROWTH_BIRCH_FOREST] = 0x0
-BIOME_TO_COLOR[Biomes.OLD_GROWTH_PINE_TAIGA] = 0x0
-BIOME_TO_COLOR[Biomes.OLD_GROWTH_SPRUCE_TAIGA] = 0x0
+BIOME_TO_COLOR[Biomes.OLD_GROWTH_BIRCH_FOREST] = 0xd6dea6
+BIOME_TO_COLOR[Biomes.OLD_GROWTH_PINE_TAIGA] = 0x009933
+BIOME_TO_COLOR[Biomes.OLD_GROWTH_SPRUCE_TAIGA] = 0x009933
 BIOME_TO_COLOR[Biomes.TAIGA] = 0x071705
 BIOME_TO_COLOR[Biomes.SNOWY_TAIGA] = 0x364034
 BIOME_TO_COLOR[Biomes.SAVANNA] = 0x849626

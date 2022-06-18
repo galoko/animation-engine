@@ -587,3 +587,16 @@ AlgorithmClasses[Algorithm.XOROSHIRO] = XoroshiroRandomSource
 export function Algorithm_newInstance(algorithm: Algorithm, seed: bigint): RandomSource {
     return new AlgorithmClasses[algorithm](seed)
 }
+
+export class LinearCongruentialGenerator {
+    private static readonly MULTIPLIER = 6364136223846793005n
+    private static readonly INCREMENT = 1442695040888963407n
+
+    public static next(seed: bigint, n: bigint): bigint {
+        seed = clamp64(
+            seed * seed * LinearCongruentialGenerator.MULTIPLIER +
+                LinearCongruentialGenerator.INCREMENT
+        )
+        return clamp64(seed + n)
+    }
+}

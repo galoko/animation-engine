@@ -9511,9 +9511,9 @@ BIOME_TO_COLOR[Biomes.FOREST] = 0x009933;
 BIOME_TO_COLOR[Biomes.FLOWER_FOREST] = 0xcae03a;
 BIOME_TO_COLOR[Biomes.BIRCH_FOREST] = 0xd6dea6;
 BIOME_TO_COLOR[Biomes.DARK_FOREST] = 0x183615;
-BIOME_TO_COLOR[Biomes.OLD_GROWTH_BIRCH_FOREST] = 0x0;
-BIOME_TO_COLOR[Biomes.OLD_GROWTH_PINE_TAIGA] = 0x0;
-BIOME_TO_COLOR[Biomes.OLD_GROWTH_SPRUCE_TAIGA] = 0x0;
+BIOME_TO_COLOR[Biomes.OLD_GROWTH_BIRCH_FOREST] = 0xd6dea6;
+BIOME_TO_COLOR[Biomes.OLD_GROWTH_PINE_TAIGA] = 0x009933;
+BIOME_TO_COLOR[Biomes.OLD_GROWTH_SPRUCE_TAIGA] = 0x009933;
 BIOME_TO_COLOR[Biomes.TAIGA] = 0x071705;
 BIOME_TO_COLOR[Biomes.SNOWY_TAIGA] = 0x364034;
 BIOME_TO_COLOR[Biomes.SAVANNA] = 0x849626;
@@ -10874,6 +10874,58 @@ function clampedLerp(v0, v1, t) {
 function frac(num) {
     return num - lfloor(num);
 }
+function smallestEncompassingPowerOfTwo(num) {
+    let result = num - 1;
+    result |= result >> 1;
+    result |= result >> 2;
+    result |= result >> 4;
+    result |= result >> 8;
+    result |= result >> 16;
+    return result + 1;
+}
+const MULTIPLY_DE_BRUIJN_BIT_POSITION = [
+    0, 1, 28, 2, 29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4, 8, 31, 27, 13, 23, 21, 19, 16, 7, 26, 12,
+    18, 6, 11, 5, 10, 9,
+];
+function isPowerOfTwo(num) {
+    return num != 0 && (num & (num - 1)) == 0;
+}
+function ceillog2(num) {
+    num = isPowerOfTwo(num) ? num : smallestEncompassingPowerOfTwo(num);
+    return MULTIPLY_DE_BRUIJN_BIT_POSITION[toInt((toLong(num) * 125613361n) >> 27n) & 31];
+}
+function log2(num) {
+    return ceillog2(num) - (isPowerOfTwo(num) ? 0 : 1);
+}
+function inverseLerp(v, v0, v1) {
+    return (v - v0) / (v1 - v0);
+}
+function clampedMap(v, v0, v1, mv0, mv1) {
+    return clampedLerp(mv0, mv1, inverseLerp(v, v0, v1));
+}
+function map(v, v0, v1, mv0, mv1) {
+    return lerp(inverseLerp(v, v0, v1), mv0, mv1);
+}
+function quantize(value, quantizer) {
+    return floor(value / quantizer) * quantizer;
+}
+function computeIfAbsent(map, key, mappingFunction) {
+    let value = map.get(key);
+    if (value === undefined) {
+        value = mappingFunction(key);
+        map.set(key, value);
+    }
+    return value;
+}
+function floorMod(x, y) {
+    const y_long = toLong(y);
+    let mod = x % y_long;
+    // if the signs are different and modulo not zero, adjust result
+    if ((x ^ y_long) < 0 && mod != 0n) {
+        mod += y_long;
+    }
+    return toInt(mod);
+}
 
 var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
 
@@ -11675,6 +11727,15 @@ AlgorithmClasses[Algorithm.LEGACY] = LegacyRandomSource;
 AlgorithmClasses[Algorithm.XOROSHIRO] = XoroshiroRandomSource;
 function Algorithm_newInstance(algorithm, seed) {
     return new AlgorithmClasses[algorithm](seed);
+}
+class LinearCongruentialGenerator {
+    static MULTIPLIER = 6364136223846793005n;
+    static INCREMENT = 1442695040888963407n;
+    static next(seed, n) {
+        seed = clamp64(seed * seed * LinearCongruentialGenerator.MULTIPLIER +
+            LinearCongruentialGenerator.INCREMENT);
+        return clamp64(seed + n);
+    }
 }
 
 class SimplexNoise {
@@ -12854,6 +12915,60 @@ class BlendedNoise {
     }
 }
 
+class BlockPos {
+    x;
+    y;
+    z;
+    static PACKED_X_LENGTH = BigInt(1 + log2(smallestEncompassingPowerOfTwo(30000000)));
+    static PACKED_Z_LENGTH = BlockPos.PACKED_X_LENGTH;
+    static PACKED_Y_LENGTH = 64n - BlockPos.PACKED_X_LENGTH - BlockPos.PACKED_Z_LENGTH;
+    static PACKED_X_MASK = (1n << BigInt(BlockPos.PACKED_X_LENGTH)) - 1n;
+    static PACKED_Y_MASK = (1n << BigInt(BlockPos.PACKED_Y_LENGTH)) - 1n;
+    static PACKED_Z_MASK = (1n << BigInt(BlockPos.PACKED_Z_LENGTH)) - 1n;
+    static Y_OFFSET = 0n;
+    static Z_OFFSET = BlockPos.PACKED_Y_LENGTH;
+    static X_OFFSET = BlockPos.PACKED_Y_LENGTH + BlockPos.PACKED_Z_LENGTH;
+    constructor(x, y, z) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+    }
+    static getX(num) {
+        return toInt((num << (64n - BlockPos.X_OFFSET - BlockPos.PACKED_X_LENGTH)) >>
+            (64n - BlockPos.PACKED_X_LENGTH));
+    }
+    static getY(num) {
+        return toInt((num << (64n - BlockPos.PACKED_Y_LENGTH)) >> (64n - BlockPos.PACKED_Y_LENGTH));
+    }
+    static getZ(num) {
+        return toInt((num << (64n - BlockPos.Z_OFFSET - BlockPos.PACKED_Z_LENGTH)) >>
+            (64n - BlockPos.PACKED_Z_LENGTH));
+    }
+    static asLong(x, y, z) {
+        let result = 0n;
+        result |= (toLong(x) & BlockPos.PACKED_X_MASK) << BlockPos.X_OFFSET;
+        result |= (toLong(y) & BlockPos.PACKED_Y_MASK) << BlockPos.Y_OFFSET;
+        return result | ((toLong(z) & BlockPos.PACKED_Z_MASK) << BlockPos.Z_OFFSET);
+    }
+}
+class SectionPos {
+    static blockToSectionCoord(coord) {
+        return coord >> 4;
+    }
+    static sectionToBlockCoord(coord, coord2) {
+        return (coord << 4) + (coord2 ?? 0);
+    }
+}
+
+class DimensionType {
+    static BITS_FOR_Y = Number(BlockPos.PACKED_Y_LENGTH);
+    static MIN_HEIGHT = 16;
+    static Y_SIZE = (1 << DimensionType.BITS_FOR_Y) - 32;
+    static MAX_Y = (DimensionType.Y_SIZE >> 1) - 1;
+    static MIN_Y = DimensionType.MAX_Y - DimensionType.Y_SIZE + 1;
+    static WAY_ABOVE_MAX_Y = DimensionType.MAX_Y << 4;
+    static WAY_BELOW_MIN_Y = DimensionType.MIN_Y << 4;
+}
 class FluidStatus {
     fluidLevel;
     fluidType;
@@ -12866,6 +12981,19 @@ class FluidStatus {
     }
 }
 const Long_MAX_VALUE = 2n ** 63n - 1n;
+const Integer_MAX_VALUE = 2 ** 31 - 1;
+class MutableDouble {
+    value;
+    constructor(value) {
+        this.value = value;
+    }
+    setValue(value) {
+        this.value = value;
+    }
+    getValue() {
+        return this.value;
+    }
+}
 class NoiseBasedAquifer {
     noiseChunk;
     barrierNoise;
@@ -12874,6 +13002,32 @@ class NoiseBasedAquifer {
     lavaNoise;
     positionalRandomFactory;
     globalFluidPicker;
+    static X_RANGE = 10;
+    static Y_RANGE = 9;
+    static Z_RANGE = 10;
+    static X_SEPARATION = 6;
+    static Y_SEPARATION = 3;
+    static Z_SEPARATION = 6;
+    static X_SPACING = 16;
+    static Y_SPACING = 12;
+    static Z_SPACING = 16;
+    static MAX_REASONABLE_DISTANCE_TO_AQUIFER_CENTER = 11;
+    static FLOWING_UPDATE_SIMULARITY = NoiseBasedAquifer.similarity(square(10), square(12));
+    static SURFACE_SAMPLING_OFFSETS_IN_CHUNKS = [
+        [-2, -1],
+        [-1, -1],
+        [0, -1],
+        [1, -1],
+        [-3, 0],
+        [-2, 0],
+        [-1, 0],
+        [0, 0],
+        [1, 0],
+        [-2, 1],
+        [-1, 1],
+        [0, 1],
+        [1, 1],
+    ];
     minGridX;
     minGridY;
     minGridZ;
@@ -12881,6 +13035,7 @@ class NoiseBasedAquifer {
     gridSizeZ;
     aquiferCache;
     aquiferLocationCache;
+    _shouldScheduleFluidUpdate;
     constructor(noiseChunk, chunkPos, barrierNoise, fluidLevelFloodednessNoise, fluidLevelSpreadNoise, lavaNoise, positionalRandomFactory, y, height, globalFluidPicker) {
         this.noiseChunk = noiseChunk;
         this.barrierNoise = barrierNoise;
@@ -12903,6 +13058,182 @@ class NoiseBasedAquifer {
         this.aquiferLocationCache = new Array(gridSize);
         this.aquiferLocationCache.fill(Long_MAX_VALUE);
     }
+    getIndex(x, y, z) {
+        const gridX = x - this.minGridX;
+        const gridY = y - this.minGridY;
+        const gridZ = z - this.minGridZ;
+        return (gridY * this.gridSizeZ + gridZ) * this.gridSizeX + gridX;
+    }
+    computeSubstance(x, y, z, baseNoise, clampedBaseNoise) {
+        if (baseNoise <= -64) {
+            return this.globalFluidPicker.computeFluid(x, y, z).at(y);
+        }
+        else {
+            if (clampedBaseNoise <= 0) {
+                const fluidStatus = this.globalFluidPicker.computeFluid(x, y, z);
+                let clampedMaxPressureMulBySim;
+                let blockstate;
+                let shouldScheduleFluidUpdate;
+                if (fluidStatus.at(y) === Blocks.LAVA) {
+                    blockstate = Blocks.LAVA;
+                    clampedMaxPressureMulBySim = 0;
+                    shouldScheduleFluidUpdate = false;
+                }
+                else {
+                    const someX = floorDiv(x - 5, 16);
+                    const someY = floorDiv(y + 1, 12);
+                    const someZ = floorDiv(z - 5, 16);
+                    let minDistanceSq0 = Integer_MAX_VALUE;
+                    let minDistanceSq1 = Integer_MAX_VALUE;
+                    let minDistanceSq2 = Integer_MAX_VALUE;
+                    let minLocation0 = 0n;
+                    let minLocation1 = 0n;
+                    let minLocation2 = 0n;
+                    for (let xOffset = 0; xOffset <= 1; ++xOffset) {
+                        for (let yOffset = -1; yOffset <= 1; ++yOffset) {
+                            for (let zOffset = 0; zOffset <= 1; ++zOffset) {
+                                const currentX = someX + xOffset;
+                                const currentY = someY + yOffset;
+                                const currentZ = someZ + zOffset;
+                                const gridIndex = this.getIndex(currentX, currentY, currentZ);
+                                const cachedLocation = this.aquiferLocationCache[gridIndex];
+                                let location;
+                                if (cachedLocation != Long_MAX_VALUE) {
+                                    location = cachedLocation;
+                                }
+                                else {
+                                    const randomSource = this.positionalRandomFactory.at(currentX, currentY, currentZ);
+                                    location = BlockPos.asLong(currentX * 16 + randomSource.nextInt(10), currentY * 12 + randomSource.nextInt(9), currentZ * 16 + randomSource.nextInt(10));
+                                    this.aquiferLocationCache[gridIndex] = location;
+                                }
+                                const dx = BlockPos.getX(location) - x;
+                                const dy = BlockPos.getY(location) - y;
+                                const dz = BlockPos.getZ(location) - z;
+                                const distanceSq = dx * dx + dy * dy + dz * dz;
+                                if (minDistanceSq0 >= distanceSq) {
+                                    minLocation2 = minLocation1;
+                                    minLocation1 = minLocation0;
+                                    minLocation0 = location;
+                                    minDistanceSq2 = minDistanceSq1;
+                                    minDistanceSq1 = minDistanceSq0;
+                                    minDistanceSq0 = distanceSq;
+                                }
+                                else if (minDistanceSq1 >= distanceSq) {
+                                    minLocation2 = minLocation1;
+                                    minLocation1 = location;
+                                    minDistanceSq2 = minDistanceSq1;
+                                    minDistanceSq1 = distanceSq;
+                                }
+                                else if (minDistanceSq2 >= distanceSq) {
+                                    minLocation2 = location;
+                                    minDistanceSq2 = distanceSq;
+                                }
+                            }
+                        }
+                    }
+                    const minFluidStatus0 = this.getAquiferStatus(minLocation0);
+                    const minFluidStatus1 = this.getAquiferStatus(minLocation1);
+                    const minFluidStatus2 = this.getAquiferStatus(minLocation2);
+                    const sim01 = NoiseBasedAquifer.similarity(minDistanceSq0, minDistanceSq1);
+                    const sim02 = NoiseBasedAquifer.similarity(minDistanceSq0, minDistanceSq2);
+                    const sim12 = NoiseBasedAquifer.similarity(minDistanceSq1, minDistanceSq2);
+                    shouldScheduleFluidUpdate = sim01 >= NoiseBasedAquifer.FLOWING_UPDATE_SIMULARITY;
+                    if (minFluidStatus0.at(y) === Blocks.WATER &&
+                        this.globalFluidPicker.computeFluid(x, y - 1, z).at(y - 1) === Blocks.LAVA) {
+                        clampedMaxPressureMulBySim = 1;
+                    }
+                    else if (sim01 > -1) {
+                        const barrierNoise = new MutableDouble(NaN);
+                        const pressure01 = this.calculatePressure(x, y, z, barrierNoise, minFluidStatus0, minFluidStatus1);
+                        const pressure02 = this.calculatePressure(x, y, z, barrierNoise, minFluidStatus0, minFluidStatus2);
+                        const pressure12 = this.calculatePressure(x, y, z, barrierNoise, minFluidStatus1, minFluidStatus2);
+                        const clampedSim01 = Math.max(0, sim01);
+                        const clampedSim02 = Math.max(0, sim02);
+                        const clampedSim12 = Math.max(0, sim12);
+                        const maxPressureMulBySim = 2 *
+                            clampedSim01 *
+                            Math.max(pressure01, Math.max(pressure02 * clampedSim02, pressure12 * clampedSim12));
+                        clampedMaxPressureMulBySim = Math.max(0, maxPressureMulBySim);
+                    }
+                    else {
+                        clampedMaxPressureMulBySim = 0;
+                    }
+                    blockstate = minFluidStatus0.at(y);
+                }
+                if (clampedBaseNoise + clampedMaxPressureMulBySim <= 0) {
+                    this._shouldScheduleFluidUpdate = shouldScheduleFluidUpdate;
+                    return blockstate;
+                }
+            }
+            this._shouldScheduleFluidUpdate = false;
+            return null;
+        }
+    }
+    shouldScheduleFluidUpdate() {
+        return this._shouldScheduleFluidUpdate;
+    }
+    static similarity(distanceSq0, distanceSq1) {
+        return 1 - Math.abs(distanceSq1 - distanceSq0) / 25;
+    }
+    calculatePressure(x, y, z, savedBarrierNoise, fluidStart, fluidEnd) {
+        const startBlock = fluidStart.at(y);
+        const endBlock = fluidEnd.at(y);
+        if ((startBlock !== Blocks.LAVA || endBlock !== Blocks.WATER) &&
+            (startBlock !== Blocks.WATER || endBlock !== Blocks.LAVA)) {
+            const fluidDistance = Math.abs(fluidStart.fluidLevel - fluidEnd.fluidLevel);
+            if (fluidDistance == 0) {
+                return 0;
+            }
+            else {
+                const fluidMiddleLevel = 0.5 * (fluidStart.fluidLevel + fluidEnd.fluidLevel);
+                const distanceAboveFluidMiddleLevel = y + 0.5 - fluidMiddleLevel;
+                const halfFluidDistance = fluidDistance / 2;
+                const distanceToFluidEdge = halfFluidDistance - Math.abs(distanceAboveFluidMiddleLevel);
+                let pressure;
+                // above middle level
+                if (distanceAboveFluidMiddleLevel > 0) {
+                    const shiftedDistanceToFluidEdge = 0 + distanceToFluidEdge;
+                    // before the edge
+                    if (shiftedDistanceToFluidEdge > 0) {
+                        pressure = shiftedDistanceToFluidEdge / 1.5;
+                    }
+                    else {
+                        // past the edge
+                        pressure = shiftedDistanceToFluidEdge / 2.5;
+                    }
+                }
+                else {
+                    // below middle level
+                    const shiftedDistanceToFluidEdge = 3 + distanceToFluidEdge;
+                    // before the edge
+                    if (shiftedDistanceToFluidEdge > 0) {
+                        pressure = shiftedDistanceToFluidEdge / 3;
+                    }
+                    else {
+                        // past the edge
+                        pressure = shiftedDistanceToFluidEdge / 10;
+                    }
+                }
+                if (!(pressure < -2) && !(pressure > 2)) {
+                    const currentBarrierNoise = savedBarrierNoise.getValue();
+                    if (isNaN(currentBarrierNoise)) {
+                        const barrierNoise = this.barrierNoise.getValue(x, y * 0.5, z);
+                        savedBarrierNoise.setValue(barrierNoise);
+                        return barrierNoise + pressure;
+                    }
+                    else {
+                        return currentBarrierNoise + pressure;
+                    }
+                }
+                else {
+                    return pressure;
+                }
+            }
+        }
+        else {
+            return 1;
+        }
+    }
     gridX(x) {
         return floorDiv(x, 16);
     }
@@ -12912,16 +13243,97 @@ class NoiseBasedAquifer {
     gridZ(z) {
         return floorDiv(z, 16);
     }
-    computeSubstance(x, y, z, baseNoise, clampedBaseNoise) {
-        throw new Error("Method not implemented.");
+    getAquiferStatus(coord) {
+        const x = BlockPos.getX(coord);
+        const y = BlockPos.getY(coord);
+        const z = BlockPos.getZ(coord);
+        const gridX = this.gridX(x);
+        const gridY = this.gridY(y);
+        const gridZ = this.gridZ(z);
+        const gridIndex = this.getIndex(gridX, gridY, gridZ);
+        const fluidStatus = this.aquiferCache[gridIndex];
+        if (fluidStatus != null) {
+            return fluidStatus;
+        }
+        else {
+            const fluidStatus = this.computeFluid(x, y, z);
+            this.aquiferCache[gridIndex] = fluidStatus;
+            return fluidStatus;
+        }
     }
-    shouldScheduleFluidUpdate() {
-        throw new Error("Method not implemented.");
+    computeFluid(x, y, z) {
+        const fluidStatus = this.globalFluidPicker.computeFluid(x, y, z);
+        let minSurfaceY = Integer_MAX_VALUE;
+        const maxY = y + 12;
+        const minY = y - 12;
+        let haveFluidAtMaxSurfaceYinPlace = false;
+        for (const offset of NoiseBasedAquifer.SURFACE_SAMPLING_OFFSETS_IN_CHUNKS) {
+            const shiftedX = x + SectionPos.sectionToBlockCoord(offset[0]);
+            const shiftedZ = z + SectionPos.sectionToBlockCoord(offset[1]);
+            const surfaceY = this.noiseChunk.preliminarySurfaceLevel(shiftedX, shiftedZ);
+            const maxSurfaceY = surfaceY + 8;
+            const isOffsetInPlace = offset[0] == 0 && offset[1] == 0;
+            if (isOffsetInPlace && minY > maxSurfaceY) {
+                return fluidStatus;
+            }
+            const isMaxSurfaceYinYRange = maxY > maxSurfaceY;
+            if (isMaxSurfaceYinYRange || isOffsetInPlace) {
+                const fluidStatus = this.globalFluidPicker.computeFluid(shiftedX, maxSurfaceY, shiftedZ);
+                if (fluidStatus.at(maxSurfaceY) !== Blocks.AIR) {
+                    if (isOffsetInPlace) {
+                        haveFluidAtMaxSurfaceYinPlace = true;
+                    }
+                    if (isMaxSurfaceYinYRange) {
+                        return fluidStatus;
+                    }
+                }
+            }
+            minSurfaceY = Math.min(minSurfaceY, surfaceY);
+        }
+        const distanceBetweenMinSurfaceYandYPlus8 = minSurfaceY + 8 - y;
+        const t = haveFluidAtMaxSurfaceYinPlace
+            ? clampedMap(distanceBetweenMinSurfaceYandYPlus8, 0, 64, 1, 0)
+            : 0;
+        const floodedness = clamp(this.fluidLevelFloodednessNoise.getValue(x, y * 0.67, z), -1, 1);
+        const minFloodedness = map(t, 1, 0, -0.3, 0.8);
+        if (floodedness > minFloodedness) {
+            return fluidStatus;
+        }
+        else {
+            const d5 = map(t, 1, 0, -0.8, 0.4);
+            if (floodedness <= d5) {
+                return new FluidStatus(DimensionType.WAY_BELOW_MIN_Y, fluidStatus.fluidType);
+            }
+            else {
+                const scaledX = floorDiv(x, 16);
+                const scaledY = floorDiv(y, 40);
+                const scaledZ = floorDiv(z, 16);
+                const fluidBaseY = scaledY * 40 + 20;
+                const fluidLevelSpread = this.fluidLevelSpreadNoise.getValue(scaledX, scaledY / 1.4, scaledZ) * 10;
+                const quantizedFluidLevelSpread = quantize(fluidLevelSpread, 3);
+                const fluidY = fluidBaseY + quantizedFluidLevelSpread;
+                const fluidLevel = Math.min(minSurfaceY, fluidY);
+                const blockState = this.getFluidType(x, y, z, fluidStatus, fluidY);
+                return new FluidStatus(fluidLevel, blockState);
+            }
+        }
+    }
+    getFluidType(x, y, z, fluidStatus, fluidY) {
+        if (fluidY <= -10) {
+            const scaledX = floorDiv(x, 64);
+            const scaledY = floorDiv(y, 40);
+            const scaledZ = floorDiv(z, 64);
+            const lavaNoise = this.lavaNoise.getValue(scaledX, scaledY, scaledZ);
+            if (Math.abs(lavaNoise) > 0.3) {
+                return Blocks.LAVA;
+            }
+        }
+        return fluidStatus.fluidType;
     }
 }
 class Aquifer {
-    static create(noiseChunk, chunkPos, p_198195_, p_198196_, p_198197_, p_198198_, p_198199_, p_198200_, p_198201_, picker) {
-        return new NoiseBasedAquifer(noiseChunk, chunkPos, p_198195_, p_198196_, p_198197_, p_198198_, p_198199_, p_198200_, p_198201_, picker);
+    static create(noiseChunk, chunkPos, barrierNoise, fluidLevelFloodednessNoise, fluidLevelSpreadNoise, lavaNoise, positionalRandomFactory, y, height, picker) {
+        return new NoiseBasedAquifer(noiseChunk, chunkPos, barrierNoise, fluidLevelFloodednessNoise, fluidLevelSpreadNoise, lavaNoise, positionalRandomFactory, y, height, picker);
     }
     static createDisabled(picker) {
         return {
@@ -12935,24 +13347,23 @@ class Aquifer {
     }
 }
 
-class BlockPos {
-    x;
-    y;
-    z;
-    constructor(x, y, z) {
-        this.x = x;
-        this.y = y;
-        this.z = z;
+class SurfaceSystem {
+    defaultBlock;
+    seaLevel;
+    noiseIntances = new Map();
+    positionalRandoms = new Map();
+    randomFactory;
+    surfaceNoise;
+    surfaceSecondaryNoise;
+    constructor(defaultBlock, seaLevel, seed, algorithm) {
+        this.defaultBlock = defaultBlock;
+        this.seaLevel = seaLevel;
+        this.randomFactory = Algorithm_newInstance(algorithm, seed).forkPositional();
+        this.surfaceNoise = Noises_instantiate(this.randomFactory, Noises.SURFACE);
+        this.surfaceSecondaryNoise = Noises_instantiate(this.randomFactory, Noises.SURFACE_SECONDARY);
     }
 }
-class SectionPos {
-    static blockToSectionCoord(coord) {
-        return coord >> 4;
-    }
-    static sectionToBlockCoord(coord, coord2) {
-        return (coord << 4) + (coord2 ?? 0);
-    }
-}
+
 class ChunkPos {
     x;
     z;
@@ -13342,14 +13753,6 @@ class FlatNoiseData {
         this.terrainInfo = terrainInfo;
     }
 }
-function computeIfAbsent(map, key, mappingFunction) {
-    let value = map.get(key);
-    if (value === undefined) {
-        value = mappingFunction(key);
-        map.set(key, value);
-    }
-    return value;
-}
 class NoiseChunk {
     cellCountXZ;
     cellCountY;
@@ -13631,9 +14034,9 @@ class NoiseSampler {
     target(x, y, z, flatData) {
         const shiftedX = flatData.shiftedX;
         const shiftedY = y + this.getOffset(y, z, x);
-        const d2 = flatData.shiftedZ;
-        const d3 = this.computeBaseDensity(QuartPos.toBlock(y), flatData.terrainInfo);
-        return target(this.getTemperature(shiftedX, shiftedY, d2), this.getHumidity(shiftedX, shiftedY, d2), flatData.continentalness, flatData.erosion, d3, flatData.weirdness);
+        const shiftedZ = flatData.shiftedZ;
+        const baseDensity = this.computeBaseDensity(QuartPos.toBlock(y), flatData.terrainInfo);
+        return target(this.getTemperature(shiftedX, shiftedY, shiftedZ), this.getHumidity(shiftedX, shiftedY, shiftedZ), flatData.continentalness, flatData.erosion, baseDensity, flatData.weirdness);
     }
     terrainInfo(x, y, continents, weirdness, erosion, blender) {
         const terrainShaper = this.noiseSettings.terrainShaper;
@@ -13663,11 +14066,29 @@ class NoiseSampler {
         return this.weirdnessNoise.getValue(x, y, z);
     }
 }
+class MaterialRuleList {
+    materialRuleList;
+    constructor(materialRuleList) {
+        this.materialRuleList = materialRuleList;
+    }
+    apply(noiseChunk, x, y, z) {
+        for (const worldgenmaterialrule of this.materialRuleList) {
+            const blockState = worldgenmaterialrule.apply(noiseChunk, x, y, z);
+            if (blockState != null) {
+                return blockState;
+            }
+        }
+        return null;
+    }
+}
 class NoiseBasedChunkGenerator extends ChunkGenerator {
     seed;
     settings;
     defaultBlock;
     sampler;
+    surfaceSystem;
+    materialRule;
+    globalFluidPicker;
     constructor(biomeSource, seed, settings) {
         super(biomeSource);
         this.seed = seed;
@@ -13675,9 +14096,681 @@ class NoiseBasedChunkGenerator extends ChunkGenerator {
         this.defaultBlock = settings.defaultBlock;
         const noiseSettings = settings.noiseSettings;
         this.sampler = new NoiseSampler(noiseSettings, seed, settings.randomSource);
+        this.materialRule = new MaterialRuleList([
+            {
+                apply: (noiseChunk, x, y, z) => noiseChunk.updateNoiseAndGenerateBaseState(x, y, z),
+            },
+        ]);
+        const lava = new FluidStatus(-54, Blocks.LAVA);
+        const seaLevel = settings.seaLevel;
+        const defaultFluid = new FluidStatus(seaLevel, settings.defaultFluid);
+        const air = new FluidStatus(noiseSettings.minY - 1, Blocks.AIR);
+        this.globalFluidPicker = {
+            computeFluid: (x, y) => {
+                return y < Math.min(-54, seaLevel) ? lava : defaultFluid;
+            },
+        };
+        this.surfaceSystem = new SurfaceSystem(this.defaultBlock, seaLevel, seed, settings.randomSource);
     }
     climateSampler() {
         return this.sampler;
+    }
+    doCreateBiomes(blender, chunkAccess) {
+        const noisechunk = chunkAccess.getOrCreateNoiseChunk(this.sampler, () => {
+            return new Beardifier(chunkAccess);
+        }, this.settings, this.globalFluidPicker, blender);
+        const biomeresolver = BelowZeroRetrogen.getBiomeResolver(blender.getBiomeResolver(this.runtimeBiomeSource), chunkAccess);
+        chunkAccess.fillBiomesFromNoise(biomeresolver, (x, y, z) => {
+            return this.sampler.target(x, y, z, noisechunk.noiseData(x, z));
+        });
+    }
+}
+
+var sha256$1 = {exports: {}};
+
+/**
+ * [js-sha256]{@link https://github.com/emn178/js-sha256}
+ *
+ * @version 0.9.0
+ * @author Chen, Yi-Cyuan [emn178@gmail.com]
+ * @copyright Chen, Yi-Cyuan 2014-2017
+ * @license MIT
+ */
+
+(function (module) {
+/*jslint bitwise: true */
+(function () {
+  'use strict';
+
+  var ERROR = 'input is invalid type';
+  var WINDOW = typeof window === 'object';
+  var root = WINDOW ? window : {};
+  if (root.JS_SHA256_NO_WINDOW) {
+    WINDOW = false;
+  }
+  var WEB_WORKER = !WINDOW && typeof self === 'object';
+  var NODE_JS = !root.JS_SHA256_NO_NODE_JS && typeof process === 'object' && process.versions && process.versions.node;
+  if (NODE_JS) {
+    root = commonjsGlobal;
+  } else if (WEB_WORKER) {
+    root = self;
+  }
+  var COMMON_JS = !root.JS_SHA256_NO_COMMON_JS && 'object' === 'object' && module.exports;
+  var AMD = typeof undefined === 'function' && undefined.amd;
+  var ARRAY_BUFFER = !root.JS_SHA256_NO_ARRAY_BUFFER && typeof ArrayBuffer !== 'undefined';
+  var HEX_CHARS = '0123456789abcdef'.split('');
+  var EXTRA = [-2147483648, 8388608, 32768, 128];
+  var SHIFT = [24, 16, 8, 0];
+  var K = [
+    0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+    0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+    0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+    0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+    0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+    0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+  ];
+  var OUTPUT_TYPES = ['hex', 'array', 'digest', 'arrayBuffer'];
+
+  var blocks = [];
+
+  if (root.JS_SHA256_NO_NODE_JS || !Array.isArray) {
+    Array.isArray = function (obj) {
+      return Object.prototype.toString.call(obj) === '[object Array]';
+    };
+  }
+
+  if (ARRAY_BUFFER && (root.JS_SHA256_NO_ARRAY_BUFFER_IS_VIEW || !ArrayBuffer.isView)) {
+    ArrayBuffer.isView = function (obj) {
+      return typeof obj === 'object' && obj.buffer && obj.buffer.constructor === ArrayBuffer;
+    };
+  }
+
+  var createOutputMethod = function (outputType, is224) {
+    return function (message) {
+      return new Sha256(is224, true).update(message)[outputType]();
+    };
+  };
+
+  var createMethod = function (is224) {
+    var method = createOutputMethod('hex', is224);
+    if (NODE_JS) {
+      method = nodeWrap(method, is224);
+    }
+    method.create = function () {
+      return new Sha256(is224);
+    };
+    method.update = function (message) {
+      return method.create().update(message);
+    };
+    for (var i = 0; i < OUTPUT_TYPES.length; ++i) {
+      var type = OUTPUT_TYPES[i];
+      method[type] = createOutputMethod(type, is224);
+    }
+    return method;
+  };
+
+  var nodeWrap = function (method, is224) {
+    var crypto = eval("require('crypto')");
+    var Buffer = eval("require('buffer').Buffer");
+    var algorithm = is224 ? 'sha224' : 'sha256';
+    var nodeMethod = function (message) {
+      if (typeof message === 'string') {
+        return crypto.createHash(algorithm).update(message, 'utf8').digest('hex');
+      } else {
+        if (message === null || message === undefined) {
+          throw new Error(ERROR);
+        } else if (message.constructor === ArrayBuffer) {
+          message = new Uint8Array(message);
+        }
+      }
+      if (Array.isArray(message) || ArrayBuffer.isView(message) ||
+        message.constructor === Buffer) {
+        return crypto.createHash(algorithm).update(new Buffer(message)).digest('hex');
+      } else {
+        return method(message);
+      }
+    };
+    return nodeMethod;
+  };
+
+  var createHmacOutputMethod = function (outputType, is224) {
+    return function (key, message) {
+      return new HmacSha256(key, is224, true).update(message)[outputType]();
+    };
+  };
+
+  var createHmacMethod = function (is224) {
+    var method = createHmacOutputMethod('hex', is224);
+    method.create = function (key) {
+      return new HmacSha256(key, is224);
+    };
+    method.update = function (key, message) {
+      return method.create(key).update(message);
+    };
+    for (var i = 0; i < OUTPUT_TYPES.length; ++i) {
+      var type = OUTPUT_TYPES[i];
+      method[type] = createHmacOutputMethod(type, is224);
+    }
+    return method;
+  };
+
+  function Sha256(is224, sharedMemory) {
+    if (sharedMemory) {
+      blocks[0] = blocks[16] = blocks[1] = blocks[2] = blocks[3] =
+        blocks[4] = blocks[5] = blocks[6] = blocks[7] =
+        blocks[8] = blocks[9] = blocks[10] = blocks[11] =
+        blocks[12] = blocks[13] = blocks[14] = blocks[15] = 0;
+      this.blocks = blocks;
+    } else {
+      this.blocks = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    }
+
+    if (is224) {
+      this.h0 = 0xc1059ed8;
+      this.h1 = 0x367cd507;
+      this.h2 = 0x3070dd17;
+      this.h3 = 0xf70e5939;
+      this.h4 = 0xffc00b31;
+      this.h5 = 0x68581511;
+      this.h6 = 0x64f98fa7;
+      this.h7 = 0xbefa4fa4;
+    } else { // 256
+      this.h0 = 0x6a09e667;
+      this.h1 = 0xbb67ae85;
+      this.h2 = 0x3c6ef372;
+      this.h3 = 0xa54ff53a;
+      this.h4 = 0x510e527f;
+      this.h5 = 0x9b05688c;
+      this.h6 = 0x1f83d9ab;
+      this.h7 = 0x5be0cd19;
+    }
+
+    this.block = this.start = this.bytes = this.hBytes = 0;
+    this.finalized = this.hashed = false;
+    this.first = true;
+    this.is224 = is224;
+  }
+
+  Sha256.prototype.update = function (message) {
+    if (this.finalized) {
+      return;
+    }
+    var notString, type = typeof message;
+    if (type !== 'string') {
+      if (type === 'object') {
+        if (message === null) {
+          throw new Error(ERROR);
+        } else if (ARRAY_BUFFER && message.constructor === ArrayBuffer) {
+          message = new Uint8Array(message);
+        } else if (!Array.isArray(message)) {
+          if (!ARRAY_BUFFER || !ArrayBuffer.isView(message)) {
+            throw new Error(ERROR);
+          }
+        }
+      } else {
+        throw new Error(ERROR);
+      }
+      notString = true;
+    }
+    var code, index = 0, i, length = message.length, blocks = this.blocks;
+
+    while (index < length) {
+      if (this.hashed) {
+        this.hashed = false;
+        blocks[0] = this.block;
+        blocks[16] = blocks[1] = blocks[2] = blocks[3] =
+          blocks[4] = blocks[5] = blocks[6] = blocks[7] =
+          blocks[8] = blocks[9] = blocks[10] = blocks[11] =
+          blocks[12] = blocks[13] = blocks[14] = blocks[15] = 0;
+      }
+
+      if (notString) {
+        for (i = this.start; index < length && i < 64; ++index) {
+          blocks[i >> 2] |= message[index] << SHIFT[i++ & 3];
+        }
+      } else {
+        for (i = this.start; index < length && i < 64; ++index) {
+          code = message.charCodeAt(index);
+          if (code < 0x80) {
+            blocks[i >> 2] |= code << SHIFT[i++ & 3];
+          } else if (code < 0x800) {
+            blocks[i >> 2] |= (0xc0 | (code >> 6)) << SHIFT[i++ & 3];
+            blocks[i >> 2] |= (0x80 | (code & 0x3f)) << SHIFT[i++ & 3];
+          } else if (code < 0xd800 || code >= 0xe000) {
+            blocks[i >> 2] |= (0xe0 | (code >> 12)) << SHIFT[i++ & 3];
+            blocks[i >> 2] |= (0x80 | ((code >> 6) & 0x3f)) << SHIFT[i++ & 3];
+            blocks[i >> 2] |= (0x80 | (code & 0x3f)) << SHIFT[i++ & 3];
+          } else {
+            code = 0x10000 + (((code & 0x3ff) << 10) | (message.charCodeAt(++index) & 0x3ff));
+            blocks[i >> 2] |= (0xf0 | (code >> 18)) << SHIFT[i++ & 3];
+            blocks[i >> 2] |= (0x80 | ((code >> 12) & 0x3f)) << SHIFT[i++ & 3];
+            blocks[i >> 2] |= (0x80 | ((code >> 6) & 0x3f)) << SHIFT[i++ & 3];
+            blocks[i >> 2] |= (0x80 | (code & 0x3f)) << SHIFT[i++ & 3];
+          }
+        }
+      }
+
+      this.lastByteIndex = i;
+      this.bytes += i - this.start;
+      if (i >= 64) {
+        this.block = blocks[16];
+        this.start = i - 64;
+        this.hash();
+        this.hashed = true;
+      } else {
+        this.start = i;
+      }
+    }
+    if (this.bytes > 4294967295) {
+      this.hBytes += this.bytes / 4294967296 << 0;
+      this.bytes = this.bytes % 4294967296;
+    }
+    return this;
+  };
+
+  Sha256.prototype.finalize = function () {
+    if (this.finalized) {
+      return;
+    }
+    this.finalized = true;
+    var blocks = this.blocks, i = this.lastByteIndex;
+    blocks[16] = this.block;
+    blocks[i >> 2] |= EXTRA[i & 3];
+    this.block = blocks[16];
+    if (i >= 56) {
+      if (!this.hashed) {
+        this.hash();
+      }
+      blocks[0] = this.block;
+      blocks[16] = blocks[1] = blocks[2] = blocks[3] =
+        blocks[4] = blocks[5] = blocks[6] = blocks[7] =
+        blocks[8] = blocks[9] = blocks[10] = blocks[11] =
+        blocks[12] = blocks[13] = blocks[14] = blocks[15] = 0;
+    }
+    blocks[14] = this.hBytes << 3 | this.bytes >>> 29;
+    blocks[15] = this.bytes << 3;
+    this.hash();
+  };
+
+  Sha256.prototype.hash = function () {
+    var a = this.h0, b = this.h1, c = this.h2, d = this.h3, e = this.h4, f = this.h5, g = this.h6,
+      h = this.h7, blocks = this.blocks, j, s0, s1, maj, t1, t2, ch, ab, da, cd, bc;
+
+    for (j = 16; j < 64; ++j) {
+      // rightrotate
+      t1 = blocks[j - 15];
+      s0 = ((t1 >>> 7) | (t1 << 25)) ^ ((t1 >>> 18) | (t1 << 14)) ^ (t1 >>> 3);
+      t1 = blocks[j - 2];
+      s1 = ((t1 >>> 17) | (t1 << 15)) ^ ((t1 >>> 19) | (t1 << 13)) ^ (t1 >>> 10);
+      blocks[j] = blocks[j - 16] + s0 + blocks[j - 7] + s1 << 0;
+    }
+
+    bc = b & c;
+    for (j = 0; j < 64; j += 4) {
+      if (this.first) {
+        if (this.is224) {
+          ab = 300032;
+          t1 = blocks[0] - 1413257819;
+          h = t1 - 150054599 << 0;
+          d = t1 + 24177077 << 0;
+        } else {
+          ab = 704751109;
+          t1 = blocks[0] - 210244248;
+          h = t1 - 1521486534 << 0;
+          d = t1 + 143694565 << 0;
+        }
+        this.first = false;
+      } else {
+        s0 = ((a >>> 2) | (a << 30)) ^ ((a >>> 13) | (a << 19)) ^ ((a >>> 22) | (a << 10));
+        s1 = ((e >>> 6) | (e << 26)) ^ ((e >>> 11) | (e << 21)) ^ ((e >>> 25) | (e << 7));
+        ab = a & b;
+        maj = ab ^ (a & c) ^ bc;
+        ch = (e & f) ^ (~e & g);
+        t1 = h + s1 + ch + K[j] + blocks[j];
+        t2 = s0 + maj;
+        h = d + t1 << 0;
+        d = t1 + t2 << 0;
+      }
+      s0 = ((d >>> 2) | (d << 30)) ^ ((d >>> 13) | (d << 19)) ^ ((d >>> 22) | (d << 10));
+      s1 = ((h >>> 6) | (h << 26)) ^ ((h >>> 11) | (h << 21)) ^ ((h >>> 25) | (h << 7));
+      da = d & a;
+      maj = da ^ (d & b) ^ ab;
+      ch = (h & e) ^ (~h & f);
+      t1 = g + s1 + ch + K[j + 1] + blocks[j + 1];
+      t2 = s0 + maj;
+      g = c + t1 << 0;
+      c = t1 + t2 << 0;
+      s0 = ((c >>> 2) | (c << 30)) ^ ((c >>> 13) | (c << 19)) ^ ((c >>> 22) | (c << 10));
+      s1 = ((g >>> 6) | (g << 26)) ^ ((g >>> 11) | (g << 21)) ^ ((g >>> 25) | (g << 7));
+      cd = c & d;
+      maj = cd ^ (c & a) ^ da;
+      ch = (g & h) ^ (~g & e);
+      t1 = f + s1 + ch + K[j + 2] + blocks[j + 2];
+      t2 = s0 + maj;
+      f = b + t1 << 0;
+      b = t1 + t2 << 0;
+      s0 = ((b >>> 2) | (b << 30)) ^ ((b >>> 13) | (b << 19)) ^ ((b >>> 22) | (b << 10));
+      s1 = ((f >>> 6) | (f << 26)) ^ ((f >>> 11) | (f << 21)) ^ ((f >>> 25) | (f << 7));
+      bc = b & c;
+      maj = bc ^ (b & d) ^ cd;
+      ch = (f & g) ^ (~f & h);
+      t1 = e + s1 + ch + K[j + 3] + blocks[j + 3];
+      t2 = s0 + maj;
+      e = a + t1 << 0;
+      a = t1 + t2 << 0;
+    }
+
+    this.h0 = this.h0 + a << 0;
+    this.h1 = this.h1 + b << 0;
+    this.h2 = this.h2 + c << 0;
+    this.h3 = this.h3 + d << 0;
+    this.h4 = this.h4 + e << 0;
+    this.h5 = this.h5 + f << 0;
+    this.h6 = this.h6 + g << 0;
+    this.h7 = this.h7 + h << 0;
+  };
+
+  Sha256.prototype.hex = function () {
+    this.finalize();
+
+    var h0 = this.h0, h1 = this.h1, h2 = this.h2, h3 = this.h3, h4 = this.h4, h5 = this.h5,
+      h6 = this.h6, h7 = this.h7;
+
+    var hex = HEX_CHARS[(h0 >> 28) & 0x0F] + HEX_CHARS[(h0 >> 24) & 0x0F] +
+      HEX_CHARS[(h0 >> 20) & 0x0F] + HEX_CHARS[(h0 >> 16) & 0x0F] +
+      HEX_CHARS[(h0 >> 12) & 0x0F] + HEX_CHARS[(h0 >> 8) & 0x0F] +
+      HEX_CHARS[(h0 >> 4) & 0x0F] + HEX_CHARS[h0 & 0x0F] +
+      HEX_CHARS[(h1 >> 28) & 0x0F] + HEX_CHARS[(h1 >> 24) & 0x0F] +
+      HEX_CHARS[(h1 >> 20) & 0x0F] + HEX_CHARS[(h1 >> 16) & 0x0F] +
+      HEX_CHARS[(h1 >> 12) & 0x0F] + HEX_CHARS[(h1 >> 8) & 0x0F] +
+      HEX_CHARS[(h1 >> 4) & 0x0F] + HEX_CHARS[h1 & 0x0F] +
+      HEX_CHARS[(h2 >> 28) & 0x0F] + HEX_CHARS[(h2 >> 24) & 0x0F] +
+      HEX_CHARS[(h2 >> 20) & 0x0F] + HEX_CHARS[(h2 >> 16) & 0x0F] +
+      HEX_CHARS[(h2 >> 12) & 0x0F] + HEX_CHARS[(h2 >> 8) & 0x0F] +
+      HEX_CHARS[(h2 >> 4) & 0x0F] + HEX_CHARS[h2 & 0x0F] +
+      HEX_CHARS[(h3 >> 28) & 0x0F] + HEX_CHARS[(h3 >> 24) & 0x0F] +
+      HEX_CHARS[(h3 >> 20) & 0x0F] + HEX_CHARS[(h3 >> 16) & 0x0F] +
+      HEX_CHARS[(h3 >> 12) & 0x0F] + HEX_CHARS[(h3 >> 8) & 0x0F] +
+      HEX_CHARS[(h3 >> 4) & 0x0F] + HEX_CHARS[h3 & 0x0F] +
+      HEX_CHARS[(h4 >> 28) & 0x0F] + HEX_CHARS[(h4 >> 24) & 0x0F] +
+      HEX_CHARS[(h4 >> 20) & 0x0F] + HEX_CHARS[(h4 >> 16) & 0x0F] +
+      HEX_CHARS[(h4 >> 12) & 0x0F] + HEX_CHARS[(h4 >> 8) & 0x0F] +
+      HEX_CHARS[(h4 >> 4) & 0x0F] + HEX_CHARS[h4 & 0x0F] +
+      HEX_CHARS[(h5 >> 28) & 0x0F] + HEX_CHARS[(h5 >> 24) & 0x0F] +
+      HEX_CHARS[(h5 >> 20) & 0x0F] + HEX_CHARS[(h5 >> 16) & 0x0F] +
+      HEX_CHARS[(h5 >> 12) & 0x0F] + HEX_CHARS[(h5 >> 8) & 0x0F] +
+      HEX_CHARS[(h5 >> 4) & 0x0F] + HEX_CHARS[h5 & 0x0F] +
+      HEX_CHARS[(h6 >> 28) & 0x0F] + HEX_CHARS[(h6 >> 24) & 0x0F] +
+      HEX_CHARS[(h6 >> 20) & 0x0F] + HEX_CHARS[(h6 >> 16) & 0x0F] +
+      HEX_CHARS[(h6 >> 12) & 0x0F] + HEX_CHARS[(h6 >> 8) & 0x0F] +
+      HEX_CHARS[(h6 >> 4) & 0x0F] + HEX_CHARS[h6 & 0x0F];
+    if (!this.is224) {
+      hex += HEX_CHARS[(h7 >> 28) & 0x0F] + HEX_CHARS[(h7 >> 24) & 0x0F] +
+        HEX_CHARS[(h7 >> 20) & 0x0F] + HEX_CHARS[(h7 >> 16) & 0x0F] +
+        HEX_CHARS[(h7 >> 12) & 0x0F] + HEX_CHARS[(h7 >> 8) & 0x0F] +
+        HEX_CHARS[(h7 >> 4) & 0x0F] + HEX_CHARS[h7 & 0x0F];
+    }
+    return hex;
+  };
+
+  Sha256.prototype.toString = Sha256.prototype.hex;
+
+  Sha256.prototype.digest = function () {
+    this.finalize();
+
+    var h0 = this.h0, h1 = this.h1, h2 = this.h2, h3 = this.h3, h4 = this.h4, h5 = this.h5,
+      h6 = this.h6, h7 = this.h7;
+
+    var arr = [
+      (h0 >> 24) & 0xFF, (h0 >> 16) & 0xFF, (h0 >> 8) & 0xFF, h0 & 0xFF,
+      (h1 >> 24) & 0xFF, (h1 >> 16) & 0xFF, (h1 >> 8) & 0xFF, h1 & 0xFF,
+      (h2 >> 24) & 0xFF, (h2 >> 16) & 0xFF, (h2 >> 8) & 0xFF, h2 & 0xFF,
+      (h3 >> 24) & 0xFF, (h3 >> 16) & 0xFF, (h3 >> 8) & 0xFF, h3 & 0xFF,
+      (h4 >> 24) & 0xFF, (h4 >> 16) & 0xFF, (h4 >> 8) & 0xFF, h4 & 0xFF,
+      (h5 >> 24) & 0xFF, (h5 >> 16) & 0xFF, (h5 >> 8) & 0xFF, h5 & 0xFF,
+      (h6 >> 24) & 0xFF, (h6 >> 16) & 0xFF, (h6 >> 8) & 0xFF, h6 & 0xFF
+    ];
+    if (!this.is224) {
+      arr.push((h7 >> 24) & 0xFF, (h7 >> 16) & 0xFF, (h7 >> 8) & 0xFF, h7 & 0xFF);
+    }
+    return arr;
+  };
+
+  Sha256.prototype.array = Sha256.prototype.digest;
+
+  Sha256.prototype.arrayBuffer = function () {
+    this.finalize();
+
+    var buffer = new ArrayBuffer(this.is224 ? 28 : 32);
+    var dataView = new DataView(buffer);
+    dataView.setUint32(0, this.h0);
+    dataView.setUint32(4, this.h1);
+    dataView.setUint32(8, this.h2);
+    dataView.setUint32(12, this.h3);
+    dataView.setUint32(16, this.h4);
+    dataView.setUint32(20, this.h5);
+    dataView.setUint32(24, this.h6);
+    if (!this.is224) {
+      dataView.setUint32(28, this.h7);
+    }
+    return buffer;
+  };
+
+  function HmacSha256(key, is224, sharedMemory) {
+    var i, type = typeof key;
+    if (type === 'string') {
+      var bytes = [], length = key.length, index = 0, code;
+      for (i = 0; i < length; ++i) {
+        code = key.charCodeAt(i);
+        if (code < 0x80) {
+          bytes[index++] = code;
+        } else if (code < 0x800) {
+          bytes[index++] = (0xc0 | (code >> 6));
+          bytes[index++] = (0x80 | (code & 0x3f));
+        } else if (code < 0xd800 || code >= 0xe000) {
+          bytes[index++] = (0xe0 | (code >> 12));
+          bytes[index++] = (0x80 | ((code >> 6) & 0x3f));
+          bytes[index++] = (0x80 | (code & 0x3f));
+        } else {
+          code = 0x10000 + (((code & 0x3ff) << 10) | (key.charCodeAt(++i) & 0x3ff));
+          bytes[index++] = (0xf0 | (code >> 18));
+          bytes[index++] = (0x80 | ((code >> 12) & 0x3f));
+          bytes[index++] = (0x80 | ((code >> 6) & 0x3f));
+          bytes[index++] = (0x80 | (code & 0x3f));
+        }
+      }
+      key = bytes;
+    } else {
+      if (type === 'object') {
+        if (key === null) {
+          throw new Error(ERROR);
+        } else if (ARRAY_BUFFER && key.constructor === ArrayBuffer) {
+          key = new Uint8Array(key);
+        } else if (!Array.isArray(key)) {
+          if (!ARRAY_BUFFER || !ArrayBuffer.isView(key)) {
+            throw new Error(ERROR);
+          }
+        }
+      } else {
+        throw new Error(ERROR);
+      }
+    }
+
+    if (key.length > 64) {
+      key = (new Sha256(is224, true)).update(key).array();
+    }
+
+    var oKeyPad = [], iKeyPad = [];
+    for (i = 0; i < 64; ++i) {
+      var b = key[i] || 0;
+      oKeyPad[i] = 0x5c ^ b;
+      iKeyPad[i] = 0x36 ^ b;
+    }
+
+    Sha256.call(this, is224, sharedMemory);
+
+    this.update(iKeyPad);
+    this.oKeyPad = oKeyPad;
+    this.inner = true;
+    this.sharedMemory = sharedMemory;
+  }
+  HmacSha256.prototype = new Sha256();
+
+  HmacSha256.prototype.finalize = function () {
+    Sha256.prototype.finalize.call(this);
+    if (this.inner) {
+      this.inner = false;
+      var innerHash = this.array();
+      Sha256.call(this, this.is224, this.sharedMemory);
+      this.update(this.oKeyPad);
+      this.update(innerHash);
+      Sha256.prototype.finalize.call(this);
+    }
+  };
+
+  var exports = createMethod();
+  exports.sha256 = exports;
+  exports.sha224 = createMethod(true);
+  exports.sha256.hmac = createHmacMethod();
+  exports.sha224.hmac = createHmacMethod(true);
+
+  if (COMMON_JS) {
+    module.exports = exports;
+  } else {
+    root.sha256 = exports.sha256;
+    root.sha224 = exports.sha224;
+    if (AMD) {
+      undefined(function () {
+        return exports;
+      });
+    }
+  }
+})();
+}(sha256$1));
+
+var sha256 = sha256$1.exports;
+
+class BiomeSource {
+    biomes;
+    constructor(biomes) {
+        this.biomes = new Set(biomes);
+    }
+}
+class MultiNoiseBiomeSource extends BiomeSource {
+    parameters;
+    constructor(parameters) {
+        super(parameters.map(e => e.second));
+        this.parameters = parameters;
+    }
+    getNoiseBiome(x, y, z, sampler) {
+        if (typeof x === "number") {
+            if (y === undefined || z === undefined || !sampler) {
+                throw new Error();
+            }
+            x = sampler.sample(x, y, z);
+        }
+        return findValueBruteForce(x, this.parameters);
+    }
+}
+function toBytes(str) {
+    const length = str.length;
+    const bArr = new Uint8Array(length / 2);
+    for (let i = 0; i < length; i += 2) {
+        bArr[i / 2] = parseInt(str.charAt(i + 1), 16) + (parseInt(str.charAt(i), 16) << 4);
+    }
+    return bArr;
+}
+class BiomeManager {
+    noiseBiomeSource;
+    biomeZoomSeed;
+    static CHUNK_CENTER_QUART = QuartPos.fromBlock(8);
+    static ZOOM_BITS = 2;
+    static ZOOM = 4;
+    static ZOOM_MASK = 3;
+    constructor(noiseBiomeSource, biomeZoomSeed) {
+        this.noiseBiomeSource = noiseBiomeSource;
+        this.biomeZoomSeed = biomeZoomSeed;
+    }
+    static obfuscateSeed(seed) {
+        const input = new Uint8Array(BigInt64Array.from([seed]).buffer);
+        const output = sha256$1.exports.sha256.digest(input);
+        return new BigInt64Array(Uint8Array.from(output).buffer)[0];
+    }
+    withDifferentSource(biomeSource) {
+        return new BiomeManager(biomeSource, this.biomeZoomSeed);
+    }
+    getBiome(pos) {
+        const x = pos.x - 2;
+        const y = pos.y - 2;
+        const z = pos.z - 2;
+        const shiftedX = x >> 2;
+        const shiftedY = y >> 2;
+        const shiftedZ = z >> 2;
+        const fracX = (x & 3) / 4;
+        const fracY = (y & 3) / 4;
+        const fracZ = (z & 3) / 4;
+        let minIndex = 0;
+        let minDistance = Infinity;
+        for (let index = 0; index < 8; ++index) {
+            const shouldUseNextX = (index & 4) == 0;
+            const shouldUseNextY = (index & 2) == 0;
+            const shouldUseNextZ = (index & 1) == 0;
+            const xToUse = shouldUseNextX ? shiftedX : shiftedX + 1;
+            const yToUse = shouldUseNextY ? shiftedY : shiftedY + 1;
+            const zToUse = shouldUseNextZ ? shiftedZ : shiftedZ + 1;
+            const xFractToUse = shouldUseNextX ? fracX : fracX - 1;
+            const yFractToUse = shouldUseNextY ? fracY : fracY - 1;
+            const zFractToUse = shouldUseNextZ ? fracZ : fracZ - 1;
+            const distance = BiomeManager.getFiddledDistance(this.biomeZoomSeed, xToUse, yToUse, zToUse, xFractToUse, yFractToUse, zFractToUse);
+            if (minDistance > distance) {
+                minIndex = index;
+                minDistance = distance;
+            }
+        }
+        const resultX = (minIndex & 4) == 0 ? shiftedX : shiftedX + 1;
+        const resultY = (minIndex & 2) == 0 ? shiftedY : shiftedY + 1;
+        const resultZ = (minIndex & 1) == 0 ? shiftedZ : shiftedZ + 1;
+        return this.noiseBiomeSource.getNoiseBiome(resultX, resultY, resultZ);
+    }
+    getNoiseBiomeAtPosition(x, y, z) {
+        if (typeof x === "number") {
+            const qx = QuartPos.fromBlock(floor(x));
+            const qy = QuartPos.fromBlock(floor(y));
+            const qz = QuartPos.fromBlock(floor(z));
+            return this.getNoiseBiomeAtQuart(qx, qy, qz);
+        }
+        else {
+            const pos = x;
+            const qx = QuartPos.fromBlock(pos.x);
+            const qy = QuartPos.fromBlock(pos.y);
+            const qz = QuartPos.fromBlock(pos.z);
+            return this.getNoiseBiomeAtQuart(qx, qy, qz);
+        }
+    }
+    getNoiseBiomeAtQuart(qx, qy, qz) {
+        return this.noiseBiomeSource.getNoiseBiome(qx, qy, qz);
+    }
+    static getFiddledDistance(initialSeed, x, y, z, xFract, yFract, zFract) {
+        let seed = LinearCongruentialGenerator.next(initialSeed, toLong(x));
+        seed = LinearCongruentialGenerator.next(seed, toLong(y));
+        seed = LinearCongruentialGenerator.next(seed, toLong(z));
+        seed = LinearCongruentialGenerator.next(seed, toLong(x));
+        seed = LinearCongruentialGenerator.next(seed, toLong(y));
+        seed = LinearCongruentialGenerator.next(seed, toLong(z));
+        const xOffset = BiomeManager.getFiddle(seed);
+        seed = LinearCongruentialGenerator.next(seed, initialSeed);
+        const yOffset = BiomeManager.getFiddle(seed);
+        seed = LinearCongruentialGenerator.next(seed, initialSeed);
+        const zOffset = BiomeManager.getFiddle(seed);
+        return (square(zFract + zOffset) +
+            square(yFract + yOffset) +
+            square(xFract + xOffset));
+    }
+    static getFiddle(seed) {
+        const r = floorMod(seed >> 24n, 1024) / 1024;
+        return (r - 0.5) * 0.9;
     }
 }
 
@@ -13685,29 +14778,49 @@ function same(n1, n2, e) {
     return Math.abs(n2 - n1) <= e;
 }
 function test() {
+    const seed = 0xdeadbeafdeadn;
+    const builder = new OverworldBiomeBuilder();
+    const biomes = [];
+    builder.addBiomes(biomes);
+    const biomeSource = new MultiNoiseBiomeSource(biomes);
     const settings = NoiseGeneratorSettings.OVERWORLD;
-    const noiseSettings = settings.noiseSettings;
-    const sampler = new NoiseSampler(noiseSettings, 0xdeadbeafdeadbeafn, settings.randomSource);
+    const noiseBiomeSource = new NoiseBasedChunkGenerator(biomeSource, seed, settings);
+    const biomeMananager = new BiomeManager(noiseBiomeSource, seed);
+    /*
+    const noiseSettings = settings.noiseSettings
+    const sampler = new NoiseSampler(noiseSettings, 0xdeadbeafdeadbeafn, settings.randomSource)
+    */
     const canvas = document.createElement("canvas");
-    canvas.width = 1024;
-    canvas.height = 1024;
+    canvas.width = 128;
+    canvas.height = 128;
     canvas.style.width = canvas.width * 1 + "px";
     canvas.style.height = canvas.height * 1 + "px";
     const ctx = canvas.getContext("2d");
     const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    console.time("generation");
     for (let x = 0; x < data.width; x++) {
         for (let y = 0; y < data.height; y++) {
             // const x = 520
             // const y = 538
-            const p = sampler.sample(x, y, 100);
+            const p = biomeMananager.getBiome(new BlockPos(x * 20, 256, y * 20));
+            const c = BIOME_TO_COLOR[p] ?? 0;
             // debugger
-            const v = Math.trunc(8388608 + p.temperature + p.depth + p.erosion + p.humidity) | 0;
-            data.data[(y * data.width + x) * 4 + 0] = (v >> 16) & 255;
-            data.data[(y * data.width + x) * 4 + 1] = (v >> 8) & 255;
-            data.data[(y * data.width + x) * 4 + 2] = v & 255;
+            /*
+            const t = clamp((p.continentalness / 10000 + 1) / 2, 0, 1)
+            const h = Math.round((1 - t) * 240)
+            // const v = Math.trunc(8388608 + p.temperature + p.depth + p.erosion + p.humidity) | 0
+
+            ctx.fillStyle = `hsl(${h}, 100%, 50%)`
+            const v = parseInt(ctx.fillStyle.slice(1), 16)
+            */
+            // const v = (8388608 + p.temperature + p.depth + p.erosion + p.humidity) | 0
+            data.data[(y * data.width + x) * 4 + 0] = (c >> 16) & 255;
+            data.data[(y * data.width + x) * 4 + 1] = (c >> 8) & 255;
+            data.data[(y * data.width + x) * 4 + 2] = c & 255;
             data.data[(y * data.width + x) * 4 + 3] = 255;
         }
     }
+    console.timeEnd("generation");
     ctx.putImageData(data, 0, 0);
     document.body.appendChild(canvas);
 }

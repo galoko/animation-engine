@@ -1,8 +1,9 @@
 import { Blocks } from "./blocks"
-import { BlockPos, ChunkPos, NoiseChunk, SectionPos } from "./chunk-generator"
+import { ChunkPos, NoiseChunk } from "./chunk-generator"
 import { NormalNoise } from "./noise/normal-noise"
 import { PositionalRandomFactory } from "./random"
 import * as Mth from "./mth"
+import { BlockPos, SectionPos } from "./pos"
 
 class DimensionType {
     static readonly BITS_FOR_Y = Number(BlockPos.PACKED_Y_LENGTH)

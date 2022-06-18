@@ -147,7 +147,7 @@ const EXTREME_HILLS = [
     [null, null, null, null, null],
 ]
 
-type BuilderOutput = Pair<Climate.ParameterPoint, Biomes>[]
+export type BuilderOutput = Pair<Climate.ParameterPoint, Biomes>[]
 
 export class OverworldBiomeBuilder {
     // high order methods

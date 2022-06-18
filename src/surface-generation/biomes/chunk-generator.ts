@@ -15,62 +15,10 @@ import { BlendedNoise, NoiseFiller } from "./noise/blended-noise"
 import { NoiseParameters, NormalNoise } from "./noise/normal-noise"
 import { Noises_instantiate, Noises } from "./noise-data"
 import * as Mth from "./mth"
-import { Aquifer, FluidPicker } from "./aquifer"
+import { Aquifer, FluidPicker, FluidStatus } from "./aquifer"
 import { Supplier } from "./consumer"
-
-export class BlockPos {
-    private static readonly PACKED_X_LENGTH = BigInt(
-        1 + Mth.log2(Mth.smallestEncompassingPowerOfTwo(30000000))
-    )
-    private static readonly PACKED_Z_LENGTH = BlockPos.PACKED_X_LENGTH
-    public static readonly PACKED_Y_LENGTH =
-        64n - BlockPos.PACKED_X_LENGTH - BlockPos.PACKED_Z_LENGTH
-    private static readonly PACKED_X_MASK = (1n << BigInt(BlockPos.PACKED_X_LENGTH)) - 1n
-    private static readonly PACKED_Y_MASK = (1n << BigInt(BlockPos.PACKED_Y_LENGTH)) - 1n
-    private static readonly PACKED_Z_MASK = (1n << BigInt(BlockPos.PACKED_Z_LENGTH)) - 1n
-    private static readonly Y_OFFSET = 0n
-    private static readonly Z_OFFSET = BlockPos.PACKED_Y_LENGTH
-    private static readonly X_OFFSET = BlockPos.PACKED_Y_LENGTH + BlockPos.PACKED_Z_LENGTH
-
-    constructor(readonly x: number, readonly y: number, readonly z: number) {}
-
-    public static getX(num: bigint): number {
-        return Mth.toInt(
-            (num << (64n - BlockPos.X_OFFSET - BlockPos.PACKED_X_LENGTH)) >>
-                (64n - BlockPos.PACKED_X_LENGTH)
-        )
-    }
-
-    public static getY(num: bigint): number {
-        return Mth.toInt(
-            (num << (64n - BlockPos.PACKED_Y_LENGTH)) >> (64n - BlockPos.PACKED_Y_LENGTH)
-        )
-    }
-
-    public static getZ(num: bigint): number {
-        return Mth.toInt(
-            (num << (64n - BlockPos.Z_OFFSET - BlockPos.PACKED_Z_LENGTH)) >>
-                (64n - BlockPos.PACKED_Z_LENGTH)
-        )
-    }
-
-    public static asLong(x: number, y: number, z: number): bigint {
-        let result = 0n
-        result |= (Mth.toLong(x) & BlockPos.PACKED_X_MASK) << BlockPos.X_OFFSET
-        result |= (Mth.toLong(y) & BlockPos.PACKED_Y_MASK) << BlockPos.Y_OFFSET
-        return result | ((Mth.toLong(z) & BlockPos.PACKED_Z_MASK) << BlockPos.Z_OFFSET)
-    }
-}
-
-export abstract class SectionPos {
-    public static blockToSectionCoord(coord: number): number {
-        return coord >> 4
-    }
-
-    public static sectionToBlockCoord(coord: number, coord2?: number): number {
-        return (coord << 4) + (coord2 ?? 0)
-    }
-}
+import { BlockPos, SectionPos } from "./pos"
+import { SurfaceSystem } from "./surface-system"
 
 export class ChunkPos {
     readonly x: number
@@ -543,15 +491,6 @@ export interface Sampler {
     sample(): number
 }
 
-function computeIfAbsent<K, T>(map: Map<K, T>, key: K, mappingFunction: (key: K) => T): T {
-    let value = map.get(key)
-    if (value === undefined) {
-        value = mappingFunction(key)
-        map.set(key, value)
-    }
-    return value
-}
-
 export class NoiseChunk {
     readonly noiseSettings: NoiseSettings
 
@@ -677,7 +616,7 @@ export class NoiseChunk {
     }
 
     preliminarySurfaceLevel(x: number, z: number): number {
-        return computeIfAbsent(
+        return Mth.computeIfAbsent(
             this._preliminarySurfaceLevel,
             ChunkPos.asLong(QuartPos.fromBlock(x), QuartPos.fromBlock(z)),
             linearCoord => this.computePreliminarySurfaceLevel(linearCoord)
@@ -1040,14 +979,14 @@ export class NoiseSampler implements Climate.Sampler {
     target(x: number, y: number, z: number, flatData: FlatNoiseData): TargetPoint {
         const shiftedX = flatData.shiftedX
         const shiftedY = y + this.getOffset(y, z, x)
-        const d2 = flatData.shiftedZ
-        const d3 = this.computeBaseDensity(QuartPos.toBlock(y), flatData.terrainInfo)
+        const shiftedZ = flatData.shiftedZ
+        const baseDensity = this.computeBaseDensity(QuartPos.toBlock(y), flatData.terrainInfo)
         return Climate.target(
-            this.getTemperature(shiftedX, shiftedY, d2),
-            this.getHumidity(shiftedX, shiftedY, d2),
+            this.getTemperature(shiftedX, shiftedY, shiftedZ),
+            this.getHumidity(shiftedX, shiftedY, shiftedZ),
             flatData.continentalness,
             flatData.erosion,
-            d3,
+            baseDensity,
             flatData.weirdness
         )
     }
@@ -1094,9 +1033,30 @@ export class NoiseSampler implements Climate.Sampler {
     }
 }
 
+interface WorldGenMaterialRule {
+    apply(noiseChunk: NoiseChunk, x: number, y: number, z: number): Blocks | null
+}
+class MaterialRuleList implements WorldGenMaterialRule {
+    constructor(private readonly materialRuleList: WorldGenMaterialRule[]) {}
+
+    apply(noiseChunk: NoiseChunk, x: number, y: number, z: number): Blocks | null {
+        for (const worldgenmaterialrule of this.materialRuleList) {
+            const blockState = worldgenmaterialrule.apply(noiseChunk, x, y, z)
+            if (blockState != null) {
+                return blockState
+            }
+        }
+
+        return null
+    }
+}
+
 export class NoiseBasedChunkGenerator extends ChunkGenerator {
     private readonly defaultBlock: Blocks
     private readonly sampler: NoiseSampler
+    private readonly surfaceSystem: SurfaceSystem
+    private readonly materialRule: WorldGenMaterialRule
+    private readonly globalFluidPicker: FluidPicker
 
     constructor(
         biomeSource: BiomeSource,
@@ -1110,9 +1070,50 @@ export class NoiseBasedChunkGenerator extends ChunkGenerator {
         const noiseSettings = settings.noiseSettings
 
         this.sampler = new NoiseSampler(noiseSettings, seed, settings.randomSource)
+
+        this.materialRule = new MaterialRuleList([
+            {
+                apply: (noiseChunk: NoiseChunk, x: number, y: number, z: number) =>
+                    noiseChunk.updateNoiseAndGenerateBaseState(x, y, z),
+            },
+        ])
+        const lava = new FluidStatus(-54, Blocks.LAVA)
+        const seaLevel = settings.seaLevel
+        const defaultFluid = new FluidStatus(seaLevel, settings.defaultFluid)
+        const air = new FluidStatus(noiseSettings.minY - 1, Blocks.AIR)
+        this.globalFluidPicker = {
+            computeFluid: (x: number, y: number): FluidStatus => {
+                return y < Math.min(-54, seaLevel) ? lava : defaultFluid
+            },
+        }
+        this.surfaceSystem = new SurfaceSystem(
+            this.defaultBlock,
+            seaLevel,
+            seed,
+            settings.randomSource
+        )
     }
 
     climateSampler(): Climate.Sampler {
         return this.sampler
+    }
+
+    private doCreateBiomes(blender: Blender, chunkAccess: ChunkAccess) {
+        const noisechunk = chunkAccess.getOrCreateNoiseChunk(
+            this.sampler,
+            () => {
+                return new Beardifier(chunkAccess)
+            },
+            this.settings,
+            this.globalFluidPicker,
+            blender
+        )
+        const biomeresolver = BelowZeroRetrogen.getBiomeResolver(
+            blender.getBiomeResolver(this.runtimeBiomeSource),
+            chunkAccess
+        )
+        chunkAccess.fillBiomesFromNoise(biomeresolver, (x, y, z) => {
+            return this.sampler.target(x, y, z, noisechunk.noiseData(x, z))
+        })
     }
 }

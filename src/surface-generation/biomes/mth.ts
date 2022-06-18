@@ -213,3 +213,23 @@ export function map(v: number, v0: number, v1: number, mv0: number, mv1: number)
 export function quantize(value: number, quantizer: number): number {
     return floor(value / quantizer) * quantizer
 }
+
+export function computeIfAbsent<K, T>(map: Map<K, T>, key: K, mappingFunction: (key: K) => T): T {
+    let value = map.get(key)
+    if (value === undefined) {
+        value = mappingFunction(key)
+        map.set(key, value)
+    }
+    return value
+}
+
+export function floorMod(x: bigint, y: number): number {
+    const y_long = toLong(y)
+
+    let mod = x % y_long
+    // if the signs are different and modulo not zero, adjust result
+    if ((x ^ y_long) < 0 && mod != 0n) {
+        mod += y_long
+    }
+    return toInt(mod)
+}
