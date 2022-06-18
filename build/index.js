@@ -12320,66 +12320,66 @@ const NOISES = {};
 function registerNoises() {
     registerBiomeNoises(0, Noises.TEMPERATURE, Noises.VEGETATION, Noises.CONTINENTALNESS, Noises.EROSION);
     registerBiomeNoises(-2, Noises.TEMPERATURE_LARGE, Noises.VEGETATION_LARGE, Noises.CONTINENTALNESS_LARGE, Noises.EROSION_LARGE);
-    register(Noises.RIDGE, -7, 1.0, 2.0, 1.0, 0.0, 0.0, 0.0);
-    register(Noises.SHIFT, -3, 1.0, 1.0, 1.0, 0.0);
-    register(Noises.AQUIFER_BARRIER, -3, 1.0);
-    register(Noises.AQUIFER_FLUID_LEVEL_FLOODEDNESS, -7, 1.0);
-    register(Noises.AQUIFER_LAVA, -1, 1.0);
-    register(Noises.AQUIFER_FLUID_LEVEL_SPREAD, -5, 1.0);
-    register(Noises.PILLAR, -7, 1.0, 1.0);
-    register(Noises.PILLAR_RARENESS, -8, 1.0);
-    register(Noises.PILLAR_THICKNESS, -8, 1.0);
-    register(Noises.SPAGHETTI_2, -7, 1.0);
-    register(Noises.SPAGHETTI_2D_ELEVATION, -8, 1.0);
-    register(Noises.SPAGHETTI_2D_MODULATOR, -11, 1.0);
-    register(Noises.SPAGHETTI_2D_THICKNESS, -11, 1.0);
-    register(Noises.SPAGHETTI_3D_1, -7, 1.0);
-    register(Noises.SPAGHETTI_3D_2, -7, 1.0);
-    register(Noises.SPAGHETTI_3D_RARITY, -11, 1.0);
-    register(Noises.SPAGHETTI_3D_THICKNESS, -8, 1.0);
-    register(Noises.SPAGHETTI_ROUGHNESS, -5, 1.0);
-    register(Noises.SPAGHETTI_ROUGHNESS_MODULATOR, -8, 1.0);
-    register(Noises.CAVE_ENTRANCE, -7, 0.4, 0.5, 1.0);
-    register(Noises.CAVE_LAYER, -8, 1.0);
-    register(Noises.CAVE_CHEESE, -8, 0.5, 1.0, 2.0, 1.0, 2.0, 1.0, 0.0, 2.0, 0.0);
-    register(Noises.ORE_VEININESS, -8, 1.0);
-    register(Noises.ORE_VEIN_A, -7, 1.0);
-    register(Noises.ORE_VEIN_B, -7, 1.0);
-    register(Noises.ORE_GAP, -5, 1.0);
-    register(Noises.NOODLE, -8, 1.0);
-    register(Noises.NOODLE_THICKNESS, -8, 1.0);
-    register(Noises.NOODLE_RIDGE_A, -7, 1.0);
-    register(Noises.NOODLE_RIDGE_B, -7, 1.0);
-    register(Noises.JAGGED, -16, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0);
-    register(Noises.SURFACE, -6, 1.0, 1.0, 1.0);
-    register(Noises.SURFACE_SECONDARY, -6, 1.0, 1.0, 1.0);
-    register(Noises.CLAY_BANDS_OFFSET, -8, 1.0);
-    register(Noises.BADLANDS_PILLAR, -2, 1.0, 1.0, 1.0, 1.0);
-    register(Noises.BADLANDS_PILLAR_ROOF, -8, 1.0);
-    register(Noises.BADLANDS_SURFACE, -6, 1.0, 1.0, 1.0);
-    register(Noises.ICEBERG_PILLAR, -6, 1.0, 1.0, 1.0, 1.0);
-    register(Noises.ICEBERG_PILLAR_ROOF, -3, 1.0);
-    register(Noises.ICEBERG_SURFACE, -6, 1.0, 1.0, 1.0);
-    register(Noises.SWAMP, -2, 1.0);
-    register(Noises.CALCITE, -9, 1.0, 1.0, 1.0, 1.0);
-    register(Noises.GRAVEL, -8, 1.0, 1.0, 1.0, 1.0);
-    register(Noises.POWDER_SNOW, -6, 1.0, 1.0, 1.0, 1.0);
-    register(Noises.PACKED_ICE, -7, 1.0, 1.0, 1.0, 1.0);
-    register(Noises.ICE, -4, 1.0, 1.0, 1.0, 1.0);
-    register(Noises.SOUL_SAND_LAYER, -8, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.013333333333333334);
-    register(Noises.GRAVEL_LAYER, -8, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.013333333333333334);
-    register(Noises.PATCH, -5, 1.0, 0.0, 0.0, 0.0, 0.0, 0.013333333333333334);
-    register(Noises.NETHERRACK, -3, 1.0, 0.0, 0.0, 0.35);
-    register(Noises.NETHER_WART, -3, 1.0, 0.0, 0.0, 0.9);
-    register(Noises.NETHER_STATE_SELECTOR, -4, 1.0);
+    register$1(Noises.RIDGE, -7, 1.0, 2.0, 1.0, 0.0, 0.0, 0.0);
+    register$1(Noises.SHIFT, -3, 1.0, 1.0, 1.0, 0.0);
+    register$1(Noises.AQUIFER_BARRIER, -3, 1.0);
+    register$1(Noises.AQUIFER_FLUID_LEVEL_FLOODEDNESS, -7, 1.0);
+    register$1(Noises.AQUIFER_LAVA, -1, 1.0);
+    register$1(Noises.AQUIFER_FLUID_LEVEL_SPREAD, -5, 1.0);
+    register$1(Noises.PILLAR, -7, 1.0, 1.0);
+    register$1(Noises.PILLAR_RARENESS, -8, 1.0);
+    register$1(Noises.PILLAR_THICKNESS, -8, 1.0);
+    register$1(Noises.SPAGHETTI_2, -7, 1.0);
+    register$1(Noises.SPAGHETTI_2D_ELEVATION, -8, 1.0);
+    register$1(Noises.SPAGHETTI_2D_MODULATOR, -11, 1.0);
+    register$1(Noises.SPAGHETTI_2D_THICKNESS, -11, 1.0);
+    register$1(Noises.SPAGHETTI_3D_1, -7, 1.0);
+    register$1(Noises.SPAGHETTI_3D_2, -7, 1.0);
+    register$1(Noises.SPAGHETTI_3D_RARITY, -11, 1.0);
+    register$1(Noises.SPAGHETTI_3D_THICKNESS, -8, 1.0);
+    register$1(Noises.SPAGHETTI_ROUGHNESS, -5, 1.0);
+    register$1(Noises.SPAGHETTI_ROUGHNESS_MODULATOR, -8, 1.0);
+    register$1(Noises.CAVE_ENTRANCE, -7, 0.4, 0.5, 1.0);
+    register$1(Noises.CAVE_LAYER, -8, 1.0);
+    register$1(Noises.CAVE_CHEESE, -8, 0.5, 1.0, 2.0, 1.0, 2.0, 1.0, 0.0, 2.0, 0.0);
+    register$1(Noises.ORE_VEININESS, -8, 1.0);
+    register$1(Noises.ORE_VEIN_A, -7, 1.0);
+    register$1(Noises.ORE_VEIN_B, -7, 1.0);
+    register$1(Noises.ORE_GAP, -5, 1.0);
+    register$1(Noises.NOODLE, -8, 1.0);
+    register$1(Noises.NOODLE_THICKNESS, -8, 1.0);
+    register$1(Noises.NOODLE_RIDGE_A, -7, 1.0);
+    register$1(Noises.NOODLE_RIDGE_B, -7, 1.0);
+    register$1(Noises.JAGGED, -16, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0);
+    register$1(Noises.SURFACE, -6, 1.0, 1.0, 1.0);
+    register$1(Noises.SURFACE_SECONDARY, -6, 1.0, 1.0, 1.0);
+    register$1(Noises.CLAY_BANDS_OFFSET, -8, 1.0);
+    register$1(Noises.BADLANDS_PILLAR, -2, 1.0, 1.0, 1.0, 1.0);
+    register$1(Noises.BADLANDS_PILLAR_ROOF, -8, 1.0);
+    register$1(Noises.BADLANDS_SURFACE, -6, 1.0, 1.0, 1.0);
+    register$1(Noises.ICEBERG_PILLAR, -6, 1.0, 1.0, 1.0, 1.0);
+    register$1(Noises.ICEBERG_PILLAR_ROOF, -3, 1.0);
+    register$1(Noises.ICEBERG_SURFACE, -6, 1.0, 1.0, 1.0);
+    register$1(Noises.SWAMP, -2, 1.0);
+    register$1(Noises.CALCITE, -9, 1.0, 1.0, 1.0, 1.0);
+    register$1(Noises.GRAVEL, -8, 1.0, 1.0, 1.0, 1.0);
+    register$1(Noises.POWDER_SNOW, -6, 1.0, 1.0, 1.0, 1.0);
+    register$1(Noises.PACKED_ICE, -7, 1.0, 1.0, 1.0, 1.0);
+    register$1(Noises.ICE, -4, 1.0, 1.0, 1.0, 1.0);
+    register$1(Noises.SOUL_SAND_LAYER, -8, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.013333333333333334);
+    register$1(Noises.GRAVEL_LAYER, -8, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.013333333333333334);
+    register$1(Noises.PATCH, -5, 1.0, 0.0, 0.0, 0.0, 0.0, 0.013333333333333334);
+    register$1(Noises.NETHERRACK, -3, 1.0, 0.0, 0.0, 0.35);
+    register$1(Noises.NETHER_WART, -3, 1.0, 0.0, 0.0, 0.9);
+    register$1(Noises.NETHER_STATE_SELECTOR, -4, 1.0);
 }
 function registerBiomeNoises(octaveOffset, temperature, vegetation, continentalness, erosion) {
-    register(temperature, -10 + octaveOffset, 1.5, 0.0, 1.0, 0.0, 0.0, 0.0);
-    register(vegetation, -8 + octaveOffset, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0);
-    register(continentalness, -9 + octaveOffset, 1.0, 1.0, 2.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0);
-    register(erosion, -9 + octaveOffset, 1.0, 1.0, 0.0, 1.0, 1.0);
+    register$1(temperature, -10 + octaveOffset, 1.5, 0.0, 1.0, 0.0, 0.0, 0.0);
+    register$1(vegetation, -8 + octaveOffset, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0);
+    register$1(continentalness, -9 + octaveOffset, 1.0, 1.0, 2.0, 2.0, 2.0, 1.0, 1.0, 1.0, 1.0);
+    register$1(erosion, -9 + octaveOffset, 1.0, 1.0, 0.0, 1.0, 1.0);
 }
-function register(noise, firstOctave, firstAmplitude, ...amplitudes) {
+function register$1(noise, firstOctave, firstAmplitude, ...amplitudes) {
     NOISES[noise] = new NoiseParameters(firstOctave, firstAmplitude, ...amplitudes);
 }
 registerNoises();
@@ -12955,8 +12955,8 @@ class SectionPos {
     static blockToSectionCoord(coord) {
         return coord >> 4;
     }
-    static sectionToBlockCoord(coord, coord2) {
-        return (coord << 4) + (coord2 ?? 0);
+    static sectionToBlockCoord(coord, offset) {
+        return (coord << 4) + (offset ?? 0);
     }
 }
 
@@ -13347,6 +13347,14 @@ class Aquifer {
     }
 }
 
+class WorldGenerationContext {
+    minY;
+    height;
+    constructor(chunkGenerator, heightAccessor) {
+        this.minY = Math.max(heightAccessor.getMinBuildHeight(), chunkGenerator.getMinY());
+        this.height = Math.min(heightAccessor.getHeight(), chunkGenerator.getGenDepth());
+    }
+}
 class SurfaceSystem {
     defaultBlock;
     seaLevel;
@@ -13361,6 +13369,16 @@ class SurfaceSystem {
         this.randomFactory = Algorithm_newInstance(algorithm, seed).forkPositional();
         this.surfaceNoise = Noises_instantiate(this.randomFactory, Noises.SURFACE);
         this.surfaceSecondaryNoise = Noises_instantiate(this.randomFactory, Noises.SURFACE_SECONDARY);
+    }
+    getOrCreateNoise(noise) {
+        return computeIfAbsent(this.noiseIntances, noise, () => {
+            return Noises_instantiate(this.randomFactory, noise);
+        });
+    }
+    getOrCreateRandomFactory(name) {
+        return computeIfAbsent(this.positionalRandoms, name, () => {
+            return this.randomFactory.fromHashOf(toResourceLocation(name)).forkPositional();
+        });
     }
 }
 
@@ -13447,66 +13465,6 @@ class ChunkPos {
         return new BlockPos(this.getMinBlockX(), 0, this.getMinBlockZ());
     }
 }
-// chunk access
-class LevelHeightAccessor {
-    getHeight() {
-        return 384;
-    }
-    getMinBuildHeight() {
-        return -64;
-    }
-    getMaxBuildHeight() {
-        return this.getMinBuildHeight() + this.getHeight();
-    }
-    getSectionsCount() {
-        return this.getMaxSection() - this.getMinSection();
-    }
-    getMinSection() {
-        return SectionPos.blockToSectionCoord(this.getMinBuildHeight());
-    }
-    getMaxSection() {
-        return SectionPos.blockToSectionCoord(this.getMaxBuildHeight() - 1) + 1;
-    }
-    isOutsideBuildHeight(y) {
-        if (typeof y === "number") {
-            return y < this.getMinBuildHeight() || y >= this.getMaxBuildHeight();
-        }
-        else {
-            const pos = y;
-            return this.isOutsideBuildHeight(pos.y);
-        }
-    }
-    getSectionIndex(coord) {
-        return this.getSectionIndexFromSectionY(SectionPos.blockToSectionCoord(coord));
-    }
-    getSectionIndexFromSectionY(y) {
-        return y - this.getMinSection();
-    }
-    getSectionYFromSectionIndex(sectionIndex) {
-        return sectionIndex + this.getMinSection();
-    }
-}
-class ChunkAccess {
-    chunkPos;
-    levelHeightAccessor;
-    constructor(chunkPos, levelHeightAccessor) {
-        this.chunkPos = chunkPos;
-        this.levelHeightAccessor = levelHeightAccessor;
-        //
-    }
-    fillBiomesFromNoise(resolver, sampler) {
-        throw new Error("TODO");
-    }
-    getPos() {
-        return this.chunkPos;
-    }
-    getMinBuildHeight() {
-        return this.levelHeightAccessor.getMinBuildHeight();
-    }
-    getMaxBuildHeight() {
-        return this.levelHeightAccessor.getMaxBuildHeight();
-    }
-}
 // generator
 class WorldGenRegion {
 }
@@ -13519,7 +13477,7 @@ class ChunkGenerator {
     getNoiseBiome(x, y, z) {
         return this.biomeSource.getNoiseBiome(x, y, z, this.climateSampler());
     }
-    createBiomes(chunk) {
+    createBiomes(blender, chunk) {
         chunk.fillBiomesFromNoise(this.biomeSource, this.climateSampler());
         return chunk;
     }
@@ -14081,6 +14039,21 @@ class MaterialRuleList {
         return null;
     }
 }
+class BelowZeroRetrogen {
+    static getBiomeResolver(resolver, chunkAccess) {
+        return resolver;
+    }
+}
+class Beardifier {
+    chunkAccess;
+    constructor(chunkAccess) {
+        this.chunkAccess = chunkAccess;
+        //
+    }
+    calculateNoise(x, y, z) {
+        return 0;
+    }
+}
 class NoiseBasedChunkGenerator extends ChunkGenerator {
     seed;
     settings;
@@ -14112,17 +14085,32 @@ class NoiseBasedChunkGenerator extends ChunkGenerator {
         };
         this.surfaceSystem = new SurfaceSystem(this.defaultBlock, seaLevel, seed, settings.randomSource);
     }
+    withSeed(seed) {
+        return new NoiseBasedChunkGenerator(this.biomeSource.withSeed(seed), seed, this.settings);
+    }
     climateSampler() {
         return this.sampler;
     }
-    doCreateBiomes(blender, chunkAccess) {
-        const noisechunk = chunkAccess.getOrCreateNoiseChunk(this.sampler, () => {
+    createBiomes(blender, chunkAccess) {
+        const noiseChunk = chunkAccess.getOrCreateNoiseChunk(this.sampler, () => {
             return new Beardifier(chunkAccess);
         }, this.settings, this.globalFluidPicker, blender);
-        const biomeresolver = BelowZeroRetrogen.getBiomeResolver(blender.getBiomeResolver(this.runtimeBiomeSource), chunkAccess);
-        chunkAccess.fillBiomesFromNoise(biomeresolver, (x, y, z) => {
-            return this.sampler.target(x, y, z, noisechunk.noiseData(x, z));
+        const biomeResolver = BelowZeroRetrogen.getBiomeResolver(blender.getBiomeResolver(this.biomeSource), chunkAccess);
+        chunkAccess.fillBiomesFromNoise(biomeResolver, {
+            sample: (x, y, z) => {
+                return this.sampler.target(x, y, z, noiseChunk.noiseData(x, z));
+            },
         });
+        return chunkAccess;
+    }
+    getGenDepth() {
+        return this.settings.noiseSettings.height;
+    }
+    getSeaLevel() {
+        return this.settings.seaLevel;
+    }
+    getMinY() {
+        return this.settings.noiseSettings.minY;
     }
 }
 
@@ -14664,6 +14652,9 @@ class MultiNoiseBiomeSource extends BiomeSource {
         super(parameters.map(e => e.second));
         this.parameters = parameters;
     }
+    withSeed(seed) {
+        return this;
+    }
     getNoiseBiome(x, y, z, sampler) {
         if (typeof x === "number") {
             if (y === undefined || z === undefined || !sampler) {
@@ -14774,18 +14765,243 @@ class BiomeManager {
     }
 }
 
+var HeightmapTypes;
+(function (HeightmapTypes) {
+    HeightmapTypes["WORLD_SURFACE_WG"] = "WORLD_SURFACE_WG";
+    HeightmapTypes["WORLD_SURFACE"] = "WORLD_SURFACE";
+    HeightmapTypes["OCEAN_FLOOR_WG"] = "OCEAN_FLOOR_WG";
+    HeightmapTypes["OCEAN_FLOOR"] = "OCEAN_FLOOR";
+    HeightmapTypes["MOTION_BLOCKING"] = "MOTION_BLOCKING";
+    HeightmapTypes["MOTION_BLOCKING_NO_LEAVES"] = "MOTION_BLOCKING_NO_LEAVES";
+})(HeightmapTypes || (HeightmapTypes = {}));
+const PASSTHROUGH_LOAD_TASK = (chunkStatus, level, chunkAccess) => chunkAccess;
+class ChunkStatus {
+    name;
+    range;
+    heightmapsAfter;
+    generationTask;
+    loadingTask;
+    parent;
+    index;
+    constructor(name, parent, range, heightmapsAfter, generationTask, loadingTask) {
+        this.name = name;
+        this.range = range;
+        this.heightmapsAfter = heightmapsAfter;
+        this.generationTask = generationTask;
+        this.loadingTask = loadingTask;
+        this.parent = parent == null ? this : parent;
+        this.index = parent == null ? 0 : parent.index + 1;
+    }
+    isOrAfter(otherStatus) {
+        return this.index >= otherStatus.index;
+    }
+}
+const PRE_FEATURES = [HeightmapTypes.OCEAN_FLOOR_WG, HeightmapTypes.WORLD_SURFACE_WG];
+const POST_FEATURES = [
+    HeightmapTypes.OCEAN_FLOOR,
+    HeightmapTypes.WORLD_SURFACE,
+    HeightmapTypes.MOTION_BLOCKING,
+    HeightmapTypes.MOTION_BLOCKING_NO_LEAVES,
+];
+const EMPTY = registerSimple("empty", null, -1, PRE_FEATURES, (chunkStatus, level, generator, converter, cache, chunkAccess) => chunkAccess);
+const STRUCTURE_STARTS = register("structure_starts", EMPTY, 0, PRE_FEATURES, (chunkStatus, level, generator, converter, cache, chunkAccess) => chunkAccess);
+const STRUCTURE_REFERENCES = registerSimple("structure_references", STRUCTURE_STARTS, 8, PRE_FEATURES, (chunkStatus, level, generator, converter, cache, chunkAccess) => chunkAccess);
+const BIOMES = register("biomes", STRUCTURE_REFERENCES, 8, PRE_FEATURES, (chunkStatus, level, generator, converter, cache, chunkAccess) => {
+    return generator.createBiomes(Blender.empty(), chunkAccess);
+});
+function registerSimple(name, chunkStatus, range, heightmapsAfter, generationTask) {
+    return register(name, chunkStatus, range, heightmapsAfter, generationTask);
+}
+function register(name, chunkStatus, range, heightmapsAfter, generationTask, loadingTask = PASSTHROUGH_LOAD_TASK) {
+    return new ChunkStatus(name, chunkStatus, range, heightmapsAfter, generationTask, loadingTask);
+}
+
+// chunk access
+class LevelHeightAccessor {
+    getHeight() {
+        return 384;
+    }
+    getMinBuildHeight() {
+        return -64;
+    }
+    getMaxBuildHeight() {
+        return this.getMinBuildHeight() + this.getHeight();
+    }
+    getSectionsCount() {
+        return this.getMaxSection() - this.getMinSection();
+    }
+    getMinSection() {
+        return SectionPos.blockToSectionCoord(this.getMinBuildHeight());
+    }
+    getMaxSection() {
+        return SectionPos.blockToSectionCoord(this.getMaxBuildHeight() - 1) + 1;
+    }
+    isOutsideBuildHeight(y) {
+        if (typeof y === "number") {
+            return y < this.getMinBuildHeight() || y >= this.getMaxBuildHeight();
+        }
+        else {
+            const pos = y;
+            return this.isOutsideBuildHeight(pos.y);
+        }
+    }
+    getSectionIndex(coord) {
+        return this.getSectionIndexFromSectionY(SectionPos.blockToSectionCoord(coord));
+    }
+    getSectionIndexFromSectionY(y) {
+        return y - this.getMinSection();
+    }
+    getSectionYFromSectionIndex(sectionIndex) {
+        return sectionIndex + this.getMinSection();
+    }
+}
+class LevelChunkSection {
+    static SECTION_WIDTH = 16;
+    static SECTION_HEIGHT = 16;
+    static SECTION_SIZE = 4096;
+    static BIOME_CONTAINER_BITS = 2;
+    static STATES_CONTAINER_BITS = 4;
+    static BIOME_CONTAINER_SIZE = 1 << LevelChunkSection.BIOME_CONTAINER_BITS;
+    static STATES_CONTAINER_SIZE = 1 << LevelChunkSection.STATES_CONTAINER_BITS;
+    bottomBlockY;
+    biomes;
+    states;
+    constructor(y) {
+        this.bottomBlockY = LevelChunkSection.getBottomBlockY(y);
+        const biomesSize = 1 << LevelChunkSection.BIOME_CONTAINER_BITS;
+        this.biomes = new Array(biomesSize * biomesSize * biomesSize);
+        this.biomes.fill(Biomes.PLAINS);
+        const statesSize = 1 << LevelChunkSection.STATES_CONTAINER_BITS;
+        this.states = new Array(statesSize * statesSize * statesSize);
+        this.states.fill(Blocks.AIR);
+    }
+    static getBottomBlockY(y) {
+        return y << 4;
+    }
+    static getBlockStateIndex(x, y, z) {
+        return (z * LevelChunkSection.STATES_CONTAINER_BITS * LevelChunkSection.STATES_CONTAINER_BITS +
+            y * LevelChunkSection.STATES_CONTAINER_BITS +
+            x);
+    }
+    static getBiomesIndex(x, y, z) {
+        return (z * LevelChunkSection.BIOME_CONTAINER_SIZE * LevelChunkSection.BIOME_CONTAINER_SIZE +
+            y * LevelChunkSection.BIOME_CONTAINER_SIZE +
+            x);
+    }
+    getBlockState(x, y, z) {
+        const index = LevelChunkSection.getBlockStateIndex(x, y, z);
+        return this.states[index];
+    }
+    setBlockState(x, y, z, block) {
+        const index = LevelChunkSection.getBlockStateIndex(x, y, z);
+        const prevBlock = this.states[index];
+        this.states[index] = block;
+        return prevBlock;
+    }
+    getNoiseBiome(x, y, z) {
+        const index = LevelChunkSection.getBiomesIndex(x, y, z);
+        return this.biomes[index];
+    }
+    fillBiomesFromNoise(resolver, sampler, offsetX, offsetZ) {
+        const offsetY = QuartPos.fromBlock(this.bottomBlockY);
+        for (let x = 0; x < 4; ++x) {
+            for (let y = 0; y < 4; ++y) {
+                for (let z = 0; z < 4; ++z) {
+                    const index = LevelChunkSection.getBiomesIndex(x, y, z);
+                    this.biomes[index] = resolver.getNoiseBiome(offsetX + x, offsetY + y, offsetZ + z, sampler);
+                }
+            }
+        }
+    }
+}
+class ChunkAccess extends LevelHeightAccessor {
+    chunkPos;
+    levelHeightAccessor;
+    sections;
+    noiseChunk;
+    constructor(chunkPos, levelHeightAccessor) {
+        super();
+        this.chunkPos = chunkPos;
+        this.levelHeightAccessor = levelHeightAccessor;
+        this.sections = new Array(levelHeightAccessor.getSectionsCount());
+        ChunkAccess.replaceMissingSections(levelHeightAccessor, this.sections);
+    }
+    static replaceMissingSections(heightAccessor, section) {
+        for (let i = 0; i < section.length; ++i) {
+            if (section[i] == null) {
+                section[i] = new LevelChunkSection(heightAccessor.getSectionYFromSectionIndex(i));
+            }
+        }
+    }
+    getNoiseBiome(x, y, z) {
+        const minY = QuartPos.fromBlock(this.getMinBuildHeight());
+        const maxY = minY + QuartPos.fromBlock(this.getHeight()) - 1;
+        const clampedY = clamp(y, minY, maxY);
+        const sectionIndex = this.getSectionIndex(QuartPos.toBlock(clampedY));
+        return this.sections[sectionIndex].getNoiseBiome(x & 3, clampedY & 3, z & 3);
+    }
+    fillBiomesFromNoise(resolver, sampler) {
+        const chunkpos = this.getPos();
+        const x = QuartPos.fromBlock(chunkpos.getMinBlockX());
+        const z = QuartPos.fromBlock(chunkpos.getMinBlockZ());
+        const heightAccessor = this.getHeightAccessorForGeneration();
+        for (let y = heightAccessor.getMinSection(); y < heightAccessor.getMaxSection(); ++y) {
+            const section = this.getSection(this.getSectionIndexFromSectionY(y));
+            section.fillBiomesFromNoise(resolver, sampler, x, z);
+        }
+    }
+    getSections() {
+        return this.sections;
+    }
+    getSection(sectionIndex) {
+        return this.getSections()[sectionIndex];
+    }
+    getPos() {
+        return this.chunkPos;
+    }
+    getMinBuildHeight() {
+        return this.levelHeightAccessor.getMinBuildHeight();
+    }
+    getMaxBuildHeight() {
+        return this.levelHeightAccessor.getMaxBuildHeight();
+    }
+    getHeight() {
+        return this.levelHeightAccessor.getHeight();
+    }
+    getHeightAccessorForGeneration() {
+        return this;
+    }
+    getOrCreateNoiseChunk(sampler, filler, settings, fluidPicker, blender) {
+        if (this.noiseChunk == null) {
+            this.noiseChunk = NoiseChunk.forChunk(this, sampler, filler, settings, fluidPicker, blender);
+        }
+        return this.noiseChunk;
+    }
+}
+class ProtoChunk extends ChunkAccess {
+    status = EMPTY;
+    getStatus() {
+        return this.status;
+    }
+}
+
 function same(n1, n2, e) {
     return Math.abs(n2 - n1) <= e;
 }
 function test() {
-    const seed = 0xdeadbeafdeadn;
+    const seed = toLong(hashCode("test"));
+    // get list of biomes
     const builder = new OverworldBiomeBuilder();
     const biomes = [];
     builder.addBiomes(biomes);
     const biomeSource = new MultiNoiseBiomeSource(biomes);
     const settings = NoiseGeneratorSettings.OVERWORLD;
-    const noiseBiomeSource = new NoiseBasedChunkGenerator(biomeSource, seed, settings);
-    const biomeMananager = new BiomeManager(noiseBiomeSource, seed);
+    const chunkGenerator = new NoiseBasedChunkGenerator(biomeSource, seed, settings);
+    const heightAccessor = new LevelHeightAccessor();
+    const chunkPos = new ChunkPos(7, 24);
+    const chunk = new ProtoChunk(chunkPos, heightAccessor);
+    chunkGenerator.createBiomes(Blender.empty(), chunk);
+    debugger;
     /*
     const noiseSettings = settings.noiseSettings
     const sampler = new NoiseSampler(noiseSettings, 0xdeadbeafdeadbeafn, settings.randomSource)

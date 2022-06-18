@@ -19,12 +19,13 @@ import { Aquifer, FluidPicker, FluidStatus } from "./aquifer"
 import { Supplier } from "./consumer"
 import { BlockPos, SectionPos } from "./pos"
 import { SurfaceSystem } from "./surface-system"
+import { ChunkAccess } from "./chunks"
 
 export class ChunkPos {
     readonly x: number
     readonly z: number
 
-    constructor(x: number, y: number)
+    constructor(x: number, z: number)
     constructor(pos: BlockPos)
     constructor(l: bigint)
     constructor(x: number | BlockPos | bigint, z?: number) {
@@ -129,82 +130,6 @@ export class ChunkPos {
     }
 }
 
-// chunk access
-
-export class LevelHeightAccessor {
-    getHeight(): number {
-        return 384
-    }
-
-    getMinBuildHeight(): number {
-        return -64
-    }
-
-    getMaxBuildHeight(): number {
-        return this.getMinBuildHeight() + this.getHeight()
-    }
-
-    getSectionsCount(): number {
-        return this.getMaxSection() - this.getMinSection()
-    }
-
-    getMinSection(): number {
-        return SectionPos.blockToSectionCoord(this.getMinBuildHeight())
-    }
-
-    getMaxSection(): number {
-        return SectionPos.blockToSectionCoord(this.getMaxBuildHeight() - 1) + 1
-    }
-
-    isOutsideBuildHeight(y: number): boolean
-    isOutsideBuildHeight(pos: BlockPos): boolean
-    isOutsideBuildHeight(y: number | BlockPos): boolean {
-        if (typeof y === "number") {
-            return y < this.getMinBuildHeight() || y >= this.getMaxBuildHeight()
-        } else {
-            const pos = y
-            return this.isOutsideBuildHeight(pos.y)
-        }
-    }
-
-    getSectionIndex(coord: number): number {
-        return this.getSectionIndexFromSectionY(SectionPos.blockToSectionCoord(coord))
-    }
-
-    getSectionIndexFromSectionY(y: number): number {
-        return y - this.getMinSection()
-    }
-
-    getSectionYFromSectionIndex(sectionIndex: number): number {
-        return sectionIndex + this.getMinSection()
-    }
-}
-
-export class ChunkAccess {
-    constructor(
-        readonly chunkPos: ChunkPos,
-        private readonly levelHeightAccessor: LevelHeightAccessor
-    ) {
-        //
-    }
-
-    public fillBiomesFromNoise(resolver: BiomeResolver, sampler: Climate.Sampler): void {
-        throw new Error("TODO")
-    }
-
-    public getPos(): ChunkPos {
-        return this.chunkPos
-    }
-
-    getMinBuildHeight(): number {
-        return this.levelHeightAccessor.getMinBuildHeight()
-    }
-
-    getMaxBuildHeight(): number {
-        return this.levelHeightAccessor.getMaxBuildHeight()
-    }
-}
-
 // generator
 
 class WorldGenRegion {}
@@ -214,7 +139,7 @@ export interface NoiseBiomeSource {
 }
 
 export abstract class ChunkGenerator implements NoiseBiomeSource {
-    constructor(private readonly biomeSource: BiomeSource) {
+    constructor(readonly biomeSource: BiomeSource) {
         //
     }
 
@@ -228,10 +153,13 @@ export abstract class ChunkGenerator implements NoiseBiomeSource {
 
     public abstract withSeed(seed: bigint): ChunkGenerator
 
-    public createBiomes(chunk: ChunkAccess): ChunkAccess {
+    public createBiomes(blender: Blender, chunk: ChunkAccess): ChunkAccess {
         chunk.fillBiomesFromNoise(this.biomeSource, this.climateSampler())
         return chunk
     }
+
+    abstract getMinY(): number
+    abstract getGenDepth(): number
 }
 
 export class NoiseSamplingSettings {
@@ -697,7 +625,7 @@ export class NoiseChunk {
 export type InterpolatableNoise = (chunk: NoiseChunk) => Sampler
 
 // always empty
-class Blender {
+export class Blender {
     private static EMPTY = new Blender()
 
     public blendOffsetAndFactor(x: number, y: number, terrainInfo: TerrainInfo): TerrainInfo {
@@ -1051,6 +979,22 @@ class MaterialRuleList implements WorldGenMaterialRule {
     }
 }
 
+class BelowZeroRetrogen {
+    static getBiomeResolver(resolver: BiomeResolver, chunkAccess: ChunkAccess): BiomeResolver {
+        return resolver
+    }
+}
+
+class Beardifier {
+    constructor(private readonly chunkAccess: ChunkAccess) {
+        //
+    }
+
+    calculateNoise(x: number, y: number, z: number): number {
+        return 0
+    }
+}
+
 export class NoiseBasedChunkGenerator extends ChunkGenerator {
     private readonly defaultBlock: Blocks
     private readonly sampler: NoiseSampler
@@ -1094,12 +1038,16 @@ export class NoiseBasedChunkGenerator extends ChunkGenerator {
         )
     }
 
+    withSeed(seed: bigint): ChunkGenerator {
+        return new NoiseBasedChunkGenerator(this.biomeSource.withSeed(seed), seed, this.settings)
+    }
+
     climateSampler(): Climate.Sampler {
         return this.sampler
     }
 
-    private doCreateBiomes(blender: Blender, chunkAccess: ChunkAccess) {
-        const noisechunk = chunkAccess.getOrCreateNoiseChunk(
+    createBiomes(blender: Blender, chunkAccess: ChunkAccess): ChunkAccess {
+        const noiseChunk = chunkAccess.getOrCreateNoiseChunk(
             this.sampler,
             () => {
                 return new Beardifier(chunkAccess)
@@ -1108,12 +1056,28 @@ export class NoiseBasedChunkGenerator extends ChunkGenerator {
             this.globalFluidPicker,
             blender
         )
-        const biomeresolver = BelowZeroRetrogen.getBiomeResolver(
-            blender.getBiomeResolver(this.runtimeBiomeSource),
+        const biomeResolver = BelowZeroRetrogen.getBiomeResolver(
+            blender.getBiomeResolver(this.biomeSource),
             chunkAccess
         )
-        chunkAccess.fillBiomesFromNoise(biomeresolver, (x, y, z) => {
-            return this.sampler.target(x, y, z, noisechunk.noiseData(x, z))
+        chunkAccess.fillBiomesFromNoise(biomeResolver, {
+            sample: (x: number, y: number, z: number): TargetPoint => {
+                return this.sampler.target(x, y, z, noiseChunk.noiseData(x, z))
+            },
         })
+
+        return chunkAccess
+    }
+
+    getGenDepth(): number {
+        return this.settings.noiseSettings.height
+    }
+
+    getSeaLevel(): number {
+        return this.settings.seaLevel
+    }
+
+    getMinY(): number {
+        return this.settings.noiseSettings.minY
     }
 }

@@ -49,7 +49,7 @@ export abstract class SectionPos {
         return coord >> 4
     }
 
-    public static sectionToBlockCoord(coord: number, coord2?: number): number {
-        return (coord << 4) + (coord2 ?? 0)
+    public static sectionToBlockCoord(coord: number, offset?: number): number {
+        return (coord << 4) + (offset ?? 0)
     }
 }

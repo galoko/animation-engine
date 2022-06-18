@@ -1,36 +1,49 @@
 import { BiomeManager, MultiNoiseBiomeSource } from "./biome-source"
 import {
+    Blender,
     ChunkGenerator,
+    ChunkPos,
     NoiseBasedChunkGenerator,
     NoiseGeneratorSettings,
     NoiseSampler,
 } from "./chunk-generator"
-import { clamp } from "./mth"
+import { clamp, toLong } from "./mth"
 import { IntStream } from "./noise/perlin-noise"
 import { PerlinSimplexNoise } from "./noise/perlin-simplex-noise"
 import { OverworldBiomeBuilder } from "./overworld-biome-builder"
-import { WorldgenRandom, XoroshiroRandomSource } from "./random"
+import { hashCode, WorldgenRandom, XoroshiroRandomSource } from "./random"
 import * as Climate from "./climate"
 import { Pair } from "./consumer"
 import { Biomes } from "./biomes"
 import { BlockPos } from "./pos"
 import { BIOME_TO_COLOR } from "../../managers/map-loader"
+import { ServerLevel } from "./level"
+import { LevelHeightAccessor, ProtoChunk } from "./chunks"
 
 function same(n1, n2, e) {
     return Math.abs(n2 - n1) <= e
 }
 
 export function test() {
-    const seed = 0xdeadbeafdeadn
+    const seed = toLong(hashCode("test"))
 
+    // get list of biomes
     const builder = new OverworldBiomeBuilder()
     const biomes = [] as Pair<Climate.ParameterPoint, Biomes>[]
     builder.addBiomes(biomes)
 
     const biomeSource = new MultiNoiseBiomeSource(biomes)
     const settings = NoiseGeneratorSettings.OVERWORLD
-    const noiseBiomeSource = new NoiseBasedChunkGenerator(biomeSource, seed, settings)
-    const biomeMananager = new BiomeManager(noiseBiomeSource, seed)
+    const chunkGenerator = new NoiseBasedChunkGenerator(biomeSource, seed, settings)
+
+    const heightAccessor = new LevelHeightAccessor()
+
+    const chunkPos = new ChunkPos(7, 24)
+    const chunk = new ProtoChunk(chunkPos, heightAccessor)
+
+    chunkGenerator.createBiomes(Blender.empty(), chunk)
+
+    debugger
 
     /*
     const noiseSettings = settings.noiseSettings

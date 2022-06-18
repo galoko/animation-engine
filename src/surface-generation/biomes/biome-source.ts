@@ -20,11 +20,17 @@ export abstract class BiomeSource implements BiomeResolver {
     }
 
     abstract getNoiseBiome(x: number, y: number, z: number, sampler: Climate.Sampler): Biomes
+
+    abstract withSeed(seed: bigint): BiomeSource
 }
 
 export class MultiNoiseBiomeSource extends BiomeSource {
     constructor(private readonly parameters: Pair<ParameterPoint, Biomes>[]) {
         super(parameters.map(e => e.second))
+    }
+
+    withSeed(seed: bigint): BiomeSource {
+        return this
     }
 
     getNoiseBiome(x: number, y: number, z: number, sampler: Climate.Sampler): Biomes

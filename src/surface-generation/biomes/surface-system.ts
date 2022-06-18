@@ -8,6 +8,19 @@ import {
 import { Noises_instantiate, Noises } from "./noise-data"
 import { NormalNoise } from "./noise/normal-noise"
 import * as Mth from "./mth"
+import { BiomeManager } from "./biome-source"
+import { LevelHeightAccessor } from "./chunks"
+import { ChunkGenerator } from "./chunk-generator"
+
+class WorldGenerationContext {
+    readonly minY: number
+    readonly height: number
+
+    constructor(chunkGenerator: ChunkGenerator, heightAccessor: LevelHeightAccessor) {
+        this.minY = Math.max(heightAccessor.getMinBuildHeight(), chunkGenerator.getMinY())
+        this.height = Math.min(heightAccessor.getHeight(), chunkGenerator.getGenDepth())
+    }
+}
 
 export class SurfaceSystem {
     private readonly noiseIntances = new Map<Noises, NormalNoise>()
@@ -31,20 +44,20 @@ export class SurfaceSystem {
         )
     }
 
-    /*
     protected getOrCreateNoise(noise: Noises): NormalNoise {
         return Mth.computeIfAbsent(this.noiseIntances, noise, () => {
-           return Noises_instantiate(this.randomFactory, noise);
-        });
-     }
-  
-     protected  getOrCreateRandomFactory(name: string): PositionalRandomFactory {
+            return Noises_instantiate(this.randomFactory, noise)
+        })
+    }
+
+    protected getOrCreateRandomFactory(name: string): PositionalRandomFactory {
         return Mth.computeIfAbsent(this.positionalRandoms, name, () => {
-           return this.randomFactory.fromHashOf(toResourceLocation(name)).forkPositional();
-        });
-     }
-  
-     public  buildSurface( p_189945_: BiomeManager,  p_189947_: boolean,  generationContext: WorldGenerationContext,   chunkAccess: ChunkAccess,  noiseChunk: NoiseChunk,  p_189951_: RuleSource): void {
+            return this.randomFactory.fromHashOf(toResourceLocation(name)).forkPositional()
+        })
+    }
+
+    /*
+     public  buildSurface( biomeManager: BiomeManager,  useLegacyRandomSource: boolean,  generationContext: WorldGenerationContext,   chunkAccess: ChunkAccess,  noiseChunk: NoiseChunk,  p_189951_: RuleSource): void {
         const blockpos$mutableblockpos = new BlockPos.MutableBlockPos();
         const chunkpos = chunkAccess.getPos();
         const startX = chunkpos.getMinBlockX();
