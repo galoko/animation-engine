@@ -1,9 +1,8 @@
 import { BiomeResolver, BiomeSource } from "./biome-source"
 import { Biomes } from "./biomes"
 import { Blocks } from "./blocks"
-import { TargetPoint } from "./climate"
-import * as Climate from "./climate"
-import { RuleSource, SurfaceRuleData } from "./surface-rules"
+import { Climate } from "./climate"
+import { SurfaceRules } from "./surface-rules"
 import { TerrainShaper } from "./terrain-shaper"
 import {
     Algorithm,
@@ -14,12 +13,13 @@ import {
 import { BlendedNoise, NoiseFiller } from "./noise/blended-noise"
 import { NoiseParameters, NormalNoise } from "./noise/normal-noise"
 import { Noises_instantiate, Noises } from "./noise-data"
-import * as Mth from "./mth"
+import { Mth } from "./mth"
 import { Aquifer, FluidPicker, FluidStatus } from "./aquifer"
 import { Supplier } from "./consumer"
 import { BlockPos, SectionPos } from "./pos"
 import { SurfaceSystem } from "./surface-system"
 import { ChunkAccess } from "./chunks"
+import { Heightmap } from "./heightmap"
 
 export class ChunkPos {
     readonly x: number
@@ -143,20 +143,22 @@ export abstract class ChunkGenerator implements NoiseBiomeSource {
         //
     }
 
-    public abstract climateSampler(): Climate.Sampler
+    abstract climateSampler(): Climate.Sampler
 
     getNoiseBiome(x: number, y: number, z: number): Biomes {
         return this.biomeSource.getNoiseBiome(x, y, z, this.climateSampler())
     }
 
-    public abstract buildSurface(region: WorldGenRegion, access: ChunkAccess): void
+    abstract buildSurface(region: WorldGenRegion, access: ChunkAccess): void
 
-    public abstract withSeed(seed: bigint): ChunkGenerator
+    abstract withSeed(seed: bigint): ChunkGenerator
 
-    public createBiomes(blender: Blender, chunk: ChunkAccess): ChunkAccess {
+    createBiomes(blender: Blender, chunk: ChunkAccess): ChunkAccess {
         chunk.fillBiomesFromNoise(this.biomeSource, this.climateSampler())
         return chunk
     }
+
+    abstract fillFromNoise(blender: Blender, chunkAccess: ChunkAccess): ChunkAccess
 
     abstract getMinY(): number
     abstract getGenDepth(): number
@@ -254,7 +256,7 @@ export class NoiseGeneratorSettings {
         readonly noiseSettings: NoiseSettings,
         readonly defaultBlock: Blocks,
         readonly defaultFluid: Blocks,
-        readonly surfaceRule: RuleSource,
+        readonly surfaceRule: SurfaceRules.RuleSource,
         readonly seaLevel: number,
         readonly disableMobGeneration: boolean,
         readonly aquifersEnabled: boolean,
@@ -281,7 +283,7 @@ export class NoiseGeneratorSettings {
             ),
             Blocks.STONE,
             Blocks.WATER,
-            SurfaceRuleData.overworld(),
+            SurfaceRules.SurfaceRuleData.overworld(),
             63,
             false,
             true,
@@ -900,11 +902,11 @@ export class NoiseSampler implements Climate.Sampler {
         )
     }
 
-    sample(x: number, y: number, z: number): TargetPoint {
+    sample(x: number, y: number, z: number): Climate.TargetPoint {
         return this.target(x, y, z, this.noiseData(x, z, Blender.empty()))
     }
 
-    target(x: number, y: number, z: number, flatData: FlatNoiseData): TargetPoint {
+    target(x: number, y: number, z: number, flatData: FlatNoiseData): Climate.TargetPoint {
         const shiftedX = flatData.shiftedX
         const shiftedY = y + this.getOffset(y, z, x)
         const shiftedZ = flatData.shiftedZ
@@ -1049,9 +1051,7 @@ export class NoiseBasedChunkGenerator extends ChunkGenerator {
     createBiomes(blender: Blender, chunkAccess: ChunkAccess): ChunkAccess {
         const noiseChunk = chunkAccess.getOrCreateNoiseChunk(
             this.sampler,
-            () => {
-                return new Beardifier(chunkAccess)
-            },
+            () => new Beardifier(chunkAccess),
             this.settings,
             this.globalFluidPicker,
             blender
@@ -1061,10 +1061,172 @@ export class NoiseBasedChunkGenerator extends ChunkGenerator {
             chunkAccess
         )
         chunkAccess.fillBiomesFromNoise(biomeResolver, {
-            sample: (x: number, y: number, z: number): TargetPoint => {
+            sample: (x: number, y: number, z: number): Climate.TargetPoint => {
                 return this.sampler.target(x, y, z, noiseChunk.noiseData(x, z))
             },
         })
+
+        return chunkAccess
+    }
+
+    fillFromNoise(blender: Blender, chunkAccess: ChunkAccess): ChunkAccess {
+        const noiseSettings = this.settings.noiseSettings
+        const heightAccessor = chunkAccess.getHeightAccessorForGeneration()
+
+        const minY = Math.max(noiseSettings.minY, heightAccessor.getMinBuildHeight())
+        const maxY = Math.min(
+            noiseSettings.minY + noiseSettings.height,
+            heightAccessor.getMaxBuildHeight()
+        )
+        const minCellY = Mth.intFloorDiv(minY, noiseSettings.cellHeight)
+        const cellCount = Mth.intFloorDiv(maxY - minY, noiseSettings.cellHeight)
+        if (cellCount <= 0) {
+            return chunkAccess
+        } else {
+            /*
+            const sectionMaxY = chunkAccess.getSectionIndex(
+                cellCount * noisesettings.cellHeight - 1 + minY
+            )
+            const sectionMinY = chunkAccess.getSectionIndex(minY)
+            const set = new Set<LevelChunkSection>()
+
+            for (let sectionY = sectionMaxY; sectionY >= sectionMinY; --sectionY) {
+                const levelchunksection = chunkAccess.getSection(sectionY)
+                set.add(levelchunksection)
+            }
+            */
+
+            return this.doFill(blender, chunkAccess, minCellY, cellCount)
+        }
+    }
+
+    private doFill(
+        blender: Blender,
+        chunkAccess: ChunkAccess,
+        minCellY: number,
+        cellCount: number
+    ): ChunkAccess {
+        const settings = this.settings
+        const noiseChunk = chunkAccess.getOrCreateNoiseChunk(
+            this.sampler,
+            () => new Beardifier(chunkAccess),
+            settings,
+            this.globalFluidPicker,
+            blender
+        )
+        const oceanFloorHeightMap = chunkAccess.getOrCreateHeightmapUnprimed(
+            Heightmap.Types.OCEAN_FLOOR_WG
+        )
+        const worldSurfaceHeightMap = chunkAccess.getOrCreateHeightmapUnprimed(
+            Heightmap.Types.WORLD_SURFACE_WG
+        )
+        const chunkpos = chunkAccess.getPos()
+        const x = chunkpos.getMinBlockX()
+        const z = chunkpos.getMinBlockZ()
+        // const aquifer = noisechunk.aquifer
+        noiseChunk.initializeForFirstCellX()
+        // const blockpos$mutableblockpos = new MutableBlockPos()
+        const noisesettings = settings.noiseSettings
+        const cellWidth = noisesettings.cellWidth
+        const cellHeight = noisesettings.cellHeight
+        const cellCountX = 16 / cellWidth
+        const cellCountZ = 16 / cellWidth
+
+        for (let cellX = 0; cellX < cellCountX; ++cellX) {
+            noiseChunk.advanceCellX(cellX)
+
+            for (let cellZ = 0; cellZ < cellCountZ; ++cellZ) {
+                let levelchunksection = chunkAccess.getSection(chunkAccess.getSectionsCount() - 1)
+
+                for (let cellY = cellCount - 1; cellY >= 0; --cellY) {
+                    noiseChunk.selectCellYZ(cellY, cellZ)
+
+                    for (let yOffset = cellHeight - 1; yOffset >= 0; --yOffset) {
+                        const currentY = (minCellY + cellY) * cellHeight + yOffset
+                        const yForSection = currentY & 15
+                        const sectionIndex = chunkAccess.getSectionIndex(currentY)
+                        if (
+                            chunkAccess.getSectionIndex(levelchunksection.bottomBlockY) !=
+                            sectionIndex
+                        ) {
+                            levelchunksection = chunkAccess.getSection(sectionIndex)
+                        }
+
+                        const yt = yOffset / cellHeight
+                        noiseChunk.updateForY(yt)
+
+                        for (let xOffset = 0; xOffset < cellWidth; ++xOffset) {
+                            const currentX = x + cellX * cellWidth + xOffset
+                            const xForSection = currentX & 15
+                            const xt = xOffset / cellWidth
+                            noiseChunk.updateForX(xt)
+
+                            for (let zOffset = 0; zOffset < cellWidth; ++zOffset) {
+                                const currentZ = z + cellZ * cellWidth + zOffset
+                                const zForSection = currentZ & 15
+                                const zt = zOffset / cellWidth
+                                noiseChunk.updateForZ(zt)
+                                let blockstate = this.materialRule.apply(
+                                    noiseChunk,
+                                    currentX,
+                                    currentY,
+                                    currentZ
+                                )
+                                if (blockstate == null) {
+                                    blockstate = this.defaultBlock
+                                }
+
+                                if (blockstate != Blocks.AIR) {
+                                    /*
+                                    if (
+                                        blockstate.getLightEmission() != 0 &&
+                                        chunkAccess instanceof ProtoChunk
+                                    ) {
+                                        blockpos$mutableblockpos.set(k3, k2, j4)
+                                        chunkAccess.addLight(blockpos$mutableblockpos)
+                                    }
+                                    */
+
+                                    levelchunksection.setBlockState(
+                                        xForSection,
+                                        yForSection,
+                                        zForSection,
+                                        blockstate,
+                                        false
+                                    )
+                                    oceanFloorHeightMap.update(
+                                        xForSection,
+                                        currentY,
+                                        zForSection,
+                                        blockstate
+                                    )
+                                    worldSurfaceHeightMap.update(
+                                        xForSection,
+                                        currentY,
+                                        zForSection,
+                                        blockstate
+                                    )
+
+                                    /*
+                                    if (
+                                        aquifer.shouldScheduleFluidUpdate() &&
+                                        !blockstate.getFluidState().isEmpty()
+                                    ) {
+                                        blockpos$mutableblockpos.set(k3, k2, j4)
+                                        chunkAccess.markPosForPostprocessing(
+                                            blockpos$mutableblockpos
+                                        )
+                                    }
+                                    */
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            noiseChunk.swapSlices()
+        }
 
         return chunkAccess
     }

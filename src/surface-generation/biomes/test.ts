@@ -7,12 +7,12 @@ import {
     NoiseGeneratorSettings,
     NoiseSampler,
 } from "./chunk-generator"
-import { clamp, toLong } from "./mth"
+import { Mth } from "./mth"
 import { IntStream } from "./noise/perlin-noise"
 import { PerlinSimplexNoise } from "./noise/perlin-simplex-noise"
 import { OverworldBiomeBuilder } from "./overworld-biome-builder"
 import { hashCode, WorldgenRandom, XoroshiroRandomSource } from "./random"
-import * as Climate from "./climate"
+import { Climate } from "./climate"
 import { Pair } from "./consumer"
 import { Biomes } from "./biomes"
 import { BlockPos } from "./pos"

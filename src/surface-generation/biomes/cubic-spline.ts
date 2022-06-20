@@ -1,4 +1,4 @@
-import * as Mth from "./mth"
+import { Mth } from "./mth"
 
 export type ToFloatFunction<C> = (p: C) => number
 

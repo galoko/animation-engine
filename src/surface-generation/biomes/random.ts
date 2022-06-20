@@ -1,14 +1,4 @@
-import * as Mth from "./mth"
-import {
-    unsignedShift64,
-    clamp64,
-    rotateLeft64,
-    toUnsignedLong,
-    toLong,
-    toInt,
-    remainderUnsigned32,
-    fromBytes64,
-} from "./mth"
+import { Mth } from "./mth"
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import md5 from "md5"
@@ -50,19 +40,19 @@ export class RandomSupport {
     private static SEED_UNIQUIFIER = 8682522807148012n
 
     public static mixStafford13(seed: bigint): bigint {
-        seed = clamp64((seed ^ unsignedShift64(seed, 30n)) * -4658895280553007687n)
-        seed = clamp64((seed ^ unsignedShift64(seed, 27n)) * -7723592293110705685n)
-        return clamp64(seed ^ unsignedShift64(seed, 31n))
+        seed = Mth.clamp64((seed ^ Mth.unsignedShift64(seed, 30n)) * -4658895280553007687n)
+        seed = Mth.clamp64((seed ^ Mth.unsignedShift64(seed, 27n)) * -7723592293110705685n)
+        return Mth.clamp64(seed ^ Mth.unsignedShift64(seed, 31n))
     }
 
     public static upgradeSeedTo128bit(seed: bigint): Seed128bit {
         const lo = seed ^ RandomSupport.SILVER_RATIO_64
-        const hi = clamp64(lo + RandomSupport.GOLDEN_RATIO_64)
+        const hi = Mth.clamp64(lo + RandomSupport.GOLDEN_RATIO_64)
         return new Seed128bit(RandomSupport.mixStafford13(lo), RandomSupport.mixStafford13(hi))
     }
 
     public static seedUniquifier(): bigint {
-        RandomSupport.SEED_UNIQUIFIER = clamp64(
+        RandomSupport.SEED_UNIQUIFIER = Mth.clamp64(
             RandomSupport.SEED_UNIQUIFIER * 1181783497276652981n
         )
 
@@ -112,10 +102,10 @@ export class Xoroshiro128PlusPlus {
     public nextLong(): bigint {
         const i = this.seedLo
         let j = this.seedHi
-        const k = clamp64(rotateLeft64(clamp64(i + j), 17n) + i)
+        const k = Mth.clamp64(Mth.rotateLeft64(Mth.clamp64(i + j), 17n) + i)
         j ^= i
-        this.seedLo = rotateLeft64(i, 49n) ^ j ^ clamp64(j << 21n)
-        this.seedHi = rotateLeft64(j, 28n)
+        this.seedLo = Mth.rotateLeft64(i, 49n) ^ j ^ Mth.clamp64(j << 21n)
+        this.seedHi = Mth.rotateLeft64(j, 28n)
         return k
     }
 }
@@ -194,22 +184,22 @@ export class XoroshiroRandomSource implements RandomSource {
 
     public nextInt(bound?: number): number {
         if (bound !== undefined) {
-            let i = toUnsignedLong(this.nextInt())
-            let j = clamp64(i * toLong(bound))
+            let i = Mth.toUnsignedLong(this.nextInt())
+            let j = Mth.clamp64(i * Mth.toLong(bound))
             let k = j & 4294967295n
-            if (k < toLong(bound)) {
+            if (k < Mth.toLong(bound)) {
                 for (
-                    let l = remainderUnsigned32(~bound + 1, bound);
-                    k < toLong(l);
+                    let l = Mth.remainderUnsigned32(~bound + 1, bound);
+                    k < Mth.toLong(l);
                     k = j & 4294967295n
                 ) {
-                    i = toUnsignedLong(this.nextInt())
-                    j = i * toLong(bound)
+                    i = Mth.toUnsignedLong(this.nextInt())
+                    j = i * Mth.toLong(bound)
                 }
             }
 
             const i1 = j >> 32n
-            return toInt(i1)
+            return Mth.toInt(i1)
         } else {
             return Number(BigInt.asIntN(32, this.randomNumberGenerator.nextLong()))
         }
@@ -242,7 +232,7 @@ export class XoroshiroRandomSource implements RandomSource {
     }
 
     private nextBits(bits: number): bigint {
-        return unsignedShift64(this.randomNumberGenerator.nextLong(), toLong(64 - bits))
+        return Mth.unsignedShift64(this.randomNumberGenerator.nextLong(), Mth.toLong(64 - bits))
     }
 }
 
@@ -262,7 +252,7 @@ class XoroshiroPositionalRandomFactory extends PositionalRandomFactory {
             encoding: "utf8",
             asBytes: true,
         })
-        const i = fromBytes64(
+        const i = Mth.fromBytes64(
             abyte[0],
             abyte[1],
             abyte[2],
@@ -272,7 +262,7 @@ class XoroshiroPositionalRandomFactory extends PositionalRandomFactory {
             abyte[6],
             abyte[7]
         )
-        const j = fromBytes64(
+        const j = Mth.fromBytes64(
             abyte[8],
             abyte[9],
             abyte[10],
@@ -302,7 +292,7 @@ export abstract class BitRandomSource implements RandomSource {
     nextInt(bound?: number): number {
         if (bound !== undefined) {
             if ((bound & (bound - 1)) == 0) {
-                return toInt((toLong(bound) * toLong(this.next(31))) >> 31n)
+                return Mth.toInt((Mth.toLong(bound) * Mth.toLong(this.next(31))) >> 31n)
             } else {
                 let i, clapmedI
                 do {
@@ -320,8 +310,8 @@ export abstract class BitRandomSource implements RandomSource {
     nextLong(): bigint {
         const i = this.next(32)
         const j = this.next(32)
-        const k = toLong(i) << 32n
-        return clamp64(k + toLong(j))
+        const k = Mth.toLong(i) << 32n
+        return Mth.clamp64(k + Mth.toLong(j))
     }
 
     nextBoolean(): boolean {
@@ -335,7 +325,7 @@ export abstract class BitRandomSource implements RandomSource {
     nextDouble(): number {
         const i = this.next(26)
         const j = this.next(27)
-        const k = clamp64((toLong(i) << 27n) + toLong(j))
+        const k = Mth.clamp64((Mth.toLong(i) << 27n) + Mth.toLong(j))
         return Number(k) * BitRandomSource.DOUBLE_MULTIPLIER
     }
 }
@@ -367,11 +357,11 @@ export class LegacyRandomSource extends BitRandomSource {
     }
 
     public next(bits: number): number {
-        this.seed = clamp64(
+        this.seed = Mth.clamp64(
             (this.seed * LegacyRandomSource.MULTIPLIER + LegacyRandomSource.INCREMENT) &
                 LegacyRandomSource.MODULUS_MASK
         )
-        return toInt(this.seed >> (LegacyRandomSource.MODULUS_BITS - toLong(bits)))
+        return Mth.toInt(this.seed >> (LegacyRandomSource.MODULUS_BITS - Mth.toLong(bits)))
     }
 
     public nextGaussian(): number {
@@ -398,7 +388,7 @@ class LegacyPositionalRandomFactory extends PositionalRandomFactory {
 
     public fromHashOf(s: string): RandomSource {
         const i = hashCode(s)
-        return new LegacyRandomSource(toLong(i) ^ this.seed)
+        return new LegacyRandomSource(Mth.toLong(i) ^ this.seed)
     }
 }
 
@@ -434,7 +424,7 @@ class Random {
         const oldseed = this.seed
         const nextseed = (oldseed * Random.multiplier + Random.addend) & Random.mask
         this.seed = nextseed
-        return toInt(unsignedShift64(nextseed, toLong(48 - bits)))
+        return Mth.toInt(Mth.unsignedShift64(nextseed, Mth.toLong(48 - bits)))
     }
 
     nextInt(bound?: number): number {
@@ -445,7 +435,7 @@ class Random {
             const m = bound - 1
             if ((bound & m) == 0)
                 // i.e., bound is a power of 2
-                r = toInt((toLong(bound) * toLong(r)) >> 31n)
+                r = Mth.toInt((Mth.toLong(bound) * Mth.toLong(r)) >> 31n)
             else {
                 // reject over-represented candidates
                 for (let u = r; u - (r = u % bound) + m < 0; u = this.next(31));
@@ -456,7 +446,7 @@ class Random {
 
     nextLong(): bigint {
         // it's okay that the bottom word remains signed.
-        return (toLong(this.next(32)) << 32n) + toLong(this.next(32))
+        return (Mth.toLong(this.next(32)) << 32n) + Mth.toLong(this.next(32))
     }
 
     nextBoolean(): boolean {
@@ -468,7 +458,10 @@ class Random {
     }
 
     nextDouble(): number {
-        return Number((toLong(this.next(26)) << 27n) + toLong(this.next(27))) * Random.DOUBLE_UNIT
+        return (
+            Number((Mth.toLong(this.next(26)) << 27n) + Mth.toLong(this.next(27))) *
+            Random.DOUBLE_UNIT
+        )
     }
 
     nextGaussian(): number {
@@ -519,7 +512,9 @@ export class WorldgenRandom extends Random {
             const legacyrandomsource = randomsource
             return legacyrandomsource.next(bits)
         } else {
-            return toInt(unsignedShift64(this.randomSource.nextLong(), toLong(64 - bits)))
+            return Mth.toInt(
+                Mth.unsignedShift64(this.randomSource.nextLong(), Mth.toLong(64 - bits))
+            )
         }
     }
 
@@ -533,13 +528,16 @@ export class WorldgenRandom extends Random {
         this.setSeed(seed)
         const xSeed = this.nextLong() | 1n
         const ySeed = this.nextLong() | 1n
-        const finalSeed = (clamp64(toLong(x) * xSeed) + clamp64(toLong(y) * ySeed)) ^ seed
+        const finalSeed =
+            (Mth.clamp64(Mth.toLong(x) * xSeed) + Mth.clamp64(Mth.toLong(y) * ySeed)) ^ seed
         this.setSeed(finalSeed)
         return finalSeed
     }
 
     setFeatureSeed(seed: bigint, x: number, y: number): void {
-        const finalSeed = clamp64(seed + toLong(x) + toLong(toInt(10000n * toLong(y))))
+        const finalSeed = Mth.clamp64(
+            seed + Mth.toLong(x) + Mth.toLong(Mth.toInt(10000n * Mth.toLong(y)))
+        )
         this.setSeed(finalSeed)
     }
 
@@ -547,16 +545,17 @@ export class WorldgenRandom extends Random {
         this.setSeed(seed)
         const xSeed = this.nextLong()
         const ySeed = this.nextLong()
-        const finalSeed = clamp64(toLong(x) * xSeed) ^ clamp64(toLong(y) * ySeed) ^ seed
+        const finalSeed =
+            Mth.clamp64(Mth.toLong(x) * xSeed) ^ Mth.clamp64(Mth.toLong(y) * ySeed) ^ seed
         this.setSeed(finalSeed)
     }
 
     setLargeFeatureWithSalt(salt: bigint, x: number, y: number, z: number): void {
-        const finalSeed = clamp64(
-            clamp64(toLong(x) * 341873128712n) +
-                clamp64(toLong(y) * 132897987541n) +
+        const finalSeed = Mth.clamp64(
+            Mth.clamp64(Mth.toLong(x) * 341873128712n) +
+                Mth.clamp64(Mth.toLong(y) * 132897987541n) +
                 salt +
-                toLong(z)
+                Mth.toLong(z)
         )
         this.setSeed(finalSeed)
     }
@@ -564,10 +563,10 @@ export class WorldgenRandom extends Random {
     public static seedSlimeChunk(x: number, y: number, seed: bigint, salt: bigint): Random {
         return new Random(
             (seed +
-                toLong(toInt(toLong(x) * toLong(x) * 4987142n)) +
-                toLong(toInt(toLong(x) * 5947611n)) +
-                toLong(toInt(toLong(y) * toLong(y))) * 4392871n +
-                toLong(toInt(toLong(y) * 389711n))) ^
+                Mth.toLong(Mth.toInt(Mth.toLong(x) * Mth.toLong(x) * 4987142n)) +
+                Mth.toLong(Mth.toInt(Mth.toLong(x) * 5947611n)) +
+                Mth.toLong(Mth.toInt(Mth.toLong(y) * Mth.toLong(y))) * 4392871n +
+                Mth.toLong(Mth.toInt(Mth.toLong(y) * 389711n))) ^
                 salt
         )
     }
@@ -593,10 +592,10 @@ export class LinearCongruentialGenerator {
     private static readonly INCREMENT = 1442695040888963407n
 
     public static next(seed: bigint, n: bigint): bigint {
-        seed = clamp64(
+        seed = Mth.clamp64(
             seed * seed * LinearCongruentialGenerator.MULTIPLIER +
                 LinearCongruentialGenerator.INCREMENT
         )
-        return clamp64(seed + n)
+        return Mth.clamp64(seed + n)
     }
 }

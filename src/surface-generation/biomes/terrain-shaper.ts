@@ -1,5 +1,5 @@
 import { CubicSpline, ToFloatFunction } from "./cubic-spline"
-import * as Mth from "./mth"
+import { Mth } from "./mth"
 
 class Point {
     constructor(

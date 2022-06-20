@@ -1,5 +1,5 @@
 import { RandomSource } from "../random"
-import * as Mth from "../mth"
+import { Mth } from "../mth"
 
 export class SimplexNoise {
     static readonly GRADIENT = [

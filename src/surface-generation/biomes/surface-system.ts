@@ -7,10 +7,13 @@ import {
 } from "./random"
 import { Noises_instantiate, Noises } from "./noise-data"
 import { NormalNoise } from "./noise/normal-noise"
-import * as Mth from "./mth"
+import { Mth } from "./mth"
 import { BiomeManager } from "./biome-source"
-import { LevelHeightAccessor } from "./chunks"
-import { ChunkGenerator } from "./chunk-generator"
+import { ChunkAccess, LevelHeightAccessor } from "./chunks"
+import { ChunkGenerator, NoiseChunk } from "./chunk-generator"
+import { BlockPos, MutableBlockPos } from "./pos"
+import { SurfaceRules }  from "./surface-rules"
+import * as Heightmap from "./heightmap"
 
 class WorldGenerationContext {
     readonly minY: number
@@ -20,6 +23,11 @@ class WorldGenerationContext {
         this.minY = Math.max(heightAccessor.getMinBuildHeight(), chunkGenerator.getMinY())
         this.height = Math.min(heightAccessor.getHeight(), chunkGenerator.getGenDepth())
     }
+}
+
+interface BlockColumn {
+   getBlock( y: number): Blocks;
+   setBlock(y: number,  block: Blocks): void;
 }
 
 export class SurfaceSystem {
@@ -56,41 +64,37 @@ export class SurfaceSystem {
         })
     }
 
-    /*
-     public  buildSurface( biomeManager: BiomeManager,  useLegacyRandomSource: boolean,  generationContext: WorldGenerationContext,   chunkAccess: ChunkAccess,  noiseChunk: NoiseChunk,  p_189951_: RuleSource): void {
-        const blockpos$mutableblockpos = new BlockPos.MutableBlockPos();
+     public  buildSurface( biomeManager: BiomeManager,  useLegacyRandomSource: boolean,  generationContext: WorldGenerationContext,   chunkAccess: ChunkAccess,  noiseChunk: NoiseChunk,  surfaceRule: RuleSource): void {
+        const blockPos = new MutableBlockPos();
         const chunkpos = chunkAccess.getPos();
         const startX = chunkpos.getMinBlockX();
         const startZ = chunkpos.getMinBlockZ();
-        const blockcolumn = new BlockColumn() {
-           public BlockState getBlock(int y) {
-              return chunkAccess.getBlockState(blockpos$mutableblockpos.setY(y));
-           }
+        const blockcolumn = {
+             getBlock: (y: number) => chunkAccess.getBlockState(blockPos.setY(y)),
+             
   
-           public void setBlock(int y, BlockState blockState) {
-              LevelHeightAccessor levelheightaccessor = chunkAccess.getHeightAccessorForGeneration();
-              if (y >= levelheightaccessor.getMinBuildHeight() && y < levelheightaccessor.getMaxBuildHeight()) {
-                 chunkAccess.setBlockState(blockpos$mutableblockpos.setY(y), blockState, false);
+            setBlock: (y: number,  blockState: Blocks) => {
+              const heightAccessor = chunkAccess.getHeightAccessorForGeneration();
+              if (y >= heightAccessor.getMinBuildHeight() && y < heightAccessor.getMaxBuildHeight()) {
+                 chunkAccess.setBlockState(blockPos.setY(y), blockState, false);
+                 /*
                  if (!blockState.getFluidState().isEmpty()) {
-                    chunkAccess.markPosForPostprocessing(blockpos$mutableblockpos);
+                    chunkAccess.markPosForPostprocessing(blockPos);
                  }
+                 */
               }
   
            }
-  
-           public String toString() {
-              return "ChunkBlockColumn " + chunkpos;
-           }
         };
-        SurfaceRules.Context surfacerules$context = new SurfaceRules.Context(this, chunkAccess, noiseChunk, p_189945_::getBiome, biomeRegistry, generationContext);
-        SurfaceRules.SurfaceRule surfacerules$surfacerule = p_189951_.apply(surfacerules$context);
-        BlockPos.MutableBlockPos blockpos$mutableblockpos1 = new BlockPos.MutableBlockPos();
+        const surfaceContext = new SurfaceRules.Context(this, chunkAccess, noiseChunk, p_189945_::getBiome, biomeRegistry, generationContext);
+        const surfacerules$surfacerule = surfaceRule.apply(surfaceContext);
+        const blockpos$mutableblockpos1 = new MutableBlockPos();
   
-        for(int offsetX = 0; offsetX < 16; ++offsetX) {
-           for(int offsetZ = 0; offsetZ < 16; ++offsetZ) {
-              int x = startX + offsetX;
-              int z = startZ + offsetZ;
-              int initialY = chunkAccess.getHeight(Heightmap.Types.WORLD_SURFACE_WG, offsetX, offsetZ) + 1;
+        for(let offsetX = 0; offsetX < 16; ++offsetX) {
+           for(let offsetZ = 0; offsetZ < 16; ++offsetZ) {
+              const x = startX + offsetX;
+              const z = startZ + offsetZ;
+              const initialY = chunkAccess.getHeight(Heightmap.Types.WORLD_SURFACE_WG, offsetX, offsetZ) + 1;
               blockpos$mutableblockpos.setX(x).setZ(z);
               Biome biome = p_189945_.getBiome(blockpos$mutableblockpos1.set(x, p_189947_ ? 0 : initialY, z));
               ResourceKey<Biome> resourcekey = biomeRegistry.getResourceKey(biome).orElseThrow(() -> {
@@ -101,7 +105,7 @@ export class SurfaceSystem {
               }
   
               int maxY = chunkAccess.getHeight(Heightmap.Types.WORLD_SURFACE_WG, offsetX, offsetZ) + 1;
-              surfacerules$context.updateXZ(x, z);
+              surfaceContext.updateXZ(x, z);
               int startY = 0;
               int waterY = Integer.MIN_VALUE;
               int beforeStoneY = Integer.MAX_VALUE;
@@ -131,7 +135,7 @@ export class SurfaceSystem {
   
                     ++startY;
                     int countY = y - beforeStoneY + 1;
-                    surfacerules$context.updateY(startY, countY, waterY, x, y, z);
+                    surfaceContext.updateY(startY, countY, waterY, x, y, z);
                     if (blockstate == this.defaultBlock) {
                        BlockState blockstate2 = surfacerules$surfacerule.tryApply(x, y, z);
                        if (blockstate2 != null) {
@@ -142,7 +146,7 @@ export class SurfaceSystem {
               }
   
               if (resourcekey == Biomes.FROZEN_OCEAN || resourcekey == Biomes.DEEP_FROZEN_OCEAN) {
-                 this.frozenOceanExtension(surfacerules$context.getMinSurfaceLevel(), biome, blockcolumn, blockpos$mutableblockpos1, x, z, initialY);
+                 this.frozenOceanExtension(surfaceContext.getMinSurfaceLevel(), biome, blockcolumn, blockpos$mutableblockpos1, x, z, initialY);
               }
            }
         }
@@ -164,5 +168,4 @@ export class SurfaceSystem {
      private boolean isStone(BlockState p_189953_) {
         return !p_189953_.isAir() && p_189953_.getFluidState().isEmpty();
      }
-     */
 }

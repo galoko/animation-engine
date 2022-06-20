@@ -7,7 +7,7 @@ import { SimpleModelDef } from "../models/templates/simple-model-def"
 import { Services } from "./services"
 
 import { Biomes } from "../surface-generation/biomes/biomes"
-import * as Climate from "../surface-generation/biomes/climate"
+import { Climate } from "../surface-generation/biomes/climate"
 import { Pair } from "../surface-generation/biomes/consumer"
 import { OverworldBiomeBuilder } from "../surface-generation/biomes/overworld-biome-builder"
 import { colorToRGBA } from "./render"

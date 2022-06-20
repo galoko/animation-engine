@@ -1,7 +1,7 @@
 import { NoiseSamplingSettings } from "../chunk-generator"
 import { RandomSource } from "../random"
 import { IntStream, PerlinNoise } from "./perlin-noise"
-import * as Mth from "../mth"
+import { Mth } from "../mth"
 
 export interface NoiseFiller {
     calculateNoise(x: number, y: number, z: number): number

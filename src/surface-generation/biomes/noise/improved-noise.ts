@@ -1,6 +1,6 @@
 import { RandomSource } from "../random"
 import { SimplexNoise } from "./simplex-noise"
-import * as Mth from "../mth"
+import { Mth } from "../mth"
 
 export class ImprovedNoise {
     private static readonly SHIFT_UP_EPSILON = 1.0e-7

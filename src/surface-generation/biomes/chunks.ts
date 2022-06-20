@@ -8,14 +8,15 @@ import {
     QuartPos,
 } from "./chunk-generator"
 import { BlockPos, SectionPos } from "./pos"
-import * as Climate from "./climate"
+import { Climate } from "./climate"
 import { ChunkStatus, EMPTY } from "./chunk-status"
 import { Biomes } from "./biomes"
-import * as Mth from "./mth"
+import { Mth } from "./mth"
 import { Blocks } from "./blocks"
 import { Supplier } from "./consumer"
 import { NoiseFiller } from "./noise/blended-noise"
 import { FluidPicker } from "./aquifer"
+import { Heightmap } from "./heightmap"
 
 // chunk access
 
@@ -77,9 +78,11 @@ export class LevelChunkSection {
     public static readonly BIOME_CONTAINER_SIZE = 1 << LevelChunkSection.BIOME_CONTAINER_BITS
     public static readonly STATES_CONTAINER_SIZE = 1 << LevelChunkSection.STATES_CONTAINER_BITS
 
-    private readonly bottomBlockY: number
+    public readonly bottomBlockY: number
     private readonly biomes: Biomes[]
     private readonly states: Blocks[]
+
+    private nonEmptyBlockCount: number
 
     constructor(y: number) {
         this.bottomBlockY = LevelChunkSection.getBottomBlockY(y)
@@ -91,6 +94,8 @@ export class LevelChunkSection {
         const statesSize = 1 << LevelChunkSection.STATES_CONTAINER_BITS
         this.states = new Array(statesSize * statesSize * statesSize) as Blocks[]
         this.states.fill(Blocks.AIR)
+
+        this.nonEmptyBlockCount = 0
     }
 
     static getBottomBlockY(y: number): number {
@@ -118,16 +123,29 @@ export class LevelChunkSection {
         return this.states[index]
     }
 
-    setBlockState(x: number, y: number, z: number, block: Blocks): Blocks {
+    setBlockState(x: number, y: number, z: number, block: Blocks, checked = true): Blocks {
         const index = LevelChunkSection.getBlockStateIndex(x, y, z)
         const prevBlock = this.states[index]
         this.states[index] = block
+
+        if (prevBlock === Blocks.AIR) {
+            --this.nonEmptyBlockCount
+        }
+
+        if (block !== Blocks.AIR) {
+            ++this.nonEmptyBlockCount
+        }
+
         return prevBlock
     }
 
     getNoiseBiome(x: number, y: number, z: number): Biomes {
         const index = LevelChunkSection.getBiomesIndex(x, y, z)
         return this.biomes[index]
+    }
+
+    hasOnlyAir(): boolean {
+        return this.nonEmptyBlockCount == 0
     }
 
     fillBiomesFromNoise(
@@ -157,6 +175,7 @@ export class LevelChunkSection {
 
 export abstract class ChunkAccess extends LevelHeightAccessor {
     private readonly sections: LevelChunkSection[]
+    private readonly heightmaps: Map<Heightmap.Types, Heightmap>
     private noiseChunk: NoiseChunk
 
     constructor(
@@ -165,8 +184,13 @@ export abstract class ChunkAccess extends LevelHeightAccessor {
     ) {
         super()
         this.sections = new Array(levelHeightAccessor.getSectionsCount()) as LevelChunkSection[]
+        this.heightmaps = new Map()
 
         ChunkAccess.replaceMissingSections(levelHeightAccessor, this.sections)
+    }
+
+    public getOrCreateHeightmapUnprimed(type: Heightmap.Types): Heightmap {
+        return Mth.computeIfAbsent(this.heightmaps, type, type => new Heightmap(this, type))
     }
 
     private static replaceMissingSections(
@@ -226,6 +250,24 @@ export abstract class ChunkAccess extends LevelHeightAccessor {
         return this.levelHeightAccessor.getHeight()
     }
 
+    getHighestSection(): LevelChunkSection | null {
+        const sections = this.getSections()
+
+        for (let i = sections.length - 1; i >= 0; --i) {
+            const section = sections[i]
+            if (!section.hasOnlyAir()) {
+                return section
+            }
+        }
+
+        return null
+    }
+
+    getHighestSectionPosition(): number {
+        const levelchunksection = this.getHighestSection()
+        return levelchunksection == null ? this.getMinBuildHeight() : levelchunksection.bottomBlockY
+    }
+
     public getHeightAccessorForGeneration(): LevelHeightAccessor {
         return this
     }
@@ -250,6 +292,8 @@ export abstract class ChunkAccess extends LevelHeightAccessor {
 
         return this.noiseChunk
     }
+
+    abstract getBlockState(pos: BlockPos): Blocks
 }
 
 export class ProtoChunk extends ChunkAccess {
@@ -257,5 +301,17 @@ export class ProtoChunk extends ChunkAccess {
 
     getStatus(): ChunkStatus {
         return this.status
+    }
+
+    getBlockState(pos: BlockPos): Blocks {
+        const y = pos.y
+        if (this.isOutsideBuildHeight(y)) {
+            return Blocks.VOID_AIR
+        } else {
+            const section = this.getSection(this.getSectionIndex(y))
+            return section.hasOnlyAir()
+                ? Blocks.AIR
+                : section.getBlockState(pos.x & 15, y & 15, pos.z & 15)
+        }
     }
 }

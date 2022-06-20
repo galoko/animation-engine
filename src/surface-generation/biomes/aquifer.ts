@@ -2,7 +2,7 @@ import { Blocks } from "./blocks"
 import { ChunkPos, NoiseChunk } from "./chunk-generator"
 import { NormalNoise } from "./noise/normal-noise"
 import { PositionalRandomFactory } from "./random"
-import * as Mth from "./mth"
+import { Mth } from "./mth"
 import { BlockPos, SectionPos } from "./pos"
 
 class DimensionType {

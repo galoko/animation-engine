@@ -1,11 +1,10 @@
 import { Biomes } from "./biomes"
 import { NoiseBiomeSource, QuartPos } from "./chunk-generator"
-import * as Climate from "./climate"
-import { ParameterPoint, TargetPoint, findValueBruteForce } from "./climate"
+import { Climate } from "./climate"
 import { Pair } from "./consumer"
 import { sha256 } from "js-sha256"
 import { BlockPos } from "./pos"
-import * as Mth from "./mth"
+import { Mth } from "./mth"
 import { LinearCongruentialGenerator } from "./random"
 
 export interface BiomeResolver {
@@ -25,7 +24,7 @@ export abstract class BiomeSource implements BiomeResolver {
 }
 
 export class MultiNoiseBiomeSource extends BiomeSource {
-    constructor(private readonly parameters: Pair<ParameterPoint, Biomes>[]) {
+    constructor(private readonly parameters: Pair<Climate.ParameterPoint, Biomes>[]) {
         super(parameters.map(e => e.second))
     }
 
@@ -34,9 +33,9 @@ export class MultiNoiseBiomeSource extends BiomeSource {
     }
 
     getNoiseBiome(x: number, y: number, z: number, sampler: Climate.Sampler): Biomes
-    getNoiseBiome(targetPoint: TargetPoint): Biomes
+    getNoiseBiome(targetPoint: Climate.TargetPoint): Biomes
     getNoiseBiome(
-        x: TargetPoint | number,
+        x: Climate.TargetPoint | number,
         y?: number,
         z?: number,
         sampler?: Climate.Sampler
@@ -48,7 +47,7 @@ export class MultiNoiseBiomeSource extends BiomeSource {
             x = sampler.sample(x, y, z)
         }
 
-        return findValueBruteForce(x, this.parameters)
+        return Climate.findValueBruteForce(x, this.parameters)
     }
 }
 

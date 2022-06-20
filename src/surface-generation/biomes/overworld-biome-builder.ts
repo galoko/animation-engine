@@ -1,5 +1,5 @@
 import { Biomes } from "./biomes"
-import * as Climate from "./climate"
+import { Climate } from "./climate"
 import { Pair } from "./consumer"
 
 const VALLEY_SIZE = 0.05

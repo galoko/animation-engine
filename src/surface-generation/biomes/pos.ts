@@ -1,4 +1,4 @@
-import * as Mth from "./mth"
+import { Mth } from "./mth"
 
 export class BlockPos {
     private static readonly PACKED_X_LENGTH = BigInt(
@@ -14,7 +14,7 @@ export class BlockPos {
     private static readonly Z_OFFSET = BlockPos.PACKED_Y_LENGTH
     private static readonly X_OFFSET = BlockPos.PACKED_Y_LENGTH + BlockPos.PACKED_Z_LENGTH
 
-    constructor(readonly x: number, readonly y: number, readonly z: number) {}
+    constructor(public x: number, public y: number, public z: number) {}
 
     public static getX(num: bigint): number {
         return Mth.toInt(
@@ -51,5 +51,23 @@ export abstract class SectionPos {
 
     public static sectionToBlockCoord(coord: number, offset?: number): number {
         return (coord << 4) + (offset ?? 0)
+    }
+}
+
+export class MutableBlockPos extends BlockPos {
+    constructor(x = 0, y = 0, z = 0) {
+        super(x, y, z)
+    }
+
+    setY(y: number): MutableBlockPos {
+        this.y = y
+        return this
+    }
+
+    set(x: number, y: number, z: number): MutableBlockPos {
+        this.x = x
+        this.y = y
+        this.z = z
+        return this
     }
 }

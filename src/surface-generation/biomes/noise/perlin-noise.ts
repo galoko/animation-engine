@@ -1,7 +1,7 @@
 import { Pair } from "../consumer"
 import { RandomSource, RandomSupport } from "../random"
 import { ImprovedNoise } from "./improved-noise"
-import * as Mth from "../mth"
+import { Mth } from "../mth"
 
 export abstract class IntStream {
     static rangeClosed(startInclusive: number, endInclusive: number): number[] {

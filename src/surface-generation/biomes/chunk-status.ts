@@ -1,18 +1,7 @@
-import { BiomeManager } from "./biome-source"
-import { Biomes } from "./biomes"
-import { Blender, ChunkGenerator, ChunkPos, NoiseBiomeSource, QuartPos } from "./chunk-generator"
+import { Blender, ChunkGenerator } from "./chunk-generator"
 import { ChunkAccess } from "./chunks"
-import { ServerLevel, WorldGenRegion } from "./level"
-import * as Climate from "./climate"
-
-export enum HeightmapTypes {
-    WORLD_SURFACE_WG = "WORLD_SURFACE_WG",
-    WORLD_SURFACE = "WORLD_SURFACE",
-    OCEAN_FLOOR_WG = "OCEAN_FLOOR_WG",
-    OCEAN_FLOOR = "OCEAN_FLOOR",
-    MOTION_BLOCKING = "MOTION_BLOCKING",
-    MOTION_BLOCKING_NO_LEAVES = "MOTION_BLOCKING_NO_LEAVES",
-}
+import { ServerLevel } from "./level"
+import * as Heightmap from "./heightmap"
 
 type GenerationTask = (
     chunkStatus: ChunkStatus,
@@ -43,7 +32,7 @@ export class ChunkStatus {
         private readonly name: string,
         parent: ChunkStatus | null,
         private readonly range: number,
-        private readonly heightmapsAfter: HeightmapTypes[],
+        private readonly heightmapsAfter: Heightmap.Types[],
         private readonly generationTask: GenerationTask,
         private readonly loadingTask: LoadingTask
     ) {
@@ -56,12 +45,12 @@ export class ChunkStatus {
     }
 }
 
-const PRE_FEATURES = [HeightmapTypes.OCEAN_FLOOR_WG, HeightmapTypes.WORLD_SURFACE_WG]
+const PRE_FEATURES = [Heightmap.Types.OCEAN_FLOOR_WG, Heightmap.Types.WORLD_SURFACE_WG]
 const POST_FEATURES = [
-    HeightmapTypes.OCEAN_FLOOR,
-    HeightmapTypes.WORLD_SURFACE,
-    HeightmapTypes.MOTION_BLOCKING,
-    HeightmapTypes.MOTION_BLOCKING_NO_LEAVES,
+    Heightmap.Types.OCEAN_FLOOR,
+    Heightmap.Types.WORLD_SURFACE,
+    Heightmap.Types.MOTION_BLOCKING,
+    Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
 ]
 
 export const EMPTY = registerSimple(
@@ -122,7 +111,32 @@ export const BIOMES = register(
         cache: ChunkAccess[],
         chunkAccess: ChunkAccess
     ) => {
-        return generator.createBiomes(Blender.empty(), chunkAccess)
+        if (chunkAccess.getStatus().isOrAfter(chunkStatus)) {
+            return chunkAccess
+        } else {
+            return generator.createBiomes(Blender.empty(), chunkAccess)
+        }
+    }
+)
+
+export const NOISE = register(
+    "noise",
+    BIOMES,
+    8,
+    PRE_FEATURES,
+    (
+        chunkStatus: ChunkStatus,
+        level: ServerLevel,
+        generator: ChunkGenerator,
+        converter: (chunkAccess: ChunkAccess) => ChunkAccess,
+        cache: ChunkAccess[],
+        chunkAccess: ChunkAccess
+    ) => {
+        if (chunkAccess.getStatus().isOrAfter(chunkStatus)) {
+            return chunkAccess
+        } else {
+            return generator.fillFromNoise(Blender.empty(), chunkAccess)
+        }
     }
 )
 
@@ -130,7 +144,7 @@ function registerSimple(
     name: string,
     chunkStatus: ChunkStatus | null,
     range: number,
-    heightmapsAfter: HeightmapTypes[],
+    heightmapsAfter: Heightmap.Types[],
     generationTask: GenerationTask
 ): ChunkStatus {
     return register(name, chunkStatus, range, heightmapsAfter, generationTask)
@@ -140,7 +154,7 @@ function register(
     name: string,
     chunkStatus: ChunkStatus | null,
     range: number,
-    heightmapsAfter: HeightmapTypes[],
+    heightmapsAfter: Heightmap.Types[],
     generationTask: GenerationTask,
     loadingTask: LoadingTask = PASSTHROUGH_LOAD_TASK
 ): ChunkStatus {
