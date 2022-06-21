@@ -65,6 +65,60 @@ export class Heightmap {
             }
         }
     }
+
+    update(x: number, y: number, z: number, block: Blocks): boolean {
+        // we save height as height + 1 of first opaque block
+        // so height - 1 is the height of the opaque block
+        // height - 2 is the height below first opaque block, so we can safely ignore it
+        const height = this.getFirstAvailable(x, z)
+        if (y <= height - 2) {
+            return false
+        } else {
+            if (this.isOpaque(block)) {
+                if (y >= height) {
+                    this.setHeight(x, z, y + 1)
+                    return true
+                }
+            } else if (height - 1 == y) {
+                const pos = new MutableBlockPos()
+
+                for (let currentY = y - 1; currentY >= this.chunk.getMinBuildHeight(); --currentY) {
+                    pos.set(x, currentY, z)
+                    if (this.isOpaque(this.chunk.getBlockState(pos))) {
+                        this.setHeight(x, z, currentY + 1)
+                        return true
+                    }
+                }
+
+                this.setHeight(x, z, this.chunk.getMinBuildHeight())
+                return true
+            }
+
+            return false
+        }
+    }
+
+    getFirstAvailable(index: number): number
+    getFirstAvailable(x: number, z: number): number
+    getFirstAvailable(x: number, z?: number): number {
+        let index = x
+        if (z !== undefined) {
+            index = Heightmap.getIndex(x, z)
+        }
+        return this.data[index] + this.chunk.getMinBuildHeight()
+    }
+
+    getHighestTaken(x: number, z: number): number {
+        return this.getFirstAvailable(Heightmap.getIndex(x, z)) - 1
+    }
+
+    private setHeight(x: number, z: number, height: number): void {
+        this.data[Heightmap.getIndex(x, z)] = height - this.chunk.getMinBuildHeight()
+    }
+
+    private static getIndex(x: number, z: number): number {
+        return x + z * 16
+    }
 }
 
 export namespace Heightmap {

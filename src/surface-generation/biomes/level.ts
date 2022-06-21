@@ -1,7 +1,7 @@
 import { BiomeManager } from "./biome-source"
 import { Biomes } from "./biomes"
 import { ChunkGenerator, ChunkPos, NoiseBiomeSource, QuartPos } from "./chunk-generator"
-import { BIOMES, ChunkStatus } from "./chunk-status"
+import { ChunkStatus } from "./chunk-status"
 import { ChunkAccess } from "./chunks"
 
 abstract class LevelReader {
@@ -16,7 +16,7 @@ abstract class LevelReader {
         const chunkAccess = this.getChunk(
             QuartPos.toSection(x),
             QuartPos.toSection(z),
-            BIOMES,
+            ChunkStatus.BIOMES,
             false
         )
         return chunkAccess != null
@@ -46,7 +46,7 @@ export class WorldGenRegion extends LevelReader implements NoiseBiomeSource {
         if (size * size != cache.length) {
             throw new Error("Cache size is not a square.")
         } else {
-            this.center = cache[cache.length / 2]
+            this.center = cache[Math.trunc(cache.length / 2)]
             this.size = size
             this.seed = level.seed
             this.biomeManager = new BiomeManager(this, BiomeManager.obfuscateSeed(this.seed))

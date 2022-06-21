@@ -12,8 +12,8 @@ import { BiomeManager } from "./biome-source"
 import { ChunkAccess, LevelHeightAccessor } from "./chunks"
 import { ChunkGenerator, NoiseChunk } from "./chunk-generator"
 import { BlockPos, MutableBlockPos } from "./pos"
-import { SurfaceRules }  from "./surface-rules"
-import * as Heightmap from "./heightmap"
+import { SurfaceRules } from "./surface-rules"
+import { Heightmap } from "./heightmap"
 
 class WorldGenerationContext {
     readonly minY: number
@@ -26,8 +26,8 @@ class WorldGenerationContext {
 }
 
 interface BlockColumn {
-   getBlock( y: number): Blocks;
-   setBlock(y: number,  block: Blocks): void;
+    getBlock(y: number): Blocks
+    setBlock(y: number, block: Blocks): void
 }
 
 export class SurfaceSystem {
@@ -64,6 +64,7 @@ export class SurfaceSystem {
         })
     }
 
+    /*
      public  buildSurface( biomeManager: BiomeManager,  useLegacyRandomSource: boolean,  generationContext: WorldGenerationContext,   chunkAccess: ChunkAccess,  noiseChunk: NoiseChunk,  surfaceRule: RuleSource): void {
         const blockPos = new MutableBlockPos();
         const chunkpos = chunkAccess.getPos();
@@ -77,11 +78,11 @@ export class SurfaceSystem {
               const heightAccessor = chunkAccess.getHeightAccessorForGeneration();
               if (y >= heightAccessor.getMinBuildHeight() && y < heightAccessor.getMaxBuildHeight()) {
                  chunkAccess.setBlockState(blockPos.setY(y), blockState, false);
-                 /*
+                 
                  if (!blockState.getFluidState().isEmpty()) {
                     chunkAccess.markPosForPostprocessing(blockPos);
                  }
-                 */
+                 
               }
   
            }
@@ -168,4 +169,5 @@ export class SurfaceSystem {
      private boolean isStone(BlockState p_189953_) {
         return !p_189953_.isAir() && p_189953_.getFluidState().isEmpty();
      }
+     */
 }

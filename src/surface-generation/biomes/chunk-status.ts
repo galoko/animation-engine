@@ -1,7 +1,9 @@
+/* eslint-disable @typescript-eslint/no-namespace */
+
 import { Blender, ChunkGenerator } from "./chunk-generator"
 import { ChunkAccess } from "./chunks"
 import { ServerLevel } from "./level"
-import * as Heightmap from "./heightmap"
+import { Heightmap } from "./heightmap"
 
 type GenerationTask = (
     chunkStatus: ChunkStatus,
@@ -43,6 +45,18 @@ export class ChunkStatus {
     isOrAfter(otherStatus: ChunkStatus): boolean {
         return this.index >= otherStatus.index
     }
+
+    generate(
+        level: ServerLevel,
+        generator: ChunkGenerator,
+        converter: (chunkAccess: ChunkAccess) => ChunkAccess,
+        chunks: ChunkAccess[]
+    ): ChunkAccess {
+        const chunkAccess = chunks[Math.trunc(chunks.length / 2)]
+        this.generationTask(this, level, generator, converter, chunks, chunkAccess)
+
+        return chunkAccess
+    }
 }
 
 const PRE_FEATURES = [Heightmap.Types.OCEAN_FLOOR_WG, Heightmap.Types.WORLD_SURFACE_WG]
@@ -53,92 +67,94 @@ const POST_FEATURES = [
     Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
 ]
 
-export const EMPTY = registerSimple(
-    "empty",
-    null,
-    -1,
-    PRE_FEATURES,
-    (
-        chunkStatus: ChunkStatus,
-        level: ServerLevel,
-        generator: ChunkGenerator,
-        converter: (chunkAccess: ChunkAccess) => ChunkAccess,
-        cache: ChunkAccess[],
-        chunkAccess: ChunkAccess
-    ) => chunkAccess
-)
+export namespace ChunkStatus {
+    export const EMPTY = registerSimple(
+        "empty",
+        null,
+        -1,
+        PRE_FEATURES,
+        (
+            chunkStatus: ChunkStatus,
+            level: ServerLevel,
+            generator: ChunkGenerator,
+            converter: (chunkAccess: ChunkAccess) => ChunkAccess,
+            cache: ChunkAccess[],
+            chunkAccess: ChunkAccess
+        ) => chunkAccess
+    )
 
-export const STRUCTURE_STARTS = register(
-    "structure_starts",
-    EMPTY,
-    0,
-    PRE_FEATURES,
-    (
-        chunkStatus: ChunkStatus,
-        level: ServerLevel,
-        generator: ChunkGenerator,
-        converter: (chunkAccess: ChunkAccess) => ChunkAccess,
-        cache: ChunkAccess[],
-        chunkAccess: ChunkAccess
-    ) => chunkAccess
-)
+    export const STRUCTURE_STARTS = register(
+        "structure_starts",
+        EMPTY,
+        0,
+        PRE_FEATURES,
+        (
+            chunkStatus: ChunkStatus,
+            level: ServerLevel,
+            generator: ChunkGenerator,
+            converter: (chunkAccess: ChunkAccess) => ChunkAccess,
+            cache: ChunkAccess[],
+            chunkAccess: ChunkAccess
+        ) => chunkAccess
+    )
 
-export const STRUCTURE_REFERENCES = registerSimple(
-    "structure_references",
-    STRUCTURE_STARTS,
-    8,
-    PRE_FEATURES,
-    (
-        chunkStatus: ChunkStatus,
-        level: ServerLevel,
-        generator: ChunkGenerator,
-        converter: (chunkAccess: ChunkAccess) => ChunkAccess,
-        cache: ChunkAccess[],
-        chunkAccess: ChunkAccess
-    ) => chunkAccess
-)
+    export const STRUCTURE_REFERENCES = registerSimple(
+        "structure_references",
+        STRUCTURE_STARTS,
+        8,
+        PRE_FEATURES,
+        (
+            chunkStatus: ChunkStatus,
+            level: ServerLevel,
+            generator: ChunkGenerator,
+            converter: (chunkAccess: ChunkAccess) => ChunkAccess,
+            cache: ChunkAccess[],
+            chunkAccess: ChunkAccess
+        ) => chunkAccess
+    )
 
-export const BIOMES = register(
-    "biomes",
-    STRUCTURE_REFERENCES,
-    8,
-    PRE_FEATURES,
-    (
-        chunkStatus: ChunkStatus,
-        level: ServerLevel,
-        generator: ChunkGenerator,
-        converter: (chunkAccess: ChunkAccess) => ChunkAccess,
-        cache: ChunkAccess[],
-        chunkAccess: ChunkAccess
-    ) => {
-        if (chunkAccess.getStatus().isOrAfter(chunkStatus)) {
-            return chunkAccess
-        } else {
-            return generator.createBiomes(Blender.empty(), chunkAccess)
+    export const BIOMES = register(
+        "biomes",
+        STRUCTURE_REFERENCES,
+        8,
+        PRE_FEATURES,
+        (
+            chunkStatus: ChunkStatus,
+            level: ServerLevel,
+            generator: ChunkGenerator,
+            converter: (chunkAccess: ChunkAccess) => ChunkAccess,
+            cache: ChunkAccess[],
+            chunkAccess: ChunkAccess
+        ) => {
+            if (chunkAccess.getStatus().isOrAfter(chunkStatus)) {
+                return chunkAccess
+            } else {
+                return generator.createBiomes(Blender.empty(), chunkAccess)
+            }
         }
-    }
-)
+    )
 
-export const NOISE = register(
-    "noise",
-    BIOMES,
-    8,
-    PRE_FEATURES,
-    (
-        chunkStatus: ChunkStatus,
-        level: ServerLevel,
-        generator: ChunkGenerator,
-        converter: (chunkAccess: ChunkAccess) => ChunkAccess,
-        cache: ChunkAccess[],
-        chunkAccess: ChunkAccess
-    ) => {
-        if (chunkAccess.getStatus().isOrAfter(chunkStatus)) {
-            return chunkAccess
-        } else {
-            return generator.fillFromNoise(Blender.empty(), chunkAccess)
+    export const NOISE = register(
+        "noise",
+        BIOMES,
+        8,
+        PRE_FEATURES,
+        (
+            chunkStatus: ChunkStatus,
+            level: ServerLevel,
+            generator: ChunkGenerator,
+            converter: (chunkAccess: ChunkAccess) => ChunkAccess,
+            cache: ChunkAccess[],
+            chunkAccess: ChunkAccess
+        ) => {
+            if (chunkAccess.getStatus().isOrAfter(chunkStatus)) {
+                return chunkAccess
+            } else {
+                return generator.fillFromNoise(Blender.empty(), chunkAccess)
+            }
         }
-    }
-)
+    )
+}
 
 function registerSimple(
     name: string,

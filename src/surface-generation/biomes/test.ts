@@ -15,17 +15,19 @@ import { hashCode, WorldgenRandom, XoroshiroRandomSource } from "./random"
 import { Climate } from "./climate"
 import { Pair } from "./consumer"
 import { Biomes } from "./biomes"
-import { BlockPos } from "./pos"
+import { BlockPos, MutableBlockPos } from "./pos"
 import { BIOME_TO_COLOR } from "../../managers/map-loader"
 import { ServerLevel } from "./level"
 import { LevelHeightAccessor, ProtoChunk } from "./chunks"
+import { ChunkStatus } from "./chunk-status"
+import { BLOCKS } from "./test-template"
 
 function same(n1, n2, e) {
     return Math.abs(n2 - n1) <= e
 }
 
 export function test() {
-    const seed = toLong(hashCode("test"))
+    const seed = Mth.toLong(hashCode("test"))
 
     // get list of biomes
     const builder = new OverworldBiomeBuilder()
@@ -41,8 +43,28 @@ export function test() {
     const chunkPos = new ChunkPos(7, 24)
     const chunk = new ProtoChunk(chunkPos, heightAccessor)
 
-    chunkGenerator.createBiomes(Blender.empty(), chunk)
+    ChunkStatus.BIOMES.generate(null!, chunkGenerator, chunkAccess => chunkAccess, [chunk])
+    ChunkStatus.NOISE.generate(null!, chunkGenerator, chunkAccess => chunkAccess, [chunk])
 
+    let result = "const BLOCKS = ["
+
+    const pos = new MutableBlockPos()
+    let i = 0
+    for (let x = 0; x < 16; x++) {
+        for (let z = 0; z < 16; z++) {
+            for (let y = -64; y < 256; y++) {
+                pos.set(x, y, z)
+                const block = chunk.getBlockState(pos)
+                const templateBlock = BLOCKS[i++]
+                if (block !== templateBlock) {
+                    debugger
+                }
+                result += "'" + block + "', \n"
+            }
+        }
+    }
+    result += "]"
+    console.log(result)
     debugger
 
     /*

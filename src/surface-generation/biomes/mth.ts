@@ -16,8 +16,8 @@ export namespace Mth {
 
         const shifted = b << bits
 
-        const lo = BigInt.asUintN(64, shifted >> 64n)
-        const hi = BigInt.asUintN(64, shifted)
+        const lo = BigInt.asIntN(64, shifted >> 64n)
+        const hi = BigInt.asIntN(64, shifted)
 
         return lo | hi
     }

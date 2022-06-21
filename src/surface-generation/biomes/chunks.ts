@@ -9,7 +9,7 @@ import {
 } from "./chunk-generator"
 import { BlockPos, SectionPos } from "./pos"
 import { Climate } from "./climate"
-import { ChunkStatus, EMPTY } from "./chunk-status"
+import { ChunkStatus } from "./chunk-status"
 import { Biomes } from "./biomes"
 import { Mth } from "./mth"
 import { Blocks } from "./blocks"
@@ -87,11 +87,11 @@ export class LevelChunkSection {
     constructor(y: number) {
         this.bottomBlockY = LevelChunkSection.getBottomBlockY(y)
 
-        const biomesSize = 1 << LevelChunkSection.BIOME_CONTAINER_BITS
+        const biomesSize = LevelChunkSection.BIOME_CONTAINER_SIZE
         this.biomes = new Array(biomesSize * biomesSize * biomesSize) as Biomes[]
         this.biomes.fill(Biomes.PLAINS)
 
-        const statesSize = 1 << LevelChunkSection.STATES_CONTAINER_BITS
+        const statesSize = LevelChunkSection.STATES_CONTAINER_SIZE
         this.states = new Array(statesSize * statesSize * statesSize) as Blocks[]
         this.states.fill(Blocks.AIR)
 
@@ -104,8 +104,8 @@ export class LevelChunkSection {
 
     private static getBlockStateIndex(x: number, y: number, z: number): number {
         return (
-            z * LevelChunkSection.STATES_CONTAINER_BITS * LevelChunkSection.STATES_CONTAINER_BITS +
-            y * LevelChunkSection.STATES_CONTAINER_BITS +
+            z * LevelChunkSection.STATES_CONTAINER_SIZE * LevelChunkSection.STATES_CONTAINER_SIZE +
+            y * LevelChunkSection.STATES_CONTAINER_SIZE +
             x
         )
     }
@@ -128,7 +128,7 @@ export class LevelChunkSection {
         const prevBlock = this.states[index]
         this.states[index] = block
 
-        if (prevBlock === Blocks.AIR) {
+        if (prevBlock !== Blocks.AIR) {
             --this.nonEmptyBlockCount
         }
 
@@ -297,7 +297,7 @@ export abstract class ChunkAccess extends LevelHeightAccessor {
 }
 
 export class ProtoChunk extends ChunkAccess {
-    private status = EMPTY
+    private status = ChunkStatus.EMPTY
 
     getStatus(): ChunkStatus {
         return this.status

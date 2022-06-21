@@ -691,7 +691,7 @@ export class NoiseSampler implements Climate.Sampler {
         const positionalrandomfactory = Algorithm_newInstance(algorithm, seed).forkPositional()
         if (algorithm != Algorithm.LEGACY) {
             this.blendedNoise = BlendedNoise.create(
-                positionalrandomfactory.fromHashOf("terrain"),
+                positionalrandomfactory.fromHashOf(toResourceLocation("terrain")),
                 noiseSettings.noiseSamplingSettings,
                 noiseSettings.cellWidth,
                 noiseSettings.cellHeight
@@ -727,7 +727,7 @@ export class NoiseSampler implements Climate.Sampler {
         }
 
         this.aquiferPositionalRandomFactory = positionalrandomfactory
-            .fromHashOf("aquifer")
+            .fromHashOf(toResourceLocation("aquifer"))
             .forkPositional()
         this.barrierNoise = Noises_instantiate(positionalrandomfactory, Noises.AQUIFER_BARRIER)
         this.fluidLevelFloodednessNoise = Noises_instantiate(
@@ -1166,6 +1166,7 @@ export class NoiseBasedChunkGenerator extends ChunkGenerator {
                                 const zForSection = currentZ & 15
                                 const zt = zOffset / cellWidth
                                 noiseChunk.updateForZ(zt)
+
                                 let blockstate = this.materialRule.apply(
                                     noiseChunk,
                                     currentX,
