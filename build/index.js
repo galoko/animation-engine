@@ -8000,7 +8000,7 @@ class Component {
     }
 }
 
-function cloneTransform(transform) {
+function cloneTransform$1(transform) {
     return {
         pos: clone$4(transform.pos),
         size: clone$4(transform.size),
@@ -8826,9 +8826,7 @@ class Plane extends CollisionPrimitive {
 }
 
 class CapsuleModelDef extends ModelDef {
-    halfSphere;
-    cylinder;
-    entries;
+    entries = [];
     constructor() {
         super();
         this.loadModels();
@@ -8846,12 +8844,12 @@ class CapsuleModelDef extends ModelDef {
     }
     update(transform) {
         const height = transform.size[2];
-        this.entries[0].transform = cloneTransform(transform);
+        this.entries[0].transform = cloneTransform$1(transform);
         this.entries[0].transform.size[2] = 1;
         this.entries[0].transform.pos[2] += (height - 1) / 2;
-        this.entries[1].transform = cloneTransform(transform);
+        this.entries[1].transform = cloneTransform$1(transform);
         this.entries[1].transform.size[2] -= 1;
-        this.entries[2].transform = cloneTransform(transform);
+        this.entries[2].transform = cloneTransform$1(transform);
         this.entries[2].transform.size[2] = 1;
         const q = create$2();
         fromEuler(q, 180, 0, 0);
@@ -9033,6 +9031,8 @@ class MapLoader {
             rotation: q,
         }, new SimpleModelDef("plane", {
             texMul: 25,
+            alpha: true,
+            colorOverride: fromValues$3(0, 1, 0, 0.1),
         }), "grass2.jpg", new PhysicsDef({
             isStatic: true,
             bakedTransform: true,
@@ -9048,191 +9048,52 @@ class MapLoader {
             collisionGroup: CollisionGroups.PLAYER,
         }), new Capsule());
         Services.world.add(player);
+        const minecraftLand = new SimpleObject({
+            pos: fromValues$4(0, 0, 0),
+            size: fromValues$4(1, 1, 1),
+            rotation: create$2(),
+        }, new MinecraftModelDef(), "minecraft-atlas");
+        Services.world.add(minecraftLand);
         Services.inputManager.setEntityToOrbit(player, 5);
         Services.inputManager.setControlledEntity(player);
-        /*
-
-        const builder = new OverworldBiomeBuilder()
-
-        const output = [] as Pair<Climate.ParameterPoint, Biomes>[]
-        builder.addBiomes(output)
-
-        const min = vec3.fromValues(Infinity, Infinity, Infinity)
-        const max = vec3.fromValues(-Infinity, -Infinity, -Infinity)
-
-        const POS_MUL = 1
-        const SIZE_MUL = 1
-
-        const POS_TRANSFORM = mat4.create()
-        mat4.translate(POS_TRANSFORM, POS_TRANSFORM, vec3.fromValues(0, 0, 1.5))
-        mat4.scale(POS_TRANSFORM, POS_TRANSFORM, vec3.fromValues(POS_MUL, POS_MUL, POS_MUL))
-
-        const SIZE_TRANSFORM = mat4.create()
-        mat4.scale(SIZE_TRANSFORM, SIZE_TRANSFORM, vec3.fromValues(SIZE_MUL, SIZE_MUL, SIZE_MUL))
-
-        const biomesToShow = [Biomes.BIRCH_FOREST, Biomes.FOREST, Biomes.DARK_FOREST]
-
-        const biomeBounds: Partial<{
-            [key in Biomes]: {
-                min: vec3
-                max: vec3
-            }
-        }> = {}
-
-        for (const item of output) {
-            const { first: point, second: biome } = item
-
-            const xRange = point.temperature
-            const yRange = point.humidity
-            const zRange = point.continentalness
-
-            const x = Climate.unquantizeCoord(xRange.center)
-            const y = Climate.unquantizeCoord(yRange.center)
-            const z = Climate.unquantizeCoord(zRange.center)
-
-            const sizeX = Climate.unquantizeCoord(xRange.length)
-            const sizeY = Climate.unquantizeCoord(yRange.length)
-            const sizeZ = Climate.unquantizeCoord(zRange.length)
-
-            const color = BIOME_TO_COLOR[biome]!
-            const rgba = colorToRGBA(color)
-
-            const pos = vec3.fromValues(x, y, z)
-            const size = vec3.fromValues(sizeX, sizeY, sizeZ)
-
-            vec3.transformMat4(pos, pos, POS_TRANSFORM)
-            vec3.transformMat4(size, size, SIZE_TRANSFORM)
-
-            const box = new SimpleObject(
-                {
-                    pos,
-                    size,
-                    rotation: quat.create(),
-                },
-                new SimpleModelDef("cube", {
-                    colorOverride: vec4.fromValues(rgba[0], rgba[1], rgba[2], 0.8),
-                    alpha: true,
-                }),
-                "blank"
-            )
-            if (biomesToShow.includes(biome)) {
-                let bounds = biomeBounds[biome]
-                if (bounds === undefined) {
-                    bounds = {
-                        min: vec3.fromValues(Infinity, Infinity, Infinity),
-                        max: vec3.fromValues(-Infinity, -Infinity, -Infinity),
-                    }
-                    biomeBounds[biome] = bounds
-                }
-
-                vec3.min(
-                    bounds.min,
-                    bounds.min,
-                    vec3.fromValues(
-                        Climate.unquantizeCoord(xRange.min),
-                        Climate.unquantizeCoord(yRange.min),
-                        Climate.unquantizeCoord(zRange.min)
-                    )
-                )
-
-                vec3.max(
-                    bounds.max,
-                    bounds.max,
-                    vec3.fromValues(
-                        Climate.unquantizeCoord(xRange.max),
-                        Climate.unquantizeCoord(yRange.max),
-                        Climate.unquantizeCoord(zRange.max)
-                    )
-                )
-
-                // Services.world.add(box)
-            }
-
-            vec3.min(
-                min,
-                min,
-                vec3.fromValues(
-                    Climate.unquantizeCoord(xRange.min),
-                    Climate.unquantizeCoord(yRange.min),
-                    Climate.unquantizeCoord(zRange.min)
-                )
-            )
-
-            vec3.max(
-                max,
-                max,
-                vec3.fromValues(
-                    Climate.unquantizeCoord(xRange.max),
-                    Climate.unquantizeCoord(yRange.max),
-                    Climate.unquantizeCoord(zRange.max)
-                )
-            )
+    }
+}
+class MinecraftModelDef extends ModelDef {
+    entries = [];
+    constructor() {
+        super();
+        this.generateModels();
+    }
+    async generateModels() {
+        const [halfSphere, cylinder] = await Promise.all([
+            Services.resources.requireModel("half_sphere"),
+            Services.resources.requireModel("cylinder"),
+        ]);
+        this.entries = [
+            { model: halfSphere, transform: undefined },
+            { model: cylinder, transform: undefined },
+            { model: halfSphere, transform: undefined },
+        ];
+    }
+    update(transform) {
+        const height = transform.size[2];
+        this.entries[0].transform = cloneTransform(transform);
+        this.entries[0].transform.size[2] = 1;
+        this.entries[0].transform.pos[2] += (height - 1) / 2;
+        this.entries[1].transform = cloneTransform(transform);
+        this.entries[1].transform.size[2] -= 1;
+        this.entries[2].transform = cloneTransform(transform);
+        this.entries[2].transform.size[2] = 1;
+        const q = create$2();
+        fromEuler(q, 180, 0, 0);
+        mul$2(this.entries[2].transform.rotation, this.entries[2].transform.rotation, q);
+        this.entries[2].transform.pos[2] -= (height - 1) / 2;
+    }
+    getEntries() {
+        if (this.entries === undefined) {
+            throw new Error("Models are not loaded.");
         }
-
-        vec3.transformMat4(min, min, SIZE_TRANSFORM)
-        vec3.transformMat4(min, min, POS_TRANSFORM)
-        vec3.transformMat4(max, max, SIZE_TRANSFORM)
-        vec3.transformMat4(max, max, POS_TRANSFORM)
-
-        Services.render.addDebugRect(min, max, 0x00ff00, 0xff0000, 0x0000ff)
-
-        Services.render.addText(
-            "temperature",
-            vec3.fromValues((min[0] + max[0]) * 0.5, max[1], max[2])
-        )
-        Services.render.addText("cold", vec3.fromValues(min[0], max[1], max[2]))
-        Services.render.addText("hot", vec3.fromValues(max[0], max[1], max[2] + 0.1))
-
-        Services.render.addText(
-            "humidity",
-            vec3.fromValues(max[0], (min[1] + max[1]) * 0.5, max[2])
-        )
-        Services.render.addText("dry", vec3.fromValues(max[0], min[1], max[2]))
-        Services.render.addText("humid", vec3.fromValues(max[0], max[1], max[2]))
-
-        Services.render.addText(
-            "continentalness",
-            vec3.fromValues(max[0], max[1], (min[2] + max[2]) * 0.5)
-        )
-
-        Services.render.addText("ocean", vec3.fromValues(max[0], max[1], min[2]))
-        Services.render.addText("center", vec3.fromValues(max[0], max[1], max[2] - 0.1))
-
-        /*
-        for (const biome of Object.keys(biomeBounds)) {
-            const center = vec3.create()
-
-            const bounds = biomeBounds[biome]
-            vec3.transformMat4(bounds.min, bounds.min, SIZE_TRANSFORM)
-            vec3.transformMat4(bounds.min, bounds.min, POS_TRANSFORM)
-            vec3.transformMat4(bounds.max, bounds.max, SIZE_TRANSFORM)
-            vec3.transformMat4(bounds.max, bounds.max, POS_TRANSFORM)
-
-            vec3.lerp(center, bounds.min, bounds.max, 0.5)
-            Services.render.addText(biome.toUpperCase(), center)
-
-            const size = vec3.clone(bounds.max)
-            vec3.sub(size, size, bounds.min)
-
-            const color = BIOME_TO_COLOR[biome]!
-            const rgba = colorToRGBA(color)
-
-            const box = new SimpleObject(
-                {
-                    pos: center,
-                    size,
-                    rotation: quat.create(),
-                },
-                new SimpleModelDef("cube", {
-                    colorOverride: vec4.fromValues(rgba[0], rgba[1], rgba[2], 0.6),
-                    alpha: true,
-                }),
-                "blank"
-            )
-
-            Services.world.add(box)
-        }
-        */
+        return this.entries;
     }
 }
 

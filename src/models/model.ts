@@ -23,7 +23,7 @@ export class Model {
     constructor(
         readonly vertices: WebGLBuffer,
         readonly vertexCount: number,
-        readonly indices: WebGLBuffer,
-        readonly indexCount: number
+        readonly indices?: WebGLBuffer,
+        readonly indexCount?: number
     ) {}
 }

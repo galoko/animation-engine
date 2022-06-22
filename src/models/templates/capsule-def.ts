@@ -1,14 +1,10 @@
 import { quat } from "gl-matrix"
 import { cloneTransform, TransformData } from "../../components/transformComponent"
 import { Services } from "../../managers/services"
-import { Model } from "../model"
 import { ModelDef, ModelDefEntry } from "../model-def"
 
 export class CapsuleModelDef extends ModelDef {
-    private halfSphere: Model | undefined
-    private cylinder: Model | undefined
-
-    private entries: ModelDefEntry[]
+    private entries: ModelDefEntry[] = []
 
     constructor() {
         super()

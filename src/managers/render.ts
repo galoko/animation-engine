@@ -242,7 +242,9 @@ export class Render {
         const { gl, objectsShader } = this
 
         gl.bindBuffer(gl.ARRAY_BUFFER, model.vertices)
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, model.indices)
+        if (model.indices) {
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, model.indices)
+        }
 
         this.defineVertexBuffer(gl, objectsShader, Model.ATTRIBUTES, Model.STRIDE)
 
@@ -275,7 +277,11 @@ export class Render {
             gl.uniform1f(objectsShader.useTexture, 1)
         }
 
-        gl.drawElements(gl.TRIANGLES, model.indexCount, gl.UNSIGNED_SHORT, 0)
+        if (model.indices && model.indexCount) {
+            gl.drawElements(gl.TRIANGLES, model.indexCount, gl.UNSIGNED_SHORT, 0)
+        } else {
+            gl.drawArrays(gl.TRIANGLES, 0, model.vertexCount)
+        }
     }
 
     private drawSkin(
