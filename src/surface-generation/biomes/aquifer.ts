@@ -93,7 +93,7 @@ class NoiseBasedAquifer implements Aquifer {
     private readonly aquiferCache: FluidStatus[]
     private readonly aquiferLocationCache: bigint[]
 
-    private _shouldScheduleFluidUpdate: boolean
+    private _shouldScheduleFluidUpdate = false
 
     constructor(
         readonly noiseChunk: NoiseChunk,
@@ -153,9 +153,9 @@ class NoiseBasedAquifer implements Aquifer {
                     clampedMaxPressureMulBySim = 0
                     shouldScheduleFluidUpdate = false
                 } else {
-                    const someX = Mth.floorDiv(x - 5, 16)
-                    const someY = Mth.floorDiv(y + 1, 12)
-                    const someZ = Mth.floorDiv(z - 5, 16)
+                    const someX = Mth.floorDiv(x - 5, NoiseBasedAquifer.X_SPACING)
+                    const someY = Mth.floorDiv(y + 1, NoiseBasedAquifer.Y_SPACING)
+                    const someZ = Mth.floorDiv(z - 5, NoiseBasedAquifer.Z_SPACING)
 
                     let minDistanceSq0 = Integer_MAX_VALUE
                     let minDistanceSq1 = Integer_MAX_VALUE
@@ -183,9 +183,12 @@ class NoiseBasedAquifer implements Aquifer {
                                         currentZ
                                     )
                                     location = BlockPos.asLong(
-                                        currentX * 16 + randomSource.nextInt(10),
-                                        currentY * 12 + randomSource.nextInt(9),
-                                        currentZ * 16 + randomSource.nextInt(10)
+                                        currentX * NoiseBasedAquifer.X_SPACING +
+                                            randomSource.nextInt(NoiseBasedAquifer.X_RANGE),
+                                        currentY * NoiseBasedAquifer.Y_SPACING +
+                                            randomSource.nextInt(NoiseBasedAquifer.Y_RANGE),
+                                        currentZ * NoiseBasedAquifer.Z_SPACING +
+                                            randomSource.nextInt(NoiseBasedAquifer.Z_RANGE)
                                     )
                                     this.aquiferLocationCache[gridIndex] = location
                                 }
@@ -358,15 +361,15 @@ class NoiseBasedAquifer implements Aquifer {
     }
 
     private gridX(x: number): number {
-        return Mth.floorDiv(x, 16)
+        return Mth.floorDiv(x, NoiseBasedAquifer.X_SPACING)
     }
 
     private gridY(y: number): number {
-        return Mth.floorDiv(y, 12)
+        return Mth.floorDiv(y, NoiseBasedAquifer.Y_SPACING)
     }
 
     private gridZ(z: number): number {
-        return Mth.floorDiv(z, 16)
+        return Mth.floorDiv(z, NoiseBasedAquifer.Z_SPACING)
     }
 
     private getAquiferStatus(coord: bigint): FluidStatus {

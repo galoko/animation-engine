@@ -51,7 +51,10 @@ export class ChunkPos {
     static asLong(x: number, z: number): bigint
     static asLong(x: number | BlockPos, z?: number): bigint {
         if (typeof x === "number") {
-            return (Mth.toLong(x) & 4294967295n) | ((Mth.toLong(z!) & 4294967295n) << 32n)
+            return (
+                (Mth.toLong(x) & 4294967295n) |
+                Mth.signedShiftLeft64(Mth.toLong(z!) & 4294967295n, 32n)
+            )
         } else {
             const pos = x
             return ChunkPos.asLong(
@@ -212,7 +215,7 @@ export abstract class QuartPos {
         return coord << QuartPos.SECTION_TO_QUARTS_BITS
     }
 
-    public static toSection(coord): number {
+    public static toSection(coord: number): number {
         return coord >> QuartPos.SECTION_TO_QUARTS_BITS
     }
 }
@@ -302,21 +305,21 @@ export class NoiseGeneratorSettings {
 class NoiseInterpolator implements Sampler {
     private slice0: number[][]
     private slice1: number[][]
-    private noise000: number
-    private noise001: number
-    private noise100: number
-    private noise101: number
-    private noise010: number
-    private noise011: number
-    private noise110: number
-    private noise111: number
-    private valueXZ00: number
-    private valueXZ10: number
-    private valueXZ01: number
-    private valueXZ11: number
-    private valueZ0: number
-    private valueZ1: number
-    private value: number
+    private noise000 = 0
+    private noise001 = 0
+    private noise100 = 0
+    private noise101 = 0
+    private noise010 = 0
+    private noise011 = 0
+    private noise110 = 0
+    private noise111 = 0
+    private valueXZ00 = 0
+    private valueXZ10 = 0
+    private valueXZ01 = 0
+    private valueXZ11 = 0
+    private valueZ0 = 0
+    private valueZ1 = 0
+    private value = 0
 
     constructor(
         private readonly noiseChunk: NoiseChunk,
@@ -561,7 +564,7 @@ export class NoiseChunk {
         const noiseSize = this._noiseData.length
         let terraininfo: TerrainInfo
         if (baseX >= 0 && baseZ >= 0 && baseX < noiseSize && baseZ < noiseSize) {
-            terraininfo = this.noiseData[baseX][baseZ].terrainInfo()
+            terraininfo = this._noiseData[baseX][baseZ].terrainInfo
         } else {
             terraininfo = this.sampler.noiseData(x, z, this.blender).terrainInfo
         }

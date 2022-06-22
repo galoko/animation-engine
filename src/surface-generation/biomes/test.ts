@@ -40,7 +40,7 @@ export function test() {
 
     const heightAccessor = new LevelHeightAccessor()
 
-    const chunkPos = new ChunkPos(7, 24)
+    const chunkPos = new ChunkPos(0, 0)
     const chunk = new ProtoChunk(chunkPos, heightAccessor)
 
     ChunkStatus.BIOMES.generate(null!, chunkGenerator, chunkAccess => chunkAccess, [chunk])
@@ -50,13 +50,15 @@ export function test() {
 
     const pos = new MutableBlockPos()
     let i = 0
-    for (let x = 0; x < 16; x++) {
-        for (let z = 0; z < 16; z++) {
-            for (let y = -64; y < 256; y++) {
+    for (let y = -64; y < 256; y++) {
+        for (let x = 0; x < 16; x++) {
+            for (let z = 0; z < 16; z++) {
                 pos.set(x, y, z)
                 const block = chunk.getBlockState(pos)
                 const templateBlock = BLOCKS[i++]
                 if (block !== templateBlock) {
+                    debugger
+                    chunk.getBlockState(pos)
                     debugger
                 }
                 result += "'" + block + "', \n"

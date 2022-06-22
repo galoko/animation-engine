@@ -7,6 +7,10 @@ export namespace Mth {
         return BigInt.asUintN(64, num) >> shift
     }
 
+    export function signedShiftLeft64(num: bigint, shift: bigint) {
+        return BigInt.asIntN(64, num << shift)
+    }
+
     export function clamp64(num: bigint): bigint {
         return BigInt.asIntN(64, num)
     }
@@ -63,13 +67,13 @@ export namespace Mth {
         b8: number
     ) {
         return clamp64(
-            (BigInt(b1) << 56n) |
-                (BigInt(b2) << 48n) |
-                (BigInt(b3) << 40n) |
-                (BigInt(b4) << 32n) |
-                (BigInt(b5) << 24n) |
-                (BigInt(b6) << 16n) |
-                (BigInt(b7) << 8n) |
+            signedShiftLeft64(BigInt(b1), 56n) |
+                signedShiftLeft64(BigInt(b2), 48n) |
+                signedShiftLeft64(BigInt(b3), 40n) |
+                signedShiftLeft64(BigInt(b4), 32n) |
+                signedShiftLeft64(BigInt(b5), 24n) |
+                signedShiftLeft64(BigInt(b6), 16n) |
+                signedShiftLeft64(BigInt(b7), 8n) |
                 BigInt(b8)
         )
     }

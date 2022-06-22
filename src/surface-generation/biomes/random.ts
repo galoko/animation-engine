@@ -104,15 +104,15 @@ export class Xoroshiro128PlusPlus {
         let j = this.seedHi
         const k = Mth.clamp64(Mth.rotateLeft64(Mth.clamp64(i + j), 17n) + i)
         j ^= i
-        this.seedLo = Mth.rotateLeft64(i, 49n) ^ j ^ Mth.clamp64(j << 21n)
+        this.seedLo = Mth.rotateLeft64(i, 49n) ^ j ^ Mth.clamp64(Mth.signedShiftLeft64(j, 21n))
         this.seedHi = Mth.rotateLeft64(j, 28n)
         return k
     }
 }
 
 export class MarsagliaPolarGaussian {
-    private nextNextGaussian: number
-    private haveNextNextGaussian: boolean
+    private nextNextGaussian = 0
+    private haveNextNextGaussian = false
 
     constructor(readonly randomSource: RandomSource) {}
 
@@ -310,7 +310,7 @@ export abstract class BitRandomSource implements RandomSource {
     nextLong(): bigint {
         const i = this.next(32)
         const j = this.next(32)
-        const k = Mth.toLong(i) << 32n
+        const k = Mth.signedShiftLeft64(Mth.toLong(i), 32n)
         return Mth.clamp64(k + Mth.toLong(j))
     }
 
@@ -325,7 +325,7 @@ export abstract class BitRandomSource implements RandomSource {
     nextDouble(): number {
         const i = this.next(26)
         const j = this.next(27)
-        const k = Mth.clamp64((Mth.toLong(i) << 27n) + Mth.toLong(j))
+        const k = Mth.clamp64(Mth.signedShiftLeft64(Mth.toLong(i), 27n) + Mth.toLong(j))
         return Number(k) * BitRandomSource.DOUBLE_MULTIPLIER
     }
 }
@@ -335,7 +335,7 @@ export class LegacyRandomSource extends BitRandomSource {
     private static readonly MODULUS_MASK = 281474976710655n
     private static readonly MULTIPLIER = 25214903917n
     private static readonly INCREMENT = 11n
-    private seed: bigint
+    private seed = 0n
     private readonly gaussianSource = new MarsagliaPolarGaussian(this)
 
     constructor(seed: bigint) {
@@ -402,9 +402,9 @@ class Random {
     private static readonly FLOAT_UNIT = 1.0 / Number(1n << 24n)
     private static readonly DOUBLE_UNIT = 1.0 / Number(1n << 53n)
 
-    private seed: bigint
+    private seed = 0n
 
-    private nextNextGaussian: number
+    private nextNextGaussian = 0
     private haveNextNextGaussian = false
 
     constructor(seed: bigint) {
@@ -446,7 +446,7 @@ class Random {
 
     nextLong(): bigint {
         // it's okay that the bottom word remains signed.
-        return (Mth.toLong(this.next(32)) << 32n) + Mth.toLong(this.next(32))
+        return Mth.signedShiftLeft64(Mth.toLong(this.next(32)), 32n) + Mth.toLong(this.next(32))
     }
 
     nextBoolean(): boolean {
@@ -459,8 +459,9 @@ class Random {
 
     nextDouble(): number {
         return (
-            Number((Mth.toLong(this.next(26)) << 27n) + Mth.toLong(this.next(27))) *
-            Random.DOUBLE_UNIT
+            Number(
+                Mth.signedShiftLeft64(Mth.toLong(this.next(26)), 27n) + Mth.toLong(this.next(27))
+            ) * Random.DOUBLE_UNIT
         )
     }
 

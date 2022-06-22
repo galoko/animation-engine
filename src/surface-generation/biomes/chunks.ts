@@ -176,7 +176,7 @@ export class LevelChunkSection {
 export abstract class ChunkAccess extends LevelHeightAccessor {
     private readonly sections: LevelChunkSection[]
     private readonly heightmaps: Map<Heightmap.Types, Heightmap>
-    private noiseChunk: NoiseChunk
+    private noiseChunk: NoiseChunk | null = null
 
     constructor(
         readonly chunkPos: ChunkPos,

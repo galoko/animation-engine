@@ -18,29 +18,33 @@ export class BlockPos {
 
     public static getX(num: bigint): number {
         return Mth.toInt(
-            (num << (64n - BlockPos.X_OFFSET - BlockPos.PACKED_X_LENGTH)) >>
+            Mth.signedShiftLeft64(num, 64n - BlockPos.X_OFFSET - BlockPos.PACKED_X_LENGTH) >>
                 (64n - BlockPos.PACKED_X_LENGTH)
         )
     }
 
     public static getY(num: bigint): number {
         return Mth.toInt(
-            (num << (64n - BlockPos.PACKED_Y_LENGTH)) >> (64n - BlockPos.PACKED_Y_LENGTH)
+            Mth.signedShiftLeft64(num, 64n - BlockPos.PACKED_Y_LENGTH) >>
+                (64n - BlockPos.PACKED_Y_LENGTH)
         )
     }
 
     public static getZ(num: bigint): number {
         return Mth.toInt(
-            (num << (64n - BlockPos.Z_OFFSET - BlockPos.PACKED_Z_LENGTH)) >>
+            Mth.signedShiftLeft64(num, 64n - BlockPos.Z_OFFSET - BlockPos.PACKED_Z_LENGTH) >>
                 (64n - BlockPos.PACKED_Z_LENGTH)
         )
     }
 
     public static asLong(x: number, y: number, z: number): bigint {
         let result = 0n
-        result |= (Mth.toLong(x) & BlockPos.PACKED_X_MASK) << BlockPos.X_OFFSET
-        result |= (Mth.toLong(y) & BlockPos.PACKED_Y_MASK) << BlockPos.Y_OFFSET
-        return result | ((Mth.toLong(z) & BlockPos.PACKED_Z_MASK) << BlockPos.Z_OFFSET)
+        result |= Mth.signedShiftLeft64(Mth.toLong(x) & BlockPos.PACKED_X_MASK, BlockPos.X_OFFSET)
+        result |= Mth.signedShiftLeft64(Mth.toLong(y) & BlockPos.PACKED_Y_MASK, BlockPos.Y_OFFSET)
+        return (
+            result |
+            Mth.signedShiftLeft64(Mth.toLong(z) & BlockPos.PACKED_Z_MASK, BlockPos.Z_OFFSET)
+        )
     }
 }
 

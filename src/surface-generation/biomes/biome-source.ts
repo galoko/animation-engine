@@ -85,12 +85,12 @@ export class BiomeManager {
         const x = pos.x - 2
         const y = pos.y - 2
         const z = pos.z - 2
-        const shiftedX = x >> 2
-        const shiftedY = y >> 2
-        const shiftedZ = z >> 2
-        const fracX = (x & 3) / 4
-        const fracY = (y & 3) / 4
-        const fracZ = (z & 3) / 4
+        const shiftedX = x >> BiomeManager.ZOOM_BITS
+        const shiftedY = y >> BiomeManager.ZOOM_BITS
+        const shiftedZ = z >> BiomeManager.ZOOM_BITS
+        const fracX = (x & BiomeManager.ZOOM_BITS) / BiomeManager.ZOOM
+        const fracY = (y & BiomeManager.ZOOM_BITS) / BiomeManager.ZOOM
+        const fracZ = (z & BiomeManager.ZOOM_BITS) / BiomeManager.ZOOM
         let minIndex = 0
         let minDistance = Infinity
 
