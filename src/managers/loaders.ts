@@ -19,19 +19,20 @@ export function loadSkin(gl: WebGLRenderingContext, data: ArrayBuffer): Skin {
 
     const bones: Bone[] = []
     for (let i = 0; i < boneCount; i++) {
-        const bone = new Bone()
-        bone.id = Math.trunc(boneData[i * Bone.STRIDE + 0])
-        bone.translation = vec3.fromValues(
+        const id = Math.trunc(boneData[i * Bone.STRIDE + 0])
+        const translation = vec3.fromValues(
             boneData[i * Bone.STRIDE + 1],
             boneData[i * Bone.STRIDE + 2],
             boneData[i * Bone.STRIDE + 3]
         )
-        bone.rotation = quat.fromValues(
+        const rotation = quat.fromValues(
             boneData[i * Bone.STRIDE + 4],
             boneData[i * Bone.STRIDE + 5],
             boneData[i * Bone.STRIDE + 6],
             boneData[i * Bone.STRIDE + 7]
         )
+
+        const bone = new Bone(id, translation, rotation)
 
         bones.push(bone)
     }

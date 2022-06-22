@@ -53,7 +53,7 @@ class CubicSplineBuilder<C> {
     }
 }
 
-class Constant extends CubicSpline<any> {
+class Constant extends CubicSpline<number> {
     constructor(private readonly value: number) {
         super()
     }

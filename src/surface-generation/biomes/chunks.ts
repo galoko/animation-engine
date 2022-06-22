@@ -123,7 +123,7 @@ export class LevelChunkSection {
         return this.states[index]
     }
 
-    setBlockState(x: number, y: number, z: number, block: Blocks, checked = true): Blocks {
+    setBlockState(x: number, y: number, z: number, block: Blocks): Blocks {
         const index = LevelChunkSection.getBlockStateIndex(x, y, z)
         const prevBlock = this.states[index]
         this.states[index] = block

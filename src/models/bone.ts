@@ -70,7 +70,5 @@ export function getHumanBoneParent(id: number): number | undefined {
 export class Bone {
     static readonly STRIDE = STRIDE
 
-    id: number
-    translation: vec3
-    rotation: quat
+    constructor(public id: number, public translation: vec3, public rotation: quat) {}
 }

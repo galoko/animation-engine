@@ -40,7 +40,7 @@ export class InputManager {
         window.addEventListener("keydown", this.keyHandlerBind)
     }
 
-    private clickHandler(e: MouseEvent): void {
+    private clickHandler(): void {
         this.canvas.requestPointerLock()
     }
 

@@ -10,8 +10,8 @@ export class GameLoop {
     }
 
     private tick(time: number): void {
-        // const dt = this.prevTime != undefined ? time - this.prevTime : 0
-        const dt = 1000 / 60
+        let dt = this.prevTime != undefined ? time - this.prevTime : 0
+        dt = 1000 / 60
 
         Services.inputManager.tick(dt)
         Services.physics.tick(dt)

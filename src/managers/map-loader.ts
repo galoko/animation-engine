@@ -126,6 +126,8 @@ export class MapLoader {
         Services.inputManager.setEntityToOrbit(player, 5)
         Services.inputManager.setControlledEntity(player)
 
+        /*
+
         const builder = new OverworldBiomeBuilder()
 
         const output = [] as Pair<Climate.ParameterPoint, Biomes>[]
@@ -272,6 +274,7 @@ export class MapLoader {
         Services.render.addText("ocean", vec3.fromValues(max[0], max[1], min[2]))
         Services.render.addText("center", vec3.fromValues(max[0], max[1], max[2] - 0.1))
 
+        /*
         for (const biome of Object.keys(biomeBounds)) {
             const center = vec3.create()
 
@@ -305,5 +308,6 @@ export class MapLoader {
 
             Services.world.add(box)
         }
+        */
     }
 }

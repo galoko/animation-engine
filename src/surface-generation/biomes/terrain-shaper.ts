@@ -23,7 +23,7 @@ class Point {
     }
 }
 
-const NO_TRANSFORM = v => v
+const NO_TRANSFORM = (v: number) => v
 
 export class TerrainShaper {
     constructor(

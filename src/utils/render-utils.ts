@@ -9,8 +9,12 @@ export function compileShader(
     fragText: string,
     parameters: Array<string>
 ): CompiledShader {
-    const vertexShader = gl.createShader(gl.VERTEX_SHADER)!
-    const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER)!
+    const vertexShader = gl.createShader(gl.VERTEX_SHADER)
+    const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER)
+
+    if (!vertexShader || !fragmentShader) {
+        throw new Error("Cannot create shaders.")
+    }
 
     gl.shaderSource(vertexShader, vertText)
     gl.shaderSource(fragmentShader, fragText)
@@ -29,7 +33,11 @@ export function compileShader(
         )
     }
 
-    const program = gl.createProgram()!
+    const program = gl.createProgram()
+    if (!program) {
+        throw new Error("Cannot create program")
+    }
+
     gl.attachShader(program, vertexShader)
     gl.attachShader(program, fragmentShader)
     gl.linkProgram(program)
@@ -41,7 +49,7 @@ export function compileShader(
         throw new Error(`ERROR validating program! ${gl.getProgramInfoLog(program)}`)
     }
 
-    const result = { program }
+    const result = { program } as CompiledShader
 
     parameters.forEach((parameter: string): void => {
         const uniformLocation = gl.getUniformLocation(program, parameter)
@@ -60,7 +68,13 @@ export function compileShader(
     return result
 }
 
-function glEnumToString(gl: WebGLRenderingContext, value: number): string {
+type Context = {
+    [key: string]: unknown
+} & WebGLRenderingContext
+
+type ContextMethod = (...args: unknown[]) => unknown
+
+function glEnumToString(gl: Context, value: number): string {
     // Optimization for the most common enum:
     if (value === gl.NO_ERROR) {
         return "NO_ERROR"
@@ -74,24 +88,25 @@ function glEnumToString(gl: WebGLRenderingContext, value: number): string {
 }
 
 function createGLErrorWrapper(context: WebGLRenderingContext, fname: string) {
-    return function (...rest) {
-        // eslint-disable-next-line prefer-spread
-        const rv = context[fname].apply(context, rest)
+    return (...rest: unknown[]) => {
+        const ctx = context as unknown as Context
+        const f = ctx[fname] as ContextMethod
+        const rv = f(...rest)
         const err = context.getError()
-        if (err !== context.NO_ERROR)
-            throw "GL error " + glEnumToString(context, err) + " in " + fname
+        if (err !== context.NO_ERROR) throw "GL error " + glEnumToString(ctx, err) + " in " + fname
         return rv
     }
 }
 
 export function create3DContextWithWrapperThatThrowsOnGLError(
-    context: WebGLRenderingContext
+    context: Context
 ): WebGLRenderingContext {
     const wrap = {
         getError: function () {
             return context.getError()
         },
-    }
+    } as Context
+
     for (const i in context) {
         if (typeof context[i] === "function") {
             wrap[i] = createGLErrorWrapper(context, i)

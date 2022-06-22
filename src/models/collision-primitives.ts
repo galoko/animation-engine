@@ -1,8 +1,8 @@
-import { quat, vec3 } from "gl-matrix"
+import { vec3 } from "gl-matrix"
 import { TransformData } from "../components/transformComponent"
 
 export abstract class CollisionPrimitive {
-    private ammoShape: Ammo.btCollisionShape
+    private ammoShape: Ammo.btCollisionShape | undefined
 
     getAmmoShape(transform: TransformData): Ammo.btCollisionShape {
         if (this.ammoShape === undefined) {

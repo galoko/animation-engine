@@ -1,17 +1,17 @@
 import { Component } from "../components/component"
 
 interface ComponentClass<T> {
-    new (...args): T
+    new (...args: never[]): T
     ID: string
 }
 
 export class Entity {
-    private components: Component[] = []
+    private components: { [key: string]: Component } = {}
 
     protected registerComponent(component: Component): void {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
-        const id = component.constructor.ID
+        const id = component.constructor.ID as string
 
         if (this.components[id] != null) {
             throw new Error("Component is already registered.")
