@@ -101,6 +101,7 @@ export async function loadAnimationFromURL(url: string): Promise<Animation> {
 export async function loadTexture(
     gl: WebGLRenderingContext,
     anisotropic: EXT_texture_filter_anisotropic | null,
+    nn: boolean,
     url: string
 ): Promise<WebGLTexture> {
     return new Promise(resolve => {
@@ -110,23 +111,28 @@ export async function loadTexture(
             gl.bindTexture(gl.TEXTURE_2D, texture)
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image)
 
-            const isPowerOf2 =
-                Math.ceil(Math.log2(image.width)) == Math.floor(Math.log2(image.width)) &&
-                Math.ceil(Math.log2(image.height)) == Math.floor(Math.log2(image.height))
-
-            if (isPowerOf2) {
-                gl.generateMipmap(gl.TEXTURE_2D)
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR)
+            if (nn) {
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
             } else {
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
-            }
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
+                const isPowerOf2 =
+                    Math.ceil(Math.log2(image.width)) == Math.floor(Math.log2(image.width)) &&
+                    Math.ceil(Math.log2(image.height)) == Math.floor(Math.log2(image.height))
 
-            if (anisotropic) {
-                const max = gl.getParameter(anisotropic.MAX_TEXTURE_MAX_ANISOTROPY_EXT)
-                gl.texParameterf(gl.TEXTURE_2D, anisotropic.TEXTURE_MAX_ANISOTROPY_EXT, max)
+                if (isPowerOf2) {
+                    gl.generateMipmap(gl.TEXTURE_2D)
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR)
+                } else {
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+                }
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
+
+                if (anisotropic) {
+                    const max = gl.getParameter(anisotropic.MAX_TEXTURE_MAX_ANISOTROPY_EXT)
+                    gl.texParameterf(gl.TEXTURE_2D, anisotropic.TEXTURE_MAX_ANISOTROPY_EXT, max)
+                }
             }
 
             resolve(texture)

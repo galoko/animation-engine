@@ -29,7 +29,7 @@ export class ResourceManager {
         return promise as Promise<T>
     }
 
-    async requireTexture(name: string): Promise<WebGLTexture> {
+    async requireTexture(name: string, nn: boolean): Promise<WebGLTexture> {
         let ext = "png"
 
         const extIndex = name.lastIndexOf(".")
@@ -41,7 +41,7 @@ export class ResourceManager {
         const url = this.getUrl(name, ext)
 
         return this.require(url, () =>
-            loadTexture(Services.render.gl, Services.render.anisotropic, url)
+            loadTexture(Services.render.gl, Services.render.anisotropic, nn, url)
         )
     }
 

@@ -1,5 +1,6 @@
 import { ServicesClass } from "./managers/services-class"
 import { Services, setServices } from "./managers/services"
+import { test2 } from "./surface-generation/biomes/test"
 
 async function main() {
     const ammo = await Ammo()
@@ -9,6 +10,6 @@ async function main() {
     await Services.start()
 }
 
-// test()
+// test2()
 
-main()
+setTimeout(main, 5000)

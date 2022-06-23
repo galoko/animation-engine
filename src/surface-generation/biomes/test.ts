@@ -16,14 +16,50 @@ import { Climate } from "./climate"
 import { Pair } from "./consumer"
 import { Biomes } from "./biomes"
 import { BlockPos, MutableBlockPos } from "./pos"
-import { BIOME_TO_COLOR } from "../../managers/map-loader"
 import { ServerLevel } from "./level"
 import { LevelHeightAccessor, ProtoChunk } from "./chunks"
 import { ChunkStatus } from "./chunk-status"
 import { BLOCKS } from "./test-template"
+import { quat, vec3, vec4 } from "gl-matrix"
 
 function same(n1, n2, e) {
     return Math.abs(n2 - n1) <= e
+}
+
+function rotate(pos: vec3, srcNormal: vec3, dstNormal: vec3): void {
+    const cross = vec3.create()
+    vec3.cross(cross, srcNormal, dstNormal)
+
+    const cos = vec3.dot(srcNormal, dstNormal)
+    const sin = vec3.len(cross)
+
+    if (cos >= 1 - 1e-4) {
+        return
+    }
+
+    if (cos <= -1 + 1e-4) {
+        vec3.scale(pos, pos, -1)
+        return
+    }
+
+    const a = Math.atan2(sin, cos) * 0.5
+
+    const c = Math.cos(a)
+    const s = Math.sin(a)
+
+    vec3.scale(cross, cross, c / sin)
+
+    const q = quat.fromValues(cross[0], cross[1], cross[2], s)
+
+    vec3.transformQuat(pos, pos, q)
+}
+
+export function test2() {
+    const p = vec3.fromValues(1, 2, 3)
+
+    rotate(p, vec3.fromValues(0, 1, 0), vec3.fromValues(0, 0.9999, 10e-6))
+
+    debugger
 }
 
 export function test() {

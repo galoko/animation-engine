@@ -1,4 +1,5 @@
 import { Services } from "../managers/services"
+import { TextureDef } from "../models/texture-def"
 import { Component } from "./component"
 
 export class TextureComponent extends Component {
@@ -6,12 +7,15 @@ export class TextureComponent extends Component {
 
     texture: WebGLTexture | undefined
 
-    constructor(texName: string) {
+    constructor(textureDef: TextureDef) {
         super()
-        this.loadTexture(texName)
+        this.loadTexture(textureDef)
     }
 
-    private async loadTexture(texName: string): Promise<void> {
-        this.texture = await Services.resources.requireTexture(texName)
+    private async loadTexture(textureDef: TextureDef): Promise<void> {
+        this.texture = await Services.resources.requireTexture(
+            textureDef.options?.name ?? "",
+            textureDef.options.nn ?? false
+        )
     }
 }

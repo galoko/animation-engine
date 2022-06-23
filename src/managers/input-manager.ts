@@ -157,8 +157,8 @@ export class InputManager {
     setEntityToOrbit(entity: Entity, distance: number): void {
         this.orbit = {
             entity,
-            yAngle: 0,
-            zAngle: 0,
+            yAngle: 24,
+            zAngle: 230,
             distance,
         }
 

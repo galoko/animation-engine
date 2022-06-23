@@ -31,7 +31,7 @@ import { DebugLine } from "../models/debug-line"
 
 const ANIMATION_TEXTURE_SIZE = 1024
 
-const UP = vec3.fromValues(0, 0, 1)
+export const UP = vec3.fromValues(0, 0, 1)
 
 export type AttributeDef = {
     name: string
@@ -149,7 +149,7 @@ export class Render {
 
         gl.clearColor(0.3, 0.4, 1.0, 1.0)
 
-        gl.enable(gl.CULL_FACE)
+        gl.disable(gl.CULL_FACE)
         gl.enable(gl.DEPTH_TEST)
 
         gl.enable(gl.BLEND)
