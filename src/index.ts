@@ -12,4 +12,4 @@ async function main() {
 
 // test2()
 
-setTimeout(main, 5000)
+setTimeout(main, 0)

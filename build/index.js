@@ -15146,21 +15146,33 @@ class MinecraftModelDef extends ModelDef {
         const renderPos = create$4();
         const renderNormal = create$4();
         const vert = create$4();
+        const tex = create();
         const addPlane = (pos, normal, textureIndex, isTransparent) => {
             const dst = isTransparent ? transparentVertices : vertices;
-            const uOffset = (textureIndex * 16) / 256;
-            const vOffset = 0 / 16;
+            const TEXTURE_SIZE = 16;
+            const TEX_WIDTH = 256;
+            const TEX_HEIGHT = 16;
+            const uOffset = (textureIndex * TEXTURE_SIZE) / TEX_WIDTH;
+            const vOffset = 0 / TEX_HEIGHT;
             for (let vertIndex = 0; vertIndex < DEFAULT_VERTICES.length; vertIndex++) {
                 const DEFAULT_VERT = DEFAULT_VERTICES[vertIndex];
                 const uv = DEFAULT_UV[vertIndex];
+                copy(tex, uv);
+                // to atlas space
+                mul(tex, tex, fromValues(1 / (TEX_WIDTH / TEXTURE_SIZE), 1 / (TEX_HEIGHT / TEXTURE_SIZE)));
+                /*
+                const PADDING = 10e-1
+                tex[0] += (PADDING / TEX_WIDTH) * (tex[0] === 0 ? 1 : -1)
+                tex[1] += (PADDING / TEX_HEIGHT) * (tex[1] === 0 ? 1 : -1)
+                */
                 copy$4(vert, DEFAULT_VERT);
                 rotate(vert, DEFAULT_NORMAL, normal);
                 add$4(vert, vert, pos);
                 add$4(vert, vert, fromValues$4(0, 0, 0.5));
-                dst.push(...vert, ...normal, uv[0] / 16 + uOffset, uv[1] + vOffset);
+                dst.push(...vert, ...normal, tex[0] + uOffset, tex[1] + vOffset);
             }
         };
-        const chunkMap = new ChunkMap(0, 0, 16 * 4, 16 * 4);
+        const chunkMap = new ChunkMap(0, 0, 16 * 1, 16 * 1);
         const blockPos = new MutableBlockPos();
         for (let y = chunkMap.heightAccessor.getMinBuildHeight(); y <= chunkMap.heightAccessor.getMaxBuildHeight(); y++) {
             for (let x = chunkMap.startPos.getMinBlockX(); x <= chunkMap.endPos.getMaxBlockX(); x++) {
@@ -15465,5 +15477,5 @@ async function main() {
     await Services.start();
 }
 // test2()
-setTimeout(main, 5000);
+setTimeout(main, 0);
 //# sourceMappingURL=index.js.map

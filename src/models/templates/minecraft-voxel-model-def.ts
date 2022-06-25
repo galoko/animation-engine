@@ -190,6 +190,7 @@ export class MinecraftModelDef extends ModelDef {
         const renderPos = vec3.create()
         const renderNormal = vec3.create()
         const vert = vec3.create()
+        const tex = vec2.create()
 
         const addPlane = (
             pos: vec3,
@@ -199,23 +200,42 @@ export class MinecraftModelDef extends ModelDef {
         ) => {
             const dst = isTransparent ? transparentVertices : vertices
 
-            const uOffset = (textureIndex * 16) / 256
-            const vOffset = 0 / 16
+            const TEXTURE_SIZE = 16
+
+            const TEX_WIDTH = 256
+            const TEX_HEIGHT = 16
+
+            const uOffset = (textureIndex * TEXTURE_SIZE) / TEX_WIDTH
+            const vOffset = 0 / TEX_HEIGHT
 
             for (let vertIndex = 0; vertIndex < DEFAULT_VERTICES.length; vertIndex++) {
                 const DEFAULT_VERT = DEFAULT_VERTICES[vertIndex]
                 const uv = DEFAULT_UV[vertIndex]
+
+                vec2.copy(tex, uv)
+                // to atlas space
+                vec2.mul(
+                    tex,
+                    tex,
+                    vec2.fromValues(1 / (TEX_WIDTH / TEXTURE_SIZE), 1 / (TEX_HEIGHT / TEXTURE_SIZE))
+                )
+
+                /*
+                const PADDING = 10e-1
+                tex[0] += (PADDING / TEX_WIDTH) * (tex[0] === 0 ? 1 : -1)
+                tex[1] += (PADDING / TEX_HEIGHT) * (tex[1] === 0 ? 1 : -1)
+                */
 
                 vec3.copy(vert, DEFAULT_VERT)
                 rotate(vert, DEFAULT_NORMAL, normal)
                 vec3.add(vert, vert, pos)
                 vec3.add(vert, vert, vec3.fromValues(0, 0, 0.5))
 
-                dst.push(...vert, ...normal, uv[0] / 16 + uOffset, uv[1] + vOffset)
+                dst.push(...vert, ...normal, tex[0] + uOffset, tex[1] + vOffset)
             }
         }
 
-        const chunkMap = new ChunkMap(0, 0, 16 * 4, 16 * 4)
+        const chunkMap = new ChunkMap(0, 0, 16 * 1, 16 * 1)
 
         const blockPos = new MutableBlockPos()
         for (
