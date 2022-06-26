@@ -71,6 +71,6 @@
         "editor.semanticHighlighting.enabled": true,
         "editor.defaultFormatter": "xaver.clang-format"
     },
-    "clang-format.style": "{ BasedOnStyle: Microsoft, IndentWidth: 4, ColumnLimit: 120, BreakBeforeBraces: Attach, IndentExternBlock: Indent }",
+    "clang-format.style": "{ BasedOnStyle: Microsoft, NamespaceIndentation: All, AccessModifierOffset: -4, IndentWidth: 4, ColumnLimit: 120, BreakBeforeBraces: Attach, IndentExternBlock: Indent }",
     "clang-format.executable": "C://Program Files//LLVM//bin//clang-format.exe"
 }

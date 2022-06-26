@@ -26,8 +26,7 @@ async function loadWASM(): Promise<EmscriptenModule> {
 
 async function test_cpp() {
     const module = await loadWASM()
-    debugger
-    module._test(5)
+    module._init()
 }
 
 // main()
