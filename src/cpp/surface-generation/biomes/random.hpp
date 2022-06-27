@@ -13,7 +13,7 @@ extern "C" {
 using namespace std;
 
 #define ushr_l(value, bits) ((int64_t)((uint64_t)value >> bits))
-#define toUnsignedLong(x) (((int64_t)x) & 0xffffffffL)
+#define toUnsignedLong(x) (((int64_t)x) & 0xffffffffLL)
 #define remainderUnsigned(dividend, divisor) ((int32_t)(toUnsignedLong(dividend) % toUnsignedLong(divisor)))
 
 int64_t rotateLeft(int64_t n, int32_t d) {
@@ -21,9 +21,17 @@ int64_t rotateLeft(int64_t n, int32_t d) {
 }
 
 int64_t fromBytes(int8_t b1, int8_t b2, int8_t b3, int8_t b4, int8_t b5, int8_t b6, int8_t b7, int8_t b8) {
-    return (int64_t)(b1 & 0xFFL) << 56 | (int64_t)(b2 & 0xFFL) << 48 | (int64_t)(b3 & 0xFFL) << 40 |
-           (int64_t)(b4 & 0xFFL) << 32 | (int64_t)(b5 & 0xFFL) << 24 | (int64_t)(b6 & 0xFFL) << 16 |
-           (int64_t)(b7 & 0xFFL) << 8 | (int64_t)(b8 & 0xFFL);
+    return (b1 & 0xFFLL) << 56 | (b2 & 0xFFLL) << 48 | (b3 & 0xFFLL) << 40 | (b4 & 0xFFLL) << 32 | (b5 & 0xFFLL) << 24 |
+           (b6 & 0xFFLL) << 16 | (b7 & 0xFFLL) << 8 | (b8 & 0xFFLL);
+}
+
+int32_t hashCode(string s) {
+    int32_t h = 0;
+    const char *p = s.c_str();
+    for (int32_t i = 0; i < s.length(); i++) {
+        h = (31 * h) + s[i];
+    }
+    return h;
 }
 
 string toResourceLocation(string path) {
@@ -65,7 +73,7 @@ public:
 
     virtual double nextGaussian() = 0;
 
-    void consumeCount(int32_t count) {
+    virtual void consumeCount(int32_t count) {
         for (int32_t i = 0; i < count; ++i) {
             this->nextInt();
         }
@@ -96,12 +104,12 @@ public:
         }
     };
 
-    static const int64_t GOLDEN_RATIO_64 = -7046029254386353131L;
-    static const int64_t SILVER_RATIO_64 = 7640891576956012809L;
+    static const int64_t GOLDEN_RATIO_64 = -7046029254386353131LL;
+    static const int64_t SILVER_RATIO_64 = 7640891576956012809LL;
 
     static int64_t mixStafford13(int64_t seed) {
-        seed = (seed ^ ushr_l(seed, 30)) * -4658895280553007687L;
-        seed = (seed ^ ushr_l(seed, 27)) * -7723592293110705685L;
+        seed = (seed ^ ushr_l(seed, 30)) * -4658895280553007687LL;
+        seed = (seed ^ ushr_l(seed, 27)) * -7723592293110705685LL;
         return seed ^ ushr_l(seed, 31);
     }
 
@@ -125,9 +133,9 @@ public:
     Xoroshiro128PlusPlus(int64_t seedLo, int64_t seedHi) {
         this->seedLo = seedLo;
         this->seedHi = seedHi;
-        if ((this->seedLo | this->seedHi) == 0L) {
-            this->seedLo = -7046029254386353131L;
-            this->seedHi = 7640891576956012809L;
+        if ((this->seedLo | this->seedHi) == 0LL) {
+            this->seedLo = -7046029254386353131LL;
+            this->seedHi = 7640891576956012809LL;
         }
     }
 
@@ -222,9 +230,9 @@ public:
 
         int64_t i = toUnsignedLong(this->nextInt());
         int64_t j = i * (int64_t)bound;
-        int64_t k = j & 4294967295L;
+        int64_t k = j & 4294967295LL;
         if (k < (int64_t)bound) {
-            for (int32_t l = remainderUnsigned(~bound + 1, bound); k < (int64_t)l; k = j & 4294967295L) {
+            for (int32_t l = remainderUnsigned(~bound + 1, bound); k < (int64_t)l; k = j & 4294967295LL) {
                 i = toUnsignedLong(this->nextInt());
                 j = i * (int64_t)bound;
             }
@@ -239,7 +247,7 @@ public:
     }
 
     bool nextBoolean() {
-        return (this->randomNumberGenerator->nextLong() & 1L) != 0L;
+        return (this->randomNumberGenerator->nextLong() & 1LL) != 0LL;
     }
 
     float nextFloat() {
@@ -282,14 +290,321 @@ public:
 
         RandomSource *fromHashOf(string s) {
             MD5_CTX md5;
+            BYTE hash[MD5_BLOCK_SIZE];
+
             md5_init(&md5);
             md5_update(&md5, (const BYTE *)s.c_str(), s.length() * sizeof(char));
-            BYTE hash[MD5_BLOCK_SIZE];
             md5_final(&md5, hash);
 
-            int64_t lo = Mth::fromBytes(hash[0], hash[1], hash[2], hash[3], hash[4], hash[5], hash[6], hash[7]);
-            int64_t hi = Mth::fromBytes(hash[8], hash[9], hash[10], hash[11], hash[12], hash[13], hash[14], hash[15]);
+            int64_t lo = fromBytes(hash[0], hash[1], hash[2], hash[3], hash[4], hash[5], hash[6], hash[7]);
+            int64_t hi = fromBytes(hash[8], hash[9], hash[10], hash[11], hash[12], hash[13], hash[14], hash[15]);
             return new XoroshiroRandomSource(lo ^ this->seedLo, hi ^ this->seedHi);
         }
     };
+};
+
+class BitRandomSource : public RandomSource {
+public:
+    static constexpr float FLOAT_MULTIPLIER = 5.9604645E-8F;
+    static constexpr double DOUBLE_MULTIPLIER = (double)1.110223E-16F;
+
+    virtual int32_t next(int32_t bits) = 0;
+
+    int32_t nextInt() {
+        return this->next(32);
+    }
+
+    int32_t nextInt(int32_t bound) {
+        if ((bound & bound - 1) == 0) {
+            return (int32_t)((int64_t)bound * (int64_t)this->next(31) >> 31);
+        } else {
+            int32_t i;
+            int32_t j;
+            do {
+                i = this->next(31);
+                j = i % bound;
+            } while (i - j + (bound - 1) < 0);
+
+            return j;
+        }
+    }
+
+    int64_t nextLong() {
+        int32_t i = this->next(32);
+        int32_t j = this->next(32);
+        int64_t k = (int64_t)i << 32;
+        return k + (int64_t)j;
+    }
+
+    bool nextBoolean() {
+        return this->next(1) != 0;
+    }
+
+    float nextFloat() {
+        return (float)this->next(24) * FLOAT_MULTIPLIER;
+    }
+
+    double nextDouble() {
+        int32_t i = this->next(26);
+        int32_t j = this->next(27);
+        int64_t k = ((int64_t)i << 27) + (int64_t)j;
+        return (double)k * DOUBLE_MULTIPLIER;
+    }
+};
+class LegacyRandomSource : public BitRandomSource {
+private:
+    static constexpr int32_t MODULUS_BITS = 48;
+    static constexpr int64_t MODULUS_MASK = 281474976710655LL;
+    static constexpr int64_t MULTIPLIER = 25214903917LL;
+    static constexpr int64_t INCREMENT = 11LL;
+    int64_t seed;
+    MarsagliaPolarGaussian *gaussianSource = new MarsagliaPolarGaussian(this);
+
+public:
+    LegacyRandomSource(int64_t seed) {
+        this->setSeed(seed);
+    }
+
+    RandomSource *fork() {
+        return new LegacyRandomSource(this->nextLong());
+    }
+
+    PositionalRandomFactory *forkPositional() {
+        return new LegacyRandomSource::LegacyPositionalRandomFactory(this->nextLong());
+    }
+
+    void setSeed(int64_t seed) {
+        this->seed = (seed ^ MULTIPLIER) & MODULUS_MASK;
+        this->gaussianSource->reset();
+    }
+
+    int32_t next(int32_t bits) {
+        int64_t seed = this->seed;
+        int64_t newSeed = seed * MULTIPLIER + INCREMENT & MODULUS_MASK;
+        this->seed = newSeed;
+
+        return (int32_t)(newSeed >> (MODULUS_BITS - bits));
+    }
+
+    double nextGaussian() {
+        return this->gaussianSource->nextGaussian();
+    }
+
+    class LegacyPositionalRandomFactory : public PositionalRandomFactory {
+    private:
+        int64_t seed;
+
+    public:
+        LegacyPositionalRandomFactory(int64_t p_188588_) {
+            this->seed = p_188588_;
+        }
+
+        RandomSource *at(int32_t x, int32_t y, int32_t z) {
+            int64_t seed = Mth::getSeed(x, y, z);
+            int64_t newSeed = seed ^ this->seed;
+            return new LegacyRandomSource(newSeed);
+        }
+
+        RandomSource *fromHashOf(string s) {
+            int32_t hash = hashCode(s);
+            return new LegacyRandomSource((int64_t)hash ^ this->seed);
+        }
+    };
+};
+
+class Random : public RandomSource {
+private:
+    int64_t seed;
+
+    static const int64_t multiplier = 0x5DEECE66DLL;
+    static const int64_t addend = 0xBLL;
+    static const int64_t mask = (1LL << 48) - 1;
+
+    static constexpr double DOUBLE_UNIT = 0x1.0p-53; // 1.0 / (1LL << 53)
+
+public:
+    Random(int64_t seed) {
+        this->setSeed(seed);
+    }
+
+    RandomSource *fork() {
+        return nullptr;
+    }
+
+    PositionalRandomFactory *forkPositional() {
+        return nullptr;
+    }
+
+private:
+    static int64_t initialScramble(int64_t seed) {
+        return (seed ^ multiplier) & mask;
+    }
+
+public:
+    virtual void setSeed(int64_t seed) {
+        this->seed = initialScramble(seed);
+        this->haveNextNextGaussian = false;
+    }
+
+protected:
+    virtual int32_t next(int32_t bits) {
+        this->seed = (this->seed * multiplier + addend) & mask;
+        return (int32_t)(ushr_l(this->seed, (48 - bits)));
+    }
+
+public:
+    int32_t nextInt() {
+        return next(32);
+    }
+
+    int32_t nextInt(int32_t bound) {
+        int32_t r = next(31);
+        int32_t m = bound - 1;
+        if ((bound & m) == 0) // i.e., bound is a power of 2
+            r = (int32_t)((bound * (int64_t)r) >> 31);
+        else { // reject over-represented candidates
+            for (int32_t u = r; u - (r = u % bound) + m < 0; u = next(31))
+                ;
+        }
+        return r;
+    }
+
+    int64_t nextLong() {
+        // it's okay that the bottom word remains signed.
+        return ((int64_t)(next(32)) << 32) + next(32);
+    }
+
+    bool nextBoolean() {
+        return next(1) != 0;
+    }
+
+    float nextFloat() {
+        return next(24) / ((float)(1 << 24));
+    }
+
+    double nextDouble() {
+        return (((int64_t)(next(26)) << 27) + next(27)) * DOUBLE_UNIT;
+    }
+
+private:
+    double nextNextGaussian;
+    bool haveNextNextGaussian = false;
+
+    double nextGaussian() {
+        // See Knuth, TAOCP, Vol. 2, 3rd edition, Section 3.4.1 Algorithm C.
+        if (haveNextNextGaussian) {
+            haveNextNextGaussian = false;
+            return nextNextGaussian;
+        } else {
+            double v1, v2, s;
+            do {
+                v1 = 2 * nextDouble() - 1; // between -1 and 1
+                v2 = 2 * nextDouble() - 1; // between -1 and 1
+                s = v1 * v1 + v2 * v2;
+            } while (s >= 1 || s == 0);
+            double multiplier = sqrt(-2 * log(s) / s);
+            nextNextGaussian = v2 * multiplier;
+            haveNextNextGaussian = true;
+            return v1 * multiplier;
+        }
+    }
+};
+
+class WorldgenRandom : public Random {
+private:
+    RandomSource *randomSource;
+    int32_t count;
+
+public:
+    WorldgenRandom(RandomSource *randomSource) : Random(0LL), randomSource(randomSource) {
+    }
+
+    int32_t getCount() {
+        return this->count;
+    }
+
+    RandomSource *fork() {
+        return this->randomSource->fork();
+    }
+
+    PositionalRandomFactory *forkPositional() {
+        return this->randomSource->forkPositional();
+    }
+
+    int32_t next(int32_t bits) {
+        ++this->count;
+        RandomSource *randomsource = this->randomSource;
+        if (LegacyRandomSource *legacyrandomsource = dynamic_cast<LegacyRandomSource *>(randomsource)) {
+            return legacyrandomsource->next(bits);
+        } else {
+            return (int32_t)(ushr_l(this->randomSource->nextLong(), (64 - bits)));
+        }
+    }
+
+    void setSeed(int64_t seed) {
+        if (this->randomSource != nullptr) {
+            this->randomSource->setSeed(seed);
+        }
+    }
+
+    int64_t setDecorationSeed(int64_t seed, int32_t x, int32_t y) {
+        this->setSeed(seed);
+        int64_t i = this->nextLong() | 1LL;
+        int64_t j = this->nextLong() | 1LL;
+        int64_t newSeed = (int64_t)x * i + (int64_t)y * j ^ seed;
+        this->setSeed(newSeed);
+        return newSeed;
+    }
+
+    void setFeatureSeed(int64_t seed, int32_t counter1, int32_t counter2) {
+        int64_t newSeed = seed + (int64_t)counter1 + (int64_t)(10000 * counter2);
+        this->setSeed(newSeed);
+    }
+
+    void setLargeFeatureSeed(int64_t seed, int32_t x, int32_t y) {
+        this->setSeed(seed);
+        int64_t i = this->nextLong();
+        int64_t j = this->nextLong();
+        int64_t newSeed = (int64_t)x * i ^ (int64_t)y * j ^ seed;
+        this->setSeed(newSeed);
+    }
+
+    void setLargeFeatureWithSalt(int64_t salt, int32_t x, int32_t y, int32_t z) {
+        int64_t seed = (int64_t)x * 341873128712LL + (int64_t)y * 132897987541LL + salt + (int64_t)z;
+        this->setSeed(seed);
+    }
+
+    static Random *seedSlimeChunk(int32_t x, int32_t z, int64_t seed, int64_t salt) {
+        return new Random(seed + (int64_t)(x * x * 4987142) + (int64_t)(x * 5947611) + (int64_t)(z * z) * 4392871LL +
+                              (int64_t)(z * 389711) ^
+                          salt);
+    }
+
+    enum Algorithm
+    {
+        LEGACY,
+        XOROSHIRO,
+    };
+
+    RandomSource *Algorithm_newInstance(Algorithm algorithm, int64_t seed) {
+        if (algorithm == LEGACY) {
+            return new LegacyRandomSource(seed);
+        } else if (algorithm == XOROSHIRO) {
+            return new XoroshiroRandomSource(seed);
+        } else {
+            return nullptr;
+        }
+    }
+};
+
+class LinearCongruentialGenerator {
+private:
+    static const int64_t MULTIPLIER = 6364136223846793005LL;
+    static const int64_t INCREMENT = 1442695040888963407LL;
+
+public:
+    static int64_t next(int64_t seed, int64_t n) {
+        seed *= seed * MULTIPLIER + INCREMENT;
+        return seed + n;
+    }
 };

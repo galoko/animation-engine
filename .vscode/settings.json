@@ -62,7 +62,10 @@
         "xmemory": "cpp",
         "xstddef": "cpp",
         "xtree": "cpp",
-        "xutility": "cpp"
+        "xutility": "cpp",
+        "functional": "cpp",
+        "list": "cpp",
+        "xhash": "cpp"
     },
     "editor.formatOnSave": true,
     "[cpp]": {

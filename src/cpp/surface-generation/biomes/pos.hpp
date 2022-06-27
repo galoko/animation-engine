@@ -16,9 +16,9 @@ public:
     static constexpr int32_t PACKED_Y_LENGTH = 64 - PACKED_X_LENGTH - PACKED_Z_LENGTH;
 
 private:
-    static constexpr int64_t PACKED_X_MASK = (1L << BlockPos::PACKED_X_LENGTH) - 1L;
-    static constexpr int64_t PACKED_Y_MASK = (1L << BlockPos::PACKED_Y_LENGTH) - 1L;
-    static constexpr int64_t PACKED_Z_MASK = (1L << BlockPos::PACKED_Z_LENGTH) - 1L;
+    static constexpr int64_t PACKED_X_MASK = (1LL << BlockPos::PACKED_X_LENGTH) - 1LL;
+    static constexpr int64_t PACKED_Y_MASK = (1LL << BlockPos::PACKED_Y_LENGTH) - 1LL;
+    static constexpr int64_t PACKED_Z_MASK = (1LL << BlockPos::PACKED_Z_LENGTH) - 1LL;
     static constexpr int32_t Y_OFFSET = 0;
     static constexpr int32_t Z_OFFSET = BlockPos::PACKED_Y_LENGTH;
     static constexpr int32_t X_OFFSET = BlockPos::PACKED_Y_LENGTH + PACKED_Z_LENGTH;
@@ -69,7 +69,7 @@ public:
     }
 
     static int64_t asLong(int32_t x, int32_t y, int32_t z) {
-        int64_t result = 0L;
+        int64_t result = 0LL;
         result |= ((int64_t)x & PACKED_X_MASK) << X_OFFSET;
         result |= ((int64_t)y & PACKED_Y_MASK) << 0;
         return result | ((int64_t)z & PACKED_Z_MASK) << Z_OFFSET;

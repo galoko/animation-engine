@@ -1195,8 +1195,7 @@ export class NoiseBasedChunkGenerator extends ChunkGenerator {
                                         xForSection,
                                         yForSection,
                                         zForSection,
-                                        blockstate,
-                                        false
+                                        blockstate
                                     )
                                     oceanFloorHeightMap.update(
                                         xForSection,

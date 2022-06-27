@@ -1,11 +1,12 @@
 #pragma once
 
+#include <functional>
 #include <stdint.h>
 
 constexpr int32_t MULTIPLY_DE_BRUIJN_BIT_POSITION[] = {0,  1,  28, 2,  29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4,  8,
                                                        31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6,  11, 5,  10, 9};
 
-typedef bool (*IntPredicate)(int32_t);
+using IntPredicate = std::function<bool(int)>;
 
 namespace Mth {
     int8_t clamp(int8_t value, int8_t min, int8_t max) {
@@ -46,21 +47,6 @@ namespace Mth {
         } else {
             return value > max ? max : value;
         }
-    }
-
-    int64_t toUnsignedLong(int32_t x) {
-        return ((int64_t)x) & 0xffffffffL;
-    }
-
-    int32_t remainderUnsigned(int32_t dividend, int32_t divisor) {
-        // In lieu of tricky code, for now just use int64_t arithmetic.
-        return (int32_t)(toUnsignedLong(dividend) % toUnsignedLong(divisor));
-    }
-
-    int64_t fromBytes(int8_t b1, int8_t b2, int8_t b3, int8_t b4, int8_t b5, int8_t b6, int8_t b7, int8_t b8) {
-        return (int64_t)(b1 & 0xFFL) << 56 | (int64_t)(b2 & 0xFFL) << 48 | (int64_t)(b3 & 0xFFL) << 40 |
-               (int64_t)(b4 & 0xFFL) << 32 | (int64_t)(b5 & 0xFFL) << 24 | (int64_t)(b6 & 0xFFL) << 16 |
-               (int64_t)(b7 & 0xFFL) << 8 | (int64_t)(b8 & 0xFFL);
     }
 
     int32_t binarySearch(int32_t startIndex, int32_t endIndex, IntPredicate predicate) {
@@ -122,8 +108,8 @@ namespace Mth {
     }
 
     int64_t getSeed(int32_t x, int32_t y, int32_t z) {
-        int64_t seed = (int64_t)(x * 3129871) ^ (int64_t)z * 116129781L ^ (int64_t)y;
-        seed = seed * seed * 42317861L + seed * 11L;
+        int64_t seed = (int64_t)(x * 3129871) ^ (int64_t)z * 116129781LL ^ (int64_t)y;
+        seed = seed * seed * 42317861LL + seed * 11LL;
         return seed >> 16;
     }
 
@@ -143,7 +129,7 @@ namespace Mth {
 
     int64_t lfloor(double value) {
         int64_t result = (int64_t)value;
-        return value < (double)result ? result - 1L : result;
+        return value < (double)result ? result - 1LL : result;
     }
 
     int32_t floorDiv(int32_t x, int32_t y) {
@@ -199,7 +185,7 @@ namespace Mth {
 
     constexpr int32_t ceillog2(int32_t num) {
         num = isPowerOfTwo(num) ? num : smallestEncompassingPowerOfTwo(num);
-        return MULTIPLY_DE_BRUIJN_BIT_POSITION[(int32_t)((int64_t)num * 125613361L >> 27) & 31];
+        return MULTIPLY_DE_BRUIJN_BIT_POSITION[(int32_t)((int64_t)num * 125613361LL >> 27) & 31];
     }
 
     constexpr int32_t log2(int32_t num) {
