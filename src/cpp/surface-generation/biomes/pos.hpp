@@ -27,30 +27,30 @@ public:
     BlockPos(double x, double y, double z) : x(x), y(y), z(z) {
     }
 
-    int getX() {
+    int32_t getX() {
         return this->x;
     }
 
-    int getY() {
+    int32_t getY() {
         return this->y;
     }
 
-    int getZ() {
+    int32_t getZ() {
         return this->z;
     }
 
 protected:
-    BlockPos *setX(int value) {
+    BlockPos *setX(int32_t value) {
         this->x = value;
         return this;
     }
 
-    BlockPos *setY(int value) {
+    BlockPos *setY(int32_t value) {
         this->y = value;
         return this;
     }
 
-    BlockPos *setZ(int value) {
+    BlockPos *setZ(int32_t value) {
         this->z = value;
         return this;
     }
@@ -77,11 +77,11 @@ public:
 };
 
 class SectionPos {
-    static int blockToSectionCoord(int coord) {
+    static int32_t blockToSectionCoord(int32_t coord) {
         return coord >> 4;
     }
 
-    static int sectionToBlockCoord(int coord, int offset = 0) {
+    static int32_t sectionToBlockCoord(int32_t coord, int32_t offset = 0) {
         return (coord << 4) + offset;
     }
 };
@@ -90,10 +90,10 @@ class MutableBlockPos : BlockPos {
     MutableBlockPos(double x = 0, double y = 0, double z = 0) : BlockPos(x, y, z) {
     }
 
-    MutableBlockPos *set(int x, int y, int z) {
-        this->setX(x);
-        this->setY(y);
-        this->setZ(z);
+    MutableBlockPos *set(int32_t x, int32_t y, int32_t z) {
+        BlockPos::setX(x);
+        BlockPos::setY(y);
+        BlockPos::setZ(z);
         return this;
     }
 
@@ -101,8 +101,8 @@ class MutableBlockPos : BlockPos {
         return this->set(Mth::floor(x), Mth::floor(y), Mth::floor(z));
     }
 
-    MutableBlockPos *setY(int y) {
-        this->setY(y);
+    MutableBlockPos *setY(int32_t y) {
+        BlockPos::setY(y);
         return this;
     }
 };

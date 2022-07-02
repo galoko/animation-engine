@@ -65,7 +65,8 @@
         "xutility": "cpp",
         "functional": "cpp",
         "list": "cpp",
-        "xhash": "cpp"
+        "xhash": "cpp",
+        "unordered_map": "cpp"
     },
     "editor.formatOnSave": true,
     "[cpp]": {

@@ -91,10 +91,10 @@ public:
 
         float apply(C value) {
             float loc = this->coordinate(value);
-            int index = Mth::binarySearch(0, this->locations->size(),
-                                          [this, loc](int index) { return loc < this->locations->at(index); }) -
-                        1;
-            int lastIndex = this->locations->size() - 1;
+            int32_t index = Mth::binarySearch(0, this->locations->size(),
+                                              [this, loc](int32_t index) { return loc < this->locations->at(index); }) -
+                            1;
+            int32_t lastIndex = this->locations->size() - 1;
             if (index < 0) {
                 return this->values->at(0)->apply(value) + this->derivatives->at(0) * (loc - this->locations->at(0));
             } else if (index == lastIndex) {

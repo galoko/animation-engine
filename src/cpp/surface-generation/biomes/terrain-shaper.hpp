@@ -98,7 +98,6 @@ public:
                 ->addPoint(0.03F, getErosionFactor(5.08F, true, factorTransformer), 0.0F)
                 ->addPoint(0.06F, getErosionFactor(4.69F, false, factorTransformer), 0.0F)
                 ->build();
-        float f4 = 0.65F;
         CubicSpline<TerrainShaper::Point *> *jaggednessSampler =
             CubicSpline<Point *>::builder(CoordinateGetters[CONTINENTS], jaggednessTransformer)
                 ->addPoint(-0.11F, 0.0F, 0.0F)
@@ -112,7 +111,6 @@ private:
     static CubicSpline<TerrainShaper::Point *> *buildErosionJaggednessSpline(float p_187295_, float p_187296_,
                                                                              float p_187297_, float p_187298_,
                                                                              ToFloatFunction<float> p_187299_) {
-        float f = -0.5775F;
         CubicSpline<TerrainShaper::Point *> *cubicspline = buildRidgeJaggednessSpline(p_187295_, p_187297_, p_187299_);
         CubicSpline<TerrainShaper::Point *> *cubicspline1 = buildRidgeJaggednessSpline(p_187296_, p_187298_, p_187299_);
         return CubicSpline<Point *>::builder(CoordinateGetters[EROSION], p_187299_)
@@ -223,16 +221,11 @@ private:
     static CubicSpline<TerrainShaper::Point *> *buildMountainRidgeSplineWithPoints(float p_187331_, bool p_187332_,
                                                                                    ToFloatFunction<float> p_187333_) {
         CubicSpline<Point *>::Builder *builder = CubicSpline<Point *>::builder(CoordinateGetters[RIDGES], p_187333_);
-        float f = -0.7F;
-        float f1 = -1.0F;
         float f2 = mountainContinentalness(-1.0F, p_187331_, -0.7F);
-        float f3 = 1.0F;
         float f4 = mountainContinentalness(1.0F, p_187331_, -0.7F);
         float f5 = calculateMountainRidgeZeroContinentalnessPoint(p_187331_);
-        float f6 = -0.65F;
         if (-0.65F < f5 && f5 < 1.0F) {
             float f14 = mountainContinentalness(-0.65F, p_187331_, -0.7F);
-            float f8 = -0.75F;
             float f9 = mountainContinentalness(-0.75F, p_187331_, -0.7F);
             float f10 = calculateSlope(f2, f9, -1.0F, -0.75F);
             builder->addPoint(-1.0F, f2, f10);
@@ -240,7 +233,6 @@ private:
             builder->addPoint(-0.65F, f14, 0.0F);
             float f11 = mountainContinentalness(f5, p_187331_, -0.7F);
             float f12 = calculateSlope(f11, f4, f5, 1.0F);
-            float f13 = 0.01F;
             builder->addPoint(f5 - 0.01F, f11, 0.0F);
             builder->addPoint(f5, f11, f12);
             builder->addPoint(1.0F, f4, f12);
@@ -260,8 +252,6 @@ private:
     }
 
     static float mountainContinentalness(float p_187327_, float p_187328_, float p_187329_) {
-        float f = 1.17F;
-        float f1 = 0.46082947F;
         float f2 = 1.0F - (1.0F - p_187328_) * 0.5F;
         float f3 = 0.5F * (1.0F - p_187328_);
         float f4 = (p_187327_ + 1.17F) * 0.46082947F;
@@ -270,8 +260,6 @@ private:
     }
 
     static float calculateMountainRidgeZeroContinentalnessPoint(float p_187344_) {
-        float f = 1.17F;
-        float f1 = 0.46082947F;
         float f2 = 1.0F - (1.0F - p_187344_) * 0.5F;
         float f3 = 0.5F * (1.0F - p_187344_);
         return f3 / (0.46082947F * f2) - 1.17F;
@@ -282,9 +270,6 @@ private:
                                                                          float p_187289_, float p_187290_,
                                                                          bool p_187291_, bool p_187292_,
                                                                          ToFloatFunction<float> p_187293_) {
-        float f = 0.6F;
-        float f1 = 0.5F;
-        float f2 = 0.5F;
         CubicSpline<TerrainShaper::Point *> *cubicspline =
             buildMountainRidgeSplineWithPoints(Mth::lerp(p_187288_, 0.6F, 1.5F), p_187292_, p_187293_);
         CubicSpline<TerrainShaper::Point *> *cubicspline1 =

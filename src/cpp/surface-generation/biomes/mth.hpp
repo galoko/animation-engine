@@ -6,7 +6,7 @@
 constexpr int32_t MULTIPLY_DE_BRUIJN_BIT_POSITION[] = {0,  1,  28, 2,  29, 14, 24, 3, 30, 22, 20, 15, 25, 17, 4,  8,
                                                        31, 27, 13, 23, 21, 19, 16, 7, 26, 12, 18, 6,  11, 5,  10, 9};
 
-using IntPredicate = std::function<bool(int)>;
+using IntPredicate = std::function<bool(int32_t)>;
 
 namespace Mth {
     int8_t clamp(int8_t value, int8_t min, int8_t max) {
@@ -227,5 +227,16 @@ namespace Mth {
             mod += y;
         }
         return mod;
+    }
+
+    namespace Detail {
+        double constexpr sqrtNewtonRaphson(double x, double curr, double prev) {
+            return curr == prev ? curr : sqrtNewtonRaphson(x, 0.5 * (curr + x / curr), curr);
+        }
+    } // namespace Detail
+
+    double constexpr c_sqrt(double x) {
+        return x >= 0 && x < std::numeric_limits<double>::infinity() ? Detail::sqrtNewtonRaphson(x, x, 0)
+                                                                     : std::numeric_limits<double>::quiet_NaN();
     }
 } // namespace Mth

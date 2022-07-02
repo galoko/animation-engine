@@ -1,4 +1,4 @@
-import { toLong } from "../mth"
+import { Mth } from "../mth"
 import { LegacyRandomSource, RandomSource, RandomSupport, WorldgenRandom } from "../random"
 import { SimplexNoise } from "./simplex-noise"
 
@@ -28,7 +28,7 @@ export class PerlinSimplexNoise {
         }
 
         if (lastOctave > 0) {
-            const seed = toLong(
+            const seed = Mth.toLong(
                 simplexNoise.getValue(simplexNoise.xo, simplexNoise.yo, simplexNoise.zo) *
                     9.223372e18
             )

@@ -27,7 +27,6 @@ int64_t fromBytes(int8_t b1, int8_t b2, int8_t b3, int8_t b4, int8_t b5, int8_t 
 
 int32_t hashCode(string s) {
     int32_t h = 0;
-    const char *p = s.c_str();
     for (int32_t i = 0; i < s.length(); i++) {
         h = (31 * h) + s[i];
     }

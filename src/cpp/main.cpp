@@ -4,12 +4,18 @@
 
 #include "surface-generation/biomes/climate.hpp"
 #include "surface-generation/biomes/cubic-spline.hpp"
+#include "surface-generation/biomes/noise/improved-noise.hpp"
+#include "surface-generation/biomes/noise/perlin-noise.hpp"
+#include "surface-generation/biomes/noise/perlin-simplex-noise.hpp"
+#include "surface-generation/biomes/noise/simplex-noise.hpp"
 #include "surface-generation/biomes/random.hpp"
 #include "surface-generation/biomes/terrain-shaper.hpp"
 
-
 using namespace Mth;
 using namespace std;
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
 
 class Test {
     void test() {
@@ -59,8 +65,15 @@ extern "C" {
 
         cout << "enter" << endl;
 
+        Climate::ParameterList<int> *i =
+            new Climate::ParameterList<int>(new vector<pair<Climate::ParameterPoint *, int>>);
+
+        i->findValueBruteForce(new Climate::TargetPoint(0LL, 0LL, 0LL, 0LL, 0LL, 0LL), 9);
+
         testSpline();
 
         cout << "exit" << endl;
     }
 }
+
+#pragma GCC diagnostic pop
