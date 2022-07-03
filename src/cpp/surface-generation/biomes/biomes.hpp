@@ -1,7 +1,10 @@
 #pragma once
 
-enum Biomes
+using namespace std;
+
+enum class Biomes
 {
+    NULL_BIOME = 0,
     THE_VOID = 1,
     PLAINS,
     SUNFLOWER_PLAINS,
@@ -65,7 +68,7 @@ enum Biomes
     END_BARRENS,
 };
 
-const char *BiomeNames[] = {
+const string BIOME_NAMES[] = {
     nullptr,
     "the_void",
     "plains",
@@ -128,5 +131,8 @@ const char *BiomeNames[] = {
     "end_midlands",
     "small_end_islands",
     "end_barrens",
+};
 
+string getBiomeName(Biomes biome) {
+    return BIOME_NAMES[(int32_t)biome];
 }

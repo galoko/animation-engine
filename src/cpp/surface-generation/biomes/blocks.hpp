@@ -1,6 +1,6 @@
 #pragma once
 
-enum Blocks
+enum class Blocks
 {
     AIR = 1,
     STONE,
@@ -1803,3 +1803,5 @@ const char *BlockNames[] = {
     "potted_azalea_bush",
     "potted_flowering_azalea_bush",
 };
+
+typedef Blocks BlockState;

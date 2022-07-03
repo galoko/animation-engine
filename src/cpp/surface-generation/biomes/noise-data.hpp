@@ -1,0 +1,150 @@
+#pragma once
+
+#include "noise/normal-noise.hpp"
+#include "random.hpp"
+#include <string>
+
+using namespace std;
+
+enum class Noises
+{
+    TEMPERATURE = 1,
+    VEGETATION,
+    CONTINENTALNESS,
+    EROSION,
+    TEMPERATURE_LARGE,
+    VEGETATION_LARGE,
+    CONTINENTALNESS_LARGE,
+    EROSION_LARGE,
+    RIDGE,
+    SHIFT,
+    AQUIFER_BARRIER,
+    AQUIFER_FLUID_LEVEL_FLOODEDNESS,
+    AQUIFER_LAVA,
+    AQUIFER_FLUID_LEVEL_SPREAD,
+    PILLAR,
+    PILLAR_RARENESS,
+    PILLAR_THICKNESS,
+    SPAGHETTI_2,
+    SPAGHETTI_2D_ELEVATION,
+    SPAGHETTI_2D_MODULATOR,
+    SPAGHETTI_2D_THICKNESS,
+    SPAGHETTI_3D_1,
+    SPAGHETTI_3D_2,
+    SPAGHETTI_3D_RARITY,
+    SPAGHETTI_3D_THICKNESS,
+    SPAGHETTI_ROUGHNESS,
+    SPAGHETTI_ROUGHNESS_MODULATOR,
+    CAVE_ENTRANCE,
+    CAVE_LAYER,
+    CAVE_CHEESE,
+    ORE_VEININESS,
+    ORE_VEIN_A,
+    ORE_VEIN_B,
+    ORE_GAP,
+    NOODLE,
+    NOODLE_THICKNESS,
+    NOODLE_RIDGE_A,
+    NOODLE_RIDGE_B,
+    JAGGED,
+    SURFACE,
+    SURFACE_SECONDARY,
+    CLAY_BANDS_OFFSET,
+    BADLANDS_PILLAR,
+    BADLANDS_PILLAR_ROOF,
+    BADLANDS_SURFACE,
+    ICEBERG_PILLAR,
+    ICEBERG_PILLAR_ROOF,
+    ICEBERG_SURFACE,
+    SWAMP,
+    CALCITE,
+    GRAVEL,
+    POWDER_SNOW,
+    PACKED_ICE,
+    ICE,
+    SOUL_SAND_LAYER,
+    GRAVEL_LAYER,
+    PATCH,
+    NETHERRACK,
+    NETHER_WART,
+    NETHER_STATE_SELECTOR,
+    LAST = NETHER_STATE_SELECTOR
+};
+
+const string NOISE_NAMES[] = {
+    nullptr,
+    "temperature",
+    "vegetation",
+    "continentalness",
+    "erosion",
+    "temperature_large",
+    "vegetation_large",
+    "continentalness_large",
+    "erosion_large",
+    "ridge",
+    "offset",
+    "aquifer_barrier",
+    "aquifer_fluid_level_floodedness",
+    "aquifer_lava",
+    "aquifer_fluid_level_spread",
+    "pillar",
+    "pillar_rareness",
+    "pillar_thickness",
+    "spaghetti_2",
+    "spaghetti_2d_elevation",
+    "spaghetti_2d_modulator",
+    "spaghetti_2d_thickness",
+    "spaghetti_3d_1",
+    "spaghetti_3d_2",
+    "spaghetti_3d_rarity",
+    "spaghetti_3d_thickness",
+    "spaghetti_roughness",
+    "spaghetti_roughness_modulator",
+    "cave_entrance",
+    "cave_layer",
+    "cave_cheese",
+    "ore_veininess",
+    "ore_vein_a",
+    "ore_vein_b",
+    "ore_gap",
+    "noodle",
+    "noodle_thickness",
+    "noodle_ridge_a",
+    "noodle_ridge_b",
+    "jagged",
+    "surface",
+    "surface_secondary",
+    "clay_bands_offset",
+    "badlands_pillar",
+    "badlands_pillar_roof",
+    "badlands_surface",
+    "iceberg_pillar",
+    "iceberg_pillar_roof",
+    "iceberg_surface",
+    "surface_swamp",
+    "calcite",
+    "gravel",
+    "powder_snow",
+    "packed_ice",
+    "ice",
+    "soul_sand_layer",
+    "gravel_layer",
+    "patch",
+    "netherrack",
+    "nether_wart",
+    "nether_state_selector",
+};
+
+NormalNoise::NoiseParameters *NOISE_PARAMETERS[(int32_t)Noises::LAST + 1];
+
+string getNoiseName(Noises noise) {
+    return NOISE_NAMES[(int32_t)noise];
+}
+
+NormalNoise::NoiseParameters *getNoiseParameters(Noises noise) {
+    return NOISE_PARAMETERS[(int32_t)noise];
+}
+
+NormalNoise *Noises_instantiate(PositionalRandomFactory *random, Noises noise) {
+    return NormalNoise::create(random->fromHashOfResourceLocation(getNoiseName(noise)), getNoiseParameters(noise));
+}

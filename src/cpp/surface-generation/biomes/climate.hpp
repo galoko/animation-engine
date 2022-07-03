@@ -34,10 +34,9 @@ public:
     };
 
     class Parameter {
-    private:
+    public:
         int64_t min, max;
 
-    public:
         Parameter(int64_t min, int64_t max) : min(min), max(max) {
         }
 
@@ -135,10 +134,9 @@ public:
     }
 
     template <typename T> class ParameterList {
-    private:
+    public:
         vector<pair<Climate::ParameterPoint *, T>> *values;
 
-    public:
         ParameterList(vector<pair<Climate::ParameterPoint *, T>> *values) {
             this->values = values;
         }
@@ -160,6 +158,7 @@ public:
     };
 
     class Sampler {
+    public:
         virtual Climate::TargetPoint *sample(int32_t x, int32_t y, int32_t z) = 0;
     };
 };

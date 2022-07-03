@@ -38,13 +38,6 @@ string toResourceLocation(string path) {
     return _namespace + ":" + path;
 }
 
-class ResourceLocation {
-public:
-    string toString() {
-        return ""; // TODO
-    }
-};
-
 class PositionalRandomFactory;
 
 class RandomSource {
@@ -85,8 +78,8 @@ public:
         return this->at(pos.getX(), pos.getY(), pos.getZ());
     }
 
-    RandomSource *fromHashOf(ResourceLocation *loc) {
-        return this->fromHashOf(loc->toString());
+    RandomSource *fromHashOfResourceLocation(string loc) {
+        return this->fromHashOf(toResourceLocation(loc));
     }
 
     virtual RandomSource *fromHashOf(string s) = 0;
@@ -579,16 +572,16 @@ public:
                           salt);
     }
 
-    enum Algorithm
+    enum class Algorithm
     {
         LEGACY,
         XOROSHIRO,
     };
 
-    RandomSource *Algorithm_newInstance(Algorithm algorithm, int64_t seed) {
-        if (algorithm == LEGACY) {
+    static RandomSource *Algorithm_newInstance(Algorithm algorithm, int64_t seed) {
+        if (algorithm == Algorithm::LEGACY) {
             return new LegacyRandomSource(seed);
-        } else if (algorithm == XOROSHIRO) {
+        } else if (algorithm == Algorithm::XOROSHIRO) {
             return new XoroshiroRandomSource(seed);
         } else {
             return nullptr;

@@ -4,6 +4,10 @@ import { Services, setServices } from "./managers/services"
 */
 import Cpp, { EmscriptenModule } from "../wasm/cpp"
 import CppWasm from "../wasm/cpp.wasm"
+import { Biomes } from "./surface-generation/biomes/biomes"
+import { Climate } from "./surface-generation/biomes/climate"
+import { Pair } from "./surface-generation/biomes/consumer"
+import { OverworldBiomeBuilder } from "./surface-generation/biomes/overworld-biome-builder"
 
 /*
 async function main() {
@@ -29,6 +33,21 @@ async function test_cpp() {
     module._init()
 }
 
-// main()
-
 test_cpp()
+
+function test_js() {
+    const builder = new OverworldBiomeBuilder()
+
+    const biomes = [] as Pair<Climate.ParameterPoint, Biomes>[]
+    builder.addBiomes(biomes)
+
+    for (const pair of biomes) {
+        console.log(pair.second)
+    }
+
+    console.log("done")
+}
+
+test_js()
+
+// main()

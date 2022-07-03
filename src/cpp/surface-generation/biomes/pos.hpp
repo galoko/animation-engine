@@ -106,3 +106,37 @@ class MutableBlockPos : BlockPos {
         return this;
     }
 };
+
+class QuartPos {
+public:
+    static const int32_t BITS = 2;
+    static const int32_t SIZE = 4;
+    static const int32_t MASK = 3;
+
+private:
+    static const int32_t SECTION_TO_QUARTS_BITS = 2;
+
+    QuartPos() {
+    }
+
+public:
+    static int32_t fromBlock(int32_t coord) {
+        return coord >> BITS;
+    }
+
+    static int32_t quartLocal(int32_t coord) {
+        return coord & MASK;
+    }
+
+    static int32_t toBlock(int32_t coord) {
+        return coord << BITS;
+    }
+
+    static int32_t fromSection(int32_t coord) {
+        return coord << SECTION_TO_QUARTS_BITS;
+    }
+
+    static int32_t toSection(int32_t coord) {
+        return coord >> SECTION_TO_QUARTS_BITS;
+    }
+};

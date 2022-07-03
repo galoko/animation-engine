@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "cubic-spline.hpp"
+#include "terrain-shaper.hpp"
 
 using namespace std;
 
@@ -357,5 +358,36 @@ public:
 
     static float peaksAndValleys(float weirdness) {
         return -(abs(abs(weirdness) - 0.6666667F) - 0.33333334F) * 3.0F;
+    }
+};
+
+class TerrainProvider {
+public:
+    static TerrainShaper *overworld(bool isAmplified) {
+        return TerrainShaper::overworld(isAmplified);
+    }
+
+    static TerrainShaper *caves() {
+        return new TerrainShaper(CubicSpline<TerrainShaper::Point *>::constant(0.0F),
+                                 CubicSpline<TerrainShaper::Point *>::constant(0.0F),
+                                 CubicSpline<TerrainShaper::Point *>::constant(0.0F));
+    }
+
+    static TerrainShaper *floatingIslands() {
+        return new TerrainShaper(CubicSpline<TerrainShaper::Point *>::constant(0.0F),
+                                 CubicSpline<TerrainShaper::Point *>::constant(0.0F),
+                                 CubicSpline<TerrainShaper::Point *>::constant(0.0F));
+    }
+
+    static TerrainShaper *nether() {
+        return new TerrainShaper(CubicSpline<TerrainShaper::Point *>::constant(0.0F),
+                                 CubicSpline<TerrainShaper::Point *>::constant(0.0F),
+                                 CubicSpline<TerrainShaper::Point *>::constant(0.0F));
+    }
+
+    static TerrainShaper *end() {
+        return new TerrainShaper(CubicSpline<TerrainShaper::Point *>::constant(0.0F),
+                                 CubicSpline<TerrainShaper::Point *>::constant(1.0F),
+                                 CubicSpline<TerrainShaper::Point *>::constant(0.0F));
     }
 };

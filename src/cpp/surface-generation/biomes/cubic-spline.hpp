@@ -16,7 +16,7 @@ public:
         ToFloatFunction<C> coordinate;
         ToFloatFunction<float> valueTransformer;
         vector<float> *locations = new vector<float>();
-        vector<CubicSpline<C> *> *values = new vector<CubicSpline<C> *>;
+        vector<CubicSpline<C> *> *values = new vector<CubicSpline<C> *>();
         vector<float> *derivatives = new vector<float>();
 
     public:
