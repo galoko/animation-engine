@@ -32,8 +32,8 @@ public:
 
     BiomeSource(vector<function<Biomes(void)>> *biomes) {
         this->possibleBiomes = new set<Biomes>();
-        for (function<Biomes(void)> &supplier : *biomes) {
-            this->possibleBiomes->insert(supplier());
+        for (function<Biomes(void)> &biomeSupplier : *biomes) {
+            this->possibleBiomes->insert(biomeSupplier());
         }
         // this->featuresPerStep = this->buildFeaturesPerStep(biomes, true);
     }

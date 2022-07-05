@@ -4,6 +4,8 @@
 
 #include "mth.hpp"
 
+using namespace std;
+
 class BlockPos {
 private:
     double x, y, z;
@@ -77,6 +79,7 @@ public:
 };
 
 class SectionPos {
+public:
     static int32_t blockToSectionCoord(int32_t coord) {
         return coord >> 4;
     }
@@ -86,7 +89,8 @@ class SectionPos {
     }
 };
 
-class MutableBlockPos : BlockPos {
+class MutableBlockPos : public BlockPos {
+public:
     MutableBlockPos(double x = 0, double y = 0, double z = 0) : BlockPos(x, y, z) {
     }
 
@@ -138,5 +142,142 @@ public:
 
     static int32_t toSection(int32_t coord) {
         return coord >> SECTION_TO_QUARTS_BITS;
+    }
+};
+
+constexpr int64_t __asLong(int32_t x, int32_t z) {
+    return ((int64_t)x & 4294967295LL) | (((int64_t)z & 4294967295LL) << 32);
+}
+
+class ChunkPos {
+private:
+    static const int32_t SAFETY_MARGIN = 1056;
+
+public:
+    static constexpr int64_t asLong(int32_t x, int32_t z) {
+        return __asLong(x, z);
+    }
+
+    static constexpr int64_t INVALID_CHUNK_POS = __asLong(1875066, 1875066);
+    static ChunkPos *ZERO;
+
+private:
+    static const int64_t COORD_BITS = 32LL;
+    static const int64_t COORD_MASK = 4294967295LL;
+    static const int32_t REGION_BITS = 5;
+    static const int32_t REGION_MASK = 31;
+
+public:
+    int32_t x, z;
+
+private:
+    static const int32_t HASH_A = 1664525;
+    static const int32_t HASH_C = 1013904223;
+    static const int32_t HASH_Z_XOR = -559038737;
+
+public:
+    ChunkPos(int32_t x, int32_t z) {
+        this->x = x;
+        this->z = z;
+    }
+
+    ChunkPos(BlockPos *pos) {
+        this->x = SectionPos::blockToSectionCoord(pos->getX());
+        this->z = SectionPos::blockToSectionCoord(pos->getZ());
+    }
+
+    ChunkPos(int64_t loc) {
+        this->x = (int32_t)loc;
+        this->z = (int32_t)(loc >> 32);
+    }
+
+    int64_t toLong() {
+        return asLong(this->x, this->z);
+    }
+
+    static int64_t asLong(BlockPos *pos) {
+        return asLong(SectionPos::blockToSectionCoord(pos->getX()), SectionPos::blockToSectionCoord(pos->getZ()));
+    }
+
+    static int32_t getX(int64_t loc) {
+        return (int32_t)(loc & 4294967295LL);
+    }
+
+    static int32_t getZ(int64_t loc) {
+        return (int32_t)(ushr_l(loc, 32) & 4294967295LL);
+    }
+
+    int32_t hashCode() {
+        int32_t i = 1664525 * this->x + 1013904223;
+        int32_t j = 1664525 * (this->z ^ -559038737) + 1013904223;
+        return i ^ j;
+    }
+
+    bool equals(ChunkPos *chunkpos) {
+        return this->x == chunkpos->x && this->z == chunkpos->z;
+    }
+
+    int32_t getMiddleBlockX() {
+        return this->getBlockX(8);
+    }
+
+    int32_t getMiddleBlockZ() {
+        return this->getBlockZ(8);
+    }
+
+    int32_t getMinBlockX() {
+        return SectionPos::sectionToBlockCoord(this->x);
+    }
+
+    int32_t getMinBlockZ() {
+        return SectionPos::sectionToBlockCoord(this->z);
+    }
+
+    int32_t getMaxBlockX() {
+        return this->getBlockX(15);
+    }
+
+    int32_t getMaxBlockZ() {
+        return this->getBlockZ(15);
+    }
+
+    int32_t getRegionX() {
+        return this->x >> 5;
+    }
+
+    int32_t getRegionZ() {
+        return this->z >> 5;
+    }
+
+    int32_t getRegionLocalX() {
+        return this->x & 31;
+    }
+
+    int32_t getRegionLocalZ() {
+        return this->z & 31;
+    }
+
+    BlockPos *getBlockAt(int32_t sectionX, int32_t y, int32_t sectionZ) {
+        return new BlockPos(this->getBlockX(sectionX), y, this->getBlockZ(sectionZ));
+    }
+
+    int32_t getBlockX(int32_t sectionX) {
+        return SectionPos::sectionToBlockCoord(this->x, sectionX);
+    }
+
+    int32_t getBlockZ(int32_t sectionZ) {
+        return SectionPos::sectionToBlockCoord(this->z, sectionZ);
+    }
+
+    BlockPos *getMiddleBlockPosition(int32_t y) {
+        return new BlockPos(this->getMiddleBlockX(), y, this->getMiddleBlockZ());
+    }
+
+    BlockPos *getWorldPosition() {
+        return new BlockPos(this->getMinBlockX(), 0, this->getMinBlockZ());
+    }
+
+    int32_t getChessboardDistance(ChunkPos *otherPos) {
+        return max(abs(this->x - otherPos->x), abs(this->z - otherPos->z));
     }
 };

@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <string>
 
+#include "mth.hpp"
 #include "pos.hpp"
 
 extern "C" {
@@ -12,7 +13,6 @@ extern "C" {
 
 using namespace std;
 
-#define ushr_l(value, bits) ((int64_t)((uint64_t)value >> bits))
 #define toUnsignedLong(x) (((int64_t)x) & 0xffffffffLL)
 #define remainderUnsigned(dividend, divisor) ((int32_t)(toUnsignedLong(dividend) % toUnsignedLong(divisor)))
 

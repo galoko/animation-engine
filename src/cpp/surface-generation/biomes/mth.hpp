@@ -8,6 +8,8 @@ constexpr int32_t MULTIPLY_DE_BRUIJN_BIT_POSITION[] = {0,  1,  28, 2,  29, 14, 2
 
 using IntPredicate = std::function<bool(int32_t)>;
 
+#define ushr_l(value, bits) ((int64_t)((uint64_t)value >> bits))
+
 namespace Mth {
     int8_t clamp(int8_t value, int8_t min, int8_t max) {
         if (value < min) {
@@ -91,23 +93,23 @@ namespace Mth {
         return 30.0 * value * value * (value - 1.0) * (value - 1.0);
     }
 
-    float square(float value) {
+    constexpr float square(float value) {
         return value * value;
     }
 
-    double square(double value) {
+    constexpr double square(double value) {
         return value * value;
     }
 
-    int32_t square(int32_t value) {
+    constexpr int32_t square(int32_t value) {
         return value * value;
     }
 
-    int64_t square(int64_t value) {
+    constexpr int64_t square(int64_t value) {
         return value * value;
     }
 
-    int64_t getSeed(int32_t x, int32_t y, int32_t z) {
+    constexpr int64_t getSeed(int32_t x, int32_t y, int32_t z) {
         int64_t seed = (int64_t)(x * 3129871) ^ (int64_t)z * 116129781LL ^ (int64_t)y;
         seed = seed * seed * 42317861LL + seed * 11LL;
         return seed >> 16;

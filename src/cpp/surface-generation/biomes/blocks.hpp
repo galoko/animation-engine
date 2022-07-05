@@ -2,6 +2,7 @@
 
 enum class Blocks
 {
+    NULL_BLOCK = 0,
     AIR = 1,
     STONE,
     GRANITE,

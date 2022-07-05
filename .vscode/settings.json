@@ -67,7 +67,8 @@
         "list": "cpp",
         "xhash": "cpp",
         "unordered_map": "cpp",
-        "random": "cpp"
+        "random": "cpp",
+        "set": "cpp"
     },
     "editor.formatOnSave": true,
     "[cpp]": {
