@@ -122,21 +122,21 @@ private:
             ->build();
     }
 
-    static CubicSpline<TerrainShaper::Point *> *buildRidgeJaggednessSpline(float p_187301_, float p_187302_,
-                                                                           ToFloatFunction<float> p_187303_) {
+    static CubicSpline<TerrainShaper::Point *> *buildRidgeJaggednessSpline(float weirdness1, float weirdness0,
+                                                                           ToFloatFunction<float> transformer) {
         float f = peaksAndValleys(0.4F);
         float f1 = peaksAndValleys(0.56666666F);
         float f2 = (f + f1) / 2.0F;
-        CubicSpline<Point *>::Builder *builder = CubicSpline<Point *>::builder(CoordinateGetters[RIDGES], p_187303_);
+        CubicSpline<Point *>::Builder *builder = CubicSpline<Point *>::builder(CoordinateGetters[RIDGES], transformer);
         builder->addPoint(f, 0.0F, 0.0F);
-        if (p_187302_ > 0.0F) {
-            builder->addPoint(f2, buildWeirdnessJaggednessSpline(p_187302_, p_187303_), 0.0F);
+        if (weirdness0 > 0.0F) {
+            builder->addPoint(f2, buildWeirdnessJaggednessSpline(weirdness0, transformer), 0.0F);
         } else {
             builder->addPoint(f2, 0.0F, 0.0F);
         }
 
-        if (p_187301_ > 0.0F) {
-            builder->addPoint(1.0F, buildWeirdnessJaggednessSpline(p_187301_, p_187303_), 0.0F);
+        if (weirdness1 > 0.0F) {
+            builder->addPoint(1.0F, buildWeirdnessJaggednessSpline(weirdness1, transformer), 0.0F);
         } else {
             builder->addPoint(1.0F, 0.0F, 0.0F);
         }
@@ -144,28 +144,28 @@ private:
         return builder->build();
     }
 
-    static CubicSpline<TerrainShaper::Point *> *buildWeirdnessJaggednessSpline(float p_187305_,
-                                                                               ToFloatFunction<float> p_187306_) {
-        float f = 0.63F * p_187305_;
-        float f1 = 0.3F * p_187305_;
-        return CubicSpline<Point *>::builder(CoordinateGetters[WEIRDNESS], p_187306_)
+    static CubicSpline<TerrainShaper::Point *> *buildWeirdnessJaggednessSpline(float wierdness,
+                                                                               ToFloatFunction<float> transformer) {
+        float f = 0.63F * wierdness;
+        float f1 = 0.3F * wierdness;
+        return CubicSpline<Point *>::builder(CoordinateGetters[WEIRDNESS], transformer)
             ->addPoint(-0.01F, f, 0.0F)
             ->addPoint(0.01F, f1, 0.0F)
             ->build();
     }
 
     static CubicSpline<TerrainShaper::Point *> *getErosionFactor(float p_187308_, bool p_187309_,
-                                                                 ToFloatFunction<float> p_187310_) {
+                                                                 ToFloatFunction<float> transformer) {
         CubicSpline<TerrainShaper::Point *> *cubicspline =
-            CubicSpline<Point *>::builder(CoordinateGetters[WEIRDNESS], p_187310_)
+            CubicSpline<Point *>::builder(CoordinateGetters[WEIRDNESS], transformer)
                 ->addPoint(-0.2F, 6.3F, 0.0F)
                 ->addPoint(0.2F, p_187308_, 0.0F)
                 ->build();
         CubicSpline<Point *>::Builder *builder =
-            CubicSpline<Point *>::builder(CoordinateGetters[EROSION], p_187310_)
+            CubicSpline<Point *>::builder(CoordinateGetters[EROSION], transformer)
                 ->addPoint(-0.6F, cubicspline, 0.0F)
                 ->addPoint(-0.5F,
-                           CubicSpline<Point *>::builder(CoordinateGetters[WEIRDNESS], p_187310_)
+                           CubicSpline<Point *>::builder(CoordinateGetters[WEIRDNESS], transformer)
                                ->addPoint(-0.05F, 6.3F, 0.0F)
                                ->addPoint(0.05F, 2.67F, 0.0F)
                                ->build(),
@@ -173,7 +173,7 @@ private:
                 ->addPoint(-0.35F, cubicspline, 0.0F)
                 ->addPoint(-0.25F, cubicspline, 0.0F)
                 ->addPoint(-0.1F,
-                           CubicSpline<Point *>::builder(CoordinateGetters[WEIRDNESS], p_187310_)
+                           CubicSpline<Point *>::builder(CoordinateGetters[WEIRDNESS], transformer)
                                ->addPoint(-0.05F, 2.67F, 0.0F)
                                ->addPoint(0.05F, 6.3F, 0.0F)
                                ->build(),
@@ -181,12 +181,12 @@ private:
                 ->addPoint(0.03F, cubicspline, 0.0F);
         if (p_187309_) {
             CubicSpline<TerrainShaper::Point *> *cubicspline1 =
-                CubicSpline<Point *>::builder(CoordinateGetters[WEIRDNESS], p_187310_)
+                CubicSpline<Point *>::builder(CoordinateGetters[WEIRDNESS], transformer)
                     ->addPoint(0.0F, p_187308_, 0.0F)
                     ->addPoint(0.1F, 0.625F, 0.0F)
                     ->build();
             CubicSpline<TerrainShaper::Point *> *cubicspline2 =
-                CubicSpline<Point *>::builder(CoordinateGetters[RIDGES], p_187310_)
+                CubicSpline<Point *>::builder(CoordinateGetters[RIDGES], transformer)
                     ->addPoint(-0.9F, p_187308_, 0.0F)
                     ->addPoint(-0.69F, cubicspline1, 0.0F)
                     ->build();
@@ -196,12 +196,12 @@ private:
                 ->addPoint(0.62F, p_187308_, 0.0F);
         } else {
             CubicSpline<TerrainShaper::Point *> *cubicspline3 =
-                CubicSpline<Point *>::builder(CoordinateGetters[RIDGES], p_187310_)
+                CubicSpline<Point *>::builder(CoordinateGetters[RIDGES], transformer)
                     ->addPoint(-0.7F, cubicspline, 0.0F)
                     ->addPoint(-0.15F, 1.37F, 0.0F)
                     ->build();
             CubicSpline<TerrainShaper::Point *> *cubicspline4 =
-                CubicSpline<Point *>::builder(CoordinateGetters[RIDGES], p_187310_)
+                CubicSpline<Point *>::builder(CoordinateGetters[RIDGES], transformer)
                     ->addPoint(0.45F, cubicspline, 0.0F)
                     ->addPoint(0.7F, 1.56F, 0.0F)
                     ->build();

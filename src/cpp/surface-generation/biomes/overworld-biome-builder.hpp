@@ -472,17 +472,17 @@ private:
         }
     }
 
-    void addUndergroundBiomes(function<void(pair<Climate::ParameterPoint *, Biomes> *)> p_187227_) {
-        this->addUndergroundBiome(p_187227_, this->FULL_RANGE, this->FULL_RANGE, Climate::Parameter::span(0.8F, 1.0F),
+    void addUndergroundBiomes(function<void(pair<Climate::ParameterPoint *, Biomes> *)> biomes) {
+        this->addUndergroundBiome(biomes, this->FULL_RANGE, this->FULL_RANGE, Climate::Parameter::span(0.8F, 1.0F),
                                   this->FULL_RANGE, this->FULL_RANGE, 0.0F, Biomes::DRIPSTONE_CAVES);
-        this->addUndergroundBiome(p_187227_, this->FULL_RANGE, Climate::Parameter::span(0.7F, 1.0F), this->FULL_RANGE,
+        this->addUndergroundBiome(biomes, this->FULL_RANGE, Climate::Parameter::span(0.7F, 1.0F), this->FULL_RANGE,
                                   this->FULL_RANGE, this->FULL_RANGE, 0.0F, Biomes::LUSH_CAVES);
     }
 
     // biome pickers
 
-    Biomes pickMiddleBiome(int32_t temperatureIndex, int32_t humidityIndex, Climate::Parameter *p_187166_) {
-        if (p_187166_->max < 0LL) {
+    Biomes pickMiddleBiome(int32_t temperatureIndex, int32_t humidityIndex, Climate::Parameter *weirdness) {
+        if (weirdness->max < 0LL) {
             return this->MIDDLE_BIOMES[temperatureIndex][humidityIndex];
         } else {
             Biomes biome = this->MIDDLE_BIOMES_VARIANT[temperatureIndex][humidityIndex];
@@ -490,15 +490,16 @@ private:
         }
     }
 
-    Biomes pickMiddleBiomeOrBadlandsIfHot(int32_t p_187192_, int32_t p_187193_, Climate::Parameter *p_187194_) {
-        return p_187192_ == 4 ? this->pickBadlandsBiome(p_187193_, p_187194_)
-                              : this->pickMiddleBiome(p_187192_, p_187193_, p_187194_);
+    Biomes pickMiddleBiomeOrBadlandsIfHot(int32_t temperatureIndex, int32_t humidityIndex,
+                                          Climate::Parameter *weirdness) {
+        return temperatureIndex == 4 ? this->pickBadlandsBiome(humidityIndex, weirdness)
+                                     : this->pickMiddleBiome(temperatureIndex, humidityIndex, weirdness);
     }
 
     Biomes pickMiddleBiomeOrBadlandsIfHotOrSlopeIfCold(int32_t temperatureIndex, int32_t humidityIndex,
-                                                       Climate::Parameter *p_187214_) {
-        return temperatureIndex == 0 ? this->pickSlopeBiome(temperatureIndex, humidityIndex, p_187214_)
-                                     : this->pickMiddleBiomeOrBadlandsIfHot(temperatureIndex, humidityIndex, p_187214_);
+                                                       Climate::Parameter *weirdness) {
+        return temperatureIndex == 0 ? this->pickSlopeBiome(temperatureIndex, humidityIndex, weirdness)
+                                     : this->pickMiddleBiomeOrBadlandsIfHot(temperatureIndex, humidityIndex, weirdness);
     }
 
     Biomes maybePickShatteredBiome(int32_t temperatureIndex, int32_t humidityIndex, Climate::Parameter *erosion,

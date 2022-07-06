@@ -145,7 +145,7 @@ public:
     }
 };
 
-constexpr int64_t __asLong(int32_t x, int32_t z) {
+constexpr int64_t ChunkPos_asLong(int32_t x, int32_t z) {
     return ((int64_t)x & 4294967295LL) | (((int64_t)z & 4294967295LL) << 32);
 }
 
@@ -155,10 +155,10 @@ private:
 
 public:
     static constexpr int64_t asLong(int32_t x, int32_t z) {
-        return __asLong(x, z);
+        return ChunkPos_asLong(x, z);
     }
 
-    static constexpr int64_t INVALID_CHUNK_POS = __asLong(1875066, 1875066);
+    static constexpr int64_t INVALID_CHUNK_POS = ChunkPos_asLong(1875066, 1875066);
     static ChunkPos *ZERO;
 
 private:

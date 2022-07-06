@@ -387,8 +387,8 @@ public:
         int64_t seed;
 
     public:
-        LegacyPositionalRandomFactory(int64_t p_188588_) {
-            this->seed = p_188588_;
+        LegacyPositionalRandomFactory(int64_t seed) {
+            this->seed = seed;
         }
 
         RandomSource *at(int32_t x, int32_t y, int32_t z) {

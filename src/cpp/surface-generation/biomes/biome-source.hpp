@@ -267,8 +267,8 @@ public:
             return new MultiNoiseBiomeSource(parameterlist, usePresetInstance ? presetInstance : nullptr);
         }
 
-        MultiNoiseBiomeSource *biomeSource(bool p_187106_) {
-            return this->biomeSource(new MultiNoiseBiomeSource::PresetInstance(this), p_187106_);
+        MultiNoiseBiomeSource *biomeSource(bool usePresetInstance) {
+            return this->biomeSource(new MultiNoiseBiomeSource::PresetInstance(this), usePresetInstance);
         }
 
         MultiNoiseBiomeSource *biomeSource() {
@@ -281,8 +281,8 @@ private:
 
     MultiNoiseBiomeSource::PresetInstance *preset;
 
-    MultiNoiseBiomeSource(Climate::ParameterList<function<Biomes(void)>> *p_187057_)
-        : MultiNoiseBiomeSource(p_187057_, nullptr) {
+    MultiNoiseBiomeSource(Climate::ParameterList<function<Biomes(void)>> *parameters)
+        : MultiNoiseBiomeSource(parameters, nullptr) {
     }
 
     static vector<function<Biomes(void)>> *getBiomes(Climate::ParameterList<function<Biomes(void)>> *parameters) {
@@ -301,13 +301,13 @@ private:
         this->parameters = parameters;
     }
 
-    BiomeSource *withSeed(int64_t p_48466_) {
+    BiomeSource *withSeed(int64_t seed) {
         return this;
     }
 
 public:
-    bool stable(MultiNoiseBiomeSource::Preset *p_187064_) {
-        return this->preset != nullptr && this->preset->preset == p_187064_;
+    bool stable(MultiNoiseBiomeSource::Preset *preset) {
+        return this->preset != nullptr && this->preset->preset == preset;
     }
 
     Biomes getNoiseBiome(int32_t x, int32_t y, int32_t z, Climate::Sampler *sampler) {

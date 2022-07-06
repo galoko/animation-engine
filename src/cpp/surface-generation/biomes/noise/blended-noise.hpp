@@ -6,10 +6,10 @@
 
 class IntStream {
 public:
-    static vector<int> *rangeClosed(int startInclusive, int endInclusive) {
-        vector<int> *result = new vector<int>();
+    static vector<int32_t> *rangeClosed(int32_t startInclusive, int32_t endInclusive) {
+        vector<int32_t> *result = new vector<int32_t>();
 
-        for (int i = startInclusive; i <= endInclusive; i++) {
+        for (int32_t i = startInclusive; i <= endInclusive; i++) {
             result->push_back(i);
         }
 
@@ -26,11 +26,11 @@ private:
     double yScale;
     double xzMainScale;
     double yMainScale;
-    int cellWidth;
-    int cellHeight;
+    int32_t cellWidth;
+    int32_t cellHeight;
 
     BlendedNoise(PerlinNoise *minLimitNoise, PerlinNoise *maxLimitNoise, PerlinNoise *mainNoise,
-                 NoiseSamplingSettings *settings, int cellWidth, int cellHeight) {
+                 NoiseSamplingSettings *settings, int32_t cellWidth, int32_t cellHeight) {
         this->minLimitNoise = minLimitNoise;
         this->maxLimitNoise = maxLimitNoise;
         this->mainNoise = mainNoise;
@@ -43,23 +43,23 @@ private:
     }
 
 public:
-    BlendedNoise(RandomSource *randomSource, NoiseSamplingSettings *settings, int cellWidth, int cellHeight) {
+    BlendedNoise(RandomSource *randomSource, NoiseSamplingSettings *settings, int32_t cellWidth, int32_t cellHeight) {
         BlendedNoise(PerlinNoise::createLegacyForBlendedNoise(randomSource, IntStream::rangeClosed(-15, 0)),
                      PerlinNoise::createLegacyForBlendedNoise(randomSource, IntStream::rangeClosed(-15, 0)),
                      PerlinNoise::createLegacyForBlendedNoise(randomSource, IntStream::rangeClosed(-7, 0)), settings,
                      cellWidth, cellHeight);
     }
 
-    double calculateNoise(int x, int y, int z) {
-        int cellX = Mth::floorDiv(x, this->cellWidth);
-        int cellY = Mth::floorDiv(y, this->cellHeight);
-        int cellZ = Mth::floorDiv(z, this->cellWidth);
+    double calculateNoise(int32_t x, int32_t y, int32_t z) {
+        int32_t cellX = Mth::floorDiv(x, this->cellWidth);
+        int32_t cellY = Mth::floorDiv(y, this->cellHeight);
+        int32_t cellZ = Mth::floorDiv(z, this->cellWidth);
         double minNoiseValue = 0.0;
         double maxNoiseValue = 0.0;
         double noiseValue = 0.0;
         double scale = 1.0;
 
-        for (int octave = 0; octave < 8; ++octave) {
+        for (int32_t octave = 0; octave < 8; ++octave) {
             ImprovedNoise *improvedNoise = this->mainNoise->getOctaveNoise(octave);
             if (improvedNoise != nullptr) {
                 noiseValue += improvedNoise->noise(PerlinNoise::wrap((double)cellX * this->xzMainScale * scale),
@@ -77,7 +77,7 @@ public:
         bool isMinOrLower = t <= 0.0;
         scale = 1.0;
 
-        for (int octave = 0; octave < 16; ++octave) {
+        for (int32_t octave = 0; octave < 16; ++octave) {
             double x = PerlinNoise::wrap((double)cellX * this->xzScale * scale);
             double y = PerlinNoise::wrap((double)cellY * this->yScale * scale);
             double z = PerlinNoise::wrap((double)cellZ * this->xzScale * scale);

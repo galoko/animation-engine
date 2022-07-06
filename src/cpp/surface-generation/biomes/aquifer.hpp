@@ -84,8 +84,8 @@ template <class T, std::enable_if_t<std::is_arithmetic_v<T>>...> constexpr auto 
     return x < 0 ? -x : x;
 }
 
-constexpr double __similarity(int32_t p_158025_, int32_t p_158026_) {
-    return 1.0 - (double)_abs(p_158026_ - p_158025_) / 25.0;
+constexpr double NoiseBasedAquifer_similarity(int32_t distanceSq0, int32_t distanceSq1) {
+    return 1.0 - (double)_abs(distanceSq1 - distanceSq0) / 25.0;
 }
 
 class NoiseBasedAquifer : public Aquifer, public Aquifer::FluidPicker {
@@ -100,7 +100,7 @@ private:
     static const int32_t Y_SPACING = 12;
     static const int32_t Z_SPACING = 16;
     static const int32_t MAX_REASONABLE_DISTANCE_TO_AQUIFER_CENTER = 11;
-    static constexpr double FLOWING_UPDATE_SIMULARITY = __similarity(Mth::square(10), Mth::square(12));
+    static constexpr double FLOWING_UPDATE_SIMULARITY = NoiseBasedAquifer_similarity(Mth::square(10), Mth::square(12));
 
     NoiseChunk *noiseChunk;
     NormalNoise *barrierNoise;
@@ -279,8 +279,8 @@ public:
     }
 
 private:
-    static double similarity(int32_t p_158025_, int32_t p_158026_) {
-        return __similarity(p_158025_, p_158026_);
+    static double similarity(int32_t distanceSq0, int32_t distanceSq1) {
+        return NoiseBasedAquifer_similarity(distanceSq0, distanceSq1);
     }
 
 private:

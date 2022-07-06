@@ -427,11 +427,11 @@ export class TerrainShaper {
     }
 
     private static buildWeirdnessJaggednessSpline(
-        p_187305_: number,
+        wierdness: number,
         transformer: ToFloatFunction<number>
     ): CubicSpline<Point> {
-        const v0 = 0.63 * p_187305_
-        const v1 = 0.3 * p_187305_
+        const v0 = 0.63 * wierdness
+        const v1 = 0.3 * wierdness
         return CubicSpline.builder(Point.WEIRDNESS, transformer)
             .addPoint(-0.01, v0, 0.0)
             .addPoint(0.01, v1, 0.0)

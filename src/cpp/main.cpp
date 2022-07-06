@@ -7,6 +7,8 @@
 #include "surface-generation/biomes/biome-source.hpp"
 #include "surface-generation/biomes/chunk-generator.cpp"
 #include "surface-generation/biomes/chunk-generator.hpp"
+#include "surface-generation/biomes/chunk-status.cpp"
+#include "surface-generation/biomes/chunk-status.hpp"
 #include "surface-generation/biomes/chunks.hpp"
 #include "surface-generation/biomes/climate.hpp"
 #include "surface-generation/biomes/cubic-spline.hpp"
@@ -95,8 +97,8 @@ extern "C" {
 
         cout << "enter" << endl;
 
-        Climate::ParameterList<int> *i =
-            new Climate::ParameterList<int>(new vector<pair<Climate::ParameterPoint *, int>>());
+        Climate::ParameterList<int32_t> *i =
+            new Climate::ParameterList<int32_t>(new vector<pair<Climate::ParameterPoint *, int32_t>>());
 
         i->findValueBruteForce(new Climate::TargetPoint(0LL, 0LL, 0LL, 0LL, 0LL, 0LL), 9);
 

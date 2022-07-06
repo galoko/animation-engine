@@ -13,8 +13,8 @@ template <typename T> using Predicate = bool (*)(T);
 
 class Heightmap {
 private:
-    static constexpr Predicate<BlockState> NOT_AIR = [](BlockState p_64263_) -> bool {
-        return p_64263_ != Blocks::AIR;
+    static constexpr Predicate<BlockState> NOT_AIR = [](BlockState blockState) -> bool {
+        return blockState != Blocks::AIR;
     };
     // TODO
     static constexpr Predicate<BlockState> MATERIAL_MOTION_BLOCKING = NOT_AIR;
@@ -73,26 +73,26 @@ public:
     }
 
     static void primeHeightmaps(ChunkAccess *chunkAccess, vector<Heightmap::Types> types) {
-        int typeCount = types.size();
+        int32_t typeCount = types.size();
         vector<Heightmap *> heightmaps = vector<Heightmap *>();
         heightmaps.reserve(typeCount);
 
-        int maxY = chunkAccess->getHighestSectionPosition() + 16;
+        int32_t maxY = chunkAccess->getHighestSectionPosition() + 16;
         MutableBlockPos *pos = new MutableBlockPos();
 
-        for (int x = 0; x < 16; ++x) {
-            for (int z = 0; z < 16; ++z) {
+        for (int32_t x = 0; x < 16; ++x) {
+            for (int32_t z = 0; z < 16; ++z) {
 
                 heightmaps.clear();
                 for (Heightmap::Types &type : types) {
                     heightmaps.push_back(chunkAccess->getOrCreateHeightmapUnprimed(type));
                 }
 
-                for (int y = maxY - 1; y >= chunkAccess->getMinBuildHeight(); --y) {
+                for (int32_t y = maxY - 1; y >= chunkAccess->getMinBuildHeight(); --y) {
                     pos->set(x, y, z);
                     BlockState blockState = chunkAccess->getBlockState(pos);
                     if (blockState != Blocks::AIR) {
-                        int heightmapsIndex = 0;
+                        int32_t heightmapsIndex = 0;
                         while (heightmapsIndex < heightmaps.size()) {
                             Heightmap *heightmap = heightmaps[heightmapsIndex];
                             if (heightmap->isOpaque(blockState)) {
@@ -113,8 +113,8 @@ public:
         }
     }
 
-    bool update(int x, int y, int z, BlockState block) {
-        int height = this->getFirstAvailable(x, z);
+    bool update(int32_t x, int32_t y, int32_t z, BlockState block) {
+        int32_t height = this->getFirstAvailable(x, z);
         if (y <= height - 2) {
             return false;
         } else {
@@ -126,7 +126,7 @@ public:
             } else if (height - 1 == y) {
                 MutableBlockPos *pos = new MutableBlockPos();
 
-                for (int currentY = y - 1; currentY >= this->chunk->getMinBuildHeight(); --currentY) {
+                for (int32_t currentY = y - 1; currentY >= this->chunk->getMinBuildHeight(); --currentY) {
                     pos->set(x, currentY, z);
                     if (this->isOpaque(this->chunk->getBlockState(pos))) {
                         this->setHeight(x, z, currentY + 1);
@@ -142,23 +142,23 @@ public:
         }
     }
 
-    int getFirstAvailable(int x, int z) {
+    int32_t getFirstAvailable(int32_t x, int32_t z) {
         return this->getFirstAvailable(getIndex(x, z));
     }
 
-    int getHighestTaken(int x, int z) {
+    int32_t getHighestTaken(int32_t x, int32_t z) {
         return this->getFirstAvailable(getIndex(x, z)) - 1;
     }
 
-    int getFirstAvailable(int index) {
+    int32_t getFirstAvailable(int32_t index) {
         return this->data[index] + this->chunk->getMinBuildHeight();
     }
 
-    void setHeight(int x, int z, int height) {
+    void setHeight(int32_t x, int32_t z, int32_t height) {
         this->data[getIndex(x, z)] = height - this->chunk->getMinBuildHeight();
     }
 
-    static int getIndex(int x, int z) {
+    static int32_t getIndex(int32_t x, int32_t z) {
         return x + z * 16;
     }
 };

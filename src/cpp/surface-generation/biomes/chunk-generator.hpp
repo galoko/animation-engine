@@ -1,6 +1,9 @@
 #pragma once
 
+#include "biome-source.hpp"
 #include "blocks.hpp"
+#include "chunk-generator.fwd.hpp"
+#include "chunks.fwd.hpp"
 #include "mth.hpp"
 #include "pos.hpp"
 #include "random.hpp"
@@ -22,8 +25,8 @@ template <typename T> class StructureFeature {};
 class StructureSettings {
 public:
     template <typename T>
-    StructureSettings(StrongholdConfiguration *p_64586_,
-                      std::map<StructureFeature<T> *, StructureFeatureConfiguration *> p_64587_) {
+    StructureSettings(StrongholdConfiguration *configuration,
+                      std::map<StructureFeature<T> *, StructureFeatureConfiguration *> options) {
         //
     }
 
@@ -36,11 +39,11 @@ class NoiseSamplingSettings {
 public:
     double xzScale, yScale, xzFactor, yFactor;
 
-    NoiseSamplingSettings(double p_64497_, double p_64498_, double p_64499_, double p_64500_) {
-        this->xzScale = p_64497_;
-        this->yScale = p_64498_;
-        this->xzFactor = p_64499_;
-        this->yFactor = p_64500_;
+    NoiseSamplingSettings(double xzScale, double yScale, double xzFactor, double yFactor) {
+        this->xzScale = xzScale;
+        this->yScale = yScale;
+        this->xzFactor = xzFactor;
+        this->yFactor = yFactor;
     }
 };
 
@@ -98,12 +101,13 @@ class NoiseSettings {
     }
 
 public:
-    static NoiseSettings *create(int32_t p_189200_, int32_t p_189201_, NoiseSamplingSettings *p_189202_,
-                                 NoiseSlider *p_189203_, NoiseSlider *p_189204_, int32_t p_189205_, int32_t p_189206_,
-                                 bool p_189207_, bool p_189208_, bool p_189209_, TerrainShaper *p_189210_) {
-        NoiseSettings *noisesettings =
-            new NoiseSettings(p_189200_, p_189201_, p_189202_, p_189203_, p_189204_, p_189205_, p_189206_, p_189207_,
-                              p_189208_, p_189209_, p_189210_);
+    static NoiseSettings *create(int32_t minY, int32_t height, NoiseSamplingSettings *noiseSamplingSettings,
+                                 NoiseSlider *topSlideSettings, NoiseSlider *bottomSlideSettings,
+                                 int32_t noiseSizeHorizontal, int32_t noiseSizeVertical, bool islandNoiseOverride,
+                                 bool isAmplified, bool largeBiomes, TerrainShaper *terrainShaper) {
+        NoiseSettings *noisesettings = new NoiseSettings(minY, height, noiseSamplingSettings, topSlideSettings,
+                                                         bottomSlideSettings, noiseSizeHorizontal, noiseSizeVertical,
+                                                         islandNoiseOverride, isAmplified, largeBiomes, terrainShaper);
         return noisesettings;
     }
 
@@ -140,20 +144,20 @@ private:
     bool noodleCavesEnabled;
 
 private:
-    NoiseGeneratorSettings(StructureSettings *p_188873_, NoiseSettings *p_188874_, BlockState p_188875_,
-                           BlockState p_188876_, SurfaceRules::RuleSource *p_188877_, int32_t p_188878_, bool p_188879_,
-                           bool p_188880_, bool p_188881_, bool p_188882_, bool noodleCavesEnabled,
-                           bool useLegacyRandom) {
-        this->_structureSettings = p_188873_;
-        this->_noiseSettings = p_188874_;
-        this->defaultBlock = p_188875_;
-        this->defaultFluid = p_188876_;
-        this->_surfaceRule = p_188877_;
-        this->_seaLevel = p_188878_;
-        this->_disableMobGeneration = p_188879_;
-        this->aquifersEnabled = p_188880_;
-        this->noiseCavesEnabled = p_188881_;
-        this->oreVeinsEnabled = p_188882_;
+    NoiseGeneratorSettings(StructureSettings *_structureSettings, NoiseSettings *_noiseSettings,
+                           BlockState defaultBlock, BlockState defaultFluid, SurfaceRules::RuleSource *_surfaceRule,
+                           int32_t _seaLevel, bool _disableMobGeneration, bool aquifersEnabled, bool noiseCavesEnabled,
+                           bool oreVeinsEnabled, bool noodleCavesEnabled, bool useLegacyRandom) {
+        this->_structureSettings = _structureSettings;
+        this->_noiseSettings = _noiseSettings;
+        this->defaultBlock = defaultBlock;
+        this->defaultFluid = defaultFluid;
+        this->_surfaceRule = _surfaceRule;
+        this->_seaLevel = _seaLevel;
+        this->_disableMobGeneration = _disableMobGeneration;
+        this->aquifersEnabled = aquifersEnabled;
+        this->noiseCavesEnabled = noiseCavesEnabled;
+        this->oreVeinsEnabled = oreVeinsEnabled;
         this->noodleCavesEnabled = noodleCavesEnabled;
         this->randomSource = useLegacyRandom ? WorldgenRandom::Algorithm::LEGACY : WorldgenRandom::Algorithm::XOROSHIRO;
     }
@@ -277,4 +281,47 @@ private:
     static NoiseGeneratorSettings *END;
     static NoiseGeneratorSettings *CAVES;
     static NoiseGeneratorSettings *FLOATING_ISLANDS;
+};
+
+class TerrainInfo {};
+
+class Blender {
+private:
+    static Blender *EMPTY;
+
+public:
+    TerrainInfo *blendOffsetAndFactor(int32_t x, int32_t z, TerrainInfo *terrainInfo) {
+        return terrainInfo;
+    }
+
+    double blendDensity(int32_t x, int32_t y, int32_t z, double density) {
+        return density;
+    }
+
+    BiomeResolver *getBiomeResolver(BiomeResolver *resolver) {
+        return resolver;
+    }
+
+    static Blender *empty() {
+        return EMPTY;
+    }
+};
+
+class NoiseBiomeSource {
+    Biomes getNoiseBiome(int32_t x, int32_t y, int32_t z);
+};
+
+class ChunkGenerator {
+public:
+    ChunkAccess *createBiomes(Blender *blender, ChunkAccess *chunk) {
+        // TODO
+        // chunk->fillBiomesFromNoise(this.runtimeBiomeSource::getNoiseBiome, this->climateSampler());
+        return chunk;
+    }
+
+    ChunkAccess *fillFromNoise(Blender *blender, ChunkAccess *chunk) {
+        // TODO
+        // chunk->fillBiomesFromNoise(this.runtimeBiomeSource::getNoiseBiome, this->climateSampler());
+        return chunk;
+    }
 };

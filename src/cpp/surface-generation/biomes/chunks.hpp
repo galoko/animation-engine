@@ -1,5 +1,6 @@
 #pragma once
 
+#include "chunk-status.fwd.hpp"
 #include "chunks.fwd.hpp"
 #include "heightmap.fwd.hpp"
 #include "pos.hpp"
@@ -49,13 +50,21 @@ public:
 
 class BlockGetter : public LevelHeightAccessor {
 public:
-    virtual BlockState getBlockState(BlockPos *p_45571_) = 0;
+    virtual BlockState getBlockState(BlockPos *pos) = 0;
 };
 
 class ChunkAccess : public BlockGetter {
 public:
+    bool isLightCorrect;
+
+    virtual ChunkStatus *getStatus() = 0;
+
+    ChunkPos *getPos() {
+        return nullptr;
+    }
+
     // TODO
-    int getHighestSectionPosition() {
+    int32_t getHighestSectionPosition() {
         return 0;
     }
 
