@@ -2,6 +2,7 @@
 #include <iostream>
 #include <stdio.h>
 
+#include "surface-generation/biomes/aquifer.cpp"
 #include "surface-generation/biomes/aquifer.hpp"
 #include "surface-generation/biomes/biome-source.cpp"
 #include "surface-generation/biomes/biome-source.hpp"
@@ -13,6 +14,8 @@
 #include "surface-generation/biomes/climate.hpp"
 #include "surface-generation/biomes/cubic-spline.hpp"
 #include "surface-generation/biomes/heightmap.hpp"
+#include "surface-generation/biomes/noise-chunk.cpp"
+#include "surface-generation/biomes/noise-chunk.hpp"
 #include "surface-generation/biomes/noise-data.cpp"
 #include "surface-generation/biomes/noise-data.hpp"
 #include "surface-generation/biomes/noise/blended-noise.hpp"

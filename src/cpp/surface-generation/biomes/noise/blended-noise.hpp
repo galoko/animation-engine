@@ -17,6 +17,18 @@ public:
     }
 };
 
+class NoiseSamplingSettings {
+public:
+    double xzScale, yScale, xzFactor, yFactor;
+
+    NoiseSamplingSettings(double xzScale, double yScale, double xzFactor, double yFactor) {
+        this->xzScale = xzScale;
+        this->yScale = yScale;
+        this->xzFactor = xzFactor;
+        this->yFactor = yFactor;
+    }
+};
+
 class BlendedNoise : public NoiseChunk::NoiseFiller {
 private:
     PerlinNoise *minLimitNoise;

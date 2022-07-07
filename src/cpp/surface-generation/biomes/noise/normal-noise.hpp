@@ -22,7 +22,7 @@ public:
             this->amplitudes = amplitudes;
         }
 
-        NoiseParameters(int32_t firstOctave, double firstAmplitude, vector<double> &amplitudes) {
+        NoiseParameters(int32_t firstOctave, double firstAmplitude, vector<double> amplitudes = {}) {
             this->firstOctave = firstOctave;
             this->amplitudes = new vector<double>(amplitudes);
             this->amplitudes->insert(this->amplitudes->begin(), firstAmplitude);
