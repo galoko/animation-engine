@@ -10,6 +10,7 @@
 #include "surface-generation/biomes/chunk-generator.hpp"
 #include "surface-generation/biomes/chunk-status.cpp"
 #include "surface-generation/biomes/chunk-status.hpp"
+#include "surface-generation/biomes/chunks.cpp"
 #include "surface-generation/biomes/chunks.hpp"
 #include "surface-generation/biomes/climate.hpp"
 #include "surface-generation/biomes/cubic-spline.hpp"

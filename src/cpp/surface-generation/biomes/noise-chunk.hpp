@@ -32,20 +32,6 @@ public:
 class NoiseChunk;
 class NoiseInterpolator;
 
-using InterpolatableNoise = function<Sampler *(NoiseChunk *)>;
-using NoiseFiller = function<double(int32_t x, int32_t y, int32_t z)>;
-using BlockStateFiller = function<BlockState(int32_t x, int32_t y, int32_t z)>;
-
-template <typename K, typename T> T computeIfAbsent(std::map<K, T> &m, K key, function<T(K)> computor) {
-    if (m.find(key) == m.end()) {
-        T value = computor(key);
-        m.at(key) = value;
-        return value;
-    } else {
-        return m.at(key);
-    }
-}
-
 class NoiseChunk {
 public:
     typedef Sampler Sampler;
@@ -84,7 +70,7 @@ public:
                                 Blender *blender);
 
     static NoiseChunk *forColumn(int32_t startX, int32_t startZ, int32_t cellNoiseMinY, int32_t cellCountY,
-                                 NoiseSampler *p_188763_, NoiseGeneratorSettings *noiseSettings,
+                                 NoiseSampler *sampler, NoiseGeneratorSettings *noiseSettings,
                                  Aquifer::FluidPicker *fluidPicker);
 
 private:
@@ -104,33 +90,33 @@ public:
     }
 
 private:
-    int32_t computePreliminarySurfaceLevel(int64_t p_198250_);
+    int32_t computePreliminarySurfaceLevel(int64_t loc);
 
 public:
-    NoiseChunk::NoiseInterpolator *createNoiseInterpolator(NoiseChunk::NoiseFiller p_188781_);
+    NoiseChunk::NoiseInterpolator *createNoiseInterpolator(NoiseChunk::NoiseFiller filler);
 
     Blender *getBlender() {
         return this->blender;
     }
 
     void initializeForFirstCellX();
-    void advanceCellX(int32_t p_188750_);
-    void selectCellYZ(int32_t p_188811_, int32_t p_188812_);
-    void updateForY(double p_188745_);
-    void updateForX(double p_188793_);
-    void updateForZ(double p_188806_);
+    void advanceCellX(int32_t cellX);
+    void selectCellYZ(int32_t cellY, int32_t cellZ);
+    void updateForY(double t);
+    void updateForX(double t);
+    void updateForZ(double t);
     void swapSlices();
 
     Aquifer *aquifer() {
         return this->_aquifer;
     }
 
-    BlockState updateNoiseAndGenerateBaseState(int32_t p_188755_, int32_t p_188756_, int32_t p_188757_) {
-        return this->baseNoise(p_188755_, p_188756_, p_188757_);
+    BlockState updateNoiseAndGenerateBaseState(int32_t x, int32_t y, int32_t z) {
+        return this->baseNoise(x, y, z);
     }
 
-    BlockState oreVeinify(int32_t p_188801_, int32_t p_188802_, int32_t p_188803_) {
-        return this->oreVeins(p_188801_, p_188802_, p_188803_);
+    BlockState oreVeinify(int32_t x, int32_t y, int32_t z) {
+        return this->oreVeins(x, y, z);
     }
 };
 
@@ -157,25 +143,25 @@ private:
     double value;
 
 public:
-    NoiseInterpolator(NoiseChunk *noiseChunk, NoiseFiller p_188848_) {
+    NoiseInterpolator(NoiseChunk *noiseChunk, NoiseFiller filler) {
         this->noiseChunk = noiseChunk;
-        this->noiseFiller = p_188848_;
+        this->noiseFiller = filler;
         this->slice0 = this->allocateSlice(this->noiseChunk->cellCountY, this->noiseChunk->cellCountXZ);
         this->slice1 = this->allocateSlice(this->noiseChunk->cellCountY, this->noiseChunk->cellCountXZ);
         this->noiseChunk->interpolators.push_back(this);
     }
 
 private:
-    double **allocateSlice(int32_t p_188855_, int32_t p_188856_) {
-        int32_t i = p_188856_ + 1;
-        int32_t j = p_188855_ + 1;
-        double **adouble = new double *[i];
+    double **allocateSlice(int32_t cellCountY, int32_t cellCountXZ) {
+        int32_t sliceWidth = cellCountXZ + 1;
+        int32_t sliceHeight = cellCountY + 1;
+        double **slice = new double *[sliceWidth];
 
-        for (int32_t k = 0; k < i; ++k) {
-            adouble[k] = new double[j];
+        for (int32_t x = 0; x < sliceWidth; ++x) {
+            slice[x] = new double[sliceHeight];
         }
 
-        return adouble;
+        return slice;
     }
 
 public:
@@ -183,39 +169,39 @@ public:
         this->fillSlice(this->slice0, this->noiseChunk->firstCellX);
     }
 
-    void advanceCellX(int32_t p_188853_) {
-        this->fillSlice(this->slice1, this->noiseChunk->firstCellX + p_188853_ + 1);
+    void advanceCellX(int32_t cellX) {
+        this->fillSlice(this->slice1, this->noiseChunk->firstCellX + cellX + 1);
     }
 
 private:
-    void fillSlice(double **p_188858_, int32_t p_188859_);
+    void fillSlice(double **slice, int32_t cellX);
 
 public:
-    void selectCellYZ(int32_t p_188864_, int32_t p_188865_) {
-        this->noise000 = this->slice0[p_188865_][p_188864_];
-        this->noise001 = this->slice0[p_188865_ + 1][p_188864_];
-        this->noise100 = this->slice1[p_188865_][p_188864_];
-        this->noise101 = this->slice1[p_188865_ + 1][p_188864_];
-        this->noise010 = this->slice0[p_188865_][p_188864_ + 1];
-        this->noise011 = this->slice0[p_188865_ + 1][p_188864_ + 1];
-        this->noise110 = this->slice1[p_188865_][p_188864_ + 1];
-        this->noise111 = this->slice1[p_188865_ + 1][p_188864_ + 1];
+    void selectCellYZ(int32_t cellY, int32_t cellZ) {
+        this->noise000 = this->slice0[cellZ][cellY];
+        this->noise001 = this->slice0[cellZ + 1][cellY];
+        this->noise100 = this->slice1[cellZ][cellY];
+        this->noise101 = this->slice1[cellZ + 1][cellY];
+        this->noise010 = this->slice0[cellZ][cellY + 1];
+        this->noise011 = this->slice0[cellZ + 1][cellY + 1];
+        this->noise110 = this->slice1[cellZ][cellY + 1];
+        this->noise111 = this->slice1[cellZ + 1][cellY + 1];
     }
 
-    void updateForY(double p_188851_) {
-        this->valueXZ00 = Mth::lerp(p_188851_, this->noise000, this->noise010);
-        this->valueXZ10 = Mth::lerp(p_188851_, this->noise100, this->noise110);
-        this->valueXZ01 = Mth::lerp(p_188851_, this->noise001, this->noise011);
-        this->valueXZ11 = Mth::lerp(p_188851_, this->noise101, this->noise111);
+    void updateForY(double t) {
+        this->valueXZ00 = Mth::lerp(t, this->noise000, this->noise010);
+        this->valueXZ10 = Mth::lerp(t, this->noise100, this->noise110);
+        this->valueXZ01 = Mth::lerp(t, this->noise001, this->noise011);
+        this->valueXZ11 = Mth::lerp(t, this->noise101, this->noise111);
     }
 
-    void updateForX(double p_188862_) {
-        this->valueZ0 = Mth::lerp(p_188862_, this->valueXZ00, this->valueXZ10);
-        this->valueZ1 = Mth::lerp(p_188862_, this->valueXZ01, this->valueXZ11);
+    void updateForX(double t) {
+        this->valueZ0 = Mth::lerp(t, this->valueXZ00, this->valueXZ10);
+        this->valueZ1 = Mth::lerp(t, this->valueXZ01, this->valueXZ11);
     }
 
-    void updateForZ(double p_188867_) {
-        this->value = Mth::lerp(p_188867_, this->valueZ0, this->valueZ1);
+    void updateForZ(double t) {
+        this->value = Mth::lerp(t, this->valueZ0, this->valueZ1);
     }
 
 public:

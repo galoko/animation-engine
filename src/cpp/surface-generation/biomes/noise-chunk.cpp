@@ -39,9 +39,9 @@ NoiseChunk::NoiseInterpolator *NoiseChunk::createNoiseInterpolator(NoiseChunk::N
     return new NoiseChunk::NoiseInterpolator(this, noiseFiller);
 }
 
-int32_t NoiseChunk::computePreliminarySurfaceLevel(int64_t p_198250_) {
-    int32_t i = ChunkPos::getX(p_198250_);
-    int32_t j = ChunkPos::getZ(p_198250_);
+int32_t NoiseChunk::computePreliminarySurfaceLevel(int64_t loc) {
+    int32_t i = ChunkPos::getX(loc);
+    int32_t j = ChunkPos::getZ(loc);
     int32_t k = i - this->firstNoiseX;
     int32_t l = j - this->firstNoiseZ;
     int32_t i1 = this->_noiseData.size();
@@ -70,10 +70,10 @@ NoiseChunk *NoiseChunk::forChunk(ChunkAccess *chunkAccess, NoiseSampler *sampler
 }
 
 NoiseChunk *NoiseChunk::forColumn(int32_t startX, int32_t startZ, int32_t cellNoiseMinY, int32_t cellCountY,
-                                  NoiseSampler *p_188763_, NoiseGeneratorSettings *noiseSettings,
+                                  NoiseSampler *sampler, NoiseGeneratorSettings *noiseSettings,
                                   Aquifer::FluidPicker *fluidPicker) {
     return new NoiseChunk(
-        1, cellCountY, cellNoiseMinY, p_188763_, startX, startZ,
+        1, cellCountY, cellNoiseMinY, sampler, startX, startZ,
         [](int32_t x, int32_t y, int32_t z) -> double { return 0.0; }, noiseSettings, fluidPicker, Blender::empty());
 }
 
@@ -83,33 +83,33 @@ void NoiseChunk::initializeForFirstCellX() {
     }
 }
 
-void NoiseChunk::advanceCellX(int32_t p_188750_) {
+void NoiseChunk::advanceCellX(int32_t cellX) {
     for (NoiseChunk::NoiseInterpolator *&interpolator : this->interpolators) {
-        interpolator->advanceCellX(p_188750_);
+        interpolator->advanceCellX(cellX);
     }
 }
 
-void NoiseChunk::selectCellYZ(int32_t p_188811_, int32_t p_188812_) {
+void NoiseChunk::selectCellYZ(int32_t cellY, int32_t cellZ) {
     for (NoiseChunk::NoiseInterpolator *&interpolator : this->interpolators) {
-        interpolator->selectCellYZ(p_188811_, p_188812_);
+        interpolator->selectCellYZ(cellY, cellZ);
     }
 }
 
-void NoiseChunk::updateForY(double p_188745_) {
+void NoiseChunk::updateForY(double t) {
     for (NoiseChunk::NoiseInterpolator *&interpolator : this->interpolators) {
-        interpolator->updateForY(p_188745_);
+        interpolator->updateForY(t);
     };
 }
 
-void NoiseChunk::updateForX(double p_188793_) {
+void NoiseChunk::updateForX(double t) {
     for (NoiseChunk::NoiseInterpolator *&interpolator : this->interpolators) {
-        interpolator->updateForX(p_188793_);
+        interpolator->updateForX(t);
     };
 }
 
-void NoiseChunk::updateForZ(double p_188806_) {
+void NoiseChunk::updateForZ(double t) {
     for (NoiseChunk::NoiseInterpolator *&interpolator : this->interpolators) {
-        interpolator->updateForZ(p_188806_);
+        interpolator->updateForZ(t);
     };
 }
 
@@ -119,18 +119,18 @@ void NoiseChunk::swapSlices() {
     }
 }
 
-void NoiseInterpolator::fillSlice(double **p_188858_, int32_t p_188859_) {
-    int32_t i = this->noiseChunk->noiseSettings->getCellWidth();
-    int32_t j = this->noiseChunk->noiseSettings->getCellHeight();
+void NoiseInterpolator::fillSlice(double **slice, int32_t cellX) {
+    int32_t cellWidth = this->noiseChunk->noiseSettings->getCellWidth();
+    int32_t cellHeight = this->noiseChunk->noiseSettings->getCellHeight();
 
-    for (int32_t k = 0; k < this->noiseChunk->cellCountXZ + 1; ++k) {
-        int32_t l = this->noiseChunk->firstCellZ + k;
+    for (int32_t offsetZ = 0; offsetZ < this->noiseChunk->cellCountXZ + 1; ++offsetZ) {
+        int32_t cellZ = this->noiseChunk->firstCellZ + offsetZ;
 
-        for (int32_t i1 = 0; i1 < this->noiseChunk->cellCountY + 1; ++i1) {
-            int32_t j1 = i1 + this->noiseChunk->cellNoiseMinY;
-            int32_t k1 = j1 * j;
-            double d0 = this->noiseFiller(p_188859_ * i, k1, l * i);
-            p_188858_[k][i1] = d0;
+        for (int32_t offsetY = 0; offsetY < this->noiseChunk->cellCountY + 1; ++offsetY) {
+            int32_t cellY = offsetY + this->noiseChunk->cellNoiseMinY;
+            int32_t y = cellY * cellHeight;
+            double noise = this->noiseFiller(cellX * cellWidth, y, cellZ * cellWidth);
+            slice[offsetZ][offsetY] = noise;
         }
     }
 }

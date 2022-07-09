@@ -14,6 +14,7 @@
 #include "terrain-shaper.hpp"
 
 #include <map>
+#include <set>
 #define _USE_MATH_DEFINES
 #include <math.h>
 
@@ -198,7 +199,7 @@ public:
     }
 
     bool isNoodleCavesEnabled() {
-        return false;
+        return this->noodleCavesEnabled;
     }
 
     bool useLegacyRandomSource() {
@@ -246,7 +247,7 @@ private:
                                   new NoiseSlider(-0.078125, 2, isAmplified ? 0 : 8),
                                   new NoiseSlider(isAmplified ? 0.4 : 0.1171875, 3, 0), 1, 2, false, isAmplified,
                                   isLargeBiomes, TerrainProvider::overworld(isAmplified)),
-            Blocks::STONE, Blocks::WATER, SurfaceRuleData::overworld(), 63, false, true, true, true, true, false);
+            Blocks::STONE, Blocks::WATER, SurfaceRuleData::overworld(), 63, false, true, false, true, false, false);
     }
 
     static NoiseGeneratorSettings *caves() {
@@ -913,16 +914,283 @@ public:
 };
 
 class ChunkGenerator : public NoiseBiomeSource {
+private:
+    StructureSettings *settings;
+    int64_t strongholdSeed;
+
+protected:
+    BiomeSource *biomeSource;
+    BiomeSource *runtimeBiomeSource;
+
 public:
+    ChunkGenerator(BiomeSource *biomeSource, StructureSettings *settings)
+        : ChunkGenerator(biomeSource, biomeSource, settings, 0LL) {
+    }
+
+    ChunkGenerator(BiomeSource *biomeSource, BiomeSource *runtimeBiomeSource, StructureSettings *settings,
+                   int64_t strongholdSeed) {
+        this->biomeSource = biomeSource;
+        this->runtimeBiomeSource = runtimeBiomeSource;
+        this->settings = settings;
+        this->strongholdSeed = strongholdSeed;
+    }
+
+    virtual ChunkGenerator *withSeed(int64_t seed) = 0;
+
     ChunkAccess *createBiomes(Blender *blender, ChunkAccess *chunk) {
-        // TODO
-        // chunk->fillBiomesFromNoise(this->runtimeBiomeSource::getNoiseBiome, this->climateSampler());
+        chunk->fillBiomesFromNoise(this->runtimeBiomeSource, this->climateSampler());
         return chunk;
     }
 
-    ChunkAccess *fillFromNoise(Blender *blender, ChunkAccess *chunk) {
-        // TODO
-        // chunk->fillBiomesFromNoise(this->runtimeBiomeSource::getNoiseBiome, this->climateSampler());
-        return chunk;
+    virtual Climate::Sampler *climateSampler() = 0;
+
+    Biomes getNoiseBiome(int32_t x, int32_t y, int32_t z) {
+        return this->getBiomeSource()->getNoiseBiome(x, y, z, this->climateSampler());
+    }
+
+    StructureSettings *getSettings() {
+        return this->settings;
+    }
+
+    int32_t getSpawnHeight(LevelHeightAccessor *heightAccessor) {
+        return 64;
+    }
+
+    BiomeSource *getBiomeSource() {
+        return this->runtimeBiomeSource;
+    }
+
+    virtual int32_t getGenDepth() = 0;
+
+    virtual ChunkAccess *fillFromNoise(Blender *blender, ChunkAccess *chunkAccess) = 0;
+
+    virtual int32_t getSeaLevel() = 0;
+
+    virtual int32_t getMinY() = 0;
+
+    virtual int32_t getBaseHeight(int32_t x, int32_t z, HeightmapTypes type, LevelHeightAccessor *heightAccessor) = 0;
+
+    // virtual NoiseColumn *getBaseColumn(int32_t x, int32_t y, LevelHeightAccessor *heightAccessor) = 0;
+
+    int32_t getFirstFreeHeight(int32_t x, int32_t z, HeightmapTypes type, LevelHeightAccessor *heightAccessor) {
+        return this->getBaseHeight(x, z, type, heightAccessor);
+    }
+
+    int32_t getFirstOccupiedHeight(int32_t x, int32_t z, HeightmapTypes type, LevelHeightAccessor *heightAccessor) {
+        return this->getBaseHeight(x, z, type, heightAccessor) - 1;
+    }
+};
+
+using WorldGenMaterialRule = function<BlockState(NoiseChunk *noiseChunk, int32_t x, int32_t y, int32_t z)>;
+
+class SimpleFluidPicker : public Aquifer::FluidPicker {
+private:
+    int32_t seaLevel;
+    Aquifer::FluidStatus *lava;
+    Aquifer::FluidStatus *defaultFluid;
+
+public:
+    SimpleFluidPicker(int32_t seaLevel, Aquifer::FluidStatus *lava, Aquifer::FluidStatus *defaultFluid) {
+        this->seaLevel = seaLevel;
+        this->lava = lava;
+        this->defaultFluid = defaultFluid;
+    }
+
+    Aquifer::FluidStatus *computeFluid(int32_t x, int32_t y, int32_t z) {
+        return y < std::min(-54, this->seaLevel) ? this->lava : this->defaultFluid;
+    }
+};
+
+WorldGenMaterialRule makeMaterialRuleList(vector<WorldGenMaterialRule> rules) {
+    return [rules](NoiseChunk *noiseChunk, int32_t x, int32_t y, int32_t z) -> BlockState {
+        for (const WorldGenMaterialRule &rule : rules) {
+            BlockState blockstate = rule(noiseChunk, x, y, z);
+            if (blockstate != Blocks::NULL_BLOCK) {
+                return blockstate;
+            }
+        }
+
+        return Blocks::NULL_BLOCK;
+    };
+}
+
+class BelowZeroRetrogen {
+public:
+    static BiomeResolver *getBiomeResolver(BiomeResolver *resolver, ChunkAccess *chunkAccess) {
+        return resolver;
+    };
+};
+
+NoiseFiller makeBeardifier(ChunkAccess *chunkAccess) {
+    return [](int32_t x, int32_t y, int32_t z) -> double { return 0; };
+}
+
+class NoiseClimateSampler : public Climate::Sampler {
+private:
+    NoiseSampler *sampler;
+    NoiseChunk *noisechunk;
+
+public:
+    NoiseClimateSampler(NoiseSampler *sampler, NoiseChunk *noisechunk) {
+        this->sampler = sampler;
+        this->noisechunk = noisechunk;
+    }
+
+    Climate::TargetPoint *sample(int32_t x, int32_t y, int32_t z) {
+        return this->sampler->target(x, y, z, this->noisechunk->noiseData(x, z));
+    }
+};
+
+class NoiseBasedChunkGenerator : public ChunkGenerator {
+private:
+    static const BlockState AIR = Blocks::AIR;
+
+    BlockState defaultBlock;
+    int64_t seed;
+    function<NoiseGeneratorSettings *(void)> settings;
+    NoiseSampler *sampler;
+    // SurfaceSystem *surfaceSystem;
+    WorldGenMaterialRule materialRule;
+    Aquifer::FluidPicker *globalFluidPicker;
+
+public:
+    NoiseBasedChunkGenerator(BiomeSource *biomeSource, int64_t seed, function<NoiseGeneratorSettings *(void)> settings)
+        : NoiseBasedChunkGenerator(biomeSource, biomeSource, seed, settings) {
+    }
+
+private:
+    NoiseBasedChunkGenerator(BiomeSource *biomeSource, BiomeSource *runtimeBiomeSource, int64_t seed,
+                             function<NoiseGeneratorSettings *(void)> settings)
+        : ChunkGenerator(biomeSource, runtimeBiomeSource, settings()->structureSettings(), seed) {
+
+        this->seed = seed;
+        this->settings = settings;
+        NoiseGeneratorSettings *noiseGeneratorSettings = this->settings();
+        this->defaultBlock = noiseGeneratorSettings->getDefaultBlock();
+        NoiseSettings *noisesettings = noiseGeneratorSettings->noiseSettings();
+        this->sampler = new NoiseSampler(noisesettings, noiseGeneratorSettings->isNoiseCavesEnabled(), seed,
+                                         noiseGeneratorSettings->getRandomSource());
+        vector<WorldGenMaterialRule> rules = vector<WorldGenMaterialRule>();
+        rules.push_back([](NoiseChunk *noiseChunk, int32_t x, int32_t y, int32_t z) -> BlockState {
+            return noiseChunk->updateNoiseAndGenerateBaseState(x, y, z);
+        });
+        /*
+        rules.push_back([](NoiseChunk *noiseChunk, int32_t x, int32_t y, int32_t z) -> BlockState {
+            return noiseChunk->oreVeinify(x, y, z);
+        });
+        */
+        this->materialRule = makeMaterialRuleList(rules);
+        Aquifer::FluidStatus *lava = new Aquifer::FluidStatus(-54, Blocks::LAVA);
+        int32_t seaLevel = noiseGeneratorSettings->seaLevel();
+        Aquifer::FluidStatus *defaultFluid =
+            new Aquifer::FluidStatus(seaLevel, noiseGeneratorSettings->getDefaultFluid());
+        // Aquifer::FluidStatus *air = new Aquifer::FluidStatus(noisesettings->minY - 1, Blocks::AIR);
+        this->globalFluidPicker = new SimpleFluidPicker(seaLevel, lava, defaultFluid);
+        /*
+        this->surfaceSystem =
+            new SurfaceSystem(this->defaultBlock, seaLevel, seed, noiseGeneratorSettings->getRandomSource());
+        */
+    }
+
+    ChunkAccess *createBiomes(Blender *blender, ChunkAccess *chunkAccess) {
+        this->doCreateBiomes(blender, chunkAccess);
+        return chunkAccess;
+    }
+
+private:
+    void doCreateBiomes(Blender *blender, ChunkAccess *chunkAccess) {
+        NoiseChunk *noisechunk = chunkAccess->getOrCreateNoiseChunk(
+            this->sampler, [chunkAccess]() -> NoiseFiller { return makeBeardifier(chunkAccess); }, this->settings(),
+            this->globalFluidPicker, blender);
+        BiomeResolver *biomeresolver =
+            BelowZeroRetrogen::getBiomeResolver(blender->getBiomeResolver(this->runtimeBiomeSource), chunkAccess);
+        chunkAccess->fillBiomesFromNoise(biomeresolver, new NoiseClimateSampler(this->sampler, noisechunk));
+    }
+
+public:
+    Climate::Sampler *climateSampler() {
+        return this->sampler;
+    }
+
+    ChunkGenerator *withSeed(int64_t seed) {
+        return new NoiseBasedChunkGenerator(this->biomeSource->withSeed(seed), seed, this->settings);
+    }
+
+    int32_t getBaseHeight(int32_t x, int32_t z, HeightmapTypes type, LevelHeightAccessor *heightAccessor) {
+        /*
+        NoiseSettings *noisesettings = this->settings()->noiseSettings();
+        int32_t minY = std::max(noisesettings->minY, heightAccessor->getMinBuildHeight());
+        int32_t maxY = std::min(noisesettings->minY + noisesettings->height, heightAccessor->getMaxBuildHeight());
+        int32_t minCellY = Mth::intFloorDiv(minY, noisesettings->getCellHeight());
+        int32_t maxCellY = Mth::intFloorDiv(maxY - minY, noisesettings->getCellHeight());
+        return maxCellY <= 0 ? heightAccessor->getMinBuildHeight()
+                             : this->iterateNoiseColumn(x, z, nullptr, type.isOpaque(), minCellY, maxCellY)
+                                   .orElse(heightAccessor->getMinBuildHeight());
+        */
+        return 0;
+    }
+
+    /*
+    NoiseColumn *getBaseColumn(int32_t x, int32_t z, LevelHeightAccessor *heightAccessor) {
+        NoiseSettings *noisesettings = this->settings()->noiseSettings();
+        int32_t minY = std::max(noisesettings->minY, heightAccessor->getMinBuildHeight());
+        int32_t maxY = std::min(noisesettings->minY + noisesettings->height, heightAccessor->getMaxBuildHeight());
+        int32_t minCellY = Mth::intFloorDiv(minY, noisesettings->getCellHeight());
+        int32_t maxCellY = Mth::intFloorDiv(maxY - minY, noisesettings->getCellHeight());
+        if (maxCellY <= 0) {
+            return new NoiseColumn(minY, EMPTY_COLUMN);
+        } else {
+            BlockState[] ablockstate = new BlockState[l * noisesettings->getCellHeight()];
+            this->iterateNoiseColumn(x, z, ablockstate, nullptr, minCellY, maxCellY);
+            return new NoiseColumn(minY, ablockstate);
+        }
+    }
+    */
+
+    ChunkAccess *fillFromNoise(Blender *blender, ChunkAccess *chunkAccess) {
+        NoiseSettings *noisesettings = this->settings()->noiseSettings();
+        LevelHeightAccessor *heightAccessor = chunkAccess->getHeightAccessorForGeneration();
+        int32_t minY = std::max(noisesettings->minY, heightAccessor->getMinBuildHeight());
+        int32_t maxY = std::min(noisesettings->minY + noisesettings->height, heightAccessor->getMaxBuildHeight());
+        int32_t minCellY = Mth::intFloorDiv(minY, noisesettings->getCellHeight());
+        int32_t cellCount = Mth::intFloorDiv(maxY - minY, noisesettings->getCellHeight());
+        if (cellCount <= 0) {
+            return chunkAccess;
+        } else {
+            int32_t maxSectionIndex =
+                chunkAccess->getSectionIndex(cellCount * noisesettings->getCellHeight() - 1 + minY);
+            int32_t minSectionIndex = chunkAccess->getSectionIndex(minY);
+            std::set<LevelChunkSection *> sections = std::set<LevelChunkSection *>();
+
+            for (int32_t sectionIndex = maxSectionIndex; sectionIndex >= minSectionIndex; --sectionIndex) {
+                LevelChunkSection *section = chunkAccess->getSection(sectionIndex);
+                section->acquire();
+                sections.insert(section);
+            }
+
+            ChunkAccess *result = this->doFill(blender, chunkAccess, minCellY, cellCount);
+
+            for (LevelChunkSection *section : sections) {
+                section->release();
+            }
+
+            return result;
+        }
+    }
+
+private:
+    ChunkAccess *doFill(Blender *blender, ChunkAccess *chunkAccess, int32_t minCellY, int32_t cellCount);
+
+public:
+    int32_t getGenDepth() {
+        return this->settings()->noiseSettings()->height;
+    }
+
+    int32_t getSeaLevel() {
+        return this->settings()->seaLevel();
+    }
+
+    int32_t getMinY() {
+        return this->settings()->noiseSettings()->minY;
     }
 };

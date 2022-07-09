@@ -10,6 +10,7 @@
 using namespace std;
 
 class BiomeResolver {
+public:
     virtual Biomes getNoiseBiome(int32_t x, int32_t y, int32_t z, Climate::Sampler *sampler) = 0;
 };
 
@@ -145,8 +146,6 @@ private:
     }
     */
 
-    virtual BiomeSource *withSeed(int64_t seed) = 0;
-
     /*
     set<Biome> getBiomesWithin(int32_t p_186705_, int32_t p_186706_, int32_t p_186707_, int32_t p_186708_,
                                Climate.Sampler p_186709_) {
@@ -226,6 +225,8 @@ private:
     */
 
 public:
+    virtual BiomeSource *withSeed(int64_t seed) = 0;
+
     virtual Biomes getNoiseBiome(int32_t x, int32_t y, int32_t z, Climate::Sampler *sampler) = 0;
 };
 
@@ -301,11 +302,11 @@ private:
         this->parameters = parameters;
     }
 
+public:
     BiomeSource *withSeed(int64_t seed) {
         return this;
     }
 
-public:
     bool stable(MultiNoiseBiomeSource::Preset *preset) {
         return this->preset != nullptr && this->preset->preset == preset;
     }
