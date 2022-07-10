@@ -10,7 +10,7 @@ import { Biomes, CPP_ID_TO_BIOME_NAME } from "./biomes"
 import { MutableBlockPos } from "./pos"
 import { LevelHeightAccessor, ProtoChunk } from "./chunks"
 import { ChunkStatus } from "./chunk-status"
-import { BLOCKS } from "./template-0-0"
+import { BLOCKS } from "./template-1-0"
 import { module } from "../../cpp-bridge"
 import { CPP_ID_TO_BLOCK_NAME } from "./blocks"
 
@@ -28,7 +28,7 @@ export function test() {
 
     const heightAccessor = new LevelHeightAccessor()
 
-    const chunkPos = new ChunkPos(0, 0)
+    const chunkPos = new ChunkPos(1, 0)
     const chunk = new ProtoChunk(chunkPos, heightAccessor)
 
     ChunkStatus.BIOMES.generate(null!, chunkGenerator, chunkAccess => chunkAccess, [chunk])
@@ -54,6 +54,8 @@ export function test() {
         }
     }
     result += "]"
+
+    debugger
 
     try {
         const ptr = module._test()

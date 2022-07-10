@@ -44,7 +44,7 @@ uint8_t *doTest() {
     NoiseBasedChunkGenerator *chunkGenerator = WorldGenSettings::makeDefaultOverworld(seed);
     LevelHeightAccessor *heightAccessor = new SimpleLevelHeightAccessor();
 
-    ChunkPos *chunkPos = new ChunkPos(0, 0);
+    ChunkPos *chunkPos = new ChunkPos(1, 0);
     ProtoChunk *chunk = new ProtoChunk(chunkPos, heightAccessor);
 
     ChunkStatus::BIOMES->generate(chunkGenerator, ChunkStatus::EMPTY_CONVERTER, {chunk});
