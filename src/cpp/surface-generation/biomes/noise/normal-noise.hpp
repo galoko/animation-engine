@@ -51,8 +51,8 @@ private:
             this->second = PerlinNoise::createLegacyForLegacyNormalNoise(randomSource, firstOctave, amplitudes);
         }
 
-        int32_t minAmplitudeIndex = INT_MAX;
-        int32_t maxAmplitudeIndex = INT_MIN;
+        int32_t minAmplitudeIndex = numeric_limits<int32_t>::max();
+        int32_t maxAmplitudeIndex = numeric_limits<int32_t>::lowest();
 
         for (int32_t amplitudeIndex = 0; amplitudeIndex < amplitudes->size(); amplitudeIndex++) {
             double amplitude = amplitudes->at(amplitudeIndex);

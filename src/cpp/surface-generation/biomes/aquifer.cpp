@@ -6,7 +6,7 @@ constexpr int32_t SURFACE_SAMPLING_OFFSETS_IN_CHUNKS[][2] = {
 
 Aquifer::FluidStatus *NoiseBasedAquifer::computeFluid(int32_t x, int32_t y, int32_t z) {
     Aquifer::FluidStatus *fluidStatus = this->globalFluidPicker->computeFluid(x, y, z);
-    int32_t minSurfaceY = INT_MAX;
+    int32_t minSurfaceY = numeric_limits<int32_t>::max();
     int32_t maxY = y + 12;
     int32_t minY = y - 12;
     bool haveFluidAtMaxSurfaceYinPlace = false;

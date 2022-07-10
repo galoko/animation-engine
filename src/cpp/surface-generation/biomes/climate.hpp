@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <utility>
 
-#include <stdint.h>
+#include <cstdint>
 
 #include "mth.hpp"
 
@@ -142,7 +142,7 @@ public:
         }
 
         T findValueBruteForce(Climate::TargetPoint *targetPoint, T defaultValue) {
-            int64_t minDistance = LLONG_MAX;
+            int64_t minDistance = numeric_limits<int64_t>::max();
             T result = defaultValue;
 
             for (pair<Climate::ParameterPoint *, T> &pair : *this->values) {

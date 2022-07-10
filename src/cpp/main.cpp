@@ -6,6 +6,7 @@
 #include "surface-generation/biomes/chunk-generator.cpp"
 #include "surface-generation/biomes/chunk-status.cpp"
 #include "surface-generation/biomes/chunks.cpp"
+#include "surface-generation/biomes/mth.cpp"
 #include "surface-generation/biomes/noise-chunk.cpp"
 #include "surface-generation/biomes/noise-data.cpp"
 #include "surface-generation/biomes/pos.cpp"
@@ -98,7 +99,7 @@ extern "C" {
 
     // gets an exception object, and prints it out.
     void print_exception(int32_t exceptionPtr) {
-        auto e = reinterpret_cast<std::exception *>(exceptionPtr);
+        auto e = reinterpret_cast<exception *>(exceptionPtr);
         printf("%s\n", e->what());
     }
 }

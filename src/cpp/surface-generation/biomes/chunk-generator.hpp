@@ -15,8 +15,8 @@
 
 #include <map>
 #include <set>
-#define _USE_MATH_DEFINES
-#include <math.h>
+
+const double PI = 3.141592653589793238463;
 
 using namespace std;
 
@@ -321,7 +321,7 @@ public:
     }
 
     static double biasTowardsExtreme(double base, double mul) {
-        return base + std::sin(M_PI * base) * mul / M_PI;
+        return base + sin(PI * base) * mul / PI;
     }
 };
 
@@ -489,7 +489,7 @@ public:
                 NormalNoise::createLegacyNetherBiome(WorldgenRandom::Algorithm_newInstance(algorithm, seed),
                                                      new NormalNoise::NoiseParameters(-7, 1.0, {1.0}));
             this->humidityNoise =
-                NormalNoise::createLegacyNetherBiome(WorldgenRandom::Algorithm_newInstance(algorithm, seed + 1L),
+                NormalNoise::createLegacyNetherBiome(WorldgenRandom::Algorithm_newInstance(algorithm, seed + 1LL),
                                                      new NormalNoise::NoiseParameters(-7, 1.0, {1.0}));
             this->offsetNoise =
                 NormalNoise::create(positionalrandomfactory->fromHashOfResourceLocation(getNoiseName(Noises::SHIFT)),
@@ -593,7 +593,7 @@ private:
             double bigEntrance = this->getBigEntrances(x, y, z);
             double spaghettiRoughness = this->spaghettiRoughness(x, y, z);
             double spaghetti3 = this->getSpaghetti3(x, y, z);
-            double minBetweenBigEntranceAndSpaghetti = std::min(bigEntrance, spaghetti3 + spaghettiRoughness);
+            double minBetweenBigEntranceAndSpaghetti = min(bigEntrance, spaghetti3 + spaghettiRoughness);
             if (isNegativeHeight) {
                 someHeight = blendedHeight;
                 spaghettiHeight = minBetweenBigEntranceAndSpaghetti * 5.0;
@@ -612,7 +612,7 @@ private:
                 }
 
                 double spaghetti2 = this->getSpaghetti2(x, y, z);
-                spaghettiHeight = std::min(minBetweenBigEntranceAndSpaghetti, spaghetti2 + spaghettiRoughness);
+                spaghettiHeight = min(minBetweenBigEntranceAndSpaghetti, spaghetti2 + spaghettiRoughness);
                 pillars = this->getPillars(x, y, z);
                 pillars = -64.0;
             }
@@ -622,7 +622,7 @@ private:
             pillars = -64.0;
         }
 
-        double finalHeight = std::max(std::min(someHeight, spaghettiHeight), pillars);
+        double finalHeight = max(min(someHeight, spaghettiHeight), pillars);
         finalHeight = this->applySlide(finalHeight, y / this->noiseSettings->getCellHeight());
         finalHeight = blender->blendDensity(x, y, z, finalHeight);
         return Mth::clamp(finalHeight, -64.0, 64.0);
@@ -668,9 +668,9 @@ public:
             clampedBaseNoise = clampedBaseNoise / 2.0 - clampedBaseNoise * clampedBaseNoise * clampedBaseNoise / 24.0;
             if (toggleSampler->sample() >= 0.0) {
                 double thickness = Mth::clampedMap(thicknessSampler->sample(), -1.0, 1.0, 0.05, 0.1);
-                double ridgeA = std::abs(1.5 * ridgeASampler->sample()) - thickness;
-                double ridgeB = std::abs(1.5 * ridgeBSampler->sample()) - thickness;
-                clampedBaseNoise = std::min(clampedBaseNoise, std::max(ridgeA, ridgeB));
+                double ridgeA = abs(1.5 * ridgeASampler->sample()) - thickness;
+                double ridgeB = abs(1.5 * ridgeBSampler->sample()) - thickness;
+                clampedBaseNoise = min(clampedBaseNoise, max(ridgeA, ridgeB));
             }
 
             clampedBaseNoise += filler(x, y, z);
@@ -698,7 +698,7 @@ public:
                     return blockState;
                 } else if (this->isVein(veinASampler->sample(), veinBSampler->sample())) {
                     double clampedVeininess =
-                        Mth::clampedMap(std::abs(veininess), (double)0.4F, (double)0.6F, (double)0.1F, (double)0.3F);
+                        Mth::clampedMap(abs(veininess), (double)0.4F, (double)0.6F, (double)0.1F, (double)0.3F);
                     if ((double)randomSource->nextFloat() < clampedVeininess &&
                         this->gapNoise->getValue((double)x, (double)y, (double)z) > (double)-0.3F) {
                         /*
@@ -727,7 +727,7 @@ public:
             }
         }
 
-        return INT_MAX;
+        return numeric_limits<int32_t>::max();
     }
 
     Aquifer *createAquifer(NoiseChunk *chunkNoise, int32_t x, int32_t z, int32_t cellY, int32_t cellCount,
@@ -825,11 +825,11 @@ private:
 
         double d5 = NoiseUtils::sampleNoiseAndMapToRange(this->pillarThicknessModulator, (double)x, (double)y,
                                                          (double)z, 0.0, 1.1);
-        d5 = std::pow(d5, 3.0);
+        d5 = pow(d5, 3.0);
 
         double d8 = this->pillarNoiseSource->getValue((double)x * 25.0, (double)y * 0.3, (double)z * 25.0);
         d8 = d5 * (d8 * 2.0 - d2);
-        return d8 > 0.03 ? d8 : -std::numeric_limits<double>::infinity();
+        return d8 > 0.03 ? d8 : -numeric_limits<double>::infinity();
     }
 
     double getLayerizedCaverns(int32_t x, int32_t y, int32_t z) {
@@ -844,10 +844,10 @@ private:
         double thickness = NoiseUtils::sampleNoiseAndMapToRange(this->spaghetti3DThicknessModulator, (double)x,
                                                                 (double)y, (double)z, 0.065, 0.088);
         double noiseSource1 = sampleWithRarity(this->spaghetti3DNoiseSource1, (double)x, (double)y, (double)z, rarity3);
-        double noise1 = std::abs(rarity3 * noiseSource1) - thickness;
+        double noise1 = abs(rarity3 * noiseSource1) - thickness;
         double noiseSource2 = sampleWithRarity(this->spaghetti3DNoiseSource2, (double)x, (double)y, (double)z, rarity3);
-        double noise2 = std::abs(rarity3 * noiseSource2) - thickness;
-        return clampToUnit(std::max(noise1, noise2));
+        double noise2 = abs(rarity3 * noiseSource2) - thickness;
+        return clampToUnit(max(noise1, noise2));
     }
 
     double getSpaghetti2(int32_t x, int32_t y, int32_t z) {
@@ -857,19 +857,19 @@ private:
                                                                 (double)y, (double)(z * 2), 0.6, 1.3);
         double noiseSource = sampleWithRarity(this->spaghetti2DNoiseSource, (double)x, (double)y, (double)z, rarity2);
 
-        double noise2 = std::abs(rarity2 * noiseSource) - 0.083 * thickness;
+        double noise2 = abs(rarity2 * noiseSource) - 0.083 * thickness;
         int32_t minCellY = this->noiseSettings->getMinCellY();
         double elevation = NoiseUtils::sampleNoiseAndMapToRange(this->spaghetti2DElevationModulator, (double)x, 0.0,
                                                                 (double)z, (double)minCellY, 8.0);
-        double noise1 = std::abs(elevation - (double)y / 8.0) - 1.0 * thickness;
+        double noise1 = abs(elevation - (double)y / 8.0) - 1.0 * thickness;
         noise1 = noise1 * noise1 * noise1;
-        return clampToUnit(std::max(noise1, noise2));
+        return clampToUnit(max(noise1, noise2));
     }
 
     double spaghettiRoughness(int32_t x, int32_t y, int32_t z) {
         double roughness = NoiseUtils::sampleNoiseAndMapToRange(this->spaghettiRoughnessModulator, (double)x, (double)y,
                                                                 (double)z, 0.0, 0.1);
-        return (0.4 - std::abs(this->spaghettiRoughnessNoise->getValue((double)x, (double)y, (double)z))) * roughness;
+        return (0.4 - abs(this->spaghettiRoughnessNoise->getValue((double)x, (double)y, (double)z))) * roughness;
     }
 
 public:
@@ -887,9 +887,9 @@ private:
     }
 
     bool isVein(double noiseSource1, double noiseSource2) {
-        double noise1 = std::abs(1.0 * noiseSource1) - (double)0.08F;
-        double noise2 = std::abs(1.0 * noiseSource2) - (double)0.08F;
-        return std::max(noise1, noise2) < 0.0;
+        double noise1 = abs(1.0 * noiseSource1) - (double)0.08F;
+        double noise2 = abs(1.0 * noiseSource2) - (double)0.08F;
+        return max(noise1, noise2) < 0.0;
     }
 
     NoiseSampler::VeinType getVeinType(double veiness, int32_t y) {
@@ -899,9 +899,9 @@ private:
         int32_t i = noisesampler$veintype.maxY - y;
         int32_t j = y - noisesampler$veintype.minY;
         if (j >= 0 && i >= 0) {
-            int32_t k = std::min(i, j);
+            int32_t k = min(i, j);
             double d0 = Mth::clampedMap((double)k, 0.0, 20.0, -0.2, 0.0);
-            return std::abs(veiness) + d0 < (double)0.4F ? nullptr : noisesampler$veintype;
+            return abs(veiness) + d0 < (double)0.4F ? nullptr : noisesampler$veintype;
         } else {
         */
         return NoiseSampler::VeinType::NULL_VEIN;
@@ -998,7 +998,7 @@ public:
     }
 
     Aquifer::FluidStatus *computeFluid(int32_t x, int32_t y, int32_t z) override {
-        return y < std::min(-54, this->seaLevel) ? this->lava : this->defaultFluid;
+        return y < min(-54, this->seaLevel) ? this->lava : this->defaultFluid;
     }
 };
 
@@ -1120,8 +1120,8 @@ public:
     int32_t getBaseHeight(int32_t x, int32_t z, HeightmapTypes type, LevelHeightAccessor *heightAccessor) override {
         /*
         NoiseSettings *noisesettings = this->settings()->noiseSettings();
-        int32_t minY = std::max(noisesettings->minY, heightAccessor->getMinBuildHeight());
-        int32_t maxY = std::min(noisesettings->minY + noisesettings->height, heightAccessor->getMaxBuildHeight());
+        int32_t minY = max(noisesettings->minY, heightAccessor->getMinBuildHeight());
+        int32_t maxY = min(noisesettings->minY + noisesettings->height, heightAccessor->getMaxBuildHeight());
         int32_t minCellY = Mth::intFloorDiv(minY, noisesettings->getCellHeight());
         int32_t maxCellY = Mth::intFloorDiv(maxY - minY, noisesettings->getCellHeight());
         return maxCellY <= 0 ? heightAccessor->getMinBuildHeight()
@@ -1134,8 +1134,8 @@ public:
     /*
     NoiseColumn *getBaseColumn(int32_t x, int32_t z, LevelHeightAccessor *heightAccessor) {
         NoiseSettings *noisesettings = this->settings()->noiseSettings();
-        int32_t minY = std::max(noisesettings->minY, heightAccessor->getMinBuildHeight());
-        int32_t maxY = std::min(noisesettings->minY + noisesettings->height, heightAccessor->getMaxBuildHeight());
+        int32_t minY = max(noisesettings->minY, heightAccessor->getMinBuildHeight());
+        int32_t maxY = min(noisesettings->minY + noisesettings->height, heightAccessor->getMaxBuildHeight());
         int32_t minCellY = Mth::intFloorDiv(minY, noisesettings->getCellHeight());
         int32_t maxCellY = Mth::intFloorDiv(maxY - minY, noisesettings->getCellHeight());
         if (maxCellY <= 0) {
@@ -1151,8 +1151,8 @@ public:
     ChunkAccess *fillFromNoise(Blender *blender, ChunkAccess *chunkAccess) override {
         NoiseSettings *noisesettings = this->settings()->noiseSettings();
         LevelHeightAccessor *heightAccessor = chunkAccess->getHeightAccessorForGeneration();
-        int32_t minY = std::max(noisesettings->minY, heightAccessor->getMinBuildHeight());
-        int32_t maxY = std::min(noisesettings->minY + noisesettings->height, heightAccessor->getMaxBuildHeight());
+        int32_t minY = max(noisesettings->minY, heightAccessor->getMinBuildHeight());
+        int32_t maxY = min(noisesettings->minY + noisesettings->height, heightAccessor->getMaxBuildHeight());
         int32_t minCellY = Mth::intFloorDiv(minY, noisesettings->getCellHeight());
         int32_t cellCount = Mth::intFloorDiv(maxY - minY, noisesettings->getCellHeight());
         if (cellCount <= 0) {
@@ -1161,7 +1161,7 @@ public:
             int32_t maxSectionIndex =
                 chunkAccess->getSectionIndex(cellCount * noisesettings->getCellHeight() - 1 + minY);
             int32_t minSectionIndex = chunkAccess->getSectionIndex(minY);
-            std::set<LevelChunkSection *> sections = std::set<LevelChunkSection *>();
+            set<LevelChunkSection *> sections = set<LevelChunkSection *>();
 
             for (int32_t sectionIndex = maxSectionIndex; sectionIndex >= minSectionIndex; --sectionIndex) {
                 LevelChunkSection *section = chunkAccess->getSection(sectionIndex);

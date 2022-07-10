@@ -80,7 +80,7 @@ Aquifer *Aquifer::createDisabled(Aquifer::FluidPicker *globalFluidPicker) {
     return new DisabledAquifer(globalFluidPicker);
 }
 
-template <class T, std::enable_if_t<std::is_arithmetic_v<T>>...> constexpr auto _abs(T const &x) noexcept {
+template <class T, enable_if_t<is_arithmetic_v<T>>...> constexpr auto _abs(T const &x) noexcept {
     return x < 0 ? -x : x;
 }
 
@@ -147,7 +147,7 @@ public:
 
         this->aquiferCache = new Aquifer::FluidStatus *[gridSize]();
         this->aquiferLocationCache = new int64_t[gridSize];
-        fill_n(this->aquiferLocationCache, gridSize, LLONG_MAX);
+        fill_n(this->aquiferLocationCache, gridSize, numeric_limits<int64_t>::max());
     }
 
 private:
@@ -175,9 +175,9 @@ private:
                     int32_t someX = Mth::floorDiv(x - 5, 16);
                     int32_t someY = Mth::floorDiv(y + 1, 12);
                     int32_t someZ = Mth::floorDiv(z - 5, 16);
-                    int32_t minDistanceSq0 = INT_MAX;
-                    int32_t minDistanceSq1 = INT_MAX;
-                    int32_t minDistanceSq2 = INT_MAX;
+                    int32_t minDistanceSq0 = numeric_limits<int32_t>::max();
+                    int32_t minDistanceSq1 = numeric_limits<int32_t>::max();
+                    int32_t minDistanceSq2 = numeric_limits<int32_t>::max();
                     int64_t minLocation0 = 0LL;
                     int64_t minLocation1 = 0LL;
                     int64_t minLocation2 = 0LL;
@@ -191,7 +191,7 @@ private:
                                 int32_t gridIndex = this->getIndex(currentX, currentY, currentZ);
                                 int64_t cachedLocation = this->aquiferLocationCache[gridIndex];
                                 int64_t location;
-                                if (cachedLocation != LLONG_MAX) {
+                                if (cachedLocation != numeric_limits<int64_t>::max()) {
                                     location = cachedLocation;
                                 } else {
                                     RandomSource *randomsource =
