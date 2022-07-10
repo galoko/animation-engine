@@ -1,5 +1,8 @@
 #pragma once
 
+#include <inttypes.h>
+#include <string>
+
 using namespace std;
 
 enum class Biomes

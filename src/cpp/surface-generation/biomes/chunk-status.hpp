@@ -1,6 +1,8 @@
 #pragma once
 
 #include <functional>
+#include <string>
+#include <vector>
 
 #include "chunk-generator.fwd.hpp"
 #include "chunk-status.fwd.hpp"

@@ -1,7 +1,9 @@
 #pragma once
 
+#include "aquifer.hpp"
 #include "biome-source.hpp"
 #include "biomes.hpp"
+#include "chunk-generator.fwd.hpp"
 #include "chunk-status.fwd.hpp"
 #include "chunks.fwd.hpp"
 #include "climate.hpp"
