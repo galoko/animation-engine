@@ -71,7 +71,7 @@ enum class Noises
     LAST = NETHER_STATE_SELECTOR
 };
 
-const string NOISE_NAMES[] = {
+const char *NOISE_NAMES[] = {
     nullptr,
     "temperature",
     "vegetation",

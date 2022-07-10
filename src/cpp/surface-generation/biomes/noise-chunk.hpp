@@ -24,7 +24,7 @@ public:
         this->value = value;
     }
 
-    double sample() {
+    double sample() override {
         return this->value;
     }
 };
@@ -205,7 +205,7 @@ public:
     }
 
 public:
-    double sample() {
+    double sample() override {
         return this->value;
     }
 

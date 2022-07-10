@@ -16,7 +16,7 @@ using IntPredicate = std::function<bool(int32_t)>;
 template <typename K, typename T> T computeIfAbsent(std::map<K, T> &m, K key, function<T(K)> computor) {
     if (m.find(key) == m.end()) {
         T value = computor(key);
-        m.at(key) = value;
+        m.insert({key, value});
         return value;
     } else {
         return m.at(key);

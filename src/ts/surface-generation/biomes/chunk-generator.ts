@@ -1170,6 +1170,10 @@ export class NoiseBasedChunkGenerator extends ChunkGenerator {
                                 const zt = zOffset / cellWidth
                                 noiseChunk.updateForZ(zt)
 
+                                if (levelchunksection.bottomBlockY == -64 && yForSection == 0) {
+                                    // debugger
+                                }
+
                                 let blockstate = this.materialRule.apply(
                                     noiseChunk,
                                     currentX,

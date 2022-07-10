@@ -69,6 +69,10 @@ ChunkAccess *NoiseBasedChunkGenerator::doFill(Blender *blender, ChunkAccess *chu
                             double zt = (double)zOffset / (double)cellWidth;
                             noiseChunk->updateForZ(zt);
 
+                            if (section->bottomBlockY() == -64 && yForSection == 0) {
+                                noiseChunk = noiseChunk;
+                            }
+
                             BlockState blockState = this->materialRule(noiseChunk, currentX, currentY, currentZ);
                             if (blockState == Blocks::NULL_BLOCK) {
                                 blockState = this->defaultBlock;

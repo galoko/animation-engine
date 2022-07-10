@@ -29,7 +29,7 @@ NoiseChunk *ChunkAccess::getOrCreateNoiseChunk(NoiseSampler *sampler, function<N
     return this->noiseChunk;
 }
 
-BlockState ChunkAccess::setBlockState(BlockPos *pos, BlockState blockState, bool checked) {
+BlockState ProtoChunk::setBlockState(BlockPos *pos, BlockState blockState, bool checked) {
     int32_t x = pos->getX();
     int32_t y = pos->getY();
     int32_t z = pos->getZ();

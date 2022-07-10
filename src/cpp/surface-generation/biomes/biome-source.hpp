@@ -303,7 +303,7 @@ private:
     }
 
 public:
-    BiomeSource *withSeed(int64_t seed) {
+    BiomeSource *withSeed(int64_t seed) override {
         return this;
     }
 
@@ -311,7 +311,7 @@ public:
         return this->preset != nullptr && this->preset->preset == preset;
     }
 
-    Biomes getNoiseBiome(int32_t x, int32_t y, int32_t z, Climate::Sampler *sampler) {
+    Biomes getNoiseBiome(int32_t x, int32_t y, int32_t z, Climate::Sampler *sampler) override {
         return this->getNoiseBiome(sampler->sample(x, y, z));
     }
 

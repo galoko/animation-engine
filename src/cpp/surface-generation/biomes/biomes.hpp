@@ -68,7 +68,7 @@ enum class Biomes
     END_BARRENS,
 };
 
-const string BIOME_NAMES[] = {
+const char *BIOME_NAMES[] = {
     nullptr,
     "the_void",
     "plains",

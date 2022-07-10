@@ -67,11 +67,11 @@ public:
         this->globalFluidPicker = globalFluidPicker;
     }
 
-    BlockState computeSubstance(int32_t x, int32_t y, int32_t z, double baseNoise, double clampedBaseNoise) {
+    BlockState computeSubstance(int32_t x, int32_t y, int32_t z, double baseNoise, double clampedBaseNoise) override {
         return clampedBaseNoise > 0.0 ? Blocks::NULL_BLOCK : this->globalFluidPicker->computeFluid(x, y, z)->at(y);
     }
 
-    bool shouldScheduleFluidUpdate() {
+    bool shouldScheduleFluidUpdate() override {
         return false;
     }
 };
@@ -158,7 +158,7 @@ private:
         return (gridY * this->gridSizeZ + gridZ) * this->gridSizeX + gridX;
     }
 
-    BlockState computeSubstance(int32_t x, int32_t y, int32_t z, double baseNoise, double clampedBaseNoise) {
+    BlockState computeSubstance(int32_t x, int32_t y, int32_t z, double baseNoise, double clampedBaseNoise) override {
         if (baseNoise <= -64.0) {
             return this->globalFluidPicker->computeFluid(x, y, z)->at(y);
         } else {
@@ -270,7 +270,7 @@ private:
     }
 
 public:
-    bool shouldScheduleFluidUpdate() {
+    bool shouldScheduleFluidUpdate() override {
         return this->_shouldScheduleFluidUpdate;
     }
 
@@ -366,7 +366,7 @@ private:
     }
 
 public:
-    Aquifer::FluidStatus *computeFluid(int32_t x, int32_t y, int32_t z);
+    Aquifer::FluidStatus *computeFluid(int32_t x, int32_t y, int32_t z) override;
 
 private:
     BlockState getFluidType(int32_t x, int32_t y, int32_t z, Aquifer::FluidStatus *fluidStatus, int32_t fluidY) {

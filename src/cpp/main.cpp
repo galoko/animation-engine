@@ -1,23 +1,24 @@
 #include <emscripten.h>
-#include <iostream>
 #include <stdio.h>
 
 #include "surface-generation/biomes/aquifer.cpp"
-#include "surface-generation/biomes/aquifer.hpp"
 #include "surface-generation/biomes/biome-source.cpp"
-#include "surface-generation/biomes/biome-source.hpp"
 #include "surface-generation/biomes/chunk-generator.cpp"
-#include "surface-generation/biomes/chunk-generator.hpp"
 #include "surface-generation/biomes/chunk-status.cpp"
-#include "surface-generation/biomes/chunk-status.hpp"
 #include "surface-generation/biomes/chunks.cpp"
+#include "surface-generation/biomes/noise-chunk.cpp"
+#include "surface-generation/biomes/noise-data.cpp"
+#include "surface-generation/biomes/pos.cpp"
+
+#include "surface-generation/biomes/aquifer.hpp"
+#include "surface-generation/biomes/biome-source.hpp"
+#include "surface-generation/biomes/chunk-generator.hpp"
+#include "surface-generation/biomes/chunk-status.hpp"
 #include "surface-generation/biomes/chunks.hpp"
 #include "surface-generation/biomes/climate.hpp"
 #include "surface-generation/biomes/cubic-spline.hpp"
 #include "surface-generation/biomes/heightmap.hpp"
-#include "surface-generation/biomes/noise-chunk.cpp"
 #include "surface-generation/biomes/noise-chunk.hpp"
-#include "surface-generation/biomes/noise-data.cpp"
 #include "surface-generation/biomes/noise-data.hpp"
 #include "surface-generation/biomes/noise/blended-noise.hpp"
 #include "surface-generation/biomes/noise/improved-noise.hpp"
@@ -26,10 +27,10 @@
 #include "surface-generation/biomes/noise/perlin-simplex-noise.hpp"
 #include "surface-generation/biomes/noise/simplex-noise.hpp"
 #include "surface-generation/biomes/overworld-biome-builder.hpp"
-#include "surface-generation/biomes/pos.cpp"
 #include "surface-generation/biomes/pos.hpp"
 #include "surface-generation/biomes/random.hpp"
 #include "surface-generation/biomes/terrain-shaper.hpp"
+#include "surface-generation/biomes/worldgen-settings.hpp"
 
 using namespace Mth;
 using namespace std;
@@ -37,81 +38,68 @@ using namespace std;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"
 
-class Test {
-    void test() {
+uint8_t *doTest() {
+    int64_t seed = hashCode("test");
+
+    NoiseBasedChunkGenerator *chunkGenerator = WorldGenSettings::makeDefaultOverworld(seed);
+    LevelHeightAccessor *heightAccessor = new SimpleLevelHeightAccessor();
+
+    ChunkPos *chunkPos = new ChunkPos(0, 0);
+    ProtoChunk *chunk = new ProtoChunk(chunkPos, heightAccessor);
+
+    ChunkStatus::BIOMES->generate(chunkGenerator, ChunkStatus::EMPTY_CONVERTER, {chunk});
+    ChunkStatus::NOISE->generate(chunkGenerator, ChunkStatus::EMPTY_CONVERTER, {chunk});
+
+    uint8_t *result = new uint8_t[16 * 16 * 384];
+    MutableBlockPos *pos = new MutableBlockPos();
+    int i = 0;
+    for (int y = -64; y < 256; y++) {
+        for (int x = 0; x < 16; x++) {
+            for (int z = 0; z < 16; z++) {
+                pos->set(x, y, z);
+                BlockState block = chunk->getBlockState(pos);
+                result[i++] = (uint8_t)block;
+            }
+        }
     }
-};
 
-class Child : public Test {
-    void test() {
+    /*
+    uint8_t *result = new uint8_t[4 * 4 * 96];
+    MutableBlockPos *pos = new MutableBlockPos();
+    int i = 0;
+    for (int y = -64 / 4; y < 256 / 4; y++) {
+        for (int x = 0; x < 4; x++) {
+            for (int z = 0; z < 4; z++) {
+                pos->set(x * 4, y * 4, z * 4);
+                Biomes biome = chunk->getBiome(pos);
+                result[i++] = (uint8_t)biome;
+            }
+        }
     }
-};
+    */
 
-class Point {
-public:
-    float continents;
-    float erosion;
-    float ridges;
-    float weirdness;
-};
-
-void testSpline() {
-    CubicSpline<Point *> *spline =
-        CubicSpline<Point *>::builder([](Point *p) { return p->ridges; }, [](float value) { return value; })
-            ->addPoint(-1.0F, 10, 15)
-            ->addPoint(-0.4F, 18, 25)
-            ->addPoint(0.0F, 27, 30)
-            ->addPoint(0.4F, 60, 90)
-            ->addPoint(1.0F, 100, 150)
-            ->build();
-
-    Point *p = new Point();
-    p->ridges = 0.2F;
-
-    float value = spline->apply(p);
-
-    cout << value << endl;
+    return result;
 }
-
-void testBiomes() {
-    OverworldBiomeBuilder builder = OverworldBiomeBuilder();
-
-    vector<pair<Climate::ParameterPoint *, Biomes> *> *v = new vector<pair<Climate::ParameterPoint *, Biomes> *>();
-    builder.addBiomes([v](pair<Climate::ParameterPoint *, Biomes> *pair) { v->push_back(pair); });
-
-    cout << v->size() << endl;
-    for (pair<Climate::ParameterPoint *, Biomes> *pair : *v) {
-        cout << getBiomeName(pair->second) << endl;
-    }
-
-    cout << "done" << endl;
-};
 
 extern "C" {
     void init() {
-        // ResourceLocation *r = new ResourceLocation();
-        // printf("%d\n", -2);
+        //
+    }
 
-        /*
-        XoroshiroRandomSource *s = new XoroshiroRandomSource(5LL, 6LL);
-        PositionalRandomFactory *f = s->forkPositional();
-        XoroshiroRandomSource *r = (XoroshiroRandomSource *)f->fromHashOf("padloid");
+    uint8_t *test() {
+        printf("enter\n");
 
-        Test *t = new Child();
+        uint8_t *blocks = doTest();
 
-        cout << "enter" << endl;
+        printf("exit\n");
 
-        Climate::ParameterList<int32_t> *i =
-            new Climate::ParameterList<int32_t>(new vector<pair<Climate::ParameterPoint *, int32_t>>());
+        return blocks;
+    }
 
-        i->findValueBruteForce(new Climate::TargetPoint(0LL, 0LL, 0LL, 0LL, 0LL, 0LL), 9);
-
-        testSpline();
-        */
-
-        testBiomes();
-
-        cout << "exit" << endl;
+    // gets an exception object, and prints it out.
+    void print_exception(int32_t exceptionPtr) {
+        auto e = reinterpret_cast<std::exception *>(exceptionPtr);
+        printf("%s\n", e->what());
     }
 }
 

@@ -314,4 +314,14 @@ export class ProtoChunk extends ChunkAccess {
                 : section.getBlockState(pos.x & 15, y & 15, pos.z & 15)
         }
     }
+
+    getBiome(pos: BlockPos): Biomes | null {
+        const y = pos.y
+        if (this.isOutsideBuildHeight(y)) {
+            return null
+        } else {
+            const section = this.getSection(this.getSectionIndex(y))
+            return section.getNoiseBiome(pos.x & 3, y & 3, pos.z & 3)
+        }
+    }
 }

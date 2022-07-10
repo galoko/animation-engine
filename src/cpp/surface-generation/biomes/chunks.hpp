@@ -56,11 +56,11 @@ public:
 };
 
 class SimpleLevelHeightAccessor : public LevelHeightAccessor {
-    int32_t getHeight() {
+    int32_t getHeight() override {
         return 384;
     }
 
-    int32_t getMinBuildHeight() {
+    int32_t getMinBuildHeight() override {
         return -64;
     }
 };
@@ -147,9 +147,11 @@ public:
     BlockState setBlockState(int32_t x, int32_t y, int32_t z, BlockState blockState, bool checked) {
         BlockState prevBlockState;
         if (checked) {
-            prevBlockState = this->states->at(getBlockStateIndex(x, y, z)) = blockState;
+            prevBlockState = this->states->at(getBlockStateIndex(x, y, z));
+            this->states->at(getBlockStateIndex(x, y, z)) = blockState;
         } else {
-            prevBlockState = this->states->at(getBlockStateIndex(x, y, z)) = blockState;
+            prevBlockState = this->states->at(getBlockStateIndex(x, y, z));
+            this->states->at(getBlockStateIndex(x, y, z)) = blockState;
         }
 
         /*
@@ -264,7 +266,7 @@ public:
     */
 
     Biomes getNoiseBiome(int32_t x, int32_t y, int32_t z) {
-        return this->biomes->at(getBlockStateIndex(x, y, z));
+        return this->biomes->at(getBiomesIndex(x, y, z));
     }
 
     void fillBiomesFromNoise(BiomeResolver *resolver, Climate::Sampler *sampler, int32_t offsetX, int32_t offsetZ) {
@@ -307,6 +309,7 @@ public:
         this->chunkPos = chunkPos;
         this->levelHeightAccessor = levelHeightAccessor;
         this->sections = new vector<LevelChunkSection *>(levelHeightAccessor->getSectionsCount());
+        this->heightmaps = new std::map<HeightmapTypes, Heightmap *>();
 
         replaceMissingSections(levelHeightAccessor, this->sections);
     }
@@ -372,11 +375,11 @@ public:
         return this->chunkPos;
     }
 
-    int32_t getMinBuildHeight() {
+    int32_t getMinBuildHeight() override {
         return this->levelHeightAccessor->getMinBuildHeight();
     }
 
-    int32_t getHeight() {
+    int32_t getHeight() override {
         return this->levelHeightAccessor->getHeight();
     }
 
@@ -412,7 +415,12 @@ public:
 };
 
 class ProtoChunk : public ChunkAccess {
-    BlockState getBlockState(BlockPos *pos) {
+public:
+    ProtoChunk(ChunkPos *chunkPos, LevelHeightAccessor *levelHeightAccessor)
+        : ChunkAccess(chunkPos, levelHeightAccessor) {
+    }
+
+    BlockState getBlockState(BlockPos *pos) override {
         int32_t y = pos->getY();
         if (this->isOutsideBuildHeight(y)) {
             return Blocks::VOID_AIR;
@@ -423,5 +431,19 @@ class ProtoChunk : public ChunkAccess {
         }
     }
 
-    BlockState setBlockState(BlockPos *pos, BlockState blockState, bool checked);
+    Biomes getBiome(BlockPos *pos) {
+        int32_t y = pos->getY();
+        if (this->isOutsideBuildHeight(y)) {
+            return Biomes::NULL_BIOME;
+        } else {
+            LevelChunkSection *section = this->getSection(this->getSectionIndex(y));
+            return section->getNoiseBiome(pos->getX() & 3, y & 3, pos->getZ() & 3);
+        }
+    }
+
+    BlockState setBlockState(BlockPos *pos, BlockState blockState, bool checked) override;
+
+    ChunkStatus *getStatus() override {
+        return nullptr;
+    }
 };

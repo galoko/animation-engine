@@ -37,6 +37,8 @@ public:
         };
     }
 
+    static constexpr auto EMPTY_CONVERTER = [](ChunkAccess *chunkAccess) -> ChunkAccess * { return chunkAccess; };
+
 public:
     static const int32_t MAX_STRUCTURE_DISTANCE = 8;
 
@@ -142,13 +144,13 @@ private:
         return this->parent;
     }
 
+public:
     ChunkAccess *generate(ChunkGenerator *generator, ChunkConverter converter, vector<ChunkAccess *> chunks) {
         ChunkAccess *chunkaccess = chunks.at(chunks.size() / 2);
 
         return this->generationTask(this, generator, converter, chunks, chunkaccess);
     }
 
-public:
     int32_t getRange() {
         return this->range;
     }

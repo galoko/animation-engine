@@ -29,7 +29,7 @@ public:
     }
 };
 
-class BlendedNoise : public NoiseChunk::NoiseFiller {
+class BlendedNoise {
 private:
     PerlinNoise *minLimitNoise;
     PerlinNoise *maxLimitNoise;
@@ -55,11 +55,11 @@ private:
     }
 
 public:
-    BlendedNoise(RandomSource *randomSource, NoiseSamplingSettings *settings, int32_t cellWidth, int32_t cellHeight) {
-        BlendedNoise(PerlinNoise::createLegacyForBlendedNoise(randomSource, IntStream::rangeClosed(-15, 0)),
-                     PerlinNoise::createLegacyForBlendedNoise(randomSource, IntStream::rangeClosed(-15, 0)),
-                     PerlinNoise::createLegacyForBlendedNoise(randomSource, IntStream::rangeClosed(-7, 0)), settings,
-                     cellWidth, cellHeight);
+    BlendedNoise(RandomSource *randomSource, NoiseSamplingSettings *settings, int32_t cellWidth, int32_t cellHeight)
+        : BlendedNoise(PerlinNoise::createLegacyForBlendedNoise(randomSource, IntStream::rangeClosed(-15, 0)),
+                       PerlinNoise::createLegacyForBlendedNoise(randomSource, IntStream::rangeClosed(-15, 0)),
+                       PerlinNoise::createLegacyForBlendedNoise(randomSource, IntStream::rangeClosed(-7, 0)), settings,
+                       cellWidth, cellHeight) {
     }
 
     double calculateNoise(int32_t x, int32_t y, int32_t z) {

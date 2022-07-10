@@ -270,6 +270,7 @@ private:
             false, false, true);
     }
 
+public:
     static NoiseGeneratorSettings *OVERWORLD;
     static NoiseGeneratorSettings *LARGE_BIOMES;
     static NoiseGeneratorSettings *AMPLIFIED;
@@ -754,7 +755,7 @@ public:
         return new FlatNoiseData(shiftedX, shiftedZ, continentalness, weirdness, erosion, terrainInfo);
     }
 
-    Climate::TargetPoint *sample(int32_t x, int32_t y, int32_t z) {
+    Climate::TargetPoint *sample(int32_t x, int32_t y, int32_t z) override {
         return this->target(x, y, z, this->noiseData(x, z, Blender::empty()));
     }
 
@@ -937,14 +938,14 @@ public:
 
     virtual ChunkGenerator *withSeed(int64_t seed) = 0;
 
-    ChunkAccess *createBiomes(Blender *blender, ChunkAccess *chunk) {
+    virtual ChunkAccess *createBiomes(Blender *blender, ChunkAccess *chunk) {
         chunk->fillBiomesFromNoise(this->runtimeBiomeSource, this->climateSampler());
         return chunk;
     }
 
     virtual Climate::Sampler *climateSampler() = 0;
 
-    Biomes getNoiseBiome(int32_t x, int32_t y, int32_t z) {
+    Biomes getNoiseBiome(int32_t x, int32_t y, int32_t z) override {
         return this->getBiomeSource()->getNoiseBiome(x, y, z, this->climateSampler());
     }
 
@@ -996,7 +997,7 @@ public:
         this->defaultFluid = defaultFluid;
     }
 
-    Aquifer::FluidStatus *computeFluid(int32_t x, int32_t y, int32_t z) {
+    Aquifer::FluidStatus *computeFluid(int32_t x, int32_t y, int32_t z) override {
         return y < std::min(-54, this->seaLevel) ? this->lava : this->defaultFluid;
     }
 };
@@ -1036,7 +1037,7 @@ public:
         this->noisechunk = noisechunk;
     }
 
-    Climate::TargetPoint *sample(int32_t x, int32_t y, int32_t z) {
+    Climate::TargetPoint *sample(int32_t x, int32_t y, int32_t z) override {
         return this->sampler->target(x, y, z, this->noisechunk->noiseData(x, z));
     }
 };
@@ -1092,7 +1093,7 @@ private:
         */
     }
 
-    ChunkAccess *createBiomes(Blender *blender, ChunkAccess *chunkAccess) {
+    ChunkAccess *createBiomes(Blender *blender, ChunkAccess *chunkAccess) override {
         this->doCreateBiomes(blender, chunkAccess);
         return chunkAccess;
     }
@@ -1108,15 +1109,15 @@ private:
     }
 
 public:
-    Climate::Sampler *climateSampler() {
+    Climate::Sampler *climateSampler() override {
         return this->sampler;
     }
 
-    ChunkGenerator *withSeed(int64_t seed) {
+    ChunkGenerator *withSeed(int64_t seed) override {
         return new NoiseBasedChunkGenerator(this->biomeSource->withSeed(seed), seed, this->settings);
     }
 
-    int32_t getBaseHeight(int32_t x, int32_t z, HeightmapTypes type, LevelHeightAccessor *heightAccessor) {
+    int32_t getBaseHeight(int32_t x, int32_t z, HeightmapTypes type, LevelHeightAccessor *heightAccessor) override {
         /*
         NoiseSettings *noisesettings = this->settings()->noiseSettings();
         int32_t minY = std::max(noisesettings->minY, heightAccessor->getMinBuildHeight());
@@ -1147,7 +1148,7 @@ public:
     }
     */
 
-    ChunkAccess *fillFromNoise(Blender *blender, ChunkAccess *chunkAccess) {
+    ChunkAccess *fillFromNoise(Blender *blender, ChunkAccess *chunkAccess) override {
         NoiseSettings *noisesettings = this->settings()->noiseSettings();
         LevelHeightAccessor *heightAccessor = chunkAccess->getHeightAccessorForGeneration();
         int32_t minY = std::max(noisesettings->minY, heightAccessor->getMinBuildHeight());
@@ -1182,15 +1183,15 @@ private:
     ChunkAccess *doFill(Blender *blender, ChunkAccess *chunkAccess, int32_t minCellY, int32_t cellCount);
 
 public:
-    int32_t getGenDepth() {
+    int32_t getGenDepth() override {
         return this->settings()->noiseSettings()->height;
     }
 
-    int32_t getSeaLevel() {
+    int32_t getSeaLevel() override {
         return this->settings()->seaLevel();
     }
 
-    int32_t getMinY() {
+    int32_t getMinY() override {
         return this->settings()->noiseSettings()->minY;
     }
 };

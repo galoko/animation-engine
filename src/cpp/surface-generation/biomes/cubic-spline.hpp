@@ -68,7 +68,7 @@ public:
         Constant(float value) : value(value) {
         }
 
-        float apply(C value) {
+        float apply(C value) override {
             return this->value;
         }
     };
@@ -89,7 +89,7 @@ public:
             this->derivatives = derivatives;
         }
 
-        float apply(C value) {
+        float apply(C value) override {
             float loc = this->coordinate(value);
             int32_t index = Mth::binarySearch(0, this->locations->size(),
                                               [this, loc](int32_t index) { return loc < this->locations->at(index); }) -

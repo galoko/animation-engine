@@ -17,7 +17,7 @@ using namespace std;
 #define remainderUnsigned(dividend, divisor) ((int32_t)(toUnsignedLong(dividend) % toUnsignedLong(divisor)))
 
 int64_t rotateLeft(int64_t n, int32_t d) {
-    return (n << d) | (n >> (64 - d));
+    return (n << d) | ((uint64_t)n >> (64 - d));
 }
 
 int64_t fromBytes(int8_t b1, int8_t b2, int8_t b3, int8_t b4, int8_t b5, int8_t b6, int8_t b7, int8_t b8) {
@@ -136,7 +136,7 @@ public:
         int64_t seedHi = this->seedHi;
         int64_t rotatedSeed = rotateLeft(seedLo + seedHi, 17) + seedLo;
         seedHi ^= seedLo;
-        this->seedLo = rotateLeft(seedLo, 49) ^ seedHi ^ seedHi << 21;
+        this->seedLo = rotateLeft(seedLo, 49) ^ seedHi ^ (seedHi << 21);
         this->seedHi = rotateLeft(seedHi, 28);
         return rotatedSeed;
     }
