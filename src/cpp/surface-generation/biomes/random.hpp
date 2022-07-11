@@ -16,78 +16,51 @@ using namespace std;
 #define toUnsignedLong(x) (((int64_t)x) & 0xffffffffLL)
 #define remainderUnsigned(dividend, divisor) ((int32_t)(toUnsignedLong(dividend) % toUnsignedLong(divisor)))
 
-int64_t rotateLeft(int64_t n, int32_t d) {
+constexpr inline int64_t rotateLeft(int64_t n, int32_t d) {
     return (n << d) | ((uint64_t)n >> (64 - d));
 }
 
-int64_t fromBytes(int8_t b1, int8_t b2, int8_t b3, int8_t b4, int8_t b5, int8_t b6, int8_t b7, int8_t b8) {
+constexpr inline int64_t fromBytes(int8_t b1, int8_t b2, int8_t b3, int8_t b4, int8_t b5, int8_t b6, int8_t b7,
+                                   int8_t b8) {
     return (b1 & 0xFFLL) << 56 | (b2 & 0xFFLL) << 48 | (b3 & 0xFFLL) << 40 | (b4 & 0xFFLL) << 32 | (b5 & 0xFFLL) << 24 |
            (b6 & 0xFFLL) << 16 | (b7 & 0xFFLL) << 8 | (b8 & 0xFFLL);
 }
 
-int32_t hashCode(string s) {
-    int32_t h = 0;
-    for (int32_t i = 0; i < s.length(); i++) {
-        h = (31 * h) + s[i];
-    }
-    return h;
-}
-
-string toResourceLocation(string path) {
-    string _namespace = "minecraft";
-    return _namespace + ":" + path;
-}
+// TODO move to utils?
+int32_t hashCode(string s);
+string toResourceLocation(string path);
 
 class PositionalRandomFactory;
 
 class RandomSource {
 public:
     virtual RandomSource *fork() = 0;
-
     virtual PositionalRandomFactory *forkPositional() = 0;
 
     virtual void setSeed(int64_t seed) = 0;
 
     virtual int32_t nextInt() = 0;
     virtual int32_t nextInt(int32_t bound) = 0;
-
-    virtual int32_t nextIntBetweenInclusive(int32_t min, int32_t max) {
-        return this->nextInt(max - min + 1) + min;
-    }
-
     virtual int64_t nextLong() = 0;
-
     virtual bool nextBoolean() = 0;
-
     virtual float nextFloat() = 0;
-
     virtual double nextDouble() = 0;
-
     virtual double nextGaussian() = 0;
 
-    virtual void consumeCount(int32_t count) {
-        for (int32_t i = 0; i < count; ++i) {
-            this->nextInt();
-        }
-    }
+    virtual int32_t nextIntBetweenInclusive(int32_t min, int32_t max);
+    virtual void consumeCount(int32_t count);
 };
 
 class PositionalRandomFactory {
 public:
-    RandomSource *at(BlockPos pos) {
-        return this->at(pos.getX(), pos.getY(), pos.getZ());
-    }
-
-    RandomSource *fromHashOfResourceLocation(string loc) {
-        return this->fromHashOf(toResourceLocation(loc));
-    }
-
     virtual RandomSource *fromHashOf(string s) = 0;
+    RandomSource *fromHashOfResourceLocation(string loc);
 
     virtual RandomSource *at(int32_t x, int32_t y, int32_t z) = 0;
+    RandomSource *at(BlockPos *pos);
 };
 
-class RandomSupport final {
+class RandomSupport {
 public:
     class Seed128bit {
     public:
@@ -99,48 +72,20 @@ public:
     static const int64_t GOLDEN_RATIO_64 = -7046029254386353131LL;
     static const int64_t SILVER_RATIO_64 = 7640891576956012809LL;
 
-    static int64_t mixStafford13(int64_t seed) {
+    static constexpr inline int64_t mixStafford13(int64_t seed) {
         seed = (seed ^ ushr_l(seed, 30)) * -4658895280553007687LL;
         seed = (seed ^ ushr_l(seed, 27)) * -7723592293110705685LL;
         return seed ^ ushr_l(seed, 31);
     }
 
-    static RandomSupport::Seed128bit *upgradeSeedTo128bit(int64_t seed) {
+    static inline RandomSupport::Seed128bit upgradeSeedTo128bit(int64_t seed) {
         int64_t lo = seed ^ SILVER_RATIO_64;
         int64_t hi = lo + GOLDEN_RATIO_64;
-        return new RandomSupport::Seed128bit(mixStafford13(lo), mixStafford13(hi));
+        return RandomSupport::Seed128bit(mixStafford13(lo), mixStafford13(hi));
     }
 };
 
 // implementations
-
-class Xoroshiro128PlusPlus {
-private:
-    int64_t seedLo, seedHi;
-
-public:
-    Xoroshiro128PlusPlus(RandomSupport::Seed128bit *seed) : Xoroshiro128PlusPlus(seed->seedLo, seed->seedHi) {
-    }
-
-    Xoroshiro128PlusPlus(int64_t seedLo, int64_t seedHi) {
-        this->seedLo = seedLo;
-        this->seedHi = seedHi;
-        if ((this->seedLo | this->seedHi) == 0LL) {
-            this->seedLo = -7046029254386353131LL;
-            this->seedHi = 7640891576956012809LL;
-        }
-    }
-
-    int64_t nextLong() {
-        int64_t seedLo = this->seedLo;
-        int64_t seedHi = this->seedHi;
-        int64_t rotatedSeed = rotateLeft(seedLo + seedHi, 17) + seedLo;
-        seedHi ^= seedLo;
-        this->seedLo = rotateLeft(seedLo, 49) ^ seedHi ^ (seedHi << 21);
-        this->seedHi = rotateLeft(seedHi, 28);
-        return rotatedSeed;
-    }
-};
 
 class MarsagliaPolarGaussian {
 public:
@@ -151,34 +96,20 @@ private:
     bool haveNextNextGaussian;
 
 public:
-    MarsagliaPolarGaussian(RandomSource *randomSource) {
-        this->randomSource = randomSource;
-    }
+    MarsagliaPolarGaussian(RandomSource *randomSource);
+    void reset();
+    double nextGaussian();
+};
 
-    void reset() {
-        this->haveNextNextGaussian = false;
-    }
+class Xoroshiro128PlusPlus {
+private:
+    int64_t seedLo, seedHi;
 
-    double nextGaussian() {
-        if (this->haveNextNextGaussian) {
-            this->haveNextNextGaussian = false;
-            return this->nextNextGaussian;
-        } else {
-            while (true) {
-                double d0 = 2.0 * this->randomSource->nextDouble() - 1.0;
-                double d1 = 2.0 * this->randomSource->nextDouble() - 1.0;
-                double d2 = Mth::square(d0) + Mth::square(d1);
-                if (!(d2 >= 1.0)) {
-                    if (d2 != 0.0) {
-                        double d3 = sqrt(-2.0 * log(d2) / d2);
-                        this->nextNextGaussian = d1 * d3;
-                        this->haveNextNextGaussian = true;
-                        return d0 * d3;
-                    }
-                }
-            }
-        }
-    }
+public:
+    Xoroshiro128PlusPlus(RandomSupport::Seed128bit seed);
+    Xoroshiro128PlusPlus(int64_t seedLo, int64_t seedHi);
+
+    int64_t nextLong();
 };
 
 // source implementations
@@ -187,39 +118,38 @@ class XoroshiroRandomSource : public RandomSource {
 private:
     static constexpr float FLOAT_UNIT = 5.9604645E-8F;
     static constexpr double DOUBLE_UNIT = (double)1.110223E-16F;
-    Xoroshiro128PlusPlus *randomNumberGenerator;
-    MarsagliaPolarGaussian *gaussianSource = new MarsagliaPolarGaussian(this);
+
+    Xoroshiro128PlusPlus randomNumberGenerator;
+    MarsagliaPolarGaussian gaussianSource = MarsagliaPolarGaussian(this);
 
 public:
-    XoroshiroRandomSource(int64_t seed) {
-        this->randomNumberGenerator = new Xoroshiro128PlusPlus(RandomSupport::upgradeSeedTo128bit(seed));
+    XoroshiroRandomSource(int64_t seed) : randomNumberGenerator(RandomSupport::upgradeSeedTo128bit(seed)) {
     }
 
-    XoroshiroRandomSource(int64_t seedLo, int64_t seedHi) {
-        this->randomNumberGenerator = new Xoroshiro128PlusPlus(seedLo, seedHi);
+    XoroshiroRandomSource(int64_t seedLo, int64_t seedHi)
+        : randomNumberGenerator(Xoroshiro128PlusPlus(seedLo, seedHi)) {
     }
 
     RandomSource *fork() {
-        return new XoroshiroRandomSource(this->randomNumberGenerator->nextLong(),
-                                         this->randomNumberGenerator->nextLong());
+        return new XoroshiroRandomSource(this->randomNumberGenerator.nextLong(),
+                                         this->randomNumberGenerator.nextLong());
     }
 
     PositionalRandomFactory *forkPositional() {
-        return new XoroshiroRandomSource::XoroshiroPositionalRandomFactory(this->randomNumberGenerator->nextLong(),
-                                                                           this->randomNumberGenerator->nextLong());
+        return new XoroshiroRandomSource::XoroshiroPositionalRandomFactory(this->randomNumberGenerator.nextLong(),
+                                                                           this->randomNumberGenerator.nextLong());
     }
 
     void setSeed(int64_t seed) {
-        this->randomNumberGenerator = new Xoroshiro128PlusPlus(RandomSupport::upgradeSeedTo128bit(seed));
-        this->gaussianSource->reset();
+        this->randomNumberGenerator = Xoroshiro128PlusPlus(RandomSupport::upgradeSeedTo128bit(seed));
+        this->gaussianSource.reset();
     }
 
     int32_t nextInt() {
-        return (int32_t)this->randomNumberGenerator->nextLong();
+        return (int32_t)this->randomNumberGenerator.nextLong();
     }
 
     int32_t nextInt(int32_t bound) {
-
         int64_t i = toUnsignedLong(this->nextInt());
         int64_t j = i * (int64_t)bound;
         int64_t k = j & 4294967295LL;
@@ -235,11 +165,11 @@ public:
     }
 
     int64_t nextLong() {
-        return this->randomNumberGenerator->nextLong();
+        return this->randomNumberGenerator.nextLong();
     }
 
     bool nextBoolean() {
-        return (this->randomNumberGenerator->nextLong() & 1LL) != 0LL;
+        return (this->randomNumberGenerator.nextLong() & 1LL) != 0LL;
     }
 
     float nextFloat() {
@@ -251,18 +181,18 @@ public:
     }
 
     double nextGaussian() {
-        return this->gaussianSource->nextGaussian();
+        return this->gaussianSource.nextGaussian();
     }
 
     void consumeCount(int32_t count) {
         for (int32_t i = 0; i < count; ++i) {
-            this->randomNumberGenerator->nextLong();
+            this->randomNumberGenerator.nextLong();
         }
     }
 
 private:
     int64_t nextBits(int32_t bits) {
-        return ushr_l(this->randomNumberGenerator->nextLong(), (64 - bits));
+        return ushr_l(this->randomNumberGenerator.nextLong(), (64 - bits));
     }
 
 public:
@@ -349,8 +279,9 @@ private:
     static constexpr int64_t MODULUS_MASK = 281474976710655LL;
     static constexpr int64_t MULTIPLIER = 25214903917LL;
     static constexpr int64_t INCREMENT = 11LL;
+
     int64_t seed;
-    MarsagliaPolarGaussian *gaussianSource = new MarsagliaPolarGaussian(this);
+    MarsagliaPolarGaussian gaussianSource = MarsagliaPolarGaussian(this);
 
 public:
     LegacyRandomSource(int64_t seed) {
@@ -367,7 +298,7 @@ public:
 
     void setSeed(int64_t seed) {
         this->seed = (seed ^ MULTIPLIER) & MODULUS_MASK;
-        this->gaussianSource->reset();
+        this->gaussianSource.reset();
     }
 
     int32_t next(int32_t bits) {
@@ -379,7 +310,7 @@ public:
     }
 
     double nextGaussian() {
-        return this->gaussianSource->nextGaussian();
+        return this->gaussianSource.nextGaussian();
     }
 
     class LegacyPositionalRandomFactory : public PositionalRandomFactory {

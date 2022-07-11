@@ -223,6 +223,10 @@ namespace Mth {
         return floor(value / (double)quantizer) * quantizer;
     }
 
+    template <class T, enable_if_t<is_arithmetic_v<T>>...> constexpr auto c_abs(T const &x) noexcept {
+        return x < 0 ? -x : x;
+    }
+
     namespace {
         constexpr inline double sqrtNewtonRaphson(double x, double curr, double prev) {
             return curr == prev ? curr : sqrtNewtonRaphson(x, 0.5 * (curr + x / curr), curr);
@@ -233,4 +237,5 @@ namespace Mth {
         return x >= 0 && x < numeric_limits<double>::infinity() ? sqrtNewtonRaphson(x, x, 0)
                                                                 : numeric_limits<double>::quiet_NaN();
     }
+
 } // namespace Mth

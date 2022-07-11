@@ -80,12 +80,8 @@ Aquifer *Aquifer::createDisabled(Aquifer::FluidPicker *globalFluidPicker) {
     return new DisabledAquifer(globalFluidPicker);
 }
 
-template <class T, enable_if_t<is_arithmetic_v<T>>...> constexpr auto _abs(T const &x) noexcept {
-    return x < 0 ? -x : x;
-}
-
 constexpr double NoiseBasedAquifer_similarity(int32_t distanceSq0, int32_t distanceSq1) {
-    return 1.0 - (double)_abs(distanceSq1 - distanceSq0) / 25.0;
+    return 1.0 - (double)Mth::c_abs(distanceSq1 - distanceSq0) / 25.0;
 }
 
 class NoiseBasedAquifer : public Aquifer, public Aquifer::FluidPicker {

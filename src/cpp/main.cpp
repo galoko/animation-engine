@@ -10,6 +10,7 @@
 #include "surface-generation/biomes/noise-chunk.cpp"
 #include "surface-generation/biomes/noise-data.cpp"
 #include "surface-generation/biomes/pos.cpp"
+#include "surface-generation/biomes/random.cpp"
 
 #include "surface-generation/biomes/aquifer.hpp"
 #include "surface-generation/biomes/biome-source.hpp"

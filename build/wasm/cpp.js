@@ -2711,11 +2711,11 @@ var dynCall_iij = Module["dynCall_iij"] = createExportWrapper("dynCall_iij");
 
 var dynCall_ij = Module["dynCall_ij"] = createExportWrapper("dynCall_ij");
 
+var dynCall_ji = Module["dynCall_ji"] = createExportWrapper("dynCall_ji");
+
 var dynCall_iijj = Module["dynCall_iijj"] = createExportWrapper("dynCall_iijj");
 
 var dynCall_vij = Module["dynCall_vij"] = createExportWrapper("dynCall_vij");
-
-var dynCall_ji = Module["dynCall_ji"] = createExportWrapper("dynCall_ji");
 
 var dynCall_jiji = Module["dynCall_jiji"] = createExportWrapper("dynCall_jiji");
 
