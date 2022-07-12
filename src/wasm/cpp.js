@@ -2700,17 +2700,17 @@ var ___cxa_is_pointer_type = Module["___cxa_is_pointer_type"] = createExportWrap
 
 var dynCall_iiji = Module["dynCall_iiji"] = createExportWrapper("dynCall_iiji");
 
+var dynCall_iijj = Module["dynCall_iijj"] = createExportWrapper("dynCall_iijj");
+
+var dynCall_ji = Module["dynCall_ji"] = createExportWrapper("dynCall_ji");
+
+var dynCall_iij = Module["dynCall_iij"] = createExportWrapper("dynCall_iij");
+
 var dynCall_iiiji = Module["dynCall_iiiji"] = createExportWrapper("dynCall_iiiji");
 
 var dynCall_iiiiji = Module["dynCall_iiiiji"] = createExportWrapper("dynCall_iiiiji");
 
 var dynCall_jii = Module["dynCall_jii"] = createExportWrapper("dynCall_jii");
-
-var dynCall_iij = Module["dynCall_iij"] = createExportWrapper("dynCall_iij");
-
-var dynCall_ji = Module["dynCall_ji"] = createExportWrapper("dynCall_ji");
-
-var dynCall_iijj = Module["dynCall_iijj"] = createExportWrapper("dynCall_iijj");
 
 var dynCall_vij = Module["dynCall_vij"] = createExportWrapper("dynCall_vij");
 
@@ -3015,6 +3015,39 @@ function invoke_iiji(index, a1, a2, a3, a4) {
  }
 }
 
+function invoke_ji(index, a1) {
+ var sp = stackSave();
+ try {
+  return dynCall_ji(index, a1);
+ } catch (e) {
+  stackRestore(sp);
+  if (e !== e + 0) throw e;
+  _setThrew(1, 0);
+ }
+}
+
+function invoke_iijj(index, a1, a2, a3, a4, a5) {
+ var sp = stackSave();
+ try {
+  return dynCall_iijj(index, a1, a2, a3, a4, a5);
+ } catch (e) {
+  stackRestore(sp);
+  if (e !== e + 0) throw e;
+  _setThrew(1, 0);
+ }
+}
+
+function invoke_iij(index, a1, a2, a3) {
+ var sp = stackSave();
+ try {
+  return dynCall_iij(index, a1, a2, a3);
+ } catch (e) {
+  stackRestore(sp);
+  if (e !== e + 0) throw e;
+  _setThrew(1, 0);
+ }
+}
+
 function invoke_iiiji(index, a1, a2, a3, a4, a5) {
  var sp = stackSave();
  try {
@@ -3041,39 +3074,6 @@ function invoke_jii(index, a1, a2) {
  var sp = stackSave();
  try {
   return dynCall_jii(index, a1, a2);
- } catch (e) {
-  stackRestore(sp);
-  if (e !== e + 0) throw e;
-  _setThrew(1, 0);
- }
-}
-
-function invoke_iij(index, a1, a2, a3) {
- var sp = stackSave();
- try {
-  return dynCall_iij(index, a1, a2, a3);
- } catch (e) {
-  stackRestore(sp);
-  if (e !== e + 0) throw e;
-  _setThrew(1, 0);
- }
-}
-
-function invoke_ji(index, a1) {
- var sp = stackSave();
- try {
-  return dynCall_ji(index, a1);
- } catch (e) {
-  stackRestore(sp);
-  if (e !== e + 0) throw e;
-  _setThrew(1, 0);
- }
-}
-
-function invoke_iijj(index, a1, a2, a3, a4, a5) {
- var sp = stackSave();
- try {
-  return dynCall_iijj(index, a1, a2, a3, a4, a5);
  } catch (e) {
   stackRestore(sp);
   if (e !== e + 0) throw e;

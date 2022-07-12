@@ -77,14 +77,11 @@ MutableBlockPos *MutableBlockPos::setY(int32_t y) {
 ChunkPos::ChunkPos(int32_t x, int32_t z) : x(x), z(z) {
 }
 
-ChunkPos::ChunkPos(BlockPos *pos) {
-    this->x = SectionPos::blockToSectionCoord(pos->getX());
-    this->z = SectionPos::blockToSectionCoord(pos->getZ());
+ChunkPos::ChunkPos(BlockPos *pos)
+    : x(SectionPos::blockToSectionCoord(pos->getX())), z(SectionPos::blockToSectionCoord(pos->getZ())) {
 }
 
-ChunkPos::ChunkPos(int64_t loc) {
-    this->x = (int32_t)loc;
-    this->z = (int32_t)(loc >> COORD_BITS);
+ChunkPos::ChunkPos(int64_t loc) : x((int32_t)loc), z((int32_t)(loc >> COORD_BITS)) {
 }
 
 BlockPos *ChunkPos::getBlockAt(int32_t sectionX, int32_t y, int32_t sectionZ) {

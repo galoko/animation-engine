@@ -71,7 +71,7 @@ enum class Biomes
     END_BARRENS,
 };
 
-const char *BIOME_NAMES[] = {
+const char *BIOMES_TO_STR[] = {
     nullptr,
     "the_void",
     "plains",
@@ -136,6 +136,6 @@ const char *BIOME_NAMES[] = {
     "end_barrens",
 };
 
-string getBiomeName(Biomes biome) {
-    return BIOME_NAMES[(int32_t)biome];
+const char *biomeToStr(Biomes biome) {
+    return BIOMES_TO_STR[(int32_t)biome];
 }

@@ -9,6 +9,8 @@
 #include "surface-generation/biomes/mth.cpp"
 #include "surface-generation/biomes/noise-chunk.cpp"
 #include "surface-generation/biomes/noise-data.cpp"
+#include "surface-generation/biomes/noise/blended-noise.cpp"
+#include "surface-generation/biomes/noise/improved-noise.cpp"
 #include "surface-generation/biomes/pos.cpp"
 #include "surface-generation/biomes/random.cpp"
 
