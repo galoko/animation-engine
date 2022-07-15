@@ -2,6 +2,7 @@
 #include "chunk-generator.hpp"
 #include "chunk-status.hpp"
 #include "heightmap.hpp"
+#include "mth.hpp"
 #include "noise-chunk.hpp"
 
 // LevelHeightAccessor

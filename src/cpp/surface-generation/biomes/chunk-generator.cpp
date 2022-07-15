@@ -766,6 +766,23 @@ Climate::TargetPoint *NoiseClimateSampler::sample(int32_t x, int32_t y, int32_t 
 
 // NoiseBasedChunkGenerator
 
+WorldGenMaterialRule makeMaterialRuleList(vector<WorldGenMaterialRule> rules) {
+    return [rules](NoiseChunk *noiseChunk, int32_t x, int32_t y, int32_t z) -> BlockState {
+        for (const WorldGenMaterialRule &rule : rules) {
+            BlockState blockstate = rule(noiseChunk, x, y, z);
+            if (blockstate != Blocks::NULL_BLOCK) {
+                return blockstate;
+            }
+        }
+
+        return Blocks::NULL_BLOCK;
+    };
+}
+
+NoiseFiller makeBeardifier(ChunkAccess *chunkAccess) {
+    return [](int32_t x, int32_t y, int32_t z) -> double { return 0; };
+}
+
 NoiseBasedChunkGenerator::NoiseBasedChunkGenerator(BiomeSource *biomeSource, int64_t seed,
                                                    function<NoiseGeneratorSettings *(void)> settings)
     : NoiseBasedChunkGenerator(biomeSource, biomeSource, seed, settings) {

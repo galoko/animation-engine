@@ -1,5 +1,6 @@
 #include "noise-chunk.hpp"
 #include "chunk-generator.hpp"
+#include "mth.hpp"
 
 // ConstantSampler
 

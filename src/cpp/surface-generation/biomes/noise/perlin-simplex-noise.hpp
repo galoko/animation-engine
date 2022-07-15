@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "../random.hpp"
 #include "simplex-noise.hpp"
 

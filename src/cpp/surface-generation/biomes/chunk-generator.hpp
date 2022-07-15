@@ -1,9 +1,11 @@
 #pragma once
 
+#include "aquifer.hpp"
 #include "biome-source.hpp"
 #include "blocks.hpp"
 #include "chunks.fwd.hpp"
 #include "mth.hpp"
+#include "noise-chunk.hpp"
 #include "noise-data.hpp"
 #include "noise/blended-noise.hpp"
 #include "noise/normal-noise.hpp"
@@ -406,29 +408,12 @@ public:
     Aquifer::FluidStatus *computeFluid(int32_t x, int32_t y, int32_t z) override;
 };
 
-WorldGenMaterialRule makeMaterialRuleList(vector<WorldGenMaterialRule> rules) {
-    return [rules](NoiseChunk *noiseChunk, int32_t x, int32_t y, int32_t z) -> BlockState {
-        for (const WorldGenMaterialRule &rule : rules) {
-            BlockState blockstate = rule(noiseChunk, x, y, z);
-            if (blockstate != Blocks::NULL_BLOCK) {
-                return blockstate;
-            }
-        }
-
-        return Blocks::NULL_BLOCK;
-    };
-}
-
 class BelowZeroRetrogen {
 public:
     static BiomeResolver *getBiomeResolver(BiomeResolver *resolver, ChunkAccess *chunkAccess) {
         return resolver;
     };
 };
-
-NoiseFiller makeBeardifier(ChunkAccess *chunkAccess) {
-    return [](int32_t x, int32_t y, int32_t z) -> double { return 0; };
-}
 
 class NoiseClimateSampler : public Climate::Sampler {
 private:

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../chunk-generator.hpp"
 #include "../noise-chunk.hpp"
 #include "perlin-noise.hpp"
 

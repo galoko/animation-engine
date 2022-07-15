@@ -1,7 +1,11 @@
 #pragma once
 
+#include <vector>
+
 #include "biomes.hpp"
 #include "climate.hpp"
+
+using namespace std;
 
 class OverworldBiomeBuilder {
 private:

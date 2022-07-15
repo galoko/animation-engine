@@ -1,15 +1,5 @@
 #include "mth.hpp"
 
-template <typename K, typename T> T computeIfAbsent(std::map<K, T> &m, K key, function<T(K)> computor) {
-    if (m.find(key) == m.end()) {
-        T value = computor(key);
-        m.insert({key, value});
-        return value;
-    } else {
-        return m.at(key);
-    }
-}
-
 namespace Mth {
     int32_t binarySearch(int32_t startIndex, int32_t endIndex, IntPredicate predicate) {
         int32_t i = endIndex - startIndex;

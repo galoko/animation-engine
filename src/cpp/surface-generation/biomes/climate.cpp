@@ -92,25 +92,3 @@ Climate::ParameterPoint *Climate::parameters(Climate::Parameter *temperature, Cl
     return new Climate::ParameterPoint(temperature, humidity, continentalness, erosion, depth, weirdness,
                                        quantizeCoord(offset));
 }
-
-// ParameterList
-
-template <typename T> Climate::ParameterList<T>::ParameterList(vector<pair<Climate::ParameterPoint *, T>> *values) {
-    this->values = values;
-}
-
-template <typename T>
-T Climate::ParameterList<T>::findValueBruteForce(Climate::TargetPoint *targetPoint, T defaultValue) {
-    int64_t minDistance = numeric_limits<int64_t>::max();
-    T result = defaultValue;
-
-    for (pair<Climate::ParameterPoint *, T> &pair : *this->values) {
-        int64_t distance = pair.first->fitness(targetPoint);
-        if (distance < minDistance) {
-            minDistance = distance;
-            result = pair.second;
-        }
-    }
-
-    return result;
-}

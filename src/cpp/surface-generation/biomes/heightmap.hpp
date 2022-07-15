@@ -1,9 +1,10 @@
 #pragma once
 
 #include <functional>
+#include <vector>
 
 #include "blocks.hpp"
-#include "chunks.fwd.hpp"
+#include "chunks.hpp"
 #include "heightmap.fwd.hpp"
 #include "pos.hpp"
 

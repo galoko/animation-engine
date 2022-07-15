@@ -81,9 +81,26 @@ public:
     public:
         vector<pair<Climate::ParameterPoint *, T>> *values;
 
-        ParameterList(vector<pair<Climate::ParameterPoint *, T>> *values);
+        // ParameterList
 
-        T findValueBruteForce(Climate::TargetPoint *targetPoint, T defaultValue);
+        ParameterList(vector<pair<Climate::ParameterPoint *, T>> *values) {
+            this->values = values;
+        }
+
+        T findValueBruteForce(Climate::TargetPoint *targetPoint, T defaultValue) {
+            int64_t minDistance = numeric_limits<int64_t>::max();
+            T result = defaultValue;
+
+            for (pair<Climate::ParameterPoint *, T> &pair : *this->values) {
+                int64_t distance = pair.first->fitness(targetPoint);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    result = pair.second;
+                }
+            }
+
+            return result;
+        }
     };
 
     class Sampler {
