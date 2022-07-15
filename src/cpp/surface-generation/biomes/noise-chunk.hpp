@@ -20,13 +20,9 @@ private:
     double value;
 
 public:
-    ConstantSampler(double value) {
-        this->value = value;
-    }
+    ConstantSampler(double value);
 
-    double sample() override {
-        return this->value;
-    }
+    double sample() override;
 };
 
 class NoiseChunk;
@@ -79,15 +75,9 @@ private:
                Aquifer::FluidPicker *fluidPicker, Blender *blender);
 
 public:
-    FlatNoiseData *noiseData(int32_t x, int32_t z) {
-        return this->_noiseData[x - this->firstNoiseX][z - this->firstNoiseZ];
-    }
+    FlatNoiseData *noiseData(int32_t x, int32_t z);
 
-    int32_t preliminarySurfaceLevel(int32_t x, int32_t z) {
-        return computeIfAbsent<int64_t, int32_t>(
-            this->_preliminarySurfaceLevel, ChunkPos::asLong(QuartPos::fromBlock(x), QuartPos::fromBlock(z)),
-            [this](int64_t loc) -> int32_t { return this->computePreliminarySurfaceLevel(loc); });
-    }
+    int32_t preliminarySurfaceLevel(int32_t x, int32_t z);
 
 private:
     int32_t computePreliminarySurfaceLevel(int64_t loc);
@@ -95,9 +85,7 @@ private:
 public:
     NoiseChunk::NoiseInterpolator *createNoiseInterpolator(NoiseChunk::NoiseFiller filler);
 
-    Blender *getBlender() {
-        return this->blender;
-    }
+    Blender *getBlender();
 
     void initializeForFirstCellX();
     void advanceCellX(int32_t cellX);
@@ -107,17 +95,10 @@ public:
     void updateForZ(double t);
     void swapSlices();
 
-    Aquifer *aquifer() {
-        return this->_aquifer;
-    }
+    Aquifer *aquifer();
 
-    BlockState updateNoiseAndGenerateBaseState(int32_t x, int32_t y, int32_t z) {
-        return this->baseNoise(x, y, z);
-    }
-
-    BlockState oreVeinify(int32_t x, int32_t y, int32_t z) {
-        return this->oreVeins(x, y, z);
-    }
+    BlockState updateNoiseAndGenerateBaseState(int32_t x, int32_t y, int32_t z);
+    BlockState oreVeinify(int32_t x, int32_t y, int32_t z);
 };
 
 class NoiseInterpolator : public Sampler {
@@ -143,75 +124,26 @@ private:
     double value;
 
 public:
-    NoiseInterpolator(NoiseChunk *noiseChunk, NoiseFiller filler) {
-        this->noiseChunk = noiseChunk;
-        this->noiseFiller = filler;
-        this->slice0 = this->allocateSlice(this->noiseChunk->cellCountY, this->noiseChunk->cellCountXZ);
-        this->slice1 = this->allocateSlice(this->noiseChunk->cellCountY, this->noiseChunk->cellCountXZ);
-        this->noiseChunk->interpolators.push_back(this);
-    }
+    NoiseInterpolator(NoiseChunk *noiseChunk, NoiseFiller filler);
 
 private:
-    double **allocateSlice(int32_t cellCountY, int32_t cellCountXZ) {
-        int32_t sliceWidth = cellCountXZ + 1;
-        int32_t sliceHeight = cellCountY + 1;
-        double **slice = new double *[sliceWidth];
-
-        for (int32_t x = 0; x < sliceWidth; ++x) {
-            slice[x] = new double[sliceHeight];
-        }
-
-        return slice;
-    }
+    double **allocateSlice(int32_t cellCountY, int32_t cellCountXZ);
 
 public:
-    void initializeForFirstCellX() {
-        this->fillSlice(this->slice0, this->noiseChunk->firstCellX);
-    }
-
-    void advanceCellX(int32_t cellX) {
-        this->fillSlice(this->slice1, this->noiseChunk->firstCellX + cellX + 1);
-    }
+    void initializeForFirstCellX();
+    void advanceCellX(int32_t cellX);
 
 private:
     void fillSlice(double **slice, int32_t cellX);
 
 public:
-    void selectCellYZ(int32_t cellY, int32_t cellZ) {
-        this->noise000 = this->slice0[cellZ][cellY];
-        this->noise001 = this->slice0[cellZ + 1][cellY];
-        this->noise100 = this->slice1[cellZ][cellY];
-        this->noise101 = this->slice1[cellZ + 1][cellY];
-        this->noise010 = this->slice0[cellZ][cellY + 1];
-        this->noise011 = this->slice0[cellZ + 1][cellY + 1];
-        this->noise110 = this->slice1[cellZ][cellY + 1];
-        this->noise111 = this->slice1[cellZ + 1][cellY + 1];
-    }
-
-    void updateForY(double t) {
-        this->valueXZ00 = Mth::lerp(t, this->noise000, this->noise010);
-        this->valueXZ10 = Mth::lerp(t, this->noise100, this->noise110);
-        this->valueXZ01 = Mth::lerp(t, this->noise001, this->noise011);
-        this->valueXZ11 = Mth::lerp(t, this->noise101, this->noise111);
-    }
-
-    void updateForX(double t) {
-        this->valueZ0 = Mth::lerp(t, this->valueXZ00, this->valueXZ10);
-        this->valueZ1 = Mth::lerp(t, this->valueXZ01, this->valueXZ11);
-    }
-
-    void updateForZ(double t) {
-        this->value = Mth::lerp(t, this->valueZ0, this->valueZ1);
-    }
+    void selectCellYZ(int32_t cellY, int32_t cellZ);
+    void updateForY(double t);
+    void updateForX(double t);
+    void updateForZ(double t);
 
 public:
-    double sample() override {
-        return this->value;
-    }
+    double sample() override;
 
-    void swapSlices() {
-        double **adouble = this->slice0;
-        this->slice0 = this->slice1;
-        this->slice1 = adouble;
-    }
+    void swapSlices();
 };

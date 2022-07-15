@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "chunk-generator.fwd.hpp"
+#include "chunk-generator.hpp"
 #include "chunk-status.fwd.hpp"
 #include "chunks.fwd.hpp"
 #include "heightmap.fwd.hpp"
@@ -30,14 +30,7 @@ public:
 
     using LoadingTask = ChunkAccess *(*)(ChunkStatus *chunkStatus, ChunkAccess *chunkAccess);
 
-    static GenerationTask makeGenerationTask(SimpleGenerationTask simpleTask) {
-        return [simpleTask](ChunkStatus *chunkStatus, ChunkGenerator *generator, ChunkConverter converter,
-                            vector<ChunkAccess *> neighbors, ChunkAccess *chunkAccess) -> ChunkAccess * {
-            // TODO status progress
-            simpleTask(chunkStatus, generator, neighbors, chunkAccess);
-            return chunkAccess;
-        };
-    }
+    static GenerationTask makeGenerationTask(SimpleGenerationTask simpleTask);
 
     static constexpr auto EMPTY_CONVERTER = [](ChunkAccess *chunkAccess) -> ChunkAccess * { return chunkAccess; };
 
@@ -87,81 +80,34 @@ public:
 public:
     static ChunkStatus *registerSimple(string name, ChunkStatus *chunkStatus, int32_t index,
                                        vector<HeightmapTypes> heightmapsAfter, ChunkStatus::ChunkType chunkType,
-                                       ChunkStatus::SimpleGenerationTask generationTask) {
-        return _register(name, chunkStatus, index, heightmapsAfter, chunkType, makeGenerationTask(generationTask));
-    }
-
+                                       ChunkStatus::SimpleGenerationTask generationTask);
     static ChunkStatus *_register(string name, ChunkStatus *chunkStatus, int32_t index,
                                   vector<HeightmapTypes> heightmapsAfter, ChunkStatus::ChunkType chunkType,
-                                  ChunkStatus::GenerationTask generationTask) {
-        return _register(name, chunkStatus, index, heightmapsAfter, chunkType, generationTask, PASSTHROUGH_LOAD_TASK);
-    }
-
+                                  ChunkStatus::GenerationTask generationTask);
     static ChunkStatus *_register(string name, ChunkStatus *chunkStatus, int32_t index,
                                   vector<HeightmapTypes> heightmapsAfter, ChunkStatus::ChunkType chunkType,
-                                  ChunkStatus::GenerationTask generationTask, ChunkStatus::LoadingTask loadingTask) {
-        return new ChunkStatus(name, chunkStatus, index, heightmapsAfter, chunkType, generationTask, loadingTask);
-    }
+                                  ChunkStatus::GenerationTask generationTask, ChunkStatus::LoadingTask loadingTask);
 
 public:
-    static vector<ChunkStatus *> *getStatusList() {
-        vector<ChunkStatus *> *list = new vector<ChunkStatus *>();
-
-        ChunkStatus *chunkstatus;
-        for (chunkstatus = FULL; chunkstatus->getParent() != chunkstatus; chunkstatus = chunkstatus->getParent()) {
-            list->push_back(chunkstatus);
-        }
-
-        list->push_back(chunkstatus);
-        reverse(list->begin(), list->end());
-
-        return list;
-    }
+    static vector<ChunkStatus *> *getStatusList();
 
 private:
     static bool isLighted(ChunkStatus *chunkStatus, ChunkAccess *chunkAccess);
 
     ChunkStatus(string name, ChunkStatus *parent, int32_t range, vector<HeightmapTypes> heightmapsAfter,
                 ChunkStatus::ChunkType chunkType, ChunkStatus::GenerationTask generationTask,
-                ChunkStatus::LoadingTask loadingTask) {
-        this->name = name;
-        this->parent = parent == nullptr ? this : parent;
-        this->generationTask = generationTask;
-        this->loadingTask = loadingTask;
-        this->range = range;
-        this->chunkType = chunkType;
-        this->heightmapsAfter = heightmapsAfter;
-        this->index = parent == nullptr ? 0 : parent->getIndex() + 1;
-    }
+                ChunkStatus::LoadingTask loadingTask);
 
-    int32_t getIndex() {
-        return this->index;
-    }
-
-    string getName() {
-        return this->name;
-    }
-
-    ChunkStatus *getParent() {
-        return this->parent;
-    }
+    int32_t getIndex();
+    string getName();
+    ChunkStatus *getParent();
 
 public:
-    ChunkAccess *generate(ChunkGenerator *generator, ChunkConverter converter, vector<ChunkAccess *> chunks) {
-        ChunkAccess *chunkaccess = chunks.at(chunks.size() / 2);
+    ChunkAccess *generate(ChunkGenerator *generator, ChunkConverter converter, vector<ChunkAccess *> chunks);
 
-        return this->generationTask(this, generator, converter, chunks, chunkaccess);
-    }
+    int32_t getRange();
 
-    int32_t getRange() {
-        return this->range;
-    }
+    ChunkStatus::ChunkType getChunkType();
 
-    ChunkStatus::ChunkType getChunkType() {
-        return this->chunkType;
-    }
-
-    bool isOrAfter(ChunkStatus *chunkStatus) {
-        return this->getIndex() >= chunkStatus->getIndex();
-    }
+    bool isOrAfter(ChunkStatus *chunkStatus);
 };

@@ -6,8 +6,94 @@
 
 using namespace std;
 
+// ChunkStatus
+
+ChunkStatus::GenerationTask ChunkStatus::makeGenerationTask(SimpleGenerationTask simpleTask) {
+    return [simpleTask](ChunkStatus *chunkStatus, ChunkGenerator *generator, ChunkConverter converter,
+                        vector<ChunkAccess *> neighbors, ChunkAccess *chunkAccess) -> ChunkAccess * {
+        // TODO status progress
+        simpleTask(chunkStatus, generator, neighbors, chunkAccess);
+        return chunkAccess;
+    };
+}
+
+ChunkStatus *ChunkStatus::registerSimple(string name, ChunkStatus *chunkStatus, int32_t index,
+                                         vector<HeightmapTypes> heightmapsAfter, ChunkStatus::ChunkType chunkType,
+                                         ChunkStatus::SimpleGenerationTask generationTask) {
+    return _register(name, chunkStatus, index, heightmapsAfter, chunkType, makeGenerationTask(generationTask));
+}
+
+ChunkStatus *ChunkStatus::_register(string name, ChunkStatus *chunkStatus, int32_t index,
+                                    vector<HeightmapTypes> heightmapsAfter, ChunkStatus::ChunkType chunkType,
+                                    ChunkStatus::GenerationTask generationTask) {
+    return _register(name, chunkStatus, index, heightmapsAfter, chunkType, generationTask, PASSTHROUGH_LOAD_TASK);
+}
+
+ChunkStatus *ChunkStatus::_register(string name, ChunkStatus *chunkStatus, int32_t index,
+                                    vector<HeightmapTypes> heightmapsAfter, ChunkStatus::ChunkType chunkType,
+                                    ChunkStatus::GenerationTask generationTask, ChunkStatus::LoadingTask loadingTask) {
+    return new ChunkStatus(name, chunkStatus, index, heightmapsAfter, chunkType, generationTask, loadingTask);
+}
+
+vector<ChunkStatus *> *ChunkStatus::getStatusList() {
+    vector<ChunkStatus *> *list = new vector<ChunkStatus *>();
+
+    ChunkStatus *chunkstatus;
+    for (chunkstatus = FULL; chunkstatus->getParent() != chunkstatus; chunkstatus = chunkstatus->getParent()) {
+        list->push_back(chunkstatus);
+    }
+
+    list->push_back(chunkstatus);
+    reverse(list->begin(), list->end());
+
+    return list;
+}
+
 bool ChunkStatus::isLighted(ChunkStatus *chunkStatus, ChunkAccess *chunkAccess) {
     return chunkAccess->getStatus()->isOrAfter(chunkStatus) && chunkAccess->isLightCorrect;
+}
+
+ChunkStatus::ChunkStatus(string name, ChunkStatus *parent, int32_t range, vector<HeightmapTypes> heightmapsAfter,
+                         ChunkStatus::ChunkType chunkType, ChunkStatus::GenerationTask generationTask,
+                         ChunkStatus::LoadingTask loadingTask) {
+    this->name = name;
+    this->parent = parent == nullptr ? this : parent;
+    this->generationTask = generationTask;
+    this->loadingTask = loadingTask;
+    this->range = range;
+    this->chunkType = chunkType;
+    this->heightmapsAfter = heightmapsAfter;
+    this->index = parent == nullptr ? 0 : parent->getIndex() + 1;
+}
+
+int32_t ChunkStatus::getIndex() {
+    return this->index;
+}
+
+string ChunkStatus::getName() {
+    return this->name;
+}
+
+ChunkStatus *ChunkStatus::getParent() {
+    return this->parent;
+}
+
+ChunkAccess *ChunkStatus::generate(ChunkGenerator *generator, ChunkConverter converter, vector<ChunkAccess *> chunks) {
+    ChunkAccess *chunkaccess = chunks.at(chunks.size() / 2);
+
+    return this->generationTask(this, generator, converter, chunks, chunkaccess);
+}
+
+int32_t ChunkStatus::getRange() {
+    return this->range;
+}
+
+ChunkStatus::ChunkType ChunkStatus::getChunkType() {
+    return this->chunkType;
+}
+
+bool ChunkStatus::isOrAfter(ChunkStatus *chunkStatus) {
+    return this->getIndex() >= chunkStatus->getIndex();
 }
 
 vector<HeightmapTypes> ChunkStatus::PRE_FEATURES = {HeightmapTypes::OCEAN_FLOOR_WG, HeightmapTypes::WORLD_SURFACE_WG};
