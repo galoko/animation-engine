@@ -75,9 +75,15 @@ FlatNoiseData *NoiseChunk::noiseData(int32_t x, int32_t z) {
 }
 
 int32_t NoiseChunk::preliminarySurfaceLevel(int32_t x, int32_t z) {
-    return computeIfAbsent<int64_t, int32_t>(
-        this->_preliminarySurfaceLevel, ChunkPos::asLong(QuartPos::fromBlock(x), QuartPos::fromBlock(z)),
-        [this](int64_t loc) -> int32_t { return this->computePreliminarySurfaceLevel(loc); });
+    int64_t loc = ChunkPos::asLong(QuartPos::fromBlock(x), QuartPos::fromBlock(z));
+    auto iterator = this->_preliminarySurfaceLevel.find(loc);
+    if (iterator == this->_preliminarySurfaceLevel.end()) {
+        int32_t height = this->computePreliminarySurfaceLevel(loc);
+        this->_preliminarySurfaceLevel.insert({loc, height});
+        return height;
+    } else {
+        return iterator->second;
+    }
 }
 
 int32_t NoiseChunk::computePreliminarySurfaceLevel(int64_t loc) {

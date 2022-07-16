@@ -206,8 +206,14 @@ LevelChunkSection *ChunkAccess::getSection(int32_t sectionIndex) {
 }
 
 Heightmap *ChunkAccess::getOrCreateHeightmapUnprimed(HeightmapTypes type) {
-    return computeIfAbsent<HeightmapTypes, Heightmap *>(
-        *this->heightmaps, type, [this](HeightmapTypes type) -> Heightmap * { return new Heightmap(this, type); });
+    auto iterator = this->heightmaps->find(type);
+    if (iterator == this->heightmaps->end()) {
+        Heightmap *heightmap = new Heightmap(this, type);
+        this->heightmaps->insert({type, heightmap});
+        return heightmap;
+    } else {
+        return iterator->second;
+    }
 }
 
 bool ChunkAccess::hasPrimedHeightmap(HeightmapTypes type) {

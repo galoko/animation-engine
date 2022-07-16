@@ -3,24 +3,31 @@
 #include <cstdint>
 #include <functional>
 #include <map>
+#include <vector>
+
+// [this, loc](int32_t index) { return loc < this->locations->at(index); })
 
 using namespace std;
 
 #define ushr_l(value, bits) ((int64_t)((uint64_t)value >> bits))
 
-template <typename K, typename T> T inline computeIfAbsent(std::map<K, T> &m, K key, function<T(K)> computor) {
-    if (m.find(key) == m.end()) {
-        T value = computor(key);
-        m.insert({key, value});
-        return value;
-    } else {
-        return m.at(key);
-    }
-}
-
 namespace Mth {
-    using IntPredicate = function<bool(int32_t)>;
-    int32_t binarySearch(int32_t startIndex, int32_t endIndex, IntPredicate predicate);
+    template <typename T> int32_t binarySearch(int32_t startIndex, int32_t endIndex, T value, vector<T> const &values) {
+        int32_t i = endIndex - startIndex;
+
+        while (i > 0) {
+            int32_t j = i / 2;
+            int32_t k = startIndex + j;
+            if (value < values.at(k)) {
+                i = j;
+            } else {
+                startIndex = k + 1;
+                i -= j + 1;
+            }
+        }
+
+        return startIndex;
+    }
 
     constexpr inline int8_t clamp(int8_t value, int8_t min, int8_t max) {
         if (value < min) {

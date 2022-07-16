@@ -26,7 +26,6 @@ public:
     set<Biomes> *possibleBiomes;
     vector<BiomeSource::StepFeatureData *> *featuresPerStep;
 
-    BiomeSource(vector<function<Biomes(void)>> *biomes);
     BiomeSource(vector<Biomes> *biomes);
 
     virtual BiomeSource *withSeed(int64_t seed) = 0;
@@ -53,10 +52,10 @@ public:
         string name;
 
     private:
-        function<Climate::ParameterList<function<Biomes(void)>> *(void)> parameterSource;
+        function<Climate::ParameterList<Biomes> *(void)> parameterSource;
 
     public:
-        Preset(string name, function<Climate::ParameterList<function<Biomes(void)>> *(void)> parameterSource);
+        Preset(string name, function<Climate::ParameterList<Biomes> *(void)> parameterSource);
 
         MultiNoiseBiomeSource *biomeSource(MultiNoiseBiomeSource::PresetInstance *presetInstance,
                                            bool usePresetInstance);
@@ -65,14 +64,13 @@ public:
     };
 
 private:
-    static vector<function<Biomes(void)>> *getBiomes(Climate::ParameterList<function<Biomes(void)>> *parameters);
+    static vector<Biomes> *getBiomes(Climate::ParameterList<Biomes> *parameters);
 
-    Climate::ParameterList<function<Biomes(void)>> *parameters;
+    Climate::ParameterList<Biomes> *parameters;
     MultiNoiseBiomeSource::PresetInstance *preset;
 
-    MultiNoiseBiomeSource(Climate::ParameterList<function<Biomes(void)>> *parameters);
-    MultiNoiseBiomeSource(Climate::ParameterList<function<Biomes(void)>> *parameters,
-                          MultiNoiseBiomeSource::PresetInstance *preset);
+    MultiNoiseBiomeSource(Climate::ParameterList<Biomes> *parameters);
+    MultiNoiseBiomeSource(Climate::ParameterList<Biomes> *parameters, MultiNoiseBiomeSource::PresetInstance *preset);
 
 public:
     BiomeSource *withSeed(int64_t seed) override;
