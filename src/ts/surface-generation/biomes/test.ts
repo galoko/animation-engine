@@ -55,10 +55,12 @@ export function test() {
     }
     result += "]"
 
-    debugger
+    // debugger
 
     try {
+        const startTime = performance.now()
         const ptr = module._test()
+        alert(`C++ chunk generation: ${performance.now() - startTime}`)
         // debugger
 
         let result = "const BLOCKS = ["
@@ -100,7 +102,7 @@ export function test() {
         }
         result += "]"
         */
-        console.log(result)
+        // console.log(result)
     } catch (ptr) {
         module._print_exception(ptr)
     }
