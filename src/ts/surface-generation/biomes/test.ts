@@ -14,7 +14,7 @@ import { BLOCKS } from "./template-1-0"
 import { module } from "../../cpp-bridge"
 import { CPP_ID_TO_BLOCK_NAME } from "./blocks"
 
-export function test() {
+function testJS() {
     const seed = Mth.toLong(hashCode("test"))
 
     // get list of biomes
@@ -33,6 +33,16 @@ export function test() {
 
     ChunkStatus.BIOMES.generate(null!, chunkGenerator, chunkAccess => chunkAccess, [chunk])
     ChunkStatus.NOISE.generate(null!, chunkGenerator, chunkAccess => chunkAccess, [chunk])
+
+    return chunk
+}
+
+export function test() {
+    const startTime = performance.now()
+
+    const chunk = testJS()
+
+    alert(`JS chunk generation: ${performance.now() - startTime}`)
 
     let result = "const BLOCKS = ["
 

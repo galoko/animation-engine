@@ -89071,7 +89071,7 @@ const BLOCKS = [
 ];
 
 /* eslint-disable no-debugger */
-function test() {
+function testJS() {
     const seed = Mth.toLong(hashCode("test"));
     // get list of biomes
     const builder = new OverworldBiomeBuilder();
@@ -89085,6 +89085,12 @@ function test() {
     const chunk = new ProtoChunk(chunkPos, heightAccessor);
     ChunkStatus.BIOMES.generate(null, chunkGenerator, chunkAccess => chunkAccess, [chunk]);
     ChunkStatus.NOISE.generate(null, chunkGenerator, chunkAccess => chunkAccess, [chunk]);
+    return chunk;
+}
+function test() {
+    const startTime = performance.now();
+    const chunk = testJS();
+    alert(`JS chunk generation: ${performance.now() - startTime}`);
     let result = "const BLOCKS = [";
     const pos = new MutableBlockPos();
     let i = 0;
