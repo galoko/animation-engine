@@ -21,9 +21,9 @@ private:
     static constexpr Predicate<BlockState> MATERIAL_MOTION_BLOCKING = NOT_AIR;
     static constexpr Predicate<BlockState> MATERIAL_MOTION_BLOCKING_NO_LEAVES = NOT_AIR;
 
-    int32_t *data;
+    int32_t data[256];
     Predicate<BlockState> isOpaque;
-    ChunkAccess *chunk;
+    ChunkAccess const *chunk;
 
 public:
     enum Usage
@@ -67,19 +67,19 @@ public:
         return isOpaqueData[type].isOpaque;
     };
 
-    Heightmap(ChunkAccess *chunk, Heightmap::Types type);
+    Heightmap(ChunkAccess const *chunk, Heightmap::Types type);
 
     static void primeHeightmaps(ChunkAccess *chunkAccess, vector<Heightmap::Types> types);
 
     bool update(int32_t x, int32_t y, int32_t z, BlockState block);
 
-    int32_t getFirstAvailable(int32_t x, int32_t z);
-    int32_t getHighestTaken(int32_t x, int32_t z);
-    int32_t getFirstAvailable(int32_t index);
+    int32_t getFirstAvailable(int32_t x, int32_t z) const;
+    int32_t getHighestTaken(int32_t x, int32_t z) const;
+    int32_t getFirstAvailable(int32_t index) const;
 
     void setHeight(int32_t x, int32_t z, int32_t height);
 
-    static int32_t getIndex(int32_t x, int32_t z) {
+    static constexpr inline int32_t getIndex(int32_t x, int32_t z) {
         return x + z * 16;
     }
 };

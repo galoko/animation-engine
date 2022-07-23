@@ -33,22 +33,22 @@ uint8_t *doTest() {
     int64_t seed = hashCode("test");
 
     NoiseBasedChunkGenerator *chunkGenerator = WorldGenSettings::makeDefaultOverworld(seed);
-    LevelHeightAccessor *heightAccessor = new SimpleLevelHeightAccessor();
+    SimpleLevelHeightAccessor heightAccessor = SimpleLevelHeightAccessor();
 
-    ChunkPos *chunkPos = new ChunkPos(1, 0);
-    ProtoChunk *chunk = new ProtoChunk(chunkPos, heightAccessor);
+    ChunkPos chunkPos = ChunkPos(1, 0);
+    ProtoChunk chunk = ProtoChunk(chunkPos, heightAccessor);
 
-    ChunkStatus::BIOMES->generate(chunkGenerator, ChunkStatus::EMPTY_CONVERTER, {chunk});
-    ChunkStatus::NOISE->generate(chunkGenerator, ChunkStatus::EMPTY_CONVERTER, {chunk});
+    ChunkStatus::BIOMES.generate(chunkGenerator, ChunkStatus::EMPTY_CONVERTER, {&chunk});
+    ChunkStatus::NOISE.generate(chunkGenerator, ChunkStatus::EMPTY_CONVERTER, {&chunk});
 
     uint8_t *result = new uint8_t[16 * 16 * 384];
-    MutableBlockPos *pos = new MutableBlockPos();
+    MutableBlockPos pos = MutableBlockPos();
     int i = 0;
     for (int y = -64; y < 256; y++) {
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
-                pos->set(x, y, z);
-                BlockState block = chunk->getBlockState(pos);
+                pos.set(x, y, z);
+                BlockState block = chunk.getBlockState(pos);
                 result[i++] = (uint8_t)block;
             }
         }
@@ -56,12 +56,12 @@ uint8_t *doTest() {
 
     /*
     uint8_t *result = new uint8_t[4 * 4 * 96];
-    MutableBlockPos *pos = new MutableBlockPos();
+    MutableBlockPos pos = MutableBlockPos();
     int i = 0;
     for (int y = -64 / 4; y < 256 / 4; y++) {
         for (int x = 0; x < 4; x++) {
             for (int z = 0; z < 4; z++) {
-                pos->set(x * 4, y * 4, z * 4);
+                pos.set(x * 4, y * 4, z * 4);
                 Biomes biome = chunk->getBiome(pos);
                 result[i++] = (uint8_t)biome;
             }

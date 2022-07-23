@@ -7,49 +7,49 @@
 
 // LevelHeightAccessor
 
-int32_t LevelHeightAccessor::getMaxBuildHeight() {
+int32_t LevelHeightAccessor::getMaxBuildHeight() const {
     return this->getMinBuildHeight() + this->getHeight();
 }
 
-int32_t LevelHeightAccessor::getSectionsCount() {
+int32_t LevelHeightAccessor::getSectionsCount() const {
     return this->getMaxSection() - this->getMinSection();
 }
 
-int32_t LevelHeightAccessor::getMinSection() {
+int32_t LevelHeightAccessor::getMinSection() const {
     return SectionPos::blockToSectionCoord(this->getMinBuildHeight());
 }
 
-int32_t LevelHeightAccessor::getMaxSection() {
+int32_t LevelHeightAccessor::getMaxSection() const {
     return SectionPos::blockToSectionCoord(this->getMaxBuildHeight() - 1) + 1;
 }
 
-bool LevelHeightAccessor::isOutsideBuildHeight(BlockPos *pos) {
-    return this->isOutsideBuildHeight(pos->getY());
+bool LevelHeightAccessor::isOutsideBuildHeight(BlockPos const &pos) const {
+    return this->isOutsideBuildHeight(pos.getY());
 }
 
-bool LevelHeightAccessor::isOutsideBuildHeight(int32_t y) {
+bool LevelHeightAccessor::isOutsideBuildHeight(int32_t y) const {
     return y < this->getMinBuildHeight() || y >= this->getMaxBuildHeight();
 }
 
-int32_t LevelHeightAccessor::getSectionIndex(int32_t y) {
+int32_t LevelHeightAccessor::getSectionIndex(int32_t y) const {
     return this->getSectionIndexFromSectionY(SectionPos::blockToSectionCoord(y));
 }
 
-int32_t LevelHeightAccessor::getSectionIndexFromSectionY(int32_t sectionY) {
+int32_t LevelHeightAccessor::getSectionIndexFromSectionY(int32_t sectionY) const {
     return sectionY - this->getMinSection();
 }
 
-int32_t LevelHeightAccessor::getSectionYFromSectionIndex(int32_t sectionIndex) {
+int32_t LevelHeightAccessor::getSectionYFromSectionIndex(int32_t sectionIndex) const {
     return sectionIndex + this->getMinSection();
 }
 
 // SimpleLevelHeightAccessor
 
-int32_t SimpleLevelHeightAccessor::getHeight() {
+int32_t SimpleLevelHeightAccessor::getHeight() const {
     return 384;
 }
 
-int32_t SimpleLevelHeightAccessor::getMinBuildHeight() {
+int32_t SimpleLevelHeightAccessor::getMinBuildHeight() const {
     return -64;
 }
 
@@ -58,15 +58,15 @@ int32_t SimpleLevelHeightAccessor::getMinBuildHeight() {
 LevelChunkSection::LevelChunkSection(int32_t y) {
     this->_bottomBlockY = getBottomBlockY(y);
 
-    this->states = new vector<BlockState>(STATES_CONTAINER_SIZE * STATES_CONTAINER_SIZE * STATES_CONTAINER_SIZE);
-    fill(this->states->begin(), this->states->end(), Blocks::AIR);
+    this->states = vector<BlockState>(STATES_CONTAINER_SIZE * STATES_CONTAINER_SIZE * STATES_CONTAINER_SIZE);
+    fill(this->states.begin(), this->states.end(), Blocks::AIR);
 
-    this->biomes = new vector<Biomes>(BIOME_CONTAINER_SIZE * BIOME_CONTAINER_SIZE * BIOME_CONTAINER_SIZE);
-    fill(this->biomes->begin(), this->biomes->end(), Biomes::PLAINS);
+    this->biomes = vector<Biomes>(BIOME_CONTAINER_SIZE * BIOME_CONTAINER_SIZE * BIOME_CONTAINER_SIZE);
+    fill(this->biomes.begin(), this->biomes.end(), Biomes::PLAINS);
 }
 
-BlockState LevelChunkSection::getBlockState(int32_t x, int32_t y, int32_t z) {
-    return this->states->at(getBlockStateIndex(x, y, z));
+BlockState LevelChunkSection::getBlockState(int32_t x, int32_t y, int32_t z) const {
+    return this->states.at(getBlockStateIndex(x, y, z));
 }
 
 void LevelChunkSection::acquire() {
@@ -84,11 +84,11 @@ BlockState LevelChunkSection::setBlockState(int32_t x, int32_t y, int32_t z, Blo
 BlockState LevelChunkSection::setBlockState(int32_t x, int32_t y, int32_t z, BlockState blockState, bool checked) {
     BlockState prevBlockState;
     if (checked) {
-        prevBlockState = this->states->at(getBlockStateIndex(x, y, z));
-        this->states->at(getBlockStateIndex(x, y, z)) = blockState;
+        prevBlockState = this->states.at(getBlockStateIndex(x, y, z));
+        this->states.at(getBlockStateIndex(x, y, z)) = blockState;
     } else {
-        prevBlockState = this->states->at(getBlockStateIndex(x, y, z));
-        this->states->at(getBlockStateIndex(x, y, z)) = blockState;
+        prevBlockState = this->states.at(getBlockStateIndex(x, y, z));
+        this->states.at(getBlockStateIndex(x, y, z)) = blockState;
     }
 
     if (prevBlockState != Blocks::AIR) {
@@ -102,41 +102,41 @@ BlockState LevelChunkSection::setBlockState(int32_t x, int32_t y, int32_t z, Blo
     return prevBlockState;
 }
 
-bool LevelChunkSection::hasOnlyAir() {
+bool LevelChunkSection::hasOnlyAir() const {
     return this->nonEmptyBlockCount == 0;
 }
 
-bool LevelChunkSection::isRandomlyTicking() {
+bool LevelChunkSection::isRandomlyTicking() const {
     return this->isRandomlyTickingBlocks() || this->isRandomlyTickingFluids();
 }
 
-bool LevelChunkSection::isRandomlyTickingBlocks() {
+bool LevelChunkSection::isRandomlyTickingBlocks() const {
     return this->tickingBlockCount > 0;
 }
 
-bool LevelChunkSection::isRandomlyTickingFluids() {
+bool LevelChunkSection::isRandomlyTickingFluids() const {
     return this->tickingFluidCount > 0;
 }
 
-int32_t LevelChunkSection::bottomBlockY() {
+int32_t LevelChunkSection::bottomBlockY() const {
     return this->_bottomBlockY;
 }
 
-vector<BlockState> *LevelChunkSection::getStates() {
+vector<BlockState> const &LevelChunkSection::getStates() const {
     return this->states;
 }
 
-vector<Biomes> *LevelChunkSection::getBiomes() {
+vector<Biomes> const &LevelChunkSection::getBiomes() const {
     return this->biomes;
 }
 
-Biomes LevelChunkSection::getNoiseBiome(int32_t x, int32_t y, int32_t z) {
-    return this->biomes->at(getBiomesIndex(x, y, z));
+Biomes LevelChunkSection::getNoiseBiome(int32_t x, int32_t y, int32_t z) const {
+    return this->biomes.at(getBiomesIndex(x, y, z));
 }
 
 void LevelChunkSection::fillBiomesFromNoise(BiomeResolver *resolver, Climate::Sampler *sampler, int32_t offsetX,
                                             int32_t offsetZ) {
-    vector<Biomes> *biomes = this->getBiomes();
+    vector<Biomes> &biomes = this->biomes;
     // biomes->acquire();
 
     // try {
@@ -145,7 +145,7 @@ void LevelChunkSection::fillBiomesFromNoise(BiomeResolver *resolver, Climate::Sa
     for (int32_t x = 0; x < BIOME_CONTAINER_SIZE; ++x) {
         for (int32_t y = 0; y < BIOME_CONTAINER_SIZE; ++y) {
             for (int32_t z = 0; z < BIOME_CONTAINER_SIZE; ++z) {
-                biomes->at(getBiomesIndex(x, y, z)) =
+                biomes.at(getBiomesIndex(x, y, z)) =
                     resolver->getNoiseBiome(offsetX + x, offsetY + y, offsetZ + z, sampler);
             }
         }
@@ -159,33 +159,30 @@ void LevelChunkSection::fillBiomesFromNoise(BiomeResolver *resolver, Climate::Sa
 
 // ChunkAccess
 
-ChunkAccess::ChunkAccess(ChunkPos *chunkPos, LevelHeightAccessor *levelHeightAccessor) {
+ChunkAccess::ChunkAccess(ChunkPos const &chunkPos, LevelHeightAccessor const &levelHeightAccessor)
+    : chunkPos(chunkPos), levelHeightAccessor(levelHeightAccessor) {
     this->noiseChunk = nullptr;
     this->isLightCorrect = false;
-    this->chunkPos = chunkPos;
-    this->levelHeightAccessor = levelHeightAccessor;
-    this->sections = new vector<LevelChunkSection *>(levelHeightAccessor->getSectionsCount());
-    this->heightmaps = new std::map<HeightmapTypes, Heightmap *>();
+    this->sections = vector<LevelChunkSection>(levelHeightAccessor.getSectionsCount());
+    this->heightmaps = std::map<HeightmapTypes, Heightmap>();
 
     replaceMissingSections(levelHeightAccessor, this->sections);
 }
 
-void ChunkAccess::replaceMissingSections(LevelHeightAccessor *heightAccessor, vector<LevelChunkSection *> *sections) {
-    for (int32_t sectionIndex = 0; sectionIndex < sections->size(); ++sectionIndex) {
-        if (sections->at(sectionIndex) == nullptr) {
-            sections->at(sectionIndex) =
-                new LevelChunkSection(heightAccessor->getSectionYFromSectionIndex(sectionIndex));
-        }
+void ChunkAccess::replaceMissingSections(LevelHeightAccessor const &heightAccessor,
+                                         vector<LevelChunkSection> &sections) {
+    for (int32_t sectionIndex = 0; sectionIndex < sections.size(); ++sectionIndex) {
+        sections.at(sectionIndex) = LevelChunkSection(heightAccessor.getSectionYFromSectionIndex(sectionIndex));
     }
 }
 
 LevelChunkSection *ChunkAccess::getHighestSection() {
-    vector<LevelChunkSection *> *sections = this->getSections();
+    vector<LevelChunkSection> &sections = this->getSections();
 
-    for (int32_t i = sections->size() - 1; i >= 0; --i) {
-        LevelChunkSection *section = sections->at(i);
-        if (!section->hasOnlyAir()) {
-            return section;
+    for (int32_t sectionIndex = sections.size() - 1; sectionIndex >= 0; --sectionIndex) {
+        LevelChunkSection &section = this->getSection(sectionIndex);
+        if (!section.hasOnlyAir()) {
+            return &section;
         }
     }
 
@@ -197,54 +194,53 @@ int32_t ChunkAccess::getHighestSectionPosition() {
     return section == nullptr ? this->getMinBuildHeight() : section->bottomBlockY();
 }
 
-vector<LevelChunkSection *> *ChunkAccess::getSections() {
+vector<LevelChunkSection> &ChunkAccess::getSections() {
     return this->sections;
 }
 
-LevelChunkSection *ChunkAccess::getSection(int32_t sectionIndex) {
-    return this->getSections()->at(sectionIndex);
+LevelChunkSection &ChunkAccess::getSection(int32_t sectionIndex) {
+    return this->getSections().at(sectionIndex);
 }
 
-Heightmap *ChunkAccess::getOrCreateHeightmapUnprimed(HeightmapTypes type) {
-    auto iterator = this->heightmaps->find(type);
-    if (iterator == this->heightmaps->end()) {
-        Heightmap *heightmap = new Heightmap(this, type);
-        this->heightmaps->insert({type, heightmap});
-        return heightmap;
+Heightmap &ChunkAccess::getOrCreateHeightmapUnprimed(HeightmapTypes type) {
+    auto iterator = this->heightmaps.find(type);
+    if (iterator == this->heightmaps.end()) {
+        Heightmap heightmap = Heightmap(this, type);
+        this->heightmaps.insert({type, heightmap});
+        return this->heightmaps.at(type);
     } else {
         return iterator->second;
     }
 }
 
-bool ChunkAccess::hasPrimedHeightmap(HeightmapTypes type) {
-    return this->heightmaps->find(type)->second != nullptr;
+bool ChunkAccess::hasPrimedHeightmap(HeightmapTypes type) const {
+    return this->heightmaps.find(type) != this->heightmaps.end();
 }
 
 int32_t ChunkAccess::getHeight(HeightmapTypes type, int32_t x, int32_t z) {
-    Heightmap *heightmap = this->heightmaps->find(type)->second;
-    if (heightmap == nullptr) {
+    auto heightmapIterator = this->heightmaps.find(type);
+    if (heightmapIterator == this->heightmaps.end()) {
         Heightmap::primeHeightmaps(this, {type});
-        heightmap = this->heightmaps->at(type);
     }
-
-    return heightmap->getFirstAvailable(x & 15, z & 15) - 1;
+    Heightmap const &heightmap = this->heightmaps.at(type);
+    return heightmap.getFirstAvailable(x & 15, z & 15) - 1;
 }
 
-ChunkPos *ChunkAccess::getPos() {
+ChunkPos const &ChunkAccess::getPos() const {
     return this->chunkPos;
 }
 
-int32_t ChunkAccess::getMinBuildHeight() {
-    return this->levelHeightAccessor->getMinBuildHeight();
+int32_t ChunkAccess::getMinBuildHeight() const {
+    return this->levelHeightAccessor.getMinBuildHeight();
 }
 
-int32_t ChunkAccess::getHeight() {
-    return this->levelHeightAccessor->getHeight();
+int32_t ChunkAccess::getHeight() const {
+    return this->levelHeightAccessor.getHeight();
 }
 
 NoiseChunk *ChunkAccess::getOrCreateNoiseChunk(NoiseSampler *sampler, function<NoiseFiller(void)> filler,
-                                               NoiseGeneratorSettings *settings, Aquifer::FluidPicker *fluidPicker,
-                                               Blender *blender) {
+                                               NoiseGeneratorSettings const &settings,
+                                               Aquifer::FluidPicker *fluidPicker, Blender const &blender) {
     if (this->noiseChunk == nullptr) {
         this->noiseChunk = NoiseChunk::forChunk(this, sampler, filler, settings, fluidPicker, blender);
     }
@@ -257,60 +253,60 @@ Biomes ChunkAccess::getNoiseBiome(int32_t x, int32_t y, int32_t z) {
     int32_t maxY = minY + QuartPos::fromBlock(this->getHeight()) - 1;
     int32_t clampedY = Mth::clamp(y, minY, maxY);
     int32_t sectionIndex = this->getSectionIndex(QuartPos::toBlock(clampedY));
-    return this->sections->at(sectionIndex)->getNoiseBiome(x & 3, clampedY & 3, z & 3);
+    return this->getSection(sectionIndex).getNoiseBiome(x & 3, clampedY & 3, z & 3);
 }
 
 void ChunkAccess::fillBiomesFromNoise(BiomeResolver *resolver, Climate::Sampler *sampler) {
-    ChunkPos *chunkpos = this->getPos();
-    int32_t x = QuartPos::fromBlock(chunkpos->getMinBlockX());
-    int32_t z = QuartPos::fromBlock(chunkpos->getMinBlockZ());
-    LevelHeightAccessor *levelheightaccessor = this->getHeightAccessorForGeneration();
+    ChunkPos const &chunkpos = this->getPos();
+    int32_t x = QuartPos::fromBlock(chunkpos.getMinBlockX());
+    int32_t z = QuartPos::fromBlock(chunkpos.getMinBlockZ());
+    LevelHeightAccessor const &heightAccessor = this->getHeightAccessorForGeneration();
 
-    for (int32_t y = levelheightaccessor->getMinSection(); y < levelheightaccessor->getMaxSection(); ++y) {
-        LevelChunkSection *section = this->getSection(this->getSectionIndexFromSectionY(y));
-        section->fillBiomesFromNoise(resolver, sampler, x, z);
+    for (int32_t y = heightAccessor.getMinSection(); y < heightAccessor.getMaxSection(); ++y) {
+        LevelChunkSection &section = this->getSection(this->getSectionIndexFromSectionY(y));
+        section.fillBiomesFromNoise(resolver, sampler, x, z);
     }
 }
 
-LevelHeightAccessor *ChunkAccess::getHeightAccessorForGeneration() {
-    return this;
+LevelHeightAccessor const &ChunkAccess::getHeightAccessorForGeneration() {
+    return *this;
 }
 
 // ProtoChunk
 
-ProtoChunk::ProtoChunk(ChunkPos *chunkPos, LevelHeightAccessor *levelHeightAccessor)
+ProtoChunk::ProtoChunk(ChunkPos const &chunkPos, LevelHeightAccessor const &levelHeightAccessor)
     : ChunkAccess(chunkPos, levelHeightAccessor) {
 }
 
-BlockState ProtoChunk::getBlockState(BlockPos *pos) {
-    int32_t y = pos->getY();
+BlockState ProtoChunk::getBlockState(BlockPos const &pos) const {
+    int32_t y = pos.getY();
     if (this->isOutsideBuildHeight(y)) {
         return Blocks::VOID_AIR;
     } else {
-        LevelChunkSection *section = this->getSection(this->getSectionIndex(y));
-        return section->hasOnlyAir() ? Blocks::AIR : section->getBlockState(pos->getX() & 15, y & 15, pos->getZ() & 15);
+        LevelChunkSection const &section = this->sections.at(this->getSectionIndex(y));
+        return section.hasOnlyAir() ? Blocks::AIR : section.getBlockState(pos.getX() & 15, y & 15, pos.getZ() & 15);
     }
 }
 
-BlockState ProtoChunk::setBlockState(BlockPos *pos, BlockState blockState, bool checked) {
-    int32_t x = pos->getX();
-    int32_t y = pos->getY();
-    int32_t z = pos->getZ();
+BlockState ProtoChunk::setBlockState(BlockPos const &pos, BlockState blockState, bool checked) {
+    int32_t x = pos.getX();
+    int32_t y = pos.getY();
+    int32_t z = pos.getZ();
     if (y >= this->getMinBuildHeight() && y < this->getMaxBuildHeight()) {
         int32_t sectionIndex = this->getSectionIndex(y);
-        if (this->sections->at(sectionIndex)->hasOnlyAir() && blockState == Blocks::AIR) {
+        if (this->getSection(sectionIndex).hasOnlyAir() && blockState == Blocks::AIR) {
             return blockState;
         } else {
-            LevelChunkSection *section = this->getSection(sectionIndex);
+            LevelChunkSection &section = this->getSection(sectionIndex);
 
-            BlockState prevBlockState = section->setBlockState(x & 15, y & 15, z & 15, blockState);
+            BlockState prevBlockState = section.setBlockState(x & 15, y & 15, z & 15, blockState);
 
             vector<HeightmapTypes> &heightmapsAfter = this->getStatus()->heightmapsAfter;
             vector<HeightmapTypes> createdHeightmaps = vector<HeightmapTypes>();
 
             for (HeightmapTypes &type : heightmapsAfter) {
-                Heightmap *heightmap = this->heightmaps->find(type)->second;
-                if (heightmap == nullptr) {
+                auto heightmap = this->heightmaps.find(type);
+                if (heightmap == this->heightmaps.end()) {
                     createdHeightmaps.push_back(type);
                 }
             }
@@ -320,7 +316,7 @@ BlockState ProtoChunk::setBlockState(BlockPos *pos, BlockState blockState, bool 
             }
 
             for (HeightmapTypes &type : heightmapsAfter) {
-                this->heightmaps->at(type)->update(x & 15, y, z & 15, blockState);
+                this->heightmaps.at(type).update(x & 15, y, z & 15, blockState);
             }
 
             return prevBlockState;

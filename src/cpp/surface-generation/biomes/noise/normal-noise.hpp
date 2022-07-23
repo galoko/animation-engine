@@ -16,20 +16,27 @@ public:
     class NoiseParameters {
     public:
         int32_t firstOctave;
-        vector<double> *amplitudes;
+        vector<double> amplitudes;
 
-        NoiseParameters(int32_t firstOctave, vector<double> *amplitudes);
-        NoiseParameters(int32_t firstOctave, double firstAmplitude, vector<double> amplitudes = {});
+        NoiseParameters() {
+        }
+
+        NoiseParameters(int32_t firstOctave, vector<double> const &amplitudes);
+        NoiseParameters(int32_t firstOctave, double firstAmplitude,
+                        vector<double> const &amplitudes = vector<double>());
     };
 
-    static NormalNoise *createLegacyNetherBiome(RandomSource *randomSource, NormalNoise::NoiseParameters *parameters);
-    static NormalNoise *create(RandomSource *randomSource, NormalNoise::NoiseParameters *parameters);
-    static NormalNoise *create(RandomSource *randomSource, int32_t firstOctave, vector<double> *amplitudes);
+    static NormalNoise createLegacyNetherBiome(RandomSource *randomSource,
+                                               NormalNoise::NoiseParameters const &parameters);
+    static NormalNoise create(RandomSource *randomSource, NormalNoise::NoiseParameters const &parameters);
+    static NormalNoise create(RandomSource *randomSource, int32_t firstOctave, vector<double> const &amplitudes);
 
 private:
-    NormalNoise(RandomSource *randomSource, int32_t firstOctave, vector<double> *amplitudes, bool notLegacy);
+    NormalNoise(RandomSource *randomSource, int32_t firstOctave, vector<double> const &amplitudes, bool notLegacy);
 
 public:
-    double getValue(double x, double y, double z);
-    NormalNoise::NoiseParameters *parameters();
+    NormalNoise() {
+    }
+
+    double getValue(double x, double y, double z) const;
 };

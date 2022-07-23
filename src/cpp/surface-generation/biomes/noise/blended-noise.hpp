@@ -5,7 +5,7 @@
 
 class IntStream {
 public:
-    static vector<int32_t> *rangeClosed(int32_t startInclusive, int32_t endInclusive);
+    static vector<int32_t> rangeClosed(int32_t startInclusive, int32_t endInclusive);
 };
 
 class NoiseSamplingSettings {
@@ -19,9 +19,9 @@ public:
 
 class BlendedNoise {
 private:
-    PerlinNoise *minLimitNoise;
-    PerlinNoise *maxLimitNoise;
-    PerlinNoise *mainNoise;
+    PerlinNoise minLimitNoise;
+    PerlinNoise maxLimitNoise;
+    PerlinNoise mainNoise;
     double xzScale;
     double yScale;
     double xzMainScale;
@@ -29,11 +29,15 @@ private:
     int32_t cellWidth;
     int32_t cellHeight;
 
-    BlendedNoise(PerlinNoise *minLimitNoise, PerlinNoise *maxLimitNoise, PerlinNoise *mainNoise,
-                 NoiseSamplingSettings *settings, int32_t cellWidth, int32_t cellHeight);
+    BlendedNoise(PerlinNoise const &minLimitNoise, PerlinNoise const &maxLimitNoise, PerlinNoise const &mainNoise,
+                 NoiseSamplingSettings const &settings, int32_t cellWidth, int32_t cellHeight);
 
 public:
-    BlendedNoise(RandomSource *randomSource, NoiseSamplingSettings *settings, int32_t cellWidth, int32_t cellHeight);
+    BlendedNoise() {
+    }
 
-    double calculateNoise(int32_t x, int32_t y, int32_t z);
+    BlendedNoise(RandomSource *randomSource, NoiseSamplingSettings const &settings, int32_t cellWidth,
+                 int32_t cellHeight);
+
+    double calculateNoise(int32_t x, int32_t y, int32_t z) const;
 };

@@ -106,7 +106,7 @@ private:
     int64_t seedLo, seedHi;
 
 public:
-    Xoroshiro128PlusPlus(RandomSupport::Seed128bit seed);
+    Xoroshiro128PlusPlus(RandomSupport::Seed128bit const &seed);
     Xoroshiro128PlusPlus(int64_t seedLo, int64_t seedHi);
 
     int64_t nextLong();

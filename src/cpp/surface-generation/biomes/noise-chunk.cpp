@@ -16,20 +16,20 @@ double ConstantSampler::sample() {
 
 NoiseChunk *NoiseChunk::forChunk(ChunkAccess *chunkAccess, NoiseSampler *sampler,
                                  function<NoiseChunk::NoiseFiller(void)> filler,
-                                 NoiseGeneratorSettings *generatorSettings, Aquifer::FluidPicker *fluidPicker,
-                                 Blender *blender) {
-    ChunkPos *chunkpos = chunkAccess->getPos();
-    NoiseSettings *noisesettings = generatorSettings->noiseSettings();
-    int32_t minY = max(noisesettings->minY, chunkAccess->getMinBuildHeight());
-    int32_t maxY = min(noisesettings->minY + noisesettings->height, chunkAccess->getMaxBuildHeight());
-    int32_t cellMinY = Mth::intFloorDiv(minY, noisesettings->getCellHeight());
-    int32_t cellCountY = Mth::intFloorDiv(maxY - minY, noisesettings->getCellHeight());
-    return new NoiseChunk(16 / noisesettings->getCellWidth(), cellCountY, cellMinY, sampler, chunkpos->getMinBlockX(),
-                          chunkpos->getMinBlockZ(), filler(), generatorSettings, fluidPicker, blender);
+                                 NoiseGeneratorSettings const &generatorSettings, Aquifer::FluidPicker *fluidPicker,
+                                 Blender const &blender) {
+    ChunkPos const &chunkPos = chunkAccess->getPos();
+    NoiseSettings const &noiseSettings = generatorSettings.noiseSettings();
+    int32_t minY = max(noiseSettings.minY, chunkAccess->getMinBuildHeight());
+    int32_t maxY = min(noiseSettings.minY + noiseSettings.height, chunkAccess->getMaxBuildHeight());
+    int32_t cellMinY = Mth::intFloorDiv(minY, noiseSettings.getCellHeight());
+    int32_t cellCountY = Mth::intFloorDiv(maxY - minY, noiseSettings.getCellHeight());
+    return new NoiseChunk(16 / noiseSettings.getCellWidth(), cellCountY, cellMinY, sampler, chunkPos.getMinBlockX(),
+                          chunkPos.getMinBlockZ(), filler(), generatorSettings, fluidPicker, blender);
 }
 
 NoiseChunk *NoiseChunk::forColumn(int32_t startX, int32_t startZ, int32_t cellNoiseMinY, int32_t cellCountY,
-                                  NoiseSampler *sampler, NoiseGeneratorSettings *noiseSettings,
+                                  NoiseSampler *sampler, NoiseGeneratorSettings const &noiseSettings,
                                   Aquifer::FluidPicker *fluidPicker) {
     return new NoiseChunk(
         1, cellCountY, cellNoiseMinY, sampler, startX, startZ,
@@ -38,25 +38,25 @@ NoiseChunk *NoiseChunk::forColumn(int32_t startX, int32_t startZ, int32_t cellNo
 
 NoiseChunk::NoiseChunk(int32_t cellCountXZ, int32_t cellCountY, int32_t cellNoiseMinY, NoiseSampler *sampler,
                        int32_t startX, int32_t startZ, NoiseChunk::NoiseFiller filler,
-                       NoiseGeneratorSettings *noiseSettings, Aquifer::FluidPicker *fluidPicker, Blender *blender) {
-    this->noiseSettings = noiseSettings->noiseSettings();
+                       NoiseGeneratorSettings const &noiseSettings, Aquifer::FluidPicker *fluidPicker,
+                       Blender const &blender)
+    : noiseSettings(noiseSettings.noiseSettings()), blender(blender) {
     this->cellCountXZ = cellCountXZ;
     this->cellCountY = cellCountY;
     this->cellNoiseMinY = cellNoiseMinY;
     this->sampler = sampler;
-    int32_t cellWidth = this->noiseSettings->getCellWidth();
+    int32_t cellWidth = this->noiseSettings.getCellWidth();
     this->firstCellX = Mth::floorDiv(startX, cellWidth);
     this->firstCellZ = Mth::floorDiv(startZ, cellWidth);
     this->interpolators = vector<NoiseChunk::NoiseInterpolator *>();
     this->firstNoiseX = QuartPos::fromBlock(startX);
     this->firstNoiseZ = QuartPos::fromBlock(startZ);
     int32_t countXZ = QuartPos::fromBlock(cellCountXZ * cellWidth);
-    this->_noiseData = vector<FlatNoiseData **>(countXZ + 1);
-    this->blender = blender;
+    this->_noiseData = vector<vector<FlatNoiseData>>(countXZ + 1);
 
     for (int32_t offsetX = 0; offsetX <= countXZ; ++offsetX) {
         int32_t x = this->firstNoiseX + offsetX;
-        this->_noiseData[offsetX] = new FlatNoiseData *[countXZ + 1];
+        this->_noiseData[offsetX] = vector<FlatNoiseData>(countXZ + 1);
 
         for (int32_t offsetZ = 0; offsetZ <= countXZ; ++offsetZ) {
             int32_t z = this->firstNoiseZ + offsetZ;
@@ -65,12 +65,12 @@ NoiseChunk::NoiseChunk(int32_t cellCountXZ, int32_t cellCountY, int32_t cellNois
     }
 
     this->_aquifer = sampler->createAquifer(this, startX, startZ, cellNoiseMinY, cellCountY, fluidPicker,
-                                            noiseSettings->isAquifersEnabled());
-    this->baseNoise = sampler->makeBaseNoiseFiller(this, filler, noiseSettings->isNoodleCavesEnabled());
-    this->oreVeins = sampler->makeOreVeinifier(this, noiseSettings->isOreVeinsEnabled());
+                                            noiseSettings.isAquifersEnabled());
+    this->baseNoise = sampler->makeBaseNoiseFiller(this, filler, noiseSettings.isNoodleCavesEnabled());
+    this->oreVeins = sampler->makeOreVeinifier(this, noiseSettings.isOreVeinsEnabled());
 }
 
-FlatNoiseData *NoiseChunk::noiseData(int32_t x, int32_t z) {
+FlatNoiseData const &NoiseChunk::noiseData(int32_t x, int32_t z) {
     return this->_noiseData[x - this->firstNoiseX][z - this->firstNoiseZ];
 }
 
@@ -87,26 +87,24 @@ int32_t NoiseChunk::preliminarySurfaceLevel(int32_t x, int32_t z) {
 }
 
 int32_t NoiseChunk::computePreliminarySurfaceLevel(int64_t loc) {
-    int32_t i = ChunkPos::getX(loc);
-    int32_t j = ChunkPos::getZ(loc);
-    int32_t k = i - this->firstNoiseX;
-    int32_t l = j - this->firstNoiseZ;
-    int32_t i1 = this->_noiseData.size();
-    TerrainInfo *terraininfo;
-    if (k >= 0 && l >= 0 && k < i1 && l < i1) {
-        terraininfo = this->_noiseData[k][l]->terrainInfo;
-    } else {
-        terraininfo = this->sampler->noiseData(i, j, this->blender)->terrainInfo;
-    }
+    int32_t chunkX = ChunkPos::getX(loc);
+    int32_t chunkY = ChunkPos::getZ(loc);
+    int32_t shiftedChunkX = chunkX - this->firstNoiseX;
+    int32_t shiftedChunkY = chunkY - this->firstNoiseZ;
+    int32_t noiseDataSize = this->_noiseData.size();
+    TerrainInfo const &terraininfo =
+        (shiftedChunkX >= 0 && shiftedChunkY >= 0 && shiftedChunkX < noiseDataSize && shiftedChunkY < noiseDataSize)
+            ? this->_noiseData[shiftedChunkX][shiftedChunkY].terrainInfo
+            : this->sampler->noiseData(chunkX, chunkY, this->blender).terrainInfo;
 
-    return this->sampler->getPreliminarySurfaceLevel(QuartPos::toBlock(i), QuartPos::toBlock(j), terraininfo);
+    return this->sampler->getPreliminarySurfaceLevel(QuartPos::toBlock(chunkX), QuartPos::toBlock(chunkY), terraininfo);
 }
 
 NoiseChunk::NoiseInterpolator *NoiseChunk::createNoiseInterpolator(NoiseChunk::NoiseFiller noiseFiller) {
     return new NoiseChunk::NoiseInterpolator(this, noiseFiller);
 }
 
-Blender *NoiseChunk::getBlender() {
+Blender const &NoiseChunk::getBlender() {
     return this->blender;
 }
 
@@ -174,16 +172,17 @@ NoiseInterpolator::NoiseInterpolator(NoiseChunk *noiseChunk, NoiseFiller filler)
     this->noiseChunk->interpolators.push_back(this);
 }
 
-double **NoiseInterpolator::allocateSlice(int32_t cellCountY, int32_t cellCountXZ) {
+double *NoiseInterpolator::allocateSlice(int32_t cellCountY, int32_t cellCountXZ) {
     int32_t sliceWidth = cellCountXZ + 1;
     int32_t sliceHeight = cellCountY + 1;
-    double **slice = new double *[sliceWidth];
-
-    for (int32_t x = 0; x < sliceWidth; ++x) {
-        slice[x] = new double[sliceHeight];
-    }
+    double *slice = new double[sliceWidth * sliceHeight];
 
     return slice;
+}
+
+int32_t NoiseInterpolator::getSliceIndex(int32_t cellZ, int32_t cellY) {
+    int32_t sliceWidth = this->noiseChunk->cellCountXZ + 1;
+    return cellY * sliceWidth + cellZ;
 }
 
 void NoiseInterpolator::initializeForFirstCellX() {
@@ -194,9 +193,9 @@ void NoiseInterpolator::advanceCellX(int32_t cellX) {
     this->fillSlice(this->slice1, this->noiseChunk->firstCellX + cellX + 1);
 }
 
-void NoiseInterpolator::fillSlice(double **slice, int32_t cellX) {
-    int32_t cellWidth = this->noiseChunk->noiseSettings->getCellWidth();
-    int32_t cellHeight = this->noiseChunk->noiseSettings->getCellHeight();
+void NoiseInterpolator::fillSlice(double *slice, int32_t cellX) {
+    int32_t cellWidth = this->noiseChunk->noiseSettings.getCellWidth();
+    int32_t cellHeight = this->noiseChunk->noiseSettings.getCellHeight();
 
     for (int32_t offsetZ = 0; offsetZ < this->noiseChunk->cellCountXZ + 1; ++offsetZ) {
         int32_t cellZ = this->noiseChunk->firstCellZ + offsetZ;
@@ -205,20 +204,20 @@ void NoiseInterpolator::fillSlice(double **slice, int32_t cellX) {
             int32_t cellY = offsetY + this->noiseChunk->cellNoiseMinY;
             int32_t y = cellY * cellHeight;
             double noise = this->noiseFiller(cellX * cellWidth, y, cellZ * cellWidth);
-            slice[offsetZ][offsetY] = noise;
+            slice[this->getSliceIndex(offsetZ, offsetY)] = noise;
         }
     }
 }
 
 void NoiseInterpolator::selectCellYZ(int32_t cellY, int32_t cellZ) {
-    this->noise000 = this->slice0[cellZ][cellY];
-    this->noise001 = this->slice0[cellZ + 1][cellY];
-    this->noise100 = this->slice1[cellZ][cellY];
-    this->noise101 = this->slice1[cellZ + 1][cellY];
-    this->noise010 = this->slice0[cellZ][cellY + 1];
-    this->noise011 = this->slice0[cellZ + 1][cellY + 1];
-    this->noise110 = this->slice1[cellZ][cellY + 1];
-    this->noise111 = this->slice1[cellZ + 1][cellY + 1];
+    this->noise000 = this->slice0[getSliceIndex(cellZ, cellY)];
+    this->noise001 = this->slice0[getSliceIndex(cellZ + 1, cellY)];
+    this->noise100 = this->slice1[getSliceIndex(cellZ, cellY)];
+    this->noise101 = this->slice1[getSliceIndex(cellZ + 1, cellY)];
+    this->noise010 = this->slice0[getSliceIndex(cellZ, cellY + 1)];
+    this->noise011 = this->slice0[getSliceIndex(cellZ + 1, cellY + 1)];
+    this->noise110 = this->slice1[getSliceIndex(cellZ, cellY + 1)];
+    this->noise111 = this->slice1[getSliceIndex(cellZ + 1, cellY + 1)];
 }
 
 void NoiseInterpolator::updateForY(double t) {
@@ -242,7 +241,7 @@ double NoiseInterpolator::sample() {
 }
 
 void NoiseInterpolator::swapSlices() {
-    double **adouble = this->slice0;
+    double *adouble = this->slice0;
     this->slice0 = this->slice1;
     this->slice1 = adouble;
 }

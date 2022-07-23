@@ -12,8 +12,8 @@ BiomeSource::StepFeatureData::StepFeatureData(vector<PlacedFeature *> *features,
 
 // BiomeSource
 
-BiomeSource::BiomeSource(vector<Biomes> *biomes) {
-    this->possibleBiomes = new set<Biomes>(make_move_iterator(biomes->begin()), make_move_iterator(biomes->end()));
+BiomeSource::BiomeSource(vector<Biomes> const &biomes) {
+    this->possibleBiomes = set<Biomes>(make_move_iterator(biomes.begin()), make_move_iterator(biomes.end()));
     // this->featuresPerStep = this->buildFeaturesPerStep(biomes, true);
 }
 
@@ -28,13 +28,13 @@ MultiNoiseBiomeSource *MultiNoiseBiomeSource::PresetInstance::biomeSource() {
 
 // Preset
 
-MultiNoiseBiomeSource::Preset::Preset(string name, function<Climate::ParameterList<Biomes> *(void)> parameterSource)
+MultiNoiseBiomeSource::Preset::Preset(string name, function<Climate::ParameterList<Biomes>(void)> parameterSource)
     : name(name), parameterSource(parameterSource) {
 }
 
 MultiNoiseBiomeSource *MultiNoiseBiomeSource::Preset::biomeSource(MultiNoiseBiomeSource::PresetInstance *presetInstance,
                                                                   bool usePresetInstance) {
-    Climate::ParameterList<Biomes> *parameterlist = this->parameterSource();
+    Climate::ParameterList<Biomes> parameterlist = this->parameterSource();
     return new MultiNoiseBiomeSource(parameterlist, usePresetInstance ? presetInstance : nullptr);
 }
 
@@ -47,43 +47,39 @@ MultiNoiseBiomeSource *MultiNoiseBiomeSource::Preset::biomeSource() {
 }
 
 MultiNoiseBiomeSource::Preset *MultiNoiseBiomeSource::Preset::OVERWORLD =
-    new MultiNoiseBiomeSource::Preset("overworld", []() -> Climate::ParameterList<Biomes> * {
-        vector<pair<Climate::ParameterPoint *, Biomes>> *builder =
-            new vector<pair<Climate::ParameterPoint *, Biomes>>();
+    new MultiNoiseBiomeSource::Preset("overworld", []() -> Climate::ParameterList<Biomes> {
+        vector<pair<Climate::ParameterPoint, Biomes>> builder = vector<pair<Climate::ParameterPoint, Biomes>>();
 
-        OverworldBiomeBuilder().addBiomes([builder](pair<Climate::ParameterPoint *, Biomes> *biomePair) -> void {
-            Biomes biome = biomePair->second;
-            builder->push_back(pair(biomePair->first, biome));
-        });
-        return new Climate::ParameterList<Biomes>(builder);
+        OverworldBiomeBuilder().addBiomes(builder);
+        return Climate::ParameterList<Biomes>(builder);
     });
 
 MultiNoiseBiomeSource::Preset *MultiNoiseBiomeSource::Preset::NETHER =
-    new MultiNoiseBiomeSource::Preset("nether", []() -> Climate::ParameterList<Biomes> * {
-        return new Climate::ParameterList<Biomes>(new vector<pair<Climate::ParameterPoint *, Biomes>>(
+    new MultiNoiseBiomeSource::Preset("nether", []() -> Climate::ParameterList<Biomes> {
+        return Climate::ParameterList<Biomes>(
             {pair(Climate::parameters(0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F), Biomes::NETHER_WASTES),
              pair(Climate::parameters(0.0F, -0.5F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F), Biomes::SOUL_SAND_VALLEY),
              pair(Climate::parameters(0.4F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F), Biomes::CRIMSON_FOREST),
              pair(Climate::parameters(0.0F, 0.5F, 0.0F, 0.0F, 0.0F, 0.0F, 0.375F), Biomes::WARPED_FOREST),
-             pair(Climate::parameters(-0.5F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.175F), Biomes::BASALT_DELTAS)}));
+             pair(Climate::parameters(-0.5F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.175F), Biomes::BASALT_DELTAS)});
     });
 
 // MultiNoiseBiomeSource
 
-vector<Biomes> *MultiNoiseBiomeSource::getBiomes(Climate::ParameterList<Biomes> *parameters) {
-    vector<Biomes> *biomes = new vector<Biomes>();
-    for (pair<Climate::ParameterPoint *, Biomes> &pair : *parameters->values) {
-        biomes->push_back(pair.second);
+vector<Biomes> MultiNoiseBiomeSource::getBiomes(Climate::ParameterList<Biomes> const &parameters) {
+    vector<Biomes> biomes = vector<Biomes>();
+    for (const pair<Climate::ParameterPoint, Biomes> &pair : parameters.values) {
+        biomes.push_back(pair.second);
     }
 
     return biomes;
 }
 
-MultiNoiseBiomeSource::MultiNoiseBiomeSource(Climate::ParameterList<Biomes> *parameters)
+MultiNoiseBiomeSource::MultiNoiseBiomeSource(Climate::ParameterList<Biomes> const &parameters)
     : MultiNoiseBiomeSource(parameters, nullptr) {
 }
 
-MultiNoiseBiomeSource::MultiNoiseBiomeSource(Climate::ParameterList<Biomes> *parameters,
+MultiNoiseBiomeSource::MultiNoiseBiomeSource(Climate::ParameterList<Biomes> const &parameters,
                                              MultiNoiseBiomeSource::PresetInstance *preset)
     : BiomeSource(getBiomes(parameters)), parameters(parameters), preset(preset) {
 }
@@ -96,10 +92,10 @@ bool MultiNoiseBiomeSource::stable(MultiNoiseBiomeSource::Preset *preset) {
     return this->preset != nullptr && this->preset->preset == preset;
 }
 
-Biomes MultiNoiseBiomeSource::getNoiseBiome(int32_t x, int32_t y, int32_t z, Climate::Sampler *sampler) {
+Biomes MultiNoiseBiomeSource::getNoiseBiome(int32_t x, int32_t y, int32_t z, Climate::Sampler *sampler) const {
     return this->getNoiseBiome(sampler->sample(x, y, z));
 }
 
-Biomes MultiNoiseBiomeSource::getNoiseBiome(Climate::TargetPoint *targetPoint) {
-    return this->parameters->findValueBruteForce(targetPoint, Biomes::THE_VOID);
+Biomes MultiNoiseBiomeSource::getNoiseBiome(Climate::TargetPoint const &targetPoint) const {
+    return this->parameters.findValueBruteForce(targetPoint, Biomes::THE_VOID);
 }

@@ -46,36 +46,36 @@ public:
     int32_t firstNoiseZ;
 
     vector<NoiseChunk::NoiseInterpolator *> interpolators;
-    NoiseSettings *noiseSettings;
+    NoiseSettings const &noiseSettings;
 
     std::map<int64_t, int32_t> _preliminarySurfaceLevel = std::map<int64_t, int32_t>();
 
 private:
     NoiseSampler *sampler;
 
-    vector<FlatNoiseData **> _noiseData;
+    vector<vector<FlatNoiseData>> _noiseData;
     Aquifer *_aquifer;
     NoiseChunk::BlockStateFiller baseNoise;
     NoiseChunk::BlockStateFiller oreVeins;
-    Blender *blender;
+    Blender const &blender;
 
 public:
     static NoiseChunk *forChunk(ChunkAccess *chunkAccess, NoiseSampler *sampler,
                                 function<NoiseChunk::NoiseFiller(void)> filler,
-                                NoiseGeneratorSettings *generatorSettings, Aquifer::FluidPicker *fluidPicker,
-                                Blender *blender);
+                                NoiseGeneratorSettings const &generatorSettings, Aquifer::FluidPicker *fluidPicker,
+                                Blender const &blender);
 
     static NoiseChunk *forColumn(int32_t startX, int32_t startZ, int32_t cellNoiseMinY, int32_t cellCountY,
-                                 NoiseSampler *sampler, NoiseGeneratorSettings *noiseSettings,
+                                 NoiseSampler *sampler, NoiseGeneratorSettings const &noiseSettings,
                                  Aquifer::FluidPicker *fluidPicker);
 
 private:
     NoiseChunk(int32_t cellCountXZ, int32_t cellCountY, int32_t cellNoiseMinY, NoiseSampler *sampler, int32_t startX,
-               int32_t startZ, NoiseChunk::NoiseFiller filler, NoiseGeneratorSettings *noiseSettings,
-               Aquifer::FluidPicker *fluidPicker, Blender *blender);
+               int32_t startZ, NoiseChunk::NoiseFiller filler, NoiseGeneratorSettings const &noiseSettings,
+               Aquifer::FluidPicker *fluidPicker, Blender const &blender);
 
 public:
-    FlatNoiseData *noiseData(int32_t x, int32_t z);
+    FlatNoiseData const &noiseData(int32_t x, int32_t z);
 
     int32_t preliminarySurfaceLevel(int32_t x, int32_t z);
 
@@ -85,7 +85,7 @@ private:
 public:
     NoiseChunk::NoiseInterpolator *createNoiseInterpolator(NoiseChunk::NoiseFiller filler);
 
-    Blender *getBlender();
+    Blender const &getBlender();
 
     void initializeForFirstCellX();
     void advanceCellX(int32_t cellX);
@@ -104,8 +104,8 @@ public:
 class NoiseInterpolator : public Sampler {
 private:
     NoiseChunk *noiseChunk;
-    double **slice0;
-    double **slice1;
+    double *slice0;
+    double *slice1;
     NoiseFiller noiseFiller;
     double noise000;
     double noise001;
@@ -127,14 +127,15 @@ public:
     NoiseInterpolator(NoiseChunk *noiseChunk, NoiseFiller filler);
 
 private:
-    double **allocateSlice(int32_t cellCountY, int32_t cellCountXZ);
+    double *allocateSlice(int32_t cellCountY, int32_t cellCountXZ);
+    int32_t getSliceIndex(int32_t cellZ, int32_t cellY);
 
 public:
     void initializeForFirstCellX();
     void advanceCellX(int32_t cellX);
 
 private:
-    void fillSlice(double **slice, int32_t cellX);
+    void fillSlice(double *slice, int32_t cellX);
 
 public:
     void selectCellYZ(int32_t cellY, int32_t cellZ);

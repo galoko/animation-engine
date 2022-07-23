@@ -16,30 +16,30 @@ using namespace std;
 
 class LevelHeightAccessor {
 public:
-    virtual int32_t getHeight() = 0;
-    virtual int32_t getMinBuildHeight() = 0;
+    virtual int32_t getHeight() const = 0;
+    virtual int32_t getMinBuildHeight() const = 0;
 
-    int32_t getMaxBuildHeight();
-    int32_t getSectionsCount();
-    int32_t getMinSection();
-    int32_t getMaxSection();
+    int32_t getMaxBuildHeight() const;
+    int32_t getSectionsCount() const;
+    int32_t getMinSection() const;
+    int32_t getMaxSection() const;
 
-    bool isOutsideBuildHeight(BlockPos *pos);
-    bool isOutsideBuildHeight(int32_t y);
+    bool isOutsideBuildHeight(BlockPos const &pos) const;
+    bool isOutsideBuildHeight(int32_t y) const;
 
-    int32_t getSectionIndex(int32_t y);
-    int32_t getSectionIndexFromSectionY(int32_t sectionY);
-    int32_t getSectionYFromSectionIndex(int32_t sectionIndex);
+    int32_t getSectionIndex(int32_t y) const;
+    int32_t getSectionIndexFromSectionY(int32_t sectionY) const;
+    int32_t getSectionYFromSectionIndex(int32_t sectionIndex) const;
 };
 
 class SimpleLevelHeightAccessor : public LevelHeightAccessor {
-    int32_t getHeight() override;
-    int32_t getMinBuildHeight() override;
+    int32_t getHeight() const override;
+    int32_t getMinBuildHeight() const override;
 };
 
 class BlockGetter : public LevelHeightAccessor {
 public:
-    virtual BlockState getBlockState(BlockPos *pos) = 0;
+    virtual BlockState getBlockState(BlockPos const &pos) const = 0;
 };
 
 class LevelChunkSection {
@@ -57,10 +57,12 @@ private:
     short nonEmptyBlockCount;
     short tickingBlockCount;
     short tickingFluidCount;
-    vector<BlockState> *states;
-    vector<Biomes> *biomes;
+    vector<BlockState> states;
+    vector<Biomes> biomes;
 
 public:
+    LevelChunkSection() {
+    }
     LevelChunkSection(int32_t y);
 
 private:
@@ -77,7 +79,7 @@ public:
         return y << 4;
     }
 
-    BlockState getBlockState(int32_t x, int32_t y, int32_t z);
+    BlockState getBlockState(int32_t x, int32_t y, int32_t z) const;
 
     void acquire();
     void release();
@@ -85,75 +87,75 @@ public:
     BlockState setBlockState(int32_t x, int32_t y, int32_t z, BlockState blockState);
     BlockState setBlockState(int32_t x, int32_t y, int32_t z, BlockState blockState, bool checked);
 
-    bool hasOnlyAir();
-    bool isRandomlyTicking();
-    bool isRandomlyTickingBlocks();
-    bool isRandomlyTickingFluids();
+    bool hasOnlyAir() const;
+    bool isRandomlyTicking() const;
+    bool isRandomlyTickingBlocks() const;
+    bool isRandomlyTickingFluids() const;
 
-    int32_t bottomBlockY();
+    int32_t bottomBlockY() const;
 
-    vector<BlockState> *getStates();
-    vector<Biomes> *getBiomes();
+    vector<BlockState> const &getStates() const;
+    vector<Biomes> const &getBiomes() const;
 
-    Biomes getNoiseBiome(int32_t x, int32_t y, int32_t z);
+    Biomes getNoiseBiome(int32_t x, int32_t y, int32_t z) const;
     void fillBiomesFromNoise(BiomeResolver *resolver, Climate::Sampler *sampler, int32_t offsetX, int32_t offsetZ);
 };
 
 class ChunkAccess : public BlockGetter {
 private:
-    LevelHeightAccessor *levelHeightAccessor;
-    ChunkPos *chunkPos;
+    ChunkPos chunkPos;
+    LevelHeightAccessor const &levelHeightAccessor;
     NoiseChunk *noiseChunk;
 
 protected:
-    vector<LevelChunkSection *> *sections;
-    std::map<HeightmapTypes, Heightmap *> *heightmaps;
+    vector<LevelChunkSection> sections;
+    std::map<HeightmapTypes, Heightmap> heightmaps;
 
 public:
     bool isLightCorrect;
 
-    ChunkAccess(ChunkPos *chunkPos, LevelHeightAccessor *levelHeightAccessor);
+    ChunkAccess(ChunkPos const &chunkPos, LevelHeightAccessor const &levelHeightAccessor);
 
 private:
-    static void replaceMissingSections(LevelHeightAccessor *heightAccessor, vector<LevelChunkSection *> *sections);
+    static void replaceMissingSections(LevelHeightAccessor const &heightAccessor, vector<LevelChunkSection> &sections);
 
 public:
-    virtual BlockState setBlockState(BlockPos *pos, BlockState blockState, bool checked) = 0;
+    virtual BlockState setBlockState(BlockPos const &pos, BlockState blockState, bool checked) = 0;
 
     LevelChunkSection *getHighestSection();
     int32_t getHighestSectionPosition();
-    vector<LevelChunkSection *> *getSections();
-    LevelChunkSection *getSection(int32_t sectionIndex);
+    vector<LevelChunkSection> &getSections();
+    LevelChunkSection &getSection(int32_t sectionIndex);
 
-    Heightmap *getOrCreateHeightmapUnprimed(HeightmapTypes type);
-    bool hasPrimedHeightmap(HeightmapTypes type);
+    Heightmap &getOrCreateHeightmapUnprimed(HeightmapTypes type);
+    bool hasPrimedHeightmap(HeightmapTypes type) const;
 
     int32_t getHeight(HeightmapTypes type, int32_t x, int32_t z);
 
-    ChunkPos *getPos();
+    ChunkPos const &getPos() const;
 
-    int32_t getMinBuildHeight() override;
-    int32_t getHeight() override;
+    int32_t getMinBuildHeight() const override;
+    int32_t getHeight() const override;
 
     NoiseChunk *getOrCreateNoiseChunk(NoiseSampler *sampler, function<NoiseFiller(void)> filler,
-                                      NoiseGeneratorSettings *settings, Aquifer::FluidPicker *fluidPicker,
-                                      Blender *blender);
+                                      NoiseGeneratorSettings const &settings, Aquifer::FluidPicker *fluidPicker,
+                                      Blender const &blender);
 
     Biomes getNoiseBiome(int32_t x, int32_t y, int32_t z);
 
     void fillBiomesFromNoise(BiomeResolver *resolver, Climate::Sampler *sampler);
 
-    LevelHeightAccessor *getHeightAccessorForGeneration();
+    LevelHeightAccessor const &getHeightAccessorForGeneration();
 
     virtual ChunkStatus *getStatus() = 0;
 };
 
 class ProtoChunk : public ChunkAccess {
 public:
-    ProtoChunk(ChunkPos *chunkPos, LevelHeightAccessor *levelHeightAccessor);
+    ProtoChunk(ChunkPos const &chunkPos, LevelHeightAccessor const &levelHeightAccessor);
 
-    BlockState getBlockState(BlockPos *pos) override;
-    BlockState setBlockState(BlockPos *pos, BlockState blockState, bool checked) override;
+    BlockState getBlockState(BlockPos const &pos) const override;
+    BlockState setBlockState(BlockPos const &pos, BlockState blockState, bool checked) override;
 
     ChunkStatus *getStatus() override;
 };

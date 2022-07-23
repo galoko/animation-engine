@@ -85,7 +85,7 @@ export function test() {
                     const templateBlock = CPP_ID_TO_BLOCK_NAME[module.HEAPU8[ptr + i]]
                     i++
                     if (block !== templateBlock) {
-                        debugger
+                        // debugger
                     }
                     result += "'" + templateBlock + "', \n"
                 }
@@ -112,7 +112,7 @@ export function test() {
         }
         result += "]"
         */
-        // console.log(result)
+        console.log(result)
     } catch (ptr) {
         module._print_exception(ptr)
     }

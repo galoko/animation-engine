@@ -2,18 +2,18 @@
 
 // OverworldBiomeBuilder
 
-void OverworldBiomeBuilder::addBiomes(function<void(pair<Climate::ParameterPoint *, Biomes> *)> biomes) {
+void OverworldBiomeBuilder::addBiomes(vector<pair<Climate::ParameterPoint, Biomes>> &biomes) {
     this->addOffCoastBiomes(biomes);
     this->addInlandBiomes(biomes);
     this->addUndergroundBiomes(biomes);
 }
 
-void OverworldBiomeBuilder::addOffCoastBiomes(function<void(pair<Climate::ParameterPoint *, Biomes> *)> biomes) {
+void OverworldBiomeBuilder::addOffCoastBiomes(vector<pair<Climate::ParameterPoint, Biomes>> &biomes) {
     this->addSurfaceBiome(biomes, this->FULL_RANGE, this->FULL_RANGE, this->mushroomFieldsContinentalness,
                           this->FULL_RANGE, this->FULL_RANGE, 0.0F, Biomes::MUSHROOM_FIELDS);
 
     for (int32_t i = 0; i < this->temperatures.size(); ++i) {
-        Climate::Parameter *temperature = this->temperatures.at(i);
+        Climate::Parameter const &temperature = this->temperatures.at(i);
         this->addSurfaceBiome(biomes, temperature, this->FULL_RANGE, this->deepOceanContinentalness, this->FULL_RANGE,
                               this->FULL_RANGE, 0.0F, this->OCEANS[0][i]);
         this->addSurfaceBiome(biomes, temperature, this->FULL_RANGE, this->oceanContinentalness, this->FULL_RANGE,
@@ -21,7 +21,7 @@ void OverworldBiomeBuilder::addOffCoastBiomes(function<void(pair<Climate::Parame
     }
 }
 
-void OverworldBiomeBuilder::addInlandBiomes(function<void(pair<Climate::ParameterPoint *, Biomes> *)> biomes) {
+void OverworldBiomeBuilder::addInlandBiomes(vector<pair<Climate::ParameterPoint, Biomes>> &biomes) {
     this->addMidSlice(biomes, Climate::Parameter::span(-1.0F, -0.93333334F));
     this->addHighSlice(biomes, Climate::Parameter::span(-0.93333334F, -0.7666667F));
     this->addPeaks(biomes, Climate::Parameter::span(-0.7666667F, -0.56666666F));
@@ -39,13 +39,13 @@ void OverworldBiomeBuilder::addInlandBiomes(function<void(pair<Climate::Paramete
 
 // specific type biomes
 
-void OverworldBiomeBuilder::addPeaks(function<void(pair<Climate::ParameterPoint *, Biomes> *)> biomes,
-                                     Climate::Parameter *erosion) {
+void OverworldBiomeBuilder::addPeaks(vector<pair<Climate::ParameterPoint, Biomes>> &biomes,
+                                     Climate::Parameter const &erosion) {
     for (int32_t temperatureIndex = 0; temperatureIndex < this->temperatures.size(); ++temperatureIndex) {
-        Climate::Parameter *temperature = this->temperatures.at(temperatureIndex);
+        Climate::Parameter const &temperature = this->temperatures.at(temperatureIndex);
 
         for (int32_t humidityIndex = 0; humidityIndex < this->humidities.size(); ++humidityIndex) {
-            Climate::Parameter *humidity = this->humidities[humidityIndex];
+            Climate::Parameter const &humidity = this->humidities[humidityIndex];
             Biomes middleBiome = this->pickMiddleBiome(temperatureIndex, humidityIndex, erosion);
             Biomes middleOrBadlands = this->pickMiddleBiomeOrBadlandsIfHot(temperatureIndex, humidityIndex, erosion);
             Biomes middleOrBadlandsOrSlope =
@@ -94,13 +94,13 @@ void OverworldBiomeBuilder::addPeaks(function<void(pair<Climate::ParameterPoint 
     }
 }
 
-void OverworldBiomeBuilder::addHighSlice(function<void(pair<Climate::ParameterPoint *, Biomes> *)> biomes,
-                                         Climate::Parameter *erosion) {
+void OverworldBiomeBuilder::addHighSlice(vector<pair<Climate::ParameterPoint, Biomes>> &biomes,
+                                         Climate::Parameter const &erosion) {
     for (int32_t temperatureIndex = 0; temperatureIndex < this->temperatures.size(); ++temperatureIndex) {
-        Climate::Parameter *temperature = this->temperatures[temperatureIndex];
+        Climate::Parameter const &temperature = this->temperatures[temperatureIndex];
 
         for (int32_t humidityIndex = 0; humidityIndex < this->humidities.size(); ++humidityIndex) {
-            Climate::Parameter *humidity = this->humidities[humidityIndex];
+            Climate::Parameter const &humidity = this->humidities[humidityIndex];
             Biomes middleBiome = this->pickMiddleBiome(temperatureIndex, humidityIndex, erosion);
             Biomes middleOrBadlands = this->pickMiddleBiomeOrBadlandsIfHot(temperatureIndex, humidityIndex, erosion);
             Biomes middleOrBadlandsOrSlope =
@@ -155,8 +155,8 @@ void OverworldBiomeBuilder::addHighSlice(function<void(pair<Climate::ParameterPo
     }
 }
 
-void OverworldBiomeBuilder::addMidSlice(function<void(pair<Climate::ParameterPoint *, Biomes> *)> biomes,
-                                        Climate::Parameter *erosion) {
+void OverworldBiomeBuilder::addMidSlice(vector<pair<Climate::ParameterPoint, Biomes>> &biomes,
+                                        Climate::Parameter const &erosion) {
     this->addSurfaceBiome(biomes, this->FULL_RANGE, this->FULL_RANGE, this->coastContinentalness,
                           Climate::Parameter::span(this->erosions[0], this->erosions[2]), erosion, 0.0F,
                           Biomes::STONY_SHORE);
@@ -165,10 +165,10 @@ void OverworldBiomeBuilder::addMidSlice(function<void(pair<Climate::ParameterPoi
                           this->erosions[6], erosion, 0.0F, Biomes::SWAMP);
 
     for (int32_t temperatureIndex = 0; temperatureIndex < this->temperatures.size(); ++temperatureIndex) {
-        Climate::Parameter *temperature = this->temperatures[temperatureIndex];
+        Climate::Parameter const &temperature = this->temperatures[temperatureIndex];
 
         for (int32_t humidityIndex = 0; humidityIndex < this->humidities.size(); ++humidityIndex) {
-            Climate::Parameter *humidity = this->humidities[humidityIndex];
+            Climate::Parameter const &humidity = this->humidities[humidityIndex];
             Biomes middleBiome = this->pickMiddleBiome(temperatureIndex, humidityIndex, erosion);
             Biomes middleOrBadlands = this->pickMiddleBiomeOrBadlandsIfHot(temperatureIndex, humidityIndex, erosion);
             Biomes middleOrBadlandsOrSlope =
@@ -203,7 +203,7 @@ void OverworldBiomeBuilder::addMidSlice(function<void(pair<Climate::ParameterPoi
                 biomes, temperature, humidity,
                 Climate::Parameter::span(this->midInlandContinentalness, this->farInlandContinentalness),
                 this->erosions[3], erosion, 0.0F, middleOrBadlands);
-            if (erosion->max < 0LL) {
+            if (erosion.max < 0LL) {
                 this->addSurfaceBiome(biomes, temperature, humidity, this->coastContinentalness, this->erosions[4],
                                       erosion, 0.0F, beachBiome);
                 this->addSurfaceBiome(
@@ -225,7 +225,7 @@ void OverworldBiomeBuilder::addMidSlice(function<void(pair<Climate::ParameterPoi
                 biomes, temperature, humidity,
                 Climate::Parameter::span(this->midInlandContinentalness, this->farInlandContinentalness),
                 this->erosions[5], erosion, 0.0F, extremeHillsBiome);
-            if (erosion->max < 0LL) {
+            if (erosion.max < 0LL) {
                 this->addSurfaceBiome(biomes, temperature, humidity, this->coastContinentalness, this->erosions[6],
                                       erosion, 0.0F, beachBiome);
             } else {
@@ -243,8 +243,8 @@ void OverworldBiomeBuilder::addMidSlice(function<void(pair<Climate::ParameterPoi
     }
 }
 
-void OverworldBiomeBuilder::addLowSlice(function<void(pair<Climate::ParameterPoint *, Biomes> *)> biomes,
-                                        Climate::Parameter *erosion) {
+void OverworldBiomeBuilder::addLowSlice(vector<pair<Climate::ParameterPoint, Biomes>> &biomes,
+                                        Climate::Parameter const &erosion) {
     this->addSurfaceBiome(biomes, this->FULL_RANGE, this->FULL_RANGE, this->coastContinentalness,
                           Climate::Parameter::span(this->erosions[0], this->erosions[2]), erosion, 0.0F,
                           Biomes::STONY_SHORE);
@@ -253,10 +253,10 @@ void OverworldBiomeBuilder::addLowSlice(function<void(pair<Climate::ParameterPoi
                           this->erosions[6], erosion, 0.0F, Biomes::SWAMP);
 
     for (int32_t temperatureIndex = 0; temperatureIndex < this->temperatures.size(); ++temperatureIndex) {
-        Climate::Parameter *climate$parameter = this->temperatures[temperatureIndex];
+        Climate::Parameter const &climate$parameter = this->temperatures[temperatureIndex];
 
         for (int32_t humidityIndex = 0; humidityIndex < this->humidities.size(); ++humidityIndex) {
-            Climate::Parameter *climate$parameter1 = this->humidities[humidityIndex];
+            Climate::Parameter const &climate$parameter1 = this->humidities[humidityIndex];
             Biomes resourcekey = this->pickMiddleBiome(temperatureIndex, humidityIndex, erosion);
             Biomes resourcekey1 = this->pickMiddleBiomeOrBadlandsIfHot(temperatureIndex, humidityIndex, erosion);
             Biomes resourcekey2 =
@@ -305,14 +305,14 @@ void OverworldBiomeBuilder::addLowSlice(function<void(pair<Climate::ParameterPoi
     }
 }
 
-void OverworldBiomeBuilder::addValleys(function<void(pair<Climate::ParameterPoint *, Biomes> *)> biomes,
-                                       Climate::Parameter *erosion) {
+void OverworldBiomeBuilder::addValleys(vector<pair<Climate::ParameterPoint, Biomes>> &biomes,
+                                       Climate::Parameter const &erosion) {
     this->addSurfaceBiome(biomes, this->FROZEN_RANGE, this->FULL_RANGE, this->coastContinentalness,
                           Climate::Parameter::span(this->erosions[0], this->erosions[1]), erosion, 0.0F,
-                          erosion->max < 0LL ? Biomes::STONY_SHORE : Biomes::FROZEN_RIVER);
+                          erosion.max < 0LL ? Biomes::STONY_SHORE : Biomes::FROZEN_RIVER);
     this->addSurfaceBiome(biomes, this->UNFROZEN_RANGE, this->FULL_RANGE, this->coastContinentalness,
                           Climate::Parameter::span(this->erosions[0], this->erosions[1]), erosion, 0.0F,
-                          erosion->max < 0LL ? Biomes::STONY_SHORE : Biomes::RIVER);
+                          erosion.max < 0LL ? Biomes::STONY_SHORE : Biomes::RIVER);
     this->addSurfaceBiome(biomes, this->FROZEN_RANGE, this->FULL_RANGE, this->nearInlandContinentalness,
                           Climate::Parameter::span(this->erosions[0], this->erosions[1]), erosion, 0.0F,
                           Biomes::FROZEN_RIVER);
@@ -337,10 +337,10 @@ void OverworldBiomeBuilder::addValleys(function<void(pair<Climate::ParameterPoin
                           this->erosions[6], erosion, 0.0F, Biomes::FROZEN_RIVER);
 
     for (int32_t i = 0; i < this->temperatures.size(); ++i) {
-        Climate::Parameter *temperature = this->temperatures[i];
+        Climate::Parameter const &temperature = this->temperatures[i];
 
         for (int32_t j = 0; j < this->humidities.size(); ++j) {
-            Climate::Parameter *humidity = this->humidities[j];
+            Climate::Parameter const &humidity = this->humidities[j];
             Biomes resourcekey = this->pickMiddleBiomeOrBadlandsIfHot(i, j, erosion);
             this->addSurfaceBiome(
                 biomes, temperature, humidity,
@@ -350,7 +350,7 @@ void OverworldBiomeBuilder::addValleys(function<void(pair<Climate::ParameterPoin
     }
 }
 
-void OverworldBiomeBuilder::addUndergroundBiomes(function<void(pair<Climate::ParameterPoint *, Biomes> *)> biomes) {
+void OverworldBiomeBuilder::addUndergroundBiomes(vector<pair<Climate::ParameterPoint, Biomes>> &biomes) {
     this->addUndergroundBiome(biomes, this->FULL_RANGE, this->FULL_RANGE, Climate::Parameter::span(0.8F, 1.0F),
                               this->FULL_RANGE, this->FULL_RANGE, 0.0F, Biomes::DRIPSTONE_CAVES);
     this->addUndergroundBiome(biomes, this->FULL_RANGE, Climate::Parameter::span(0.7F, 1.0F), this->FULL_RANGE,
@@ -360,8 +360,8 @@ void OverworldBiomeBuilder::addUndergroundBiomes(function<void(pair<Climate::Par
 // biome pickers
 
 Biomes OverworldBiomeBuilder::pickMiddleBiome(int32_t temperatureIndex, int32_t humidityIndex,
-                                              Climate::Parameter *weirdness) {
-    if (weirdness->max < 0LL) {
+                                              Climate::Parameter const &weirdness) {
+    if (weirdness.max < 0LL) {
         return this->MIDDLE_BIOMES[temperatureIndex][humidityIndex];
     } else {
         Biomes biome = this->MIDDLE_BIOMES_VARIANT[temperatureIndex][humidityIndex];
@@ -370,27 +370,27 @@ Biomes OverworldBiomeBuilder::pickMiddleBiome(int32_t temperatureIndex, int32_t 
 }
 
 Biomes OverworldBiomeBuilder::pickMiddleBiomeOrBadlandsIfHot(int32_t temperatureIndex, int32_t humidityIndex,
-                                                             Climate::Parameter *weirdness) {
+                                                             Climate::Parameter const &weirdness) {
     return temperatureIndex == 4 ? this->pickBadlandsBiome(humidityIndex, weirdness)
                                  : this->pickMiddleBiome(temperatureIndex, humidityIndex, weirdness);
 }
 
 Biomes OverworldBiomeBuilder::pickMiddleBiomeOrBadlandsIfHotOrSlopeIfCold(int32_t temperatureIndex,
                                                                           int32_t humidityIndex,
-                                                                          Climate::Parameter *weirdness) {
+                                                                          Climate::Parameter const &weirdness) {
     return temperatureIndex == 0 ? this->pickSlopeBiome(temperatureIndex, humidityIndex, weirdness)
                                  : this->pickMiddleBiomeOrBadlandsIfHot(temperatureIndex, humidityIndex, weirdness);
 }
 
 Biomes OverworldBiomeBuilder::maybePickShatteredBiome(int32_t temperatureIndex, int32_t humidityIndex,
-                                                      Climate::Parameter *erosion, Biomes defaultBiome) {
-    return temperatureIndex > 1 && humidityIndex < 4 && erosion->max >= 0LL ? Biomes::WINDSWEPT_SAVANNA : defaultBiome;
+                                                      Climate::Parameter const &erosion, Biomes defaultBiome) {
+    return temperatureIndex > 1 && humidityIndex < 4 && erosion.max >= 0LL ? Biomes::WINDSWEPT_SAVANNA : defaultBiome;
 }
 
 Biomes OverworldBiomeBuilder::pickShatteredCoastBiome(int32_t temperatureIndex, int32_t humidityIndex,
-                                                      Climate::Parameter *erosion) {
-    Biomes biome = erosion->max >= 0LL ? this->pickMiddleBiome(temperatureIndex, humidityIndex, erosion)
-                                       : this->pickBeachBiome(temperatureIndex, humidityIndex);
+                                                      Climate::Parameter const &erosion) {
+    Biomes biome = erosion.max >= 0LL ? this->pickMiddleBiome(temperatureIndex, humidityIndex, erosion)
+                                      : this->pickBeachBiome(temperatureIndex, humidityIndex);
     return this->maybePickShatteredBiome(temperatureIndex, humidityIndex, erosion, biome);
 }
 
@@ -402,17 +402,17 @@ Biomes OverworldBiomeBuilder::pickBeachBiome(int32_t temperatureIndex, int32_t h
     }
 }
 
-Biomes OverworldBiomeBuilder::pickBadlandsBiome(int32_t humidityIndex, Climate::Parameter *erosion) {
+Biomes OverworldBiomeBuilder::pickBadlandsBiome(int32_t humidityIndex, Climate::Parameter const &erosion) {
     if (humidityIndex < 2) {
-        return erosion->max < 0LL ? Biomes::ERODED_BADLANDS : Biomes::BADLANDS;
+        return erosion.max < 0LL ? Biomes::ERODED_BADLANDS : Biomes::BADLANDS;
     } else {
         return humidityIndex < 3 ? Biomes::BADLANDS : Biomes::WOODED_BADLANDS;
     }
 }
 
 Biomes OverworldBiomeBuilder::pickPlateauBiome(int32_t temperatureIndex, int32_t humidityIndex,
-                                               Climate::Parameter *erosion) {
-    if (erosion->max < 0LL) {
+                                               Climate::Parameter const &erosion) {
+    if (erosion.max < 0LL) {
         return this->PLATEAU_BIOMES[temperatureIndex][humidityIndex];
     } else {
         Biomes biome = this->PLATEAU_BIOMES_VARIANT[temperatureIndex][humidityIndex];
@@ -421,16 +421,16 @@ Biomes OverworldBiomeBuilder::pickPlateauBiome(int32_t temperatureIndex, int32_t
 }
 
 Biomes OverworldBiomeBuilder::pickPeakBiome(int32_t temperatureIndex, int32_t humidityIndex,
-                                            Climate::Parameter *erosion) {
+                                            Climate::Parameter const &erosion) {
     if (temperatureIndex <= 2) {
-        return erosion->max < 0LL ? Biomes::JAGGED_PEAKS : Biomes::FROZEN_PEAKS;
+        return erosion.max < 0LL ? Biomes::JAGGED_PEAKS : Biomes::FROZEN_PEAKS;
     } else {
         return temperatureIndex == 3 ? Biomes::STONY_PEAKS : this->pickBadlandsBiome(humidityIndex, erosion);
     }
 }
 
 Biomes OverworldBiomeBuilder::pickSlopeBiome(int32_t temperatureIndex, int32_t humidityIndex,
-                                             Climate::Parameter *erosion) {
+                                             Climate::Parameter const &erosion) {
     if (temperatureIndex >= 3) {
         return this->pickPlateauBiome(temperatureIndex, humidityIndex, erosion);
     } else {
@@ -439,30 +439,33 @@ Biomes OverworldBiomeBuilder::pickSlopeBiome(int32_t temperatureIndex, int32_t h
 }
 
 Biomes OverworldBiomeBuilder::pickExtremeHillsBiome(int32_t temperatureIndex, int32_t humidityIndex,
-                                                    Climate::Parameter *erosion) {
+                                                    Climate::Parameter const &erosion) {
     Biomes biome = this->EXTREME_HILLS[temperatureIndex][humidityIndex];
     return biome == Biomes::NULL_BIOME ? this->pickMiddleBiome(temperatureIndex, humidityIndex, erosion) : biome;
 }
 
 // push result
 
-void OverworldBiomeBuilder::addSurfaceBiome(function<void(pair<Climate::ParameterPoint *, Biomes> *)> biomes,
-                                            Climate::Parameter *temperature, Climate::Parameter *humidity,
-                                            Climate::Parameter *continentalness, Climate::Parameter *erosion,
-                                            Climate::Parameter *currentErrosion, float offset, Biomes biome) {
-    biomes(new pair(Climate::parameters(temperature, humidity, continentalness, erosion,
-                                        Climate::Parameter::point(0.0F), currentErrosion, offset),
-                    biome));
-    biomes(new pair(Climate::parameters(temperature, humidity, continentalness, erosion,
-                                        Climate::Parameter::point(1.0F), currentErrosion, offset),
-                    biome));
+void OverworldBiomeBuilder::addSurfaceBiome(vector<pair<Climate::ParameterPoint, Biomes>> &biomes,
+                                            Climate::Parameter const &temperature, Climate::Parameter const &humidity,
+                                            Climate::Parameter const &continentalness,
+                                            Climate::Parameter const &erosion,
+                                            Climate::Parameter const &currentErrosion, float offset, Biomes biome) {
+    biomes.push_back(pair(Climate::parameters(temperature, humidity, continentalness, erosion,
+                                              Climate::Parameter::point(0.0F), currentErrosion, offset),
+                          biome));
+    biomes.push_back(pair(Climate::parameters(temperature, humidity, continentalness, erosion,
+                                              Climate::Parameter::point(1.0F), currentErrosion, offset),
+                          biome));
 }
 
-void OverworldBiomeBuilder::addUndergroundBiome(function<void(pair<Climate::ParameterPoint *, Biomes> *)> biomes,
-                                                Climate::Parameter *temperature, Climate::Parameter *humidity,
-                                                Climate::Parameter *continentalness, Climate::Parameter *erosion,
-                                                Climate::Parameter *currentErrosion, float offset, Biomes biome) {
-    biomes(new pair(Climate::parameters(temperature, humidity, continentalness, erosion,
-                                        Climate::Parameter::span(0.2F, 0.9F), currentErrosion, offset),
-                    biome));
+void OverworldBiomeBuilder::addUndergroundBiome(vector<pair<Climate::ParameterPoint, Biomes>> &biomes,
+                                                Climate::Parameter const &temperature,
+                                                Climate::Parameter const &humidity,
+                                                Climate::Parameter const &continentalness,
+                                                Climate::Parameter const &erosion,
+                                                Climate::Parameter const &currentErrosion, float offset, Biomes biome) {
+    biomes.push_back(pair(Climate::parameters(temperature, humidity, continentalness, erosion,
+                                              Climate::Parameter::span(0.2F, 0.9F), currentErrosion, offset),
+                          biome));
 }

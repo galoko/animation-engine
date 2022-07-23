@@ -19,6 +19,9 @@ private:
 public:
     double xo, yo, zo;
 
+    SimplexNoise() {
+    }
+
     SimplexNoise(RandomSource *randomSource);
 
     static double dot(const int32_t v[], double x, double y, double z);

@@ -1,9 +1,7 @@
 #include "heightmap.hpp"
 
-Heightmap::Heightmap(ChunkAccess *chunk, Heightmap::Types type) {
+Heightmap::Heightmap(ChunkAccess const *chunk, Heightmap::Types type) : chunk(chunk) {
     this->isOpaque = Type_isOpaque(type);
-    this->chunk = chunk;
-    this->data = new int32_t[256];
 }
 
 void Heightmap::primeHeightmaps(ChunkAccess *chunkAccess, vector<Heightmap::Types> types) {
@@ -12,25 +10,25 @@ void Heightmap::primeHeightmaps(ChunkAccess *chunkAccess, vector<Heightmap::Type
     heightmaps.reserve(typeCount);
 
     int32_t maxY = chunkAccess->getHighestSectionPosition() + 16;
-    MutableBlockPos *pos = new MutableBlockPos();
+    MutableBlockPos pos = MutableBlockPos();
 
     for (int32_t x = 0; x < 16; ++x) {
         for (int32_t z = 0; z < 16; ++z) {
 
             heightmaps.clear();
             for (Heightmap::Types &type : types) {
-                heightmaps.push_back(chunkAccess->getOrCreateHeightmapUnprimed(type));
+                heightmaps.push_back(&chunkAccess->getOrCreateHeightmapUnprimed(type));
             }
 
             for (int32_t y = maxY - 1; y >= chunkAccess->getMinBuildHeight(); --y) {
-                pos->set(x, y, z);
+                pos.set(x, y, z);
                 BlockState blockState = chunkAccess->getBlockState(pos);
                 if (blockState != Blocks::AIR) {
                     int32_t heightmapsIndex = 0;
                     while (heightmapsIndex < heightmaps.size()) {
-                        Heightmap *heightmap = heightmaps[heightmapsIndex];
-                        if (heightmap->isOpaque(blockState)) {
-                            heightmap->setHeight(x, z, y + 1);
+                        Heightmap &heightmap = *heightmaps[heightmapsIndex];
+                        if (heightmap.isOpaque(blockState)) {
+                            heightmap.setHeight(x, z, y + 1);
                             // TODO optimize this?
                             heightmaps.erase(heightmaps.begin() + heightmapsIndex);
                         } else {
@@ -58,10 +56,10 @@ bool Heightmap::update(int32_t x, int32_t y, int32_t z, BlockState block) {
                 return true;
             }
         } else if (height - 1 == y) {
-            MutableBlockPos *pos = new MutableBlockPos();
+            MutableBlockPos pos = MutableBlockPos();
 
             for (int32_t currentY = y - 1; currentY >= this->chunk->getMinBuildHeight(); --currentY) {
-                pos->set(x, currentY, z);
+                pos.set(x, currentY, z);
                 if (this->isOpaque(this->chunk->getBlockState(pos))) {
                     this->setHeight(x, z, currentY + 1);
                     return true;
@@ -76,15 +74,15 @@ bool Heightmap::update(int32_t x, int32_t y, int32_t z, BlockState block) {
     }
 }
 
-int32_t Heightmap::getFirstAvailable(int32_t x, int32_t z) {
+int32_t Heightmap::getFirstAvailable(int32_t x, int32_t z) const {
     return this->getFirstAvailable(getIndex(x, z));
 }
 
-int32_t Heightmap::getHighestTaken(int32_t x, int32_t z) {
+int32_t Heightmap::getHighestTaken(int32_t x, int32_t z) const {
     return this->getFirstAvailable(getIndex(x, z)) - 1;
 }
 
-int32_t Heightmap::getFirstAvailable(int32_t index) {
+int32_t Heightmap::getFirstAvailable(int32_t index) const {
     return this->data[index] + this->chunk->getMinBuildHeight();
 }
 

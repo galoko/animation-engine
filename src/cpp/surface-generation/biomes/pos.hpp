@@ -28,14 +28,14 @@ private:
 public:
     BlockPos(double x, double y, double z);
 
-    int32_t getX();
-    int32_t getY();
-    int32_t getZ();
+    int32_t getX() const;
+    int32_t getY() const;
+    int32_t getZ() const;
 
 protected:
-    BlockPos *setX(int32_t value);
-    BlockPos *setY(int32_t value);
-    BlockPos *setZ(int32_t value);
+    BlockPos &setX(int32_t value);
+    BlockPos &setY(int32_t value);
+    BlockPos &setZ(int32_t value);
 
 public:
     static int32_t getX(int64_t x);
@@ -60,10 +60,10 @@ class MutableBlockPos : public BlockPos {
 public:
     MutableBlockPos(double x = 0, double y = 0, double z = 0);
 
-    MutableBlockPos *set(int32_t x, int32_t y, int32_t z);
-    MutableBlockPos *set(double x, double y, double z);
+    MutableBlockPos &set(int32_t x, int32_t y, int32_t z);
+    MutableBlockPos &set(double x, double y, double z);
 
-    MutableBlockPos *setY(int32_t y);
+    MutableBlockPos &setY(int32_t y);
 };
 
 class QuartPos {
@@ -122,24 +122,24 @@ public:
     }
 
     static constexpr int64_t INVALID_CHUNK_POS = ChunkPos_asLong(1875066, 1875066);
-    static ChunkPos *ZERO;
+    static ChunkPos ZERO;
 
     int32_t x, z;
 
     ChunkPos(int32_t x, int32_t z);
-    ChunkPos(BlockPos *pos);
+    ChunkPos(BlockPos const &pos);
     ChunkPos(int64_t loc);
 
-    BlockPos *getBlockAt(int32_t sectionX, int32_t y, int32_t sectionZ);
-    BlockPos *getMiddleBlockPosition(int32_t y);
-    BlockPos *getWorldPosition();
+    BlockPos const getBlockAt(int32_t sectionX, int32_t y, int32_t sectionZ) const;
+    BlockPos const getMiddleBlockPosition(int32_t y) const;
+    BlockPos const getWorldPosition() const;
 
     constexpr inline int64_t toLong() {
         return asLong(this->x, this->z);
     }
 
-    static constexpr inline int64_t asLong(BlockPos *pos) {
-        return asLong(SectionPos::blockToSectionCoord(pos->getX()), SectionPos::blockToSectionCoord(pos->getZ()));
+    static constexpr inline int64_t asLong(BlockPos const &pos) {
+        return asLong(SectionPos::blockToSectionCoord(pos.getX()), SectionPos::blockToSectionCoord(pos.getZ()));
     }
 
     static constexpr inline int32_t getX(int64_t loc) {
@@ -150,65 +150,65 @@ public:
         return (int32_t)(ushr_l(loc, COORD_BITS) & COORD_MASK);
     }
 
-    constexpr inline int32_t hashCode() {
+    constexpr inline int32_t hashCode() const {
         int32_t i = HASH_A * this->x + HASH_C;
         int32_t j = HASH_A * (this->z ^ HASH_Z_XOR) + HASH_C;
         return i ^ j;
     }
 
-    constexpr inline bool equals(ChunkPos *chunkpos) {
+    constexpr inline bool equals(ChunkPos *chunkpos) const {
         return this->x == chunkpos->x && this->z == chunkpos->z;
     }
 
-    constexpr inline int32_t getMiddleBlockX() {
+    constexpr inline int32_t getMiddleBlockX() const {
         return this->getBlockX(8);
     }
 
-    constexpr inline int32_t getMiddleBlockZ() {
+    constexpr inline int32_t getMiddleBlockZ() const {
         return this->getBlockZ(8);
     }
 
-    constexpr inline int32_t getMinBlockX() {
+    constexpr inline int32_t getMinBlockX() const {
         return SectionPos::sectionToBlockCoord(this->x);
     }
 
-    constexpr inline int32_t getMinBlockZ() {
+    constexpr inline int32_t getMinBlockZ() const {
         return SectionPos::sectionToBlockCoord(this->z);
     }
 
-    constexpr inline int32_t getMaxBlockX() {
+    constexpr inline int32_t getMaxBlockX() const {
         return this->getBlockX(15);
     }
 
-    constexpr inline int32_t getMaxBlockZ() {
+    constexpr inline int32_t getMaxBlockZ() const {
         return this->getBlockZ(15);
     }
 
-    constexpr inline int32_t getRegionX() {
+    constexpr inline int32_t getRegionX() const {
         return this->x >> REGION_BITS;
     }
 
-    constexpr inline int32_t getRegionZ() {
+    constexpr inline int32_t getRegionZ() const {
         return this->z >> REGION_BITS;
     }
 
-    constexpr inline int32_t getRegionLocalX() {
+    constexpr inline int32_t getRegionLocalX() const {
         return this->x & REGION_MASK;
     }
 
-    constexpr inline int32_t getRegionLocalZ() {
+    constexpr inline int32_t getRegionLocalZ() const {
         return this->z & REGION_MASK;
     }
 
-    constexpr inline int32_t getBlockX(int32_t sectionX) {
+    constexpr inline int32_t getBlockX(int32_t sectionX) const {
         return SectionPos::sectionToBlockCoord(this->x, sectionX);
     }
 
-    constexpr inline int32_t getBlockZ(int32_t sectionZ) {
+    constexpr inline int32_t getBlockZ(int32_t sectionZ) const {
         return SectionPos::sectionToBlockCoord(this->z, sectionZ);
     }
 
-    constexpr inline int32_t getChessboardDistance(ChunkPos *otherPos) {
-        return max(Mth::c_abs(this->x - otherPos->x), Mth::c_abs(this->z - otherPos->z));
+    constexpr inline int32_t getChessboardDistance(ChunkPos const &otherPos) const {
+        return max(Mth::c_abs(this->x - otherPos.x), Mth::c_abs(this->z - otherPos.z));
     }
 };

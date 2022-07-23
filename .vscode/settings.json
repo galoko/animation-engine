@@ -69,7 +69,8 @@
         "unordered_map": "cpp",
         "random": "cpp",
         "set": "cpp",
-        "numbers": "cpp"
+        "numbers": "cpp",
+        "*.rh": "cpp"
     },
     "editor.formatOnSave": true,
     "[cpp]": {

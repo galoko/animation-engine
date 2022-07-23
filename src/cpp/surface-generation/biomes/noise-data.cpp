@@ -70,12 +70,10 @@ const char *NOISE_NAMES[] = {
     "nether_state_selector",
 };
 
-NormalNoise::NoiseParameters *NOISE_PARAMETERS[(int32_t)Noises::LAST + 1];
+NormalNoise::NoiseParameters NOISE_PARAMETERS[(int32_t)Noises::LAST + 1];
 
 void registerNoise(Noises noise, int32_t firstOctave, double firstAmplitude, vector<double> amplitudes = {}) {
-    NormalNoise::NoiseParameters *parameters =
-        new NormalNoise::NoiseParameters(firstOctave, firstAmplitude, amplitudes);
-    NOISE_PARAMETERS[(int32_t)noise] = parameters;
+    NOISE_PARAMETERS[(int32_t)noise] = NormalNoise::NoiseParameters(firstOctave, firstAmplitude, amplitudes);
 };
 
 void registerBiomeNoises(int32_t octaveOffset, Noises temperature, Noises vegetation, Noises continentalness,
@@ -153,10 +151,10 @@ const char *getNoiseName(Noises noise) {
     return NOISE_NAMES[(int32_t)noise];
 }
 
-NormalNoise::NoiseParameters *getNoiseParameters(Noises noise) {
+NormalNoise::NoiseParameters const &getNoiseParameters(Noises noise) {
     return NOISE_PARAMETERS[(int32_t)noise];
 }
 
-NormalNoise *Noises_instantiate(PositionalRandomFactory *random, Noises noise) {
+NormalNoise Noises_instantiate(PositionalRandomFactory *random, Noises noise) {
     return NormalNoise::create(random->fromHashOfResourceLocation(getNoiseName(noise)), getNoiseParameters(noise));
 }

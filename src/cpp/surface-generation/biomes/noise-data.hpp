@@ -73,6 +73,6 @@ enum class Noises
 
 const char *getNoiseName(Noises noise);
 
-NormalNoise::NoiseParameters *getNoiseParameters(Noises noise);
+NormalNoise::NoiseParameters const &getNoiseParameters(Noises noise);
 
-NormalNoise *Noises_instantiate(PositionalRandomFactory *random, Noises noise);
+NormalNoise Noises_instantiate(PositionalRandomFactory *random, Noises noise);

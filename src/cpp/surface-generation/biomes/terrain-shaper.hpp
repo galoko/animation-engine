@@ -24,60 +24,55 @@ public:
         Point(float continents, float erosion, float ridges, float weirdness);
     };
 
-    static constexpr ToFloatFunction<Point *> CoordinateGetters[] = {
-        [](TerrainShaper::Point *value) { return value->continents; },
-        [](TerrainShaper::Point *value) { return value->erosion; },
-        [](TerrainShaper::Point *value) { return value->ridges; },
-        [](TerrainShaper::Point *value) { return value->weirdness; }};
+    static constexpr ToFloatFunction<Point const &> CoordinateGetters[] = {
+        [](Point const &value) { return value.continents; }, [](Point const &value) { return value.erosion; },
+        [](Point const &value) { return value.ridges; }, [](Point const &value) { return value.weirdness; }};
 
 private:
     static constexpr float GLOBAL_OFFSET = -0.50375F;
-    static constexpr ToFloatFunction<float> NO_TRANSFORM = [](float value) { return value; };
-    CubicSpline<TerrainShaper::Point *> *_offsetSampler;
-    CubicSpline<TerrainShaper::Point *> *_factorSampler;
-    CubicSpline<TerrainShaper::Point *> *_jaggednessSampler;
+    static constexpr ToFloatFunction<float> NO_TRANSFORM = [](float const &value) { return value; };
+
+    CubicSpline<Point> *_offsetSampler;
+    CubicSpline<Point> *_factorSampler;
+    CubicSpline<Point> *_jaggednessSampler;
 
 public:
-    TerrainShaper(CubicSpline<TerrainShaper::Point *> *offsetSampler,
-                  CubicSpline<TerrainShaper::Point *> *factorSampler,
-                  CubicSpline<TerrainShaper::Point *> *jaggednessSampler);
+    TerrainShaper(CubicSpline<Point> *offsetSampler, CubicSpline<Point> *factorSampler,
+                  CubicSpline<Point> *jaggednessSampler);
 
 private:
-    static constexpr inline float getAmplifiedOffset(float value) {
+    static constexpr inline float getAmplifiedOffset(float const &value) {
         return value < 0.0F ? value : value * 2.0F;
     }
 
-    static constexpr inline float getAmplifiedFactor(float value) {
+    static constexpr inline float getAmplifiedFactor(float const &value) {
         return 1.25F - 6.25F / (value + 5.0F);
     }
 
-    static constexpr inline float getAmplifiedJaggedness(float value) {
+    static constexpr inline float getAmplifiedJaggedness(float const &value) {
         return value * 2.0F;
     }
 
 public:
-    static TerrainShaper *overworld(bool isAmplified);
+    static TerrainShaper overworld(bool isAmplified);
 
 private:
-    static CubicSpline<TerrainShaper::Point *> *buildErosionJaggednessSpline(float p_187295_, float p_187296_,
-                                                                             float p_187297_, float p_187298_,
-                                                                             ToFloatFunction<float> p_187299_);
+    static CubicSpline<Point> *buildErosionJaggednessSpline(float p_187295_, float p_187296_, float p_187297_,
+                                                            float p_187298_, ToFloatFunction<float> p_187299_);
 
-    static CubicSpline<TerrainShaper::Point *> *buildRidgeJaggednessSpline(float weirdness1, float weirdness0,
-                                                                           ToFloatFunction<float> transformer);
+    static CubicSpline<Point> *buildRidgeJaggednessSpline(float weirdness1, float weirdness0,
+                                                          ToFloatFunction<float> transformer);
 
-    static CubicSpline<TerrainShaper::Point *> *buildWeirdnessJaggednessSpline(float wierdness,
-                                                                               ToFloatFunction<float> transformer);
+    static CubicSpline<Point> *buildWeirdnessJaggednessSpline(float wierdness, ToFloatFunction<float> transformer);
 
-    static CubicSpline<TerrainShaper::Point *> *getErosionFactor(float p_187308_, bool p_187309_,
-                                                                 ToFloatFunction<float> transformer);
+    static CubicSpline<Point> *getErosionFactor(float p_187308_, bool p_187309_, ToFloatFunction<float> transformer);
 
     static constexpr inline float calculateSlope(float p_187272_, float p_187273_, float p_187274_, float p_187275_) {
         return (p_187273_ - p_187272_) / (p_187275_ - p_187274_);
     }
 
-    static CubicSpline<TerrainShaper::Point *> *buildMountainRidgeSplineWithPoints(float p_187331_, bool p_187332_,
-                                                                                   ToFloatFunction<float> p_187333_);
+    static CubicSpline<Point> *buildMountainRidgeSplineWithPoints(float p_187331_, bool p_187332_,
+                                                                  ToFloatFunction<float> p_187333_);
 
     static constexpr inline float mountainContinentalness(float p_187327_, float p_187328_, float p_187329_) {
         float f2 = 1.0F - (1.0F - p_187328_) * 0.5F;
@@ -93,26 +88,24 @@ private:
         return f3 / (0.46082947F * f2) - 1.17F;
     }
 
-    static CubicSpline<TerrainShaper::Point *> *buildErosionOffsetSpline(float p_187285_, float p_187286_,
-                                                                         float p_187287_, float p_187288_,
-                                                                         float p_187289_, float p_187290_,
-                                                                         bool p_187291_, bool p_187292_,
-                                                                         ToFloatFunction<float> p_187293_);
+    static CubicSpline<Point> *buildErosionOffsetSpline(float p_187285_, float p_187286_, float p_187287_,
+                                                        float p_187288_, float p_187289_, float p_187290_,
+                                                        bool p_187291_, bool p_187292_,
+                                                        ToFloatFunction<float> p_187293_);
 
-    static CubicSpline<TerrainShaper::Point *> *ridgeSpline(float p_187277_, float p_187278_, float p_187279_,
-                                                            float p_187280_, float p_187281_, float p_187282_,
-                                                            ToFloatFunction<float> p_187283_);
+    static CubicSpline<Point> *ridgeSpline(float p_187277_, float p_187278_, float p_187279_, float p_187280_,
+                                           float p_187281_, float p_187282_, ToFloatFunction<float> p_187283_);
 
 public:
-    CubicSpline<TerrainShaper::Point *> *offsetSampler();
-    CubicSpline<TerrainShaper::Point *> *factorSampler();
-    CubicSpline<TerrainShaper::Point *> *jaggednessSampler();
+    CubicSpline<Point> *offsetSampler();
+    CubicSpline<Point> *factorSampler();
+    CubicSpline<Point> *jaggednessSampler();
 
-    float offset(TerrainShaper::Point *value);
-    float factor(TerrainShaper::Point *value);
-    float jaggedness(TerrainShaper::Point *value);
+    float offset(Point const &value) const;
+    float factor(Point const &value) const;
+    float jaggedness(Point const &value) const;
 
-    TerrainShaper::Point *makePoint(float continents, float erosion, float weirdness);
+    Point const makePoint(float continents, float erosion, float weirdness) const;
 
     static constexpr inline float peaksAndValleys(float weirdness) {
         return -(Mth::c_abs(Mth::c_abs(weirdness) - 0.6666667F) - 0.33333334F) * 3.0F;
@@ -121,9 +114,9 @@ public:
 
 class TerrainProvider {
 public:
-    static TerrainShaper *overworld(bool isAmplified);
-    static TerrainShaper *caves();
-    static TerrainShaper *floatingIslands();
-    static TerrainShaper *nether();
-    static TerrainShaper *end();
+    static TerrainShaper overworld(bool isAmplified);
+    static TerrainShaper caves();
+    static TerrainShaper floatingIslands();
+    static TerrainShaper nether();
+    static TerrainShaper end();
 };

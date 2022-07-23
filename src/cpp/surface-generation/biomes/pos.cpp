@@ -5,31 +5,31 @@
 BlockPos::BlockPos(double x, double y, double z) : x(x), y(y), z(z) {
 }
 
-int32_t BlockPos::getX() {
+int32_t BlockPos::getX() const {
     return this->x;
 }
 
-int32_t BlockPos::getY() {
+int32_t BlockPos::getY() const {
     return this->y;
 }
 
-int32_t BlockPos::getZ() {
+int32_t BlockPos::getZ() const {
     return this->z;
 }
 
-BlockPos *BlockPos::setX(int32_t value) {
+BlockPos &BlockPos::setX(int32_t value) {
     this->x = value;
-    return this;
+    return *this;
 }
 
-BlockPos *BlockPos::setY(int32_t value) {
+BlockPos &BlockPos::setY(int32_t value) {
     this->y = value;
-    return this;
+    return *this;
 }
 
-BlockPos *BlockPos::setZ(int32_t value) {
+BlockPos &BlockPos::setZ(int32_t value) {
     this->z = value;
-    return this;
+    return *this;
 }
 
 int32_t BlockPos::getX(int64_t x) {
@@ -56,20 +56,20 @@ int64_t BlockPos::asLong(int32_t x, int32_t y, int32_t z) {
 MutableBlockPos::MutableBlockPos(double x, double y, double z) : BlockPos(x, y, z) {
 }
 
-MutableBlockPos *MutableBlockPos::set(int32_t x, int32_t y, int32_t z) {
+MutableBlockPos &MutableBlockPos::set(int32_t x, int32_t y, int32_t z) {
     BlockPos::setX(x);
     BlockPos::setY(y);
     BlockPos::setZ(z);
-    return this;
+    return *this;
 }
 
-MutableBlockPos *MutableBlockPos::set(double x, double y, double z) {
+MutableBlockPos &MutableBlockPos::set(double x, double y, double z) {
     return this->set(Mth::floor(x), Mth::floor(y), Mth::floor(z));
 }
 
-MutableBlockPos *MutableBlockPos::setY(int32_t y) {
+MutableBlockPos &MutableBlockPos::setY(int32_t y) {
     BlockPos::setY(y);
-    return this;
+    return *this;
 }
 
 // ChunkPos
@@ -77,23 +77,23 @@ MutableBlockPos *MutableBlockPos::setY(int32_t y) {
 ChunkPos::ChunkPos(int32_t x, int32_t z) : x(x), z(z) {
 }
 
-ChunkPos::ChunkPos(BlockPos *pos)
-    : x(SectionPos::blockToSectionCoord(pos->getX())), z(SectionPos::blockToSectionCoord(pos->getZ())) {
+ChunkPos::ChunkPos(BlockPos const &pos)
+    : x(SectionPos::blockToSectionCoord(pos.getX())), z(SectionPos::blockToSectionCoord(pos.getZ())) {
 }
 
 ChunkPos::ChunkPos(int64_t loc) : x((int32_t)loc), z((int32_t)(loc >> COORD_BITS)) {
 }
 
-BlockPos *ChunkPos::getBlockAt(int32_t sectionX, int32_t y, int32_t sectionZ) {
-    return new BlockPos(this->getBlockX(sectionX), y, this->getBlockZ(sectionZ));
+BlockPos const ChunkPos::getBlockAt(int32_t sectionX, int32_t y, int32_t sectionZ) const {
+    return BlockPos(this->getBlockX(sectionX), y, this->getBlockZ(sectionZ));
 }
 
-BlockPos *ChunkPos::getMiddleBlockPosition(int32_t y) {
-    return new BlockPos(this->getMiddleBlockX(), y, this->getMiddleBlockZ());
+BlockPos const ChunkPos::getMiddleBlockPosition(int32_t y) const {
+    return BlockPos(this->getMiddleBlockX(), y, this->getMiddleBlockZ());
 }
 
-BlockPos *ChunkPos::getWorldPosition() {
-    return new BlockPos(this->getMinBlockX(), 0, this->getMinBlockZ());
+BlockPos const ChunkPos::getWorldPosition() const {
+    return BlockPos(this->getMinBlockX(), 0, this->getMinBlockZ());
 }
 
-ChunkPos *ChunkPos::ZERO = new ChunkPos(0, 0);
+ChunkPos ChunkPos::ZERO = ChunkPos(0, 0);

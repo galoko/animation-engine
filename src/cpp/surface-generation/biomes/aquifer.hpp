@@ -41,9 +41,9 @@ public:
     typedef FluidStatus FluidStatus;
     typedef FluidPicker FluidPicker;
 
-    static Aquifer *create(NoiseChunk *noiseChunk, ChunkPos *chunkPos, NormalNoise *barrierNoise,
-                           NormalNoise *fluidLevelFloodednessNoise, NormalNoise *fluidLevelSpreadNoise,
-                           NormalNoise *lavaNoise, PositionalRandomFactory *positionalRandomFactory, int32_t y,
+    static Aquifer *create(NoiseChunk *noiseChunk, ChunkPos const &chunkPos, NormalNoise const &barrierNoise,
+                           NormalNoise const &fluidLevelFloodednessNoise, NormalNoise const &fluidLevelSpreadNoise,
+                           NormalNoise const &lavaNoise, PositionalRandomFactory *positionalRandomFactory, int32_t y,
                            int32_t height, Aquifer::FluidPicker *globalFluidPicker);
 
     static Aquifer *createDisabled(Aquifer::FluidPicker *globalFluidPicker);
@@ -85,10 +85,10 @@ private:
     static constexpr double FLOWING_UPDATE_SIMULARITY = NoiseBasedAquifer_similarity(Mth::square(10), Mth::square(12));
 
     NoiseChunk *noiseChunk;
-    NormalNoise *barrierNoise;
-    NormalNoise *fluidLevelFloodednessNoise;
-    NormalNoise *fluidLevelSpreadNoise;
-    NormalNoise *lavaNoise;
+    NormalNoise const &barrierNoise;
+    NormalNoise const &fluidLevelFloodednessNoise;
+    NormalNoise const &fluidLevelSpreadNoise;
+    NormalNoise const &lavaNoise;
     PositionalRandomFactory *positionalRandomFactory;
     Aquifer::FluidStatus **aquiferCache;
     int64_t *aquiferLocationCache;
@@ -101,9 +101,9 @@ private:
     int32_t gridSizeZ;
 
 public:
-    NoiseBasedAquifer(NoiseChunk *noiseChunk, ChunkPos *chunkPos, NormalNoise *barrierNoise,
-                      NormalNoise *fluidLevelFloodednessNoise, NormalNoise *fluidLevelSpreadNoise,
-                      NormalNoise *lavaNoise, PositionalRandomFactory *positionalRandomFactory, int32_t y,
+    NoiseBasedAquifer(NoiseChunk *noiseChunk, ChunkPos const &chunkPos, NormalNoise const &barrierNoise,
+                      NormalNoise const &fluidLevelFloodednessNoise, NormalNoise const &fluidLevelSpreadNoise,
+                      NormalNoise const &lavaNoise, PositionalRandomFactory *positionalRandomFactory, int32_t y,
                       int32_t height, Aquifer::FluidPicker *globalFluidPicker);
 
 private:

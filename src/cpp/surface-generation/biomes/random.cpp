@@ -69,7 +69,7 @@ double MarsagliaPolarGaussian::nextGaussian() {
 
 // Xoroshiro128PlusPlus
 
-Xoroshiro128PlusPlus::Xoroshiro128PlusPlus(RandomSupport::Seed128bit seed)
+Xoroshiro128PlusPlus::Xoroshiro128PlusPlus(RandomSupport::Seed128bit const &seed)
     : Xoroshiro128PlusPlus(seed.seedLo, seed.seedHi) {
 }
 

@@ -32,42 +32,45 @@ public:
 
         Parameter(int64_t min, int64_t max);
 
-        static Climate::Parameter *point(float value);
+        static Climate::Parameter const point(float value);
 
-        static Climate::Parameter *span(float min, float max);
-        static Climate::Parameter *span(Climate::Parameter *minParameter, Climate::Parameter *maxParameter);
+        static Climate::Parameter const span(float min, float max);
+        static Climate::Parameter const span(Climate::Parameter const &minParameter,
+                                             Climate::Parameter const &maxParameter);
 
-        int64_t distance(int64_t value);
-        int64_t distance(Climate::Parameter *parameter);
+        int64_t distance(int64_t value) const;
+        int64_t distance(Climate::Parameter const &parameter) const;
 
-        Climate::Parameter *span(Climate::Parameter *parameterToMerge);
+        Climate::Parameter const span(Climate::Parameter const &parameterToMerge) const;
     };
 
     class ParameterPoint {
     public:
-        Climate::Parameter *temperature;
-        Climate::Parameter *humidity;
-        Climate::Parameter *continentalness;
-        Climate::Parameter *erosion;
-        Climate::Parameter *depth;
-        Climate::Parameter *weirdness;
+        Climate::Parameter temperature;
+        Climate::Parameter humidity;
+        Climate::Parameter continentalness;
+        Climate::Parameter erosion;
+        Climate::Parameter depth;
+        Climate::Parameter weirdness;
         int64_t offset;
 
-        ParameterPoint(Climate::Parameter *temperature, Climate::Parameter *humidity,
-                       Climate::Parameter *continentalness, Climate::Parameter *erosion, Climate::Parameter *depth,
-                       Climate::Parameter *weirdness, int64_t offset);
+        ParameterPoint(Climate::Parameter const &temperature, Climate::Parameter const &humidity,
+                       Climate::Parameter const &continentalness, Climate::Parameter const &erosion,
+                       Climate::Parameter const &depth, Climate::Parameter const &weirdness, int64_t offset);
 
-        int64_t fitness(Climate::TargetPoint *otherPoint);
+        int64_t fitness(Climate::TargetPoint const &otherPoint) const;
     };
 
-    static Climate::TargetPoint *target(float temperature, float humidity, float continentalness, float erosion,
-                                        float depth, float weirdness);
+    static Climate::TargetPoint const target(float temperature, float humidity, float continentalness, float erosion,
+                                             float depth, float weirdness);
 
-    static Climate::ParameterPoint *parameters(float temperature, float humidity, float continentalness, float erosion,
-                                               float depth, float weirdness, float offset);
-    static Climate::ParameterPoint *parameters(Climate::Parameter *temperature, Climate::Parameter *humidity,
-                                               Climate::Parameter *continentalness, Climate::Parameter *erosion,
-                                               Climate::Parameter *depth, Climate::Parameter *weirdness, float offset);
+    static Climate::ParameterPoint const parameters(float temperature, float humidity, float continentalness,
+                                                    float erosion, float depth, float weirdness, float offset);
+    static Climate::ParameterPoint const parameters(Climate::Parameter const &temperature,
+                                                    Climate::Parameter const &humidity,
+                                                    Climate::Parameter const &continentalness,
+                                                    Climate::Parameter const &erosion, Climate::Parameter const &depth,
+                                                    Climate::Parameter const &weirdness, float offset);
 
     static constexpr inline int64_t quantizeCoord(float coord) {
         return (int64_t)(coord * QUANTIZATION_FACTOR);
@@ -79,20 +82,19 @@ public:
 
     template <typename T> class ParameterList {
     public:
-        vector<pair<Climate::ParameterPoint *, T>> *values;
+        vector<pair<Climate::ParameterPoint, T>> values;
 
         // ParameterList
 
-        ParameterList(vector<pair<Climate::ParameterPoint *, T>> *values) {
-            this->values = values;
+        ParameterList(vector<pair<Climate::ParameterPoint, T>> const &values) : values(values) {
         }
 
-        T findValueBruteForce(Climate::TargetPoint *targetPoint, T defaultValue) {
+        T findValueBruteForce(Climate::TargetPoint const &targetPoint, T defaultValue) const {
             int64_t minDistance = numeric_limits<int64_t>::max();
             T result = defaultValue;
 
-            for (pair<Climate::ParameterPoint *, T> &pair : *this->values) {
-                int64_t distance = pair.first->fitness(targetPoint);
+            for (const pair<Climate::ParameterPoint, T> &pair : this->values) {
+                int64_t distance = pair.first.fitness(targetPoint);
                 if (distance < minDistance) {
                     minDistance = distance;
                     result = pair.second;
@@ -105,6 +107,6 @@ public:
 
     class Sampler {
     public:
-        virtual Climate::TargetPoint *sample(int32_t x, int32_t y, int32_t z) = 0;
+        virtual Climate::TargetPoint const sample(int32_t x, int32_t y, int32_t z) const = 0;
     };
 };

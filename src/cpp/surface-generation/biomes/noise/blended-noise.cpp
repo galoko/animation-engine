@@ -2,11 +2,11 @@
 
 // IntStream
 
-vector<int32_t> *IntStream::rangeClosed(int32_t startInclusive, int32_t endInclusive) {
-    vector<int32_t> *result = new vector<int32_t>();
+vector<int32_t> IntStream::rangeClosed(int32_t startInclusive, int32_t endInclusive) {
+    vector<int32_t> result = vector<int32_t>();
 
     for (int32_t i = startInclusive; i <= endInclusive; i++) {
-        result->push_back(i);
+        result.push_back(i);
     }
 
     return result;
@@ -14,20 +14,19 @@ vector<int32_t> *IntStream::rangeClosed(int32_t startInclusive, int32_t endInclu
 
 // BlendedNoise
 
-BlendedNoise::BlendedNoise(PerlinNoise *minLimitNoise, PerlinNoise *maxLimitNoise, PerlinNoise *mainNoise,
-                           NoiseSamplingSettings *settings, int32_t cellWidth, int32_t cellHeight) {
-    this->minLimitNoise = minLimitNoise;
-    this->maxLimitNoise = maxLimitNoise;
-    this->mainNoise = mainNoise;
-    this->xzScale = 684.412 * settings->xzScale;
-    this->yScale = 684.412 * settings->yScale;
-    this->xzMainScale = this->xzScale / settings->xzFactor;
-    this->yMainScale = this->yScale / settings->yFactor;
+BlendedNoise::BlendedNoise(PerlinNoise const &minLimitNoise, PerlinNoise const &maxLimitNoise,
+                           PerlinNoise const &mainNoise, NoiseSamplingSettings const &settings, int32_t cellWidth,
+                           int32_t cellHeight)
+    : minLimitNoise(minLimitNoise), maxLimitNoise(maxLimitNoise), mainNoise(mainNoise) {
+    this->xzScale = 684.412 * settings.xzScale;
+    this->yScale = 684.412 * settings.yScale;
+    this->xzMainScale = this->xzScale / settings.xzFactor;
+    this->yMainScale = this->yScale / settings.yFactor;
     this->cellWidth = cellWidth;
     this->cellHeight = cellHeight;
 }
 
-BlendedNoise::BlendedNoise(RandomSource *randomSource, NoiseSamplingSettings *settings, int32_t cellWidth,
+BlendedNoise::BlendedNoise(RandomSource *randomSource, NoiseSamplingSettings const &settings, int32_t cellWidth,
                            int32_t cellHeight)
     : BlendedNoise(PerlinNoise::createLegacyForBlendedNoise(randomSource, IntStream::rangeClosed(-15, 0)),
                    PerlinNoise::createLegacyForBlendedNoise(randomSource, IntStream::rangeClosed(-15, 0)),
@@ -35,7 +34,7 @@ BlendedNoise::BlendedNoise(RandomSource *randomSource, NoiseSamplingSettings *se
                    cellWidth, cellHeight) {
 }
 
-double BlendedNoise::calculateNoise(int32_t x, int32_t y, int32_t z) {
+double BlendedNoise::calculateNoise(int32_t x, int32_t y, int32_t z) const {
     int32_t cellX = Mth::floorDiv(x, this->cellWidth);
     int32_t cellY = Mth::floorDiv(y, this->cellHeight);
     int32_t cellZ = Mth::floorDiv(z, this->cellWidth);
@@ -45,7 +44,7 @@ double BlendedNoise::calculateNoise(int32_t x, int32_t y, int32_t z) {
     double scale = 1.0;
 
     for (int32_t octave = 0; octave < 8; ++octave) {
-        ImprovedNoise *improvedNoise = this->mainNoise->getOctaveNoise(octave);
+        ImprovedNoise *improvedNoise = this->mainNoise.getOctaveNoise(octave);
         if (improvedNoise != nullptr) {
             noiseValue += improvedNoise->noise(PerlinNoise::wrap((double)cellX * this->xzMainScale * scale),
                                                PerlinNoise::wrap((double)cellY * this->yMainScale * scale),
@@ -68,14 +67,14 @@ double BlendedNoise::calculateNoise(int32_t x, int32_t y, int32_t z) {
         double z = PerlinNoise::wrap((double)cellZ * this->xzScale * scale);
         double yScale = this->yScale * scale;
         if (!isMaxOrHigher) {
-            ImprovedNoise *improvedNoise = this->minLimitNoise->getOctaveNoise(octave);
+            ImprovedNoise *improvedNoise = this->minLimitNoise.getOctaveNoise(octave);
             if (improvedNoise != nullptr) {
                 minNoiseValue += improvedNoise->noise(x, y, z, yScale, (double)cellY * yScale) / scale;
             }
         }
 
         if (!isMinOrLower) {
-            ImprovedNoise *improvedNoise = this->maxLimitNoise->getOctaveNoise(octave);
+            ImprovedNoise *improvedNoise = this->maxLimitNoise.getOctaveNoise(octave);
             if (improvedNoise != nullptr) {
                 maxNoiseValue += improvedNoise->noise(x, y, z, yScale, (double)cellY * yScale) / scale;
             }

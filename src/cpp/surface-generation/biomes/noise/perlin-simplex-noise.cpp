@@ -1,24 +1,24 @@
 #include "perlin-simplex-noise.hpp"
 
-bool contains(vector<int32_t> *vec, int32_t item) {
-    return find(vec->begin(), vec->end(), item) != vec->end();
+bool contains(vector<int32_t> const &vec, int32_t item) {
+    return find(vec.begin(), vec.end(), item) != vec.end();
 }
 
-PerlinSimplexNoise::PerlinSimplexNoise(RandomSource *randomSource, vector<int32_t> *octaves) {
-    int32_t minusFirstOctave = -octaves->front();
-    int32_t lastOctave = octaves->back();
+PerlinSimplexNoise::PerlinSimplexNoise(RandomSource *randomSource, vector<int32_t> octaves) {
+    int32_t minusFirstOctave = -octaves.front();
+    int32_t lastOctave = octaves.back();
     int32_t octaveLength = minusFirstOctave + lastOctave + 1;
 
     SimplexNoise *simplexnoise = new SimplexNoise(randomSource);
     int32_t l = lastOctave;
-    this->noiseLevels = new vector<SimplexNoise *>(octaveLength);
+    this->noiseLevels = vector<SimplexNoise *>(octaveLength);
     if (lastOctave >= 0 && lastOctave < octaveLength && contains(octaves, 0)) {
-        this->noiseLevels->at(lastOctave) = simplexnoise;
+        this->noiseLevels.at(lastOctave) = simplexnoise;
     }
 
     for (int32_t octaveIndex = lastOctave + 1; octaveIndex < octaveLength; ++octaveIndex) {
         if (octaveIndex >= 0 && contains(octaves, l - octaveIndex)) {
-            this->noiseLevels->at(octaveIndex) = new SimplexNoise(randomSource);
+            this->noiseLevels.at(octaveIndex) = new SimplexNoise(randomSource);
         } else {
             randomSource->consumeCount(262);
         }
@@ -31,7 +31,7 @@ PerlinSimplexNoise::PerlinSimplexNoise(RandomSource *randomSource, vector<int32_
 
         for (int32_t octaveIndex = l - 1; octaveIndex >= 0; --octaveIndex) {
             if (octaveIndex < octaveLength && contains(octaves, l - octaveIndex)) {
-                this->noiseLevels->at(octaveIndex) = new SimplexNoise(randomSource);
+                this->noiseLevels.at(octaveIndex) = new SimplexNoise(randomSource);
             } else {
                 randomSource->consumeCount(262);
             }
@@ -47,7 +47,7 @@ double PerlinSimplexNoise::PerlinSimplexNoise::getValue(double x, double y, bool
     double inputScale = this->highestFreqInputFactor;
     double outputScale = this->highestFreqValueFactor;
 
-    for (SimplexNoise *&simplexnoise : *this->noiseLevels) {
+    for (SimplexNoise *&simplexnoise : this->noiseLevels) {
         if (simplexnoise != nullptr) {
             noiseValue += simplexnoise->getValue(x * inputScale + (useOffset ? simplexnoise->xo : 0.0),
                                                  y * inputScale + (useOffset ? simplexnoise->yo : 0.0)) *

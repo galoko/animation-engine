@@ -9,11 +9,11 @@ using namespace std;
 
 class PerlinSimplexNoise {
 private:
-    vector<SimplexNoise *> *noiseLevels;
+    vector<SimplexNoise *> noiseLevels;
     double highestFreqValueFactor, highestFreqInputFactor;
 
 public:
-    PerlinSimplexNoise(RandomSource *randomSource, vector<int32_t> *octaves);
+    PerlinSimplexNoise(RandomSource *randomSource, vector<int32_t> octaves);
 
     double getValue(double x, double y, bool useOffset);
 };
