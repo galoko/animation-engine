@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 
 #include "../mth.hpp"
 #include "../random.hpp"
@@ -14,18 +15,18 @@ private:
 public:
     double xo, yo, zo;
 
-    ImprovedNoise(RandomSource *randomSource);
+    ImprovedNoise(shared_ptr<RandomSource> randomSource);
 
-    double noise(double x, double y, double z);
-    double noise(double x, double y, double z, double yFractStep, double maxYfract);
-    double noiseWithDerivative(double x, double y, double z, double output[]);
+    double noise(double x, double y, double z) const;
+    double noise(double x, double y, double z, double yFractStep, double maxYfract) const;
+    double noiseWithDerivative(double x, double y, double z, double output[]) const;
 
 private:
     static double gradDot(int32_t gradintIndex, double x, double y, double z);
 
-    int32_t p(int32_t index);
+    int32_t p(int32_t index) const;
 
-    double sampleAndLerp(int32_t x, int32_t y, int32_t z, double xt, double yt, double zt, double yt2);
+    double sampleAndLerp(int32_t x, int32_t y, int32_t z, double xt, double yt, double zt, double yt2) const;
     double sampleWithDerivative(int32_t x, int32_t y, int32_t z, double xFract, double yFract, double zFract,
-                                double output[]);
+                                double output[]) const;
 };

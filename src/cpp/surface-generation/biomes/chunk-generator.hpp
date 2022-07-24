@@ -30,8 +30,8 @@ template <typename T> class StructureFeature {};
 class StructureSettings {
 public:
     template <typename T>
-    StructureSettings(StrongholdConfiguration *configuration,
-                      std::map<StructureFeature<T> *, StructureFeatureConfiguration *> options) {
+    StructureSettings(StrongholdConfiguration const &configuration,
+                      std::map<shared_ptr<StructureFeature<T>>, shared_ptr<StructureFeatureConfiguration>> options) {
     }
 
     StructureSettings(bool canHaveStrongholds) {
@@ -117,7 +117,7 @@ public:
     bool isNoodleCavesEnabled() const;
     bool useLegacyRandomSource() const;
 
-    RandomSource *createRandomSource(int64_t seed) const;
+    unique_ptr<RandomSource> createRandomSource(int64_t seed) const;
     WorldgenRandom::Algorithm getRandomSource() const;
 
 private:
@@ -156,7 +156,7 @@ private:
 public:
     TerrainInfo const &blendOffsetAndFactor(int32_t x, int32_t z, TerrainInfo const &terrainInfo) const;
     double blendDensity(int32_t x, int32_t y, int32_t z, double density) const;
-    BiomeResolver *getBiomeResolver(BiomeResolver *resolver) const;
+    shared_ptr<BiomeResolver> getBiomeResolver(shared_ptr<BiomeResolver> resolver) const;
 
     static Blender const &empty();
 };
@@ -284,9 +284,9 @@ private:
     NoiseChunk::InterpolatableNoise noodleThickness;
     NoiseChunk::InterpolatableNoise noodleRidgeA;
     NoiseChunk::InterpolatableNoise noodleRidgeB;
-    PositionalRandomFactory *aquiferPositionalRandomFactory;
-    PositionalRandomFactory *oreVeinsPositionalRandomFactory;
-    PositionalRandomFactory *depthBasedLayerPositionalRandomFactory;
+    shared_ptr<PositionalRandomFactory> aquiferPositionalRandomFactory;
+    shared_ptr<PositionalRandomFactory> oreVeinsPositionalRandomFactory;
+    shared_ptr<PositionalRandomFactory> depthBasedLayerPositionalRandomFactory;
     bool amplified;
 
 public:
@@ -306,14 +306,14 @@ private:
     double applySlide(double height, int32_t cellY) const;
 
 public:
-    NoiseChunk::BlockStateFiller makeBaseNoiseFiller(NoiseChunk *chunk, NoiseChunk::NoiseFiller filler,
+    NoiseChunk::BlockStateFiller makeBaseNoiseFiller(shared_ptr<NoiseChunk> chunk, NoiseChunk::NoiseFiller filler,
                                                      bool isNoodleCavesEnabled);
-    NoiseChunk::BlockStateFiller makeOreVeinifier(NoiseChunk *noiseChunk, bool enabled);
+    NoiseChunk::BlockStateFiller makeOreVeinifier(shared_ptr<NoiseChunk> noiseChunk, bool enabled);
 
     int32_t getPreliminarySurfaceLevel(int32_t x, int32_t z, TerrainInfo const &terrainInfo) const;
 
-    Aquifer *createAquifer(NoiseChunk *chunkNoise, int32_t x, int32_t z, int32_t cellY, int32_t cellCount,
-                           Aquifer::FluidPicker *fluidPicker, bool enabled);
+    unique_ptr<Aquifer> createAquifer(shared_ptr<NoiseChunk> chunkNoise, int32_t x, int32_t z, int32_t cellY,
+                                      int32_t cellCount, shared_ptr<Aquifer::FluidPicker> fluidPicker, bool enabled);
 
     FlatNoiseData const noiseData(int32_t x, int32_t z, Blender const &blender) const;
 
@@ -344,7 +344,7 @@ private:
     double spaghettiRoughness(int32_t x, int32_t y, int32_t z) const;
 
 public:
-    PositionalRandomFactory *getDepthBasedLayerPositionalRandom();
+    shared_ptr<PositionalRandomFactory> getDepthBasedLayerPositionalRandom();
 
 private:
     static double clampToUnit(double value);
@@ -359,6 +359,8 @@ private:
 class NoiseBiomeSource {
 public:
     virtual Biomes getNoiseBiome(int32_t x, int32_t y, int32_t z) = 0;
+    virtual ~NoiseBiomeSource() {
+    }
 };
 
 class ChunkGenerator : public NoiseBiomeSource {
@@ -367,18 +369,18 @@ private:
     int64_t strongholdSeed;
 
 protected:
-    BiomeSource *biomeSource;
-    BiomeSource *runtimeBiomeSource;
+    shared_ptr<BiomeSource> biomeSource;
+    shared_ptr<BiomeSource> runtimeBiomeSource;
 
 public:
-    ChunkGenerator(BiomeSource *biomeSource, StructureSettings const &settings);
-    ChunkGenerator(BiomeSource *biomeSource, BiomeSource *runtimeBiomeSource, StructureSettings const &settings,
-                   int64_t strongholdSeed);
+    ChunkGenerator(shared_ptr<BiomeSource> biomeSource, StructureSettings const &settings);
+    ChunkGenerator(shared_ptr<BiomeSource> biomeSource, shared_ptr<BiomeSource> runtimeBiomeSource,
+                   StructureSettings const &settings, int64_t strongholdSeed);
 
-    virtual ChunkGenerator *withSeed(int64_t seed) = 0;
+    virtual shared_ptr<ChunkGenerator> withSeed(int64_t seed) = 0;
 
-    virtual ChunkAccess *createBiomes(Blender const &blender, ChunkAccess *chunk);
-    virtual Climate::Sampler *climateSampler() const = 0;
+    virtual shared_ptr<ChunkAccess> createBiomes(Blender const &blender, shared_ptr<ChunkAccess> chunk);
+    virtual shared_ptr<Climate::Sampler> climateSampler() const = 0;
 
     Biomes getNoiseBiome(int32_t x, int32_t y, int32_t z) override;
 
@@ -386,11 +388,11 @@ public:
 
     int32_t getSpawnHeight(LevelHeightAccessor const &heightAccessor) const;
 
-    BiomeSource *getBiomeSource() const;
+    shared_ptr<BiomeSource> getBiomeSource() const;
 
     virtual int32_t getGenDepth() const = 0;
 
-    virtual ChunkAccess *fillFromNoise(Blender const &blender, ChunkAccess *chunkAccess) = 0;
+    virtual shared_ptr<ChunkAccess> fillFromNoise(Blender const &blender, shared_ptr<ChunkAccess> chunkAccess) = 0;
 
     virtual int32_t getSeaLevel() const = 0;
 
@@ -399,7 +401,7 @@ public:
     virtual int32_t getBaseHeight(int32_t x, int32_t z, HeightmapTypes type,
                                   LevelHeightAccessor const &heightAccessor) const = 0;
 
-    // virtual NoiseColumn *getBaseColumn(int32_t x, int32_t y, LevelHeightAccessor *heightAccessor) = 0;
+    // virtual NoiseColumn* getBaseColumn(int32_t x, int32_t y, LevelHeightAccessor const& heightAccessor) = 0;
 
     int32_t getFirstFreeHeight(int32_t x, int32_t z, HeightmapTypes type,
                                LevelHeightAccessor const &heightAccessor) const;
@@ -407,34 +409,35 @@ public:
                                    LevelHeightAccessor const &heightAccessor) const;
 };
 
-using WorldGenMaterialRule = function<BlockState(NoiseChunk *noiseChunk, int32_t x, int32_t y, int32_t z)>;
+using WorldGenMaterialRule = function<BlockState(shared_ptr<NoiseChunk> noiseChunk, int32_t x, int32_t y, int32_t z)>;
 
 class SimpleFluidPicker : public Aquifer::FluidPicker {
 private:
     int32_t seaLevel;
-    Aquifer::FluidStatus *lava;
-    Aquifer::FluidStatus *defaultFluid;
+    Aquifer::FluidStatus lava;
+    Aquifer::FluidStatus defaultFluid;
 
 public:
-    SimpleFluidPicker(int32_t seaLevel, Aquifer::FluidStatus *lava, Aquifer::FluidStatus *defaultFluid);
+    SimpleFluidPicker(int32_t seaLevel, Aquifer::FluidStatus const &lava, Aquifer::FluidStatus const &defaultFluid);
 
-    Aquifer::FluidStatus *computeFluid(int32_t x, int32_t y, int32_t z) override;
+    Aquifer::FluidStatus computeFluid(int32_t x, int32_t y, int32_t z) override;
 };
 
 class BelowZeroRetrogen {
 public:
-    static BiomeResolver *getBiomeResolver(BiomeResolver *resolver, ChunkAccess *chunkAccess) {
+    static shared_ptr<BiomeResolver> getBiomeResolver(shared_ptr<BiomeResolver> resolver,
+                                                      shared_ptr<ChunkAccess> chunkAccess) {
         return resolver;
     };
 };
 
 class NoiseClimateSampler : public Climate::Sampler {
 private:
-    NoiseSampler *sampler;
-    NoiseChunk *noisechunk;
+    shared_ptr<NoiseSampler> sampler;
+    shared_ptr<NoiseChunk> noisechunk;
 
 public:
-    NoiseClimateSampler(NoiseSampler *sampler, NoiseChunk *noisechunk);
+    NoiseClimateSampler(shared_ptr<NoiseSampler> sampler, shared_ptr<NoiseChunk> noisechunk);
 
     Climate::TargetPoint const sample(int32_t x, int32_t y, int32_t z) const override;
 };
@@ -446,35 +449,36 @@ private:
     BlockState defaultBlock;
     int64_t seed;
     NoiseGeneratorSettings const &settings;
-    NoiseSampler *sampler;
-    // SurfaceSystem *surfaceSystem;
+    shared_ptr<NoiseSampler> sampler;
+    // SurfaceSystem> surfaceSystem;
     WorldGenMaterialRule materialRule;
-    Aquifer::FluidPicker *globalFluidPicker;
+    shared_ptr<Aquifer::FluidPicker> globalFluidPicker;
 
 public:
-    NoiseBasedChunkGenerator(BiomeSource *biomeSource, int64_t seed, NoiseGeneratorSettings const &settings);
+    NoiseBasedChunkGenerator(shared_ptr<BiomeSource> biomeSource, int64_t seed, NoiseGeneratorSettings const &settings);
 
 private:
-    NoiseBasedChunkGenerator(BiomeSource *biomeSource, BiomeSource *runtimeBiomeSource, int64_t seed,
-                             NoiseGeneratorSettings const &settings);
+    NoiseBasedChunkGenerator(shared_ptr<BiomeSource> biomeSource, shared_ptr<BiomeSource> runtimeBiomeSource,
+                             int64_t seed, NoiseGeneratorSettings const &settings);
 
-    ChunkAccess *createBiomes(Blender const &blender, ChunkAccess *chunkAccess) override;
+    shared_ptr<ChunkAccess> createBiomes(Blender const &blender, shared_ptr<ChunkAccess> chunkAccess) override;
 
 private:
-    void doCreateBiomes(Blender const &blender, ChunkAccess *chunkAccess);
+    void doCreateBiomes(Blender const &blender, shared_ptr<ChunkAccess> chunkAccess);
 
 public:
-    Climate::Sampler *climateSampler() const override;
+    shared_ptr<Climate::Sampler> climateSampler() const override;
 
-    ChunkGenerator *withSeed(int64_t seed) override;
+    shared_ptr<ChunkGenerator> withSeed(int64_t seed) override;
 
     int32_t getBaseHeight(int32_t x, int32_t z, HeightmapTypes type,
                           LevelHeightAccessor const &heightAccessor) const override;
 
-    ChunkAccess *fillFromNoise(Blender const &blender, ChunkAccess *chunkAccess) override;
+    shared_ptr<ChunkAccess> fillFromNoise(Blender const &blender, shared_ptr<ChunkAccess> chunkAccess) override;
 
 private:
-    ChunkAccess *doFill(Blender const &blender, ChunkAccess *chunkAccess, int32_t minCellY, int32_t cellCount);
+    shared_ptr<ChunkAccess> doFill(Blender const &blender, shared_ptr<ChunkAccess> chunkAccess, int32_t minCellY,
+                                   int32_t cellCount);
 
 public:
     int32_t getGenDepth() const override;

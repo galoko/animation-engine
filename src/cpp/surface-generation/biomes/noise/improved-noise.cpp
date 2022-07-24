@@ -2,7 +2,7 @@
 
 // ImprovedNoise
 
-ImprovedNoise::ImprovedNoise(RandomSource *randomSource) {
+ImprovedNoise::ImprovedNoise(shared_ptr<RandomSource> randomSource) {
     this->xo = randomSource->nextDouble() * 256.0;
     this->yo = randomSource->nextDouble() * 256.0;
     this->zo = randomSource->nextDouble() * 256.0;
@@ -19,11 +19,11 @@ ImprovedNoise::ImprovedNoise(RandomSource *randomSource) {
     }
 }
 
-double ImprovedNoise::noise(double x, double y, double z) {
+double ImprovedNoise::noise(double x, double y, double z) const {
     return this->noise(x, y, z, 0.0, 0.0);
 }
 
-double ImprovedNoise::noise(double x, double y, double z, double yFractStep, double maxYfract) {
+double ImprovedNoise::noise(double x, double y, double z, double yFractStep, double maxYfract) const {
     double xWithOffset = x + this->xo;
     double yWithOffset = y + this->yo;
     double zWithOffset = z + this->zo;
@@ -50,7 +50,7 @@ double ImprovedNoise::noise(double x, double y, double z, double yFractStep, dou
     return this->sampleAndLerp(intX, intY, intZ, xFract, yFract - yFractOffset, zFract, yFract);
 }
 
-double ImprovedNoise::noiseWithDerivative(double x, double y, double z, double output[]) {
+double ImprovedNoise::noiseWithDerivative(double x, double y, double z, double output[]) const {
     double xWithOffset = x + this->xo;
     double yWithOffset = y + this->yo;
     double zWithOffset = z + this->zo;
@@ -67,11 +67,12 @@ double ImprovedNoise::gradDot(int32_t gradintIndex, double x, double y, double z
     return SimplexNoise::dot(SimplexNoise::GRADIENT[gradintIndex & 15], x, y, z);
 }
 
-int32_t ImprovedNoise::p(int32_t index) {
+int32_t ImprovedNoise::p(int32_t index) const {
     return this->_p[index & 255] & 255;
 }
 
-double ImprovedNoise::sampleAndLerp(int32_t x, int32_t y, int32_t z, double xt, double yt, double zt, double yt2) {
+double ImprovedNoise::sampleAndLerp(int32_t x, int32_t y, int32_t z, double xt, double yt, double zt,
+                                    double yt2) const {
     int32_t noiseX0 = this->p(x);
     int32_t noiseX1 = this->p(x + 1);
     int32_t noiseY00 = this->p(noiseX0 + y);
@@ -94,7 +95,7 @@ double ImprovedNoise::sampleAndLerp(int32_t x, int32_t y, int32_t z, double xt, 
 }
 
 double ImprovedNoise::sampleWithDerivative(int32_t x, int32_t y, int32_t z, double xFract, double yFract, double zFract,
-                                           double output[]) {
+                                           double output[]) const {
     int32_t noiseX0 = this->p(x);
     int32_t noiseX1 = this->p(x + 1);
     int32_t noiseY00 = this->p(noiseX0 + y);

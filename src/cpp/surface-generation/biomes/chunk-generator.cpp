@@ -125,7 +125,7 @@ bool NoiseGeneratorSettings::useLegacyRandomSource() const {
     return this->randomSource == WorldgenRandom::Algorithm::LEGACY;
 }
 
-RandomSource *NoiseGeneratorSettings::createRandomSource(int64_t seed) const {
+unique_ptr<RandomSource> NoiseGeneratorSettings::createRandomSource(int64_t seed) const {
     return WorldgenRandom::Algorithm_newInstance(this->getRandomSource(), seed);
 }
 
@@ -193,7 +193,7 @@ double Blender::blendDensity(int32_t x, int32_t y, int32_t z, double density) co
     return density;
 }
 
-BiomeResolver *Blender::getBiomeResolver(BiomeResolver *resolver) const {
+shared_ptr<BiomeResolver> Blender::getBiomeResolver(shared_ptr<BiomeResolver> resolver) const {
     return resolver;
 }
 
@@ -229,7 +229,7 @@ NoiseSampler::NoiseSampler(NoiseSettings const &noiseSettings, bool isNoiseCaves
                            WorldgenRandom::Algorithm algorithm)
     : noiseSettings(noiseSettings) {
     this->isNoiseCavesEnabled = isNoiseCavesEnabled;
-    this->baseNoise = [this](NoiseChunk *noiseChunk) -> NoiseChunk::Sampler * {
+    this->baseNoise = [this](shared_ptr<NoiseChunk> noiseChunk) -> shared_ptr<NoiseChunk::Sampler> {
         return noiseChunk->createNoiseInterpolator([this, noiseChunk](int32_t x, int32_t y, int32_t z) -> double {
             return this->calculateBaseNoise(
                 x, y, z, noiseChunk->noiseData(QuartPos::fromBlock(x), QuartPos::fromBlock(z)).terrainInfo,
@@ -237,7 +237,7 @@ NoiseSampler::NoiseSampler(NoiseSettings const &noiseSettings, bool isNoiseCaves
         });
     };
     if (noiseSettings.islandNoiseOverride) {
-        RandomSource *randomsource = WorldgenRandom::Algorithm_newInstance(algorithm, seed);
+        shared_ptr<RandomSource> randomsource = WorldgenRandom::Algorithm_newInstance(algorithm, seed);
         randomsource->consumeCount(17292);
         this->islandNoise = SimplexNoise(randomsource);
     }
@@ -249,7 +249,7 @@ NoiseSampler::NoiseSampler(NoiseSettings const &noiseSettings, bool isNoiseCaves
     int32_t clampedMinY = minY + 4;
     int32_t clampedMaxY = minY + noiseSettings.height;
     bool largeBiomes = noiseSettings.largeBiomes;
-    PositionalRandomFactory *positionalrandomfactory =
+    shared_ptr<PositionalRandomFactory> positionalrandomfactory =
         WorldgenRandom::Algorithm_newInstance(algorithm, seed)->forkPositional();
     if (algorithm != WorldgenRandom::Algorithm::LEGACY) {
         this->blendedNoise = BlendedNoise(positionalrandomfactory->fromHashOfResourceLocation("terrain"),
@@ -334,7 +334,9 @@ NoiseChunk::InterpolatableNoise NoiseSampler::yLimitedInterpolatableNoise(Normal
         return y <= maxY && y >= minY ? noise.getValue((double)x * noiseMul, (double)y * noiseMul, (double)z * noiseMul)
                                       : (double)outOfRangeValue;
     };
-    return [filler](NoiseChunk *chunk) -> NoiseChunk::Sampler * { return chunk->createNoiseInterpolator(filler); };
+    return [filler](shared_ptr<NoiseChunk> chunk) -> shared_ptr<NoiseChunk::Sampler> {
+        return chunk->createNoiseInterpolator(filler);
+    };
 }
 
 double NoiseSampler::calculateBaseNoise(int32_t x, int32_t y, int32_t z, TerrainInfo const &terrainInfo,
@@ -422,14 +424,22 @@ double NoiseSampler::applySlide(double height, int32_t cellY) const {
     return this->noiseSettings.bottomSlideSettings.applySlide(height, cellYdelta);
 }
 
-NoiseChunk::BlockStateFiller NoiseSampler::makeBaseNoiseFiller(NoiseChunk *chunk, NoiseChunk::NoiseFiller filler,
+NoiseChunk::BlockStateFiller NoiseSampler::makeBaseNoiseFiller(shared_ptr<NoiseChunk> chunk,
+                                                               NoiseChunk::NoiseFiller filler,
                                                                bool isNoodleCavesEnabled) {
-    NoiseChunk::Sampler *baseNoiseSampler = this->baseNoise(chunk);
-    NoiseChunk::Sampler *toggleSampler = isNoodleCavesEnabled ? this->noodleToggle(chunk) : new ConstantSampler(-1.0);
-    NoiseChunk::Sampler *thicknessSampler =
-        isNoodleCavesEnabled ? this->noodleThickness(chunk) : new ConstantSampler(0.0);
-    NoiseChunk::Sampler *ridgeASampler = isNoodleCavesEnabled ? this->noodleRidgeA(chunk) : new ConstantSampler(0.0);
-    NoiseChunk::Sampler *ridgeBSampler = isNoodleCavesEnabled ? this->noodleRidgeB(chunk) : new ConstantSampler(0.0);
+    shared_ptr<NoiseChunk::Sampler> baseNoiseSampler = this->baseNoise(chunk);
+    shared_ptr<NoiseChunk::Sampler> toggleSampler, thicknessSampler, ridgeASampler, ridgeBSampler;
+    if (isNoodleCavesEnabled) {
+        toggleSampler = this->noodleToggle(chunk);
+        thicknessSampler = this->noodleThickness(chunk);
+        ridgeASampler = this->noodleRidgeA(chunk);
+        ridgeBSampler = this->noodleRidgeB(chunk);
+    } else {
+        toggleSampler = make_shared<ConstantSampler>(-1.0);
+        thicknessSampler = make_shared<ConstantSampler>(0.0);
+        ridgeASampler = make_shared<ConstantSampler>(0.0);
+        ridgeBSampler = make_shared<ConstantSampler>(0.0);
+    }
     return [chunk, filler, baseNoiseSampler, toggleSampler, thicknessSampler, ridgeASampler,
             ridgeBSampler](int32_t x, int32_t y, int32_t z) -> BlockState {
         double baseNoise = baseNoiseSampler->sample();
@@ -448,17 +458,17 @@ NoiseChunk::BlockStateFiller NoiseSampler::makeBaseNoiseFiller(NoiseChunk *chunk
     };
 }
 
-NoiseChunk::BlockStateFiller NoiseSampler::makeOreVeinifier(NoiseChunk *noiseChunk, bool enabled) {
+NoiseChunk::BlockStateFiller NoiseSampler::makeOreVeinifier(shared_ptr<NoiseChunk> noiseChunk, bool enabled) {
     if (!enabled) {
         return [](int32_t x, int32_t y, int32_t z) -> BlockState { return BlockState::NULL_BLOCK; };
     } else {
-        NoiseChunk::Sampler *veininessSampler = this->veininess(noiseChunk);
-        NoiseChunk::Sampler *veinASampler = this->veinA(noiseChunk);
-        NoiseChunk::Sampler *veinBSampler = this->veinB(noiseChunk);
+        shared_ptr<NoiseChunk::Sampler> veininessSampler = this->veininess(noiseChunk);
+        shared_ptr<NoiseChunk::Sampler> veinASampler = this->veinA(noiseChunk);
+        shared_ptr<NoiseChunk::Sampler> veinBSampler = this->veinB(noiseChunk);
         BlockState blockState = Blocks::NULL_BLOCK;
         return [this, blockState, veininessSampler, veinASampler, veinBSampler](int32_t x, int32_t y,
                                                                                 int32_t z) -> BlockState {
-            RandomSource *randomSource = this->oreVeinsPositionalRandomFactory->at(x, y, z);
+            shared_ptr<RandomSource> randomSource = this->oreVeinsPositionalRandomFactory->at(x, y, z);
             double veininess = veininessSampler->sample();
             NoiseSampler::VeinType veinType = this->getVeinType(veininess, y);
             if (veinType == VeinType::NULL_VEIN) {
@@ -499,8 +509,9 @@ int32_t NoiseSampler::getPreliminarySurfaceLevel(int32_t x, int32_t z, TerrainIn
     return numeric_limits<int32_t>::max();
 }
 
-Aquifer *NoiseSampler::createAquifer(NoiseChunk *chunkNoise, int32_t x, int32_t z, int32_t cellY, int32_t cellCount,
-                                     Aquifer::FluidPicker *fluidPicker, bool enabled) {
+unique_ptr<Aquifer> NoiseSampler::createAquifer(shared_ptr<NoiseChunk> chunkNoise, int32_t x, int32_t z, int32_t cellY,
+                                                int32_t cellCount, shared_ptr<Aquifer::FluidPicker> fluidPicker,
+                                                bool enabled) {
     if (!enabled) {
         return Aquifer::createDisabled(fluidPicker);
     } else {
@@ -637,7 +648,7 @@ double NoiseSampler::spaghettiRoughness(int32_t x, int32_t y, int32_t z) const {
     return (0.4 - abs(this->spaghettiRoughnessNoise.getValue((double)x, (double)y, (double)z))) * roughness;
 }
 
-PositionalRandomFactory *NoiseSampler::getDepthBasedLayerPositionalRandom() {
+shared_ptr<PositionalRandomFactory> NoiseSampler::getDepthBasedLayerPositionalRandom() {
     return this->depthBasedLayerPositionalRandomFactory;
 }
 
@@ -673,19 +684,17 @@ NoiseSampler::VeinType NoiseSampler::getVeinType(double veiness, int32_t y) {
 
 // ChunkGenerator
 
-ChunkGenerator::ChunkGenerator(BiomeSource *biomeSource, StructureSettings const &settings)
+ChunkGenerator::ChunkGenerator(shared_ptr<BiomeSource> biomeSource, StructureSettings const &settings)
     : ChunkGenerator(biomeSource, biomeSource, settings, 0LL) {
 }
 
-ChunkGenerator::ChunkGenerator(BiomeSource *biomeSource, BiomeSource *runtimeBiomeSource,
+ChunkGenerator::ChunkGenerator(shared_ptr<BiomeSource> biomeSource, shared_ptr<BiomeSource> runtimeBiomeSource,
                                StructureSettings const &settings, int64_t strongholdSeed)
-    : settings(settings) {
-    this->biomeSource = biomeSource;
-    this->runtimeBiomeSource = runtimeBiomeSource;
+    : settings(settings), biomeSource(biomeSource), runtimeBiomeSource(runtimeBiomeSource) {
     this->strongholdSeed = strongholdSeed;
 }
 
-ChunkAccess *ChunkGenerator::createBiomes(Blender const &blender, ChunkAccess *chunk) {
+shared_ptr<ChunkAccess> ChunkGenerator::createBiomes(Blender const &blender, shared_ptr<ChunkAccess> chunk) {
     chunk->fillBiomesFromNoise(this->runtimeBiomeSource, this->climateSampler());
     return chunk;
 }
@@ -702,7 +711,7 @@ int32_t ChunkGenerator::getSpawnHeight(LevelHeightAccessor const &heightAccessor
     return 64;
 }
 
-BiomeSource *ChunkGenerator::getBiomeSource() const {
+shared_ptr<BiomeSource> ChunkGenerator::getBiomeSource() const {
     return this->runtimeBiomeSource;
 }
 
@@ -718,21 +727,19 @@ int32_t ChunkGenerator::getFirstOccupiedHeight(int32_t x, int32_t z, HeightmapTy
 
 // SimpleFluidPicker
 
-SimpleFluidPicker::SimpleFluidPicker(int32_t seaLevel, Aquifer::FluidStatus *lava, Aquifer::FluidStatus *defaultFluid) {
-    this->seaLevel = seaLevel;
-    this->lava = lava;
-    this->defaultFluid = defaultFluid;
+SimpleFluidPicker::SimpleFluidPicker(int32_t seaLevel, Aquifer::FluidStatus const &lava,
+                                     Aquifer::FluidStatus const &defaultFluid)
+    : seaLevel(seaLevel), lava(lava), defaultFluid(defaultFluid) {
 }
 
-Aquifer::FluidStatus *SimpleFluidPicker::computeFluid(int32_t x, int32_t y, int32_t z) {
+Aquifer::FluidStatus SimpleFluidPicker::computeFluid(int32_t x, int32_t y, int32_t z) {
     return y < min(-54, this->seaLevel) ? this->lava : this->defaultFluid;
 }
 
 // NoiseClimateSampler
 
-NoiseClimateSampler::NoiseClimateSampler(NoiseSampler *sampler, NoiseChunk *noisechunk) {
-    this->sampler = sampler;
-    this->noisechunk = noisechunk;
+NoiseClimateSampler::NoiseClimateSampler(shared_ptr<NoiseSampler> sampler, shared_ptr<NoiseChunk> noisechunk)
+    : sampler(sampler), noisechunk(noisechunk) {
 }
 
 Climate::TargetPoint const NoiseClimateSampler::sample(int32_t x, int32_t y, int32_t z) const {
@@ -742,8 +749,8 @@ Climate::TargetPoint const NoiseClimateSampler::sample(int32_t x, int32_t y, int
 // NoiseBasedChunkGenerator
 
 WorldGenMaterialRule makeMaterialRuleList(vector<WorldGenMaterialRule> rules) {
-    return [rules](NoiseChunk *noiseChunk, int32_t x, int32_t y, int32_t z) -> BlockState {
-        for (const WorldGenMaterialRule &rule : rules) {
+    return [rules](shared_ptr<NoiseChunk> noiseChunk, int32_t x, int32_t y, int32_t z) -> BlockState {
+        for (WorldGenMaterialRule const &rule : rules) {
             BlockState blockstate = rule(noiseChunk, x, y, z);
             if (blockstate != Blocks::NULL_BLOCK) {
                 return blockstate;
@@ -754,27 +761,28 @@ WorldGenMaterialRule makeMaterialRuleList(vector<WorldGenMaterialRule> rules) {
     };
 }
 
-NoiseFiller makeBeardifier(ChunkAccess *chunkAccess) {
+NoiseFiller makeBeardifier(shared_ptr<ChunkAccess> chunkAccess) {
     return [](int32_t x, int32_t y, int32_t z) -> double { return 0; };
 }
 
-NoiseBasedChunkGenerator::NoiseBasedChunkGenerator(BiomeSource *biomeSource, int64_t seed,
+NoiseBasedChunkGenerator::NoiseBasedChunkGenerator(shared_ptr<BiomeSource> biomeSource, int64_t seed,
                                                    NoiseGeneratorSettings const &settings)
     : NoiseBasedChunkGenerator(biomeSource, biomeSource, seed, settings) {
 }
 
-NoiseBasedChunkGenerator::NoiseBasedChunkGenerator(BiomeSource *biomeSource, BiomeSource *runtimeBiomeSource,
-                                                   int64_t seed, NoiseGeneratorSettings const &settings)
+NoiseBasedChunkGenerator::NoiseBasedChunkGenerator(shared_ptr<BiomeSource> biomeSource,
+                                                   shared_ptr<BiomeSource> runtimeBiomeSource, int64_t seed,
+                                                   NoiseGeneratorSettings const &settings)
     : ChunkGenerator(biomeSource, runtimeBiomeSource, settings.structureSettings(), seed), settings(settings) {
 
     this->seed = seed;
     NoiseGeneratorSettings const &noiseGeneratorSettings = this->settings;
     this->defaultBlock = noiseGeneratorSettings.getDefaultBlock();
     NoiseSettings const &noisesettings = noiseGeneratorSettings.noiseSettings();
-    this->sampler = new NoiseSampler(noisesettings, noiseGeneratorSettings.isNoiseCavesEnabled(), seed,
-                                     noiseGeneratorSettings.getRandomSource());
+    this->sampler = make_shared<NoiseSampler>(noisesettings, noiseGeneratorSettings.isNoiseCavesEnabled(), seed,
+                                              noiseGeneratorSettings.getRandomSource());
     vector<WorldGenMaterialRule> rules = vector<WorldGenMaterialRule>();
-    rules.push_back([](NoiseChunk *noiseChunk, int32_t x, int32_t y, int32_t z) -> BlockState {
+    rules.push_back([](shared_ptr<NoiseChunk> noiseChunk, int32_t x, int32_t y, int32_t z) -> BlockState {
         return noiseChunk->updateNoiseAndGenerateBaseState(x, y, z);
     });
     /*
@@ -783,37 +791,38 @@ NoiseBasedChunkGenerator::NoiseBasedChunkGenerator(BiomeSource *biomeSource, Bio
     });
     */
     this->materialRule = makeMaterialRuleList(rules);
-    Aquifer::FluidStatus *lava = new Aquifer::FluidStatus(-54, Blocks::LAVA);
+    Aquifer::FluidStatus lava = Aquifer::FluidStatus(-54, Blocks::LAVA);
     int32_t seaLevel = noiseGeneratorSettings.seaLevel();
-    Aquifer::FluidStatus *defaultFluid = new Aquifer::FluidStatus(seaLevel, noiseGeneratorSettings.getDefaultFluid());
-    // Aquifer::FluidStatus *air = new Aquifer::FluidStatus(noiseSettings.minY - 1, Blocks::AIR);
-    this->globalFluidPicker = new SimpleFluidPicker(seaLevel, lava, defaultFluid);
+    Aquifer::FluidStatus defaultFluid = Aquifer::FluidStatus(seaLevel, noiseGeneratorSettings.getDefaultFluid());
+    // Aquifer::FluidStatus air = Aquifer::FluidStatus(noiseSettings.minY - 1, Blocks::AIR);
+    this->globalFluidPicker = make_shared<SimpleFluidPicker>(seaLevel, lava, defaultFluid);
     /*
     this->surfaceSystem =
         new SurfaceSystem(this->defaultBlock, seaLevel, seed, noiseGeneratorSettings.getRandomSource());
     */
 }
 
-ChunkAccess *NoiseBasedChunkGenerator::createBiomes(Blender const &blender, ChunkAccess *chunkAccess) {
+shared_ptr<ChunkAccess> NoiseBasedChunkGenerator::createBiomes(Blender const &blender,
+                                                               shared_ptr<ChunkAccess> chunkAccess) {
     this->doCreateBiomes(blender, chunkAccess);
     return chunkAccess;
 }
 
-void NoiseBasedChunkGenerator::doCreateBiomes(Blender const &blender, ChunkAccess *chunkAccess) {
-    NoiseChunk *noisechunk = chunkAccess->getOrCreateNoiseChunk(
+void NoiseBasedChunkGenerator::doCreateBiomes(Blender const &blender, shared_ptr<ChunkAccess> chunkAccess) {
+    shared_ptr<NoiseChunk> noisechunk = chunkAccess->getOrCreateNoiseChunk(
         this->sampler, [chunkAccess]() -> NoiseFiller { return makeBeardifier(chunkAccess); }, this->settings,
         this->globalFluidPicker, blender);
-    BiomeResolver *biomeresolver =
+    shared_ptr<BiomeResolver> biomeresolver =
         BelowZeroRetrogen::getBiomeResolver(blender.getBiomeResolver(this->runtimeBiomeSource), chunkAccess);
-    chunkAccess->fillBiomesFromNoise(biomeresolver, new NoiseClimateSampler(this->sampler, noisechunk));
+    chunkAccess->fillBiomesFromNoise(biomeresolver, make_shared<NoiseClimateSampler>(this->sampler, noisechunk));
 }
 
-Climate::Sampler *NoiseBasedChunkGenerator::climateSampler() const {
+shared_ptr<Climate::Sampler> NoiseBasedChunkGenerator::climateSampler() const {
     return this->sampler;
 }
 
-ChunkGenerator *NoiseBasedChunkGenerator::withSeed(int64_t seed) {
-    return new NoiseBasedChunkGenerator(this->biomeSource->withSeed(seed), seed, this->settings);
+shared_ptr<ChunkGenerator> NoiseBasedChunkGenerator::withSeed(int64_t seed) {
+    return make_shared<NoiseBasedChunkGenerator>(this->biomeSource->withSeed(seed), seed, this->settings);
 }
 
 int32_t NoiseBasedChunkGenerator::getBaseHeight(int32_t x, int32_t z, HeightmapTypes type,
@@ -821,7 +830,8 @@ int32_t NoiseBasedChunkGenerator::getBaseHeight(int32_t x, int32_t z, HeightmapT
     return 0;
 }
 
-ChunkAccess *NoiseBasedChunkGenerator::fillFromNoise(Blender const &blender, ChunkAccess *chunkAccess) {
+shared_ptr<ChunkAccess> NoiseBasedChunkGenerator::fillFromNoise(Blender const &blender,
+                                                                shared_ptr<ChunkAccess> chunkAccess) {
     NoiseSettings const &noiseSettings = this->settings.noiseSettings();
     LevelHeightAccessor const &heightAccessor = chunkAccess->getHeightAccessorForGeneration();
     int32_t minY = max(noiseSettings.minY, heightAccessor.getMinBuildHeight());
@@ -841,7 +851,7 @@ ChunkAccess *NoiseBasedChunkGenerator::fillFromNoise(Blender const &blender, Chu
             sections.push_back(&section);
         }
 
-        ChunkAccess *result = this->doFill(blender, chunkAccess, minCellY, cellCount);
+        shared_ptr<ChunkAccess> result = this->doFill(blender, chunkAccess, minCellY, cellCount);
 
         for (LevelChunkSection *&section : sections) {
             section->release();
@@ -851,10 +861,10 @@ ChunkAccess *NoiseBasedChunkGenerator::fillFromNoise(Blender const &blender, Chu
     }
 }
 
-ChunkAccess *NoiseBasedChunkGenerator::doFill(Blender const &blender, ChunkAccess *chunkAccess, int32_t minCellY,
-                                              int32_t cellCount) {
+shared_ptr<ChunkAccess> NoiseBasedChunkGenerator::doFill(Blender const &blender, shared_ptr<ChunkAccess> chunkAccess,
+                                                         int32_t minCellY, int32_t cellCount) {
     NoiseGeneratorSettings const &settings = this->settings;
-    NoiseChunk *noiseChunk = chunkAccess->getOrCreateNoiseChunk(
+    shared_ptr<NoiseChunk> noiseChunk = chunkAccess->getOrCreateNoiseChunk(
         this->sampler, [chunkAccess]() -> NoiseFiller { return makeBeardifier(chunkAccess); }, settings,
         this->globalFluidPicker, blender);
 

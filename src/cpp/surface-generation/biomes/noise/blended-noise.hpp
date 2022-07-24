@@ -36,7 +36,7 @@ public:
     BlendedNoise() {
     }
 
-    BlendedNoise(RandomSource *randomSource, NoiseSamplingSettings const &settings, int32_t cellWidth,
+    BlendedNoise(shared_ptr<RandomSource> randomSource, NoiseSamplingSettings const &settings, int32_t cellWidth,
                  int32_t cellHeight);
 
     double calculateNoise(int32_t x, int32_t y, int32_t z) const;

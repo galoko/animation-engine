@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <vector>
 
 #include "../random.hpp"
@@ -9,11 +10,11 @@ using namespace std;
 
 class PerlinSimplexNoise {
 private:
-    vector<SimplexNoise *> noiseLevels;
+    vector<unique_ptr<SimplexNoise>> noiseLevels;
     double highestFreqValueFactor, highestFreqInputFactor;
 
 public:
-    PerlinSimplexNoise(RandomSource *randomSource, vector<int32_t> octaves);
+    PerlinSimplexNoise(shared_ptr<RandomSource> randomSource, vector<int32_t> octaves);
 
     double getValue(double x, double y, bool useOffset);
 };

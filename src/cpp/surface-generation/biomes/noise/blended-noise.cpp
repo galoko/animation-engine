@@ -26,8 +26,8 @@ BlendedNoise::BlendedNoise(PerlinNoise const &minLimitNoise, PerlinNoise const &
     this->cellHeight = cellHeight;
 }
 
-BlendedNoise::BlendedNoise(RandomSource *randomSource, NoiseSamplingSettings const &settings, int32_t cellWidth,
-                           int32_t cellHeight)
+BlendedNoise::BlendedNoise(shared_ptr<RandomSource> randomSource, NoiseSamplingSettings const &settings,
+                           int32_t cellWidth, int32_t cellHeight)
     : BlendedNoise(PerlinNoise::createLegacyForBlendedNoise(randomSource, IntStream::rangeClosed(-15, 0)),
                    PerlinNoise::createLegacyForBlendedNoise(randomSource, IntStream::rangeClosed(-15, 0)),
                    PerlinNoise::createLegacyForBlendedNoise(randomSource, IntStream::rangeClosed(-7, 0)), settings,
@@ -44,7 +44,7 @@ double BlendedNoise::calculateNoise(int32_t x, int32_t y, int32_t z) const {
     double scale = 1.0;
 
     for (int32_t octave = 0; octave < 8; ++octave) {
-        ImprovedNoise *improvedNoise = this->mainNoise.getOctaveNoise(octave);
+        shared_ptr<ImprovedNoise> improvedNoise = this->mainNoise.getOctaveNoise(octave);
         if (improvedNoise != nullptr) {
             noiseValue += improvedNoise->noise(PerlinNoise::wrap((double)cellX * this->xzMainScale * scale),
                                                PerlinNoise::wrap((double)cellY * this->yMainScale * scale),
@@ -67,14 +67,14 @@ double BlendedNoise::calculateNoise(int32_t x, int32_t y, int32_t z) const {
         double z = PerlinNoise::wrap((double)cellZ * this->xzScale * scale);
         double yScale = this->yScale * scale;
         if (!isMaxOrHigher) {
-            ImprovedNoise *improvedNoise = this->minLimitNoise.getOctaveNoise(octave);
+            shared_ptr<ImprovedNoise> improvedNoise = this->minLimitNoise.getOctaveNoise(octave);
             if (improvedNoise != nullptr) {
                 minNoiseValue += improvedNoise->noise(x, y, z, yScale, (double)cellY * yScale) / scale;
             }
         }
 
         if (!isMinOrLower) {
-            ImprovedNoise *improvedNoise = this->maxLimitNoise.getOctaveNoise(octave);
+            shared_ptr<ImprovedNoise> improvedNoise = this->maxLimitNoise.getOctaveNoise(octave);
             if (improvedNoise != nullptr) {
                 maxNoiseValue += improvedNoise->noise(x, y, z, yScale, (double)cellY * yScale) / scale;
             }

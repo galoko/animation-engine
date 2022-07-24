@@ -156,8 +156,8 @@ public:
         return i ^ j;
     }
 
-    constexpr inline bool equals(ChunkPos *chunkpos) const {
-        return this->x == chunkpos->x && this->z == chunkpos->z;
+    constexpr inline bool equals(ChunkPos const &chunkpos) const {
+        return this->x == chunkpos.x && this->z == chunkpos.z;
     }
 
     constexpr inline int32_t getMiddleBlockX() const {

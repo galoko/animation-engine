@@ -1,6 +1,6 @@
 #include "simplex-noise.hpp"
 
-SimplexNoise::SimplexNoise(RandomSource *randomSource) {
+SimplexNoise::SimplexNoise(shared_ptr<RandomSource> randomSource) {
     this->xo = randomSource->nextDouble() * 256.0;
     this->yo = randomSource->nextDouble() * 256.0;
     this->zo = randomSource->nextDouble() * 256.0;

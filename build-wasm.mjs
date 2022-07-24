@@ -34,12 +34,14 @@ function silentExecSync(line) {
 
 const EXPORTED_FUNCTIONS = ["_malloc", "_free", "_init", "_test", "_print_exception"]
 
-const FLAGS = ["-s WASM=1", "-s MODULARIZE=1", "-std=c++1z", "-Wall"]
+const FLAGS = ["-s WASM=1", "-s MODULARIZE=1", "-std=c++2a", "-Wall"]
 
 const DEBUG_FLAGS = ["-O0", "-g3", "-sASSERTIONS=1"]
 
+const MEMORY_PROFILER_FLAGS = ["--memoryprofiler"]
+
 const FULL_DEBUG_FLAGS = [
-    "--memoryprofiler",
+    ...MEMORY_PROFILER_FLAGS,
     "-fexceptions",
     "-s DISABLE_EXCEPTION_CATCHING=0",
     "-sSAFE_HEAP=1",
@@ -67,6 +69,11 @@ switch (BUILD_TYPE) {
     }
     case "release": {
         buildCommandLines.push(...RELEASE_FLAGS)
+        break
+    }
+    case "release-with-memory-profiler": {
+        buildCommandLines.push(...RELEASE_FLAGS)
+        buildCommandLines.push(...MEMORY_PROFILER_FLAGS)
         break
     }
 }

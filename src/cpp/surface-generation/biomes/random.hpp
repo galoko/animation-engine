@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <memory>
 #include <string>
 
 #include "mth.hpp"
@@ -34,8 +35,8 @@ class PositionalRandomFactory;
 
 class RandomSource {
 public:
-    virtual RandomSource *fork() = 0;
-    virtual PositionalRandomFactory *forkPositional() = 0;
+    virtual unique_ptr<RandomSource> fork() = 0;
+    virtual unique_ptr<PositionalRandomFactory> forkPositional() = 0;
 
     virtual void setSeed(int64_t seed) = 0;
 
@@ -49,15 +50,21 @@ public:
 
     virtual int32_t nextIntBetweenInclusive(int32_t min, int32_t max);
     virtual void consumeCount(int32_t count);
+
+    virtual ~RandomSource() {
+    }
 };
 
 class PositionalRandomFactory {
 public:
-    virtual RandomSource *fromHashOf(string s) = 0;
-    RandomSource *fromHashOfResourceLocation(string loc);
+    virtual unique_ptr<RandomSource> fromHashOf(string s) = 0;
+    unique_ptr<RandomSource> fromHashOfResourceLocation(string loc);
 
-    virtual RandomSource *at(int32_t x, int32_t y, int32_t z) = 0;
-    RandomSource *at(BlockPos *pos);
+    virtual unique_ptr<RandomSource> at(int32_t x, int32_t y, int32_t z) = 0;
+    unique_ptr<RandomSource> at(BlockPos const &pos);
+
+    virtual ~PositionalRandomFactory() {
+    }
 };
 
 class RandomSupport {
@@ -89,14 +96,14 @@ public:
 
 class MarsagliaPolarGaussian {
 public:
-    RandomSource *randomSource;
+    RandomSource &randomSource;
 
 private:
     double nextNextGaussian;
     bool haveNextNextGaussian;
 
 public:
-    MarsagliaPolarGaussian(RandomSource *randomSource);
+    MarsagliaPolarGaussian(RandomSource &randomSource);
     void reset();
     double nextGaussian();
 };
@@ -120,14 +127,14 @@ private:
     static constexpr double DOUBLE_UNIT = (double)1.110223E-16F;
 
     Xoroshiro128PlusPlus randomNumberGenerator;
-    MarsagliaPolarGaussian gaussianSource = MarsagliaPolarGaussian(this);
+    MarsagliaPolarGaussian gaussianSource = MarsagliaPolarGaussian(*this);
 
 public:
     XoroshiroRandomSource(int64_t seed);
     XoroshiroRandomSource(int64_t seedLo, int64_t seedHi);
 
-    RandomSource *fork();
-    PositionalRandomFactory *forkPositional();
+    unique_ptr<RandomSource> fork();
+    unique_ptr<PositionalRandomFactory> forkPositional();
 
     void setSeed(int64_t seed);
 
@@ -151,8 +158,8 @@ public:
     public:
         XoroshiroPositionalRandomFactory(int64_t seedLo, int64_t seedHi);
 
-        RandomSource *at(int32_t x, int32_t y, int32_t z);
-        RandomSource *fromHashOf(string s);
+        unique_ptr<RandomSource> at(int32_t x, int32_t y, int32_t z);
+        unique_ptr<RandomSource> fromHashOf(string s);
     };
 };
 
@@ -178,13 +185,13 @@ private:
     static constexpr int64_t INCREMENT = 11LL;
 
     int64_t seed;
-    MarsagliaPolarGaussian gaussianSource = MarsagliaPolarGaussian(this);
+    MarsagliaPolarGaussian gaussianSource = MarsagliaPolarGaussian(*this);
 
 public:
     LegacyRandomSource(int64_t seed);
 
-    RandomSource *fork();
-    PositionalRandomFactory *forkPositional();
+    unique_ptr<RandomSource> fork();
+    unique_ptr<PositionalRandomFactory> forkPositional();
 
     void setSeed(int64_t seed);
 
@@ -198,8 +205,8 @@ public:
     public:
         LegacyPositionalRandomFactory(int64_t seed);
 
-        RandomSource *at(int32_t x, int32_t y, int32_t z);
-        RandomSource *fromHashOf(string s);
+        unique_ptr<RandomSource> at(int32_t x, int32_t y, int32_t z);
+        unique_ptr<RandomSource> fromHashOf(string s);
     };
 };
 
@@ -219,8 +226,8 @@ private:
 public:
     Random(int64_t seed);
 
-    RandomSource *fork();
-    PositionalRandomFactory *forkPositional();
+    unique_ptr<RandomSource> fork();
+    unique_ptr<PositionalRandomFactory> forkPositional();
 
     virtual void setSeed(int64_t seed);
 
@@ -258,14 +265,14 @@ public:
 
 class WorldgenRandom : public Random {
 private:
-    RandomSource *randomSource;
+    unique_ptr<RandomSource> randomSource;
     int32_t count;
 
 public:
-    WorldgenRandom(RandomSource *randomSource);
+    WorldgenRandom(unique_ptr<RandomSource> randomSource);
 
-    RandomSource *fork();
-    PositionalRandomFactory *forkPositional();
+    unique_ptr<RandomSource> fork();
+    unique_ptr<PositionalRandomFactory> forkPositional();
 
     void setSeed(int64_t seed);
 
@@ -277,7 +284,7 @@ public:
     void setFeatureSeed(int64_t seed, int32_t counter1, int32_t counter2);
     void setLargeFeatureSeed(int64_t seed, int32_t x, int32_t y);
     void setLargeFeatureWithSalt(int64_t salt, int32_t x, int32_t y, int32_t z);
-    static Random *seedSlimeChunk(int32_t x, int32_t z, int64_t seed, int64_t salt);
+    static unique_ptr<Random> seedSlimeChunk(int32_t x, int32_t z, int64_t seed, int64_t salt);
 
     enum class Algorithm
     {
@@ -285,5 +292,5 @@ public:
         XOROSHIRO,
     };
 
-    static RandomSource *Algorithm_newInstance(Algorithm algorithm, int64_t seed);
+    static unique_ptr<RandomSource> Algorithm_newInstance(Algorithm algorithm, int64_t seed);
 };

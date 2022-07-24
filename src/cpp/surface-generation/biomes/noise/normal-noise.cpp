@@ -6,20 +6,21 @@ double expectedDeviation(int32_t v) {
 
 // NormalNoise
 
-NormalNoise NormalNoise::createLegacyNetherBiome(RandomSource *randomSource,
+NormalNoise NormalNoise::createLegacyNetherBiome(shared_ptr<RandomSource> randomSource,
                                                  NormalNoise::NoiseParameters const &parameters) {
     return NormalNoise(randomSource, parameters.firstOctave, parameters.amplitudes, false);
 }
 
-NormalNoise NormalNoise::create(RandomSource *randomSource, NormalNoise::NoiseParameters const &parameters) {
+NormalNoise NormalNoise::create(shared_ptr<RandomSource> randomSource, NormalNoise::NoiseParameters const &parameters) {
     return NormalNoise(randomSource, parameters.firstOctave, parameters.amplitudes, true);
 }
 
-NormalNoise NormalNoise::create(RandomSource *randomSource, int32_t firstOctave, vector<double> const &amplitudes) {
+NormalNoise NormalNoise::create(shared_ptr<RandomSource> randomSource, int32_t firstOctave,
+                                vector<double> const &amplitudes) {
     return NormalNoise(randomSource, firstOctave, amplitudes, true);
 }
 
-NormalNoise::NormalNoise(RandomSource *randomSource, int32_t firstOctave, vector<double> const &amplitudes,
+NormalNoise::NormalNoise(shared_ptr<RandomSource> randomSource, int32_t firstOctave, vector<double> const &amplitudes,
                          bool notLegacy) {
     if (notLegacy) {
         this->first = PerlinNoise::create(randomSource, firstOctave, amplitudes);
@@ -47,7 +48,7 @@ double NormalNoise::getValue(double x, double y, double z) const {
     double inputX = x * INPUT_FACTOR;
     double inputY = y * INPUT_FACTOR;
     double inputZ = z * INPUT_FACTOR;
-    return (this->first->getValue(x, y, z) + this->second->getValue(inputX, inputY, inputZ)) * this->valueFactor;
+    return (this->first.getValue(x, y, z) + this->second.getValue(inputX, inputY, inputZ)) * this->valueFactor;
 }
 
 // NoiseParameters

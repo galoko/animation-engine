@@ -98,14 +98,15 @@ public:
     vector<Biomes> const &getBiomes() const;
 
     Biomes getNoiseBiome(int32_t x, int32_t y, int32_t z) const;
-    void fillBiomesFromNoise(BiomeResolver *resolver, Climate::Sampler *sampler, int32_t offsetX, int32_t offsetZ);
+    void fillBiomesFromNoise(shared_ptr<BiomeResolver> resolver, shared_ptr<Climate::Sampler> sampler, int32_t offsetX,
+                             int32_t offsetZ);
 };
 
-class ChunkAccess : public BlockGetter {
+class ChunkAccess : public BlockGetter, public enable_shared_from_this<ChunkAccess> {
 private:
     ChunkPos chunkPos;
     LevelHeightAccessor const &levelHeightAccessor;
-    NoiseChunk *noiseChunk;
+    shared_ptr<NoiseChunk> noiseChunk;
 
 protected:
     vector<LevelChunkSection> sections;
@@ -115,6 +116,7 @@ public:
     bool isLightCorrect;
 
     ChunkAccess(ChunkPos const &chunkPos, LevelHeightAccessor const &levelHeightAccessor);
+    virtual ~ChunkAccess();
 
 private:
     static void replaceMissingSections(LevelHeightAccessor const &heightAccessor, vector<LevelChunkSection> &sections);
@@ -137,17 +139,17 @@ public:
     int32_t getMinBuildHeight() const override;
     int32_t getHeight() const override;
 
-    NoiseChunk *getOrCreateNoiseChunk(NoiseSampler *sampler, function<NoiseFiller(void)> filler,
-                                      NoiseGeneratorSettings const &settings, Aquifer::FluidPicker *fluidPicker,
-                                      Blender const &blender);
+    shared_ptr<NoiseChunk> getOrCreateNoiseChunk(shared_ptr<NoiseSampler> sampler, function<NoiseFiller(void)> filler,
+                                                 NoiseGeneratorSettings const &settings,
+                                                 shared_ptr<Aquifer::FluidPicker> fluidPicker, Blender const &blender);
 
     Biomes getNoiseBiome(int32_t x, int32_t y, int32_t z);
 
-    void fillBiomesFromNoise(BiomeResolver *resolver, Climate::Sampler *sampler);
+    void fillBiomesFromNoise(shared_ptr<BiomeResolver> resolver, shared_ptr<Climate::Sampler> sampler);
 
     LevelHeightAccessor const &getHeightAccessorForGeneration();
 
-    virtual ChunkStatus *getStatus() = 0;
+    virtual shared_ptr<ChunkStatus> getStatus() = 0;
 };
 
 class ProtoChunk : public ChunkAccess {
@@ -157,5 +159,5 @@ public:
     BlockState getBlockState(BlockPos const &pos) const override;
     BlockState setBlockState(BlockPos const &pos, BlockState blockState, bool checked) override;
 
-    ChunkStatus *getStatus() override;
+    shared_ptr<ChunkStatus> getStatus() override;
 };

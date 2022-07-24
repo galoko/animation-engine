@@ -9,6 +9,7 @@ interface EmscriptenModule {
     HEAPU32: Uint32Array
 
     _malloc(size: number): number
+    _free(ptr: number): void
     _init(): void
     _test(): number
     _print_exception(ptr: number): void

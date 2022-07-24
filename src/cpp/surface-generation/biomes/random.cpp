@@ -29,17 +29,17 @@ void RandomSource::consumeCount(int32_t count) {
 
 // PositionalRandomFactory
 
-RandomSource *PositionalRandomFactory::at(BlockPos *pos) {
-    return this->at(pos->getX(), pos->getY(), pos->getZ());
+unique_ptr<RandomSource> PositionalRandomFactory::at(BlockPos const &pos) {
+    return this->at(pos.getX(), pos.getY(), pos.getZ());
 }
 
-RandomSource *PositionalRandomFactory::fromHashOfResourceLocation(string loc) {
+unique_ptr<RandomSource> PositionalRandomFactory::fromHashOfResourceLocation(string loc) {
     return this->fromHashOf(toResourceLocation(loc));
 }
 
 // MarsagliaPolarGaussian
 
-MarsagliaPolarGaussian::MarsagliaPolarGaussian(RandomSource *randomSource) : randomSource(randomSource) {
+MarsagliaPolarGaussian::MarsagliaPolarGaussian(RandomSource &randomSource) : randomSource(randomSource) {
 }
 
 void MarsagliaPolarGaussian::reset() {
@@ -52,8 +52,8 @@ double MarsagliaPolarGaussian::nextGaussian() {
         return this->nextNextGaussian;
     } else {
         while (true) {
-            double d0 = 2.0 * this->randomSource->nextDouble() - 1.0;
-            double d1 = 2.0 * this->randomSource->nextDouble() - 1.0;
+            double d0 = 2.0 * this->randomSource.nextDouble() - 1.0;
+            double d1 = 2.0 * this->randomSource.nextDouble() - 1.0;
             double d2 = Mth::square(d0) + Mth::square(d1);
             if (!(d2 >= 1.0)) {
                 if (d2 != 0.0) {
@@ -102,13 +102,14 @@ XoroshiroRandomSource::XoroshiroRandomSource(int64_t seedLo, int64_t seedHi)
     : randomNumberGenerator(Xoroshiro128PlusPlus(seedLo, seedHi)) {
 }
 
-RandomSource *XoroshiroRandomSource::fork() {
-    return new XoroshiroRandomSource(this->randomNumberGenerator.nextLong(), this->randomNumberGenerator.nextLong());
+unique_ptr<RandomSource> XoroshiroRandomSource::fork() {
+    return make_unique<XoroshiroRandomSource>(this->randomNumberGenerator.nextLong(),
+                                              this->randomNumberGenerator.nextLong());
 }
 
-PositionalRandomFactory *XoroshiroRandomSource::forkPositional() {
-    return new XoroshiroRandomSource::XoroshiroPositionalRandomFactory(this->randomNumberGenerator.nextLong(),
-                                                                       this->randomNumberGenerator.nextLong());
+unique_ptr<PositionalRandomFactory> XoroshiroRandomSource::forkPositional() {
+    return make_unique<XoroshiroRandomSource::XoroshiroPositionalRandomFactory>(this->randomNumberGenerator.nextLong(),
+                                                                                this->randomNumberGenerator.nextLong());
 }
 
 void XoroshiroRandomSource::setSeed(int64_t seed) {
@@ -172,13 +173,13 @@ XoroshiroRandomSource::XoroshiroPositionalRandomFactory::XoroshiroPositionalRand
     : seedLo(seedLo), seedHi(seedHi) {
 }
 
-RandomSource *XoroshiroRandomSource::XoroshiroPositionalRandomFactory::at(int32_t x, int32_t y, int32_t z) {
+unique_ptr<RandomSource> XoroshiroRandomSource::XoroshiroPositionalRandomFactory::at(int32_t x, int32_t y, int32_t z) {
     int64_t i = Mth::getSeed(x, y, z);
     int64_t j = i ^ this->seedLo;
-    return new XoroshiroRandomSource(j, this->seedHi);
+    return make_unique<XoroshiroRandomSource>(j, this->seedHi);
 }
 
-RandomSource *XoroshiroRandomSource::XoroshiroPositionalRandomFactory::fromHashOf(string s) {
+unique_ptr<RandomSource> XoroshiroRandomSource::XoroshiroPositionalRandomFactory::fromHashOf(string s) {
     MD5_CTX md5;
     BYTE hash[MD5_BLOCK_SIZE];
 
@@ -188,7 +189,7 @@ RandomSource *XoroshiroRandomSource::XoroshiroPositionalRandomFactory::fromHashO
 
     int64_t lo = fromBytes(hash[0], hash[1], hash[2], hash[3], hash[4], hash[5], hash[6], hash[7]);
     int64_t hi = fromBytes(hash[8], hash[9], hash[10], hash[11], hash[12], hash[13], hash[14], hash[15]);
-    return new XoroshiroRandomSource(lo ^ this->seedLo, hi ^ this->seedHi);
+    return make_unique<XoroshiroRandomSource>(lo ^ this->seedLo, hi ^ this->seedHi);
 }
 
 // BitRandomSource
@@ -240,12 +241,12 @@ LegacyRandomSource::LegacyRandomSource(int64_t seed) {
     this->setSeed(seed);
 }
 
-RandomSource *LegacyRandomSource::fork() {
-    return new LegacyRandomSource(this->nextLong());
+unique_ptr<RandomSource> LegacyRandomSource::fork() {
+    return make_unique<LegacyRandomSource>(this->nextLong());
 }
 
-PositionalRandomFactory *LegacyRandomSource::forkPositional() {
-    return new LegacyRandomSource::LegacyPositionalRandomFactory(this->nextLong());
+unique_ptr<PositionalRandomFactory> LegacyRandomSource::forkPositional() {
+    return make_unique<LegacyRandomSource::LegacyPositionalRandomFactory>(this->nextLong());
 }
 
 void LegacyRandomSource::setSeed(int64_t seed) {
@@ -270,15 +271,15 @@ double LegacyRandomSource::nextGaussian() {
 LegacyRandomSource::LegacyPositionalRandomFactory::LegacyPositionalRandomFactory(int64_t seed) : seed(seed) {
 }
 
-RandomSource *LegacyRandomSource::LegacyPositionalRandomFactory::at(int32_t x, int32_t y, int32_t z) {
+unique_ptr<RandomSource> LegacyRandomSource::LegacyPositionalRandomFactory::at(int32_t x, int32_t y, int32_t z) {
     int64_t seed = Mth::getSeed(x, y, z);
     int64_t newSeed = seed ^ this->seed;
-    return new LegacyRandomSource(newSeed);
+    return make_unique<LegacyRandomSource>(newSeed);
 }
 
-RandomSource *LegacyRandomSource::LegacyPositionalRandomFactory::fromHashOf(string s) {
+unique_ptr<RandomSource> LegacyRandomSource::LegacyPositionalRandomFactory::fromHashOf(string s) {
     int32_t hash = hashCode(s);
-    return new LegacyRandomSource((int64_t)hash ^ this->seed);
+    return make_unique<LegacyRandomSource>((int64_t)hash ^ this->seed);
 }
 
 // Random
@@ -287,11 +288,11 @@ Random::Random(int64_t seed) {
     this->setSeed(seed);
 }
 
-RandomSource *Random::fork() {
+unique_ptr<RandomSource> Random::fork() {
     return nullptr;
 }
 
-PositionalRandomFactory *Random::forkPositional() {
+unique_ptr<PositionalRandomFactory> Random::forkPositional() {
     return nullptr;
 }
 
@@ -359,14 +360,15 @@ double Random::nextGaussian() {
 
 // WorldgenRandom
 
-WorldgenRandom::WorldgenRandom(RandomSource *randomSource) : Random(0LL), randomSource(randomSource), count(0) {
+WorldgenRandom::WorldgenRandom(unique_ptr<RandomSource> randomSource)
+    : Random(0LL), randomSource(std::move(randomSource)), count(0) {
 }
 
-RandomSource *WorldgenRandom::fork() {
+unique_ptr<RandomSource> WorldgenRandom::fork() {
     return this->randomSource->fork();
 }
 
-PositionalRandomFactory *WorldgenRandom::forkPositional() {
+unique_ptr<PositionalRandomFactory> WorldgenRandom::forkPositional() {
     return this->randomSource->forkPositional();
 }
 
@@ -382,7 +384,7 @@ int32_t WorldgenRandom::getCount() {
 
 int32_t WorldgenRandom::next(int32_t bits) {
     ++this->count;
-    RandomSource *randomsource = this->randomSource;
+    RandomSource *randomsource = this->randomSource.get();
     if (LegacyRandomSource *legacyrandomsource = dynamic_cast<LegacyRandomSource *>(randomsource)) {
         return legacyrandomsource->next(bits);
     } else {
@@ -417,17 +419,17 @@ void WorldgenRandom::setLargeFeatureWithSalt(int64_t salt, int32_t x, int32_t y,
     this->setSeed(seed);
 }
 
-Random *WorldgenRandom::seedSlimeChunk(int32_t x, int32_t z, int64_t seed, int64_t salt) {
-    return new Random(seed + (int64_t)(x * x * 4987142) + (int64_t)(x * 5947611) + (int64_t)(z * z) * 4392871LL +
-                          (int64_t)(z * 389711) ^
-                      salt);
+unique_ptr<Random> WorldgenRandom::seedSlimeChunk(int32_t x, int32_t z, int64_t seed, int64_t salt) {
+    return make_unique<Random>(seed + (int64_t)(x * x * 4987142) + (int64_t)(x * 5947611) +
+                                   (int64_t)(z * z) * 4392871LL + (int64_t)(z * 389711) ^
+                               salt);
 }
 
-RandomSource *WorldgenRandom::Algorithm_newInstance(Algorithm algorithm, int64_t seed) {
+unique_ptr<RandomSource> WorldgenRandom::Algorithm_newInstance(Algorithm algorithm, int64_t seed) {
     if (algorithm == Algorithm::LEGACY) {
-        return new LegacyRandomSource(seed);
+        return make_unique<LegacyRandomSource>(seed);
     } else if (algorithm == Algorithm::XOROSHIRO) {
-        return new XoroshiroRandomSource(seed);
+        return make_unique<XoroshiroRandomSource>(seed);
     } else {
         return nullptr;
     }

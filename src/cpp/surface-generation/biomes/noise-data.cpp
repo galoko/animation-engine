@@ -155,6 +155,6 @@ NormalNoise::NoiseParameters const &getNoiseParameters(Noises noise) {
     return NOISE_PARAMETERS[(int32_t)noise];
 }
 
-NormalNoise Noises_instantiate(PositionalRandomFactory *random, Noises noise) {
+NormalNoise Noises_instantiate(shared_ptr<PositionalRandomFactory> random, Noises noise) {
     return NormalNoise::create(random->fromHashOfResourceLocation(getNoiseName(noise)), getNoiseParameters(noise));
 }

@@ -2,21 +2,23 @@
 
 // PerlinNoise
 
-PerlinNoise PerlinNoise::createLegacyForBlendedNoise(RandomSource *randomSource, vector<int32_t> const &octaves) {
+PerlinNoise PerlinNoise::createLegacyForBlendedNoise(shared_ptr<RandomSource> randomSource,
+                                                     vector<int32_t> const &octaves) {
     return PerlinNoise(randomSource, makeAmplitudes(octaves), false);
 }
 
-PerlinNoise *PerlinNoise::createLegacyForLegacyNormalNoise(RandomSource *randomSource, int32_t firstOctave,
-                                                           vector<double> const &amplitudes) {
-    return new PerlinNoise(randomSource, pair(firstOctave, amplitudes), false);
+PerlinNoise PerlinNoise::createLegacyForLegacyNormalNoise(shared_ptr<RandomSource> randomSource, int32_t firstOctave,
+                                                          vector<double> const &amplitudes) {
+    return PerlinNoise(randomSource, pair(firstOctave, amplitudes), false);
 }
 
-PerlinNoise *PerlinNoise::create(RandomSource *randomSource, vector<int32_t> const &octaves) {
-    return new PerlinNoise(randomSource, makeAmplitudes(octaves), true);
+PerlinNoise PerlinNoise::create(shared_ptr<RandomSource> randomSource, vector<int32_t> const &octaves) {
+    return PerlinNoise(randomSource, makeAmplitudes(octaves), true);
 }
 
-PerlinNoise *PerlinNoise::create(RandomSource *randomSource, int32_t firstOctave, vector<double> const &amplitudes) {
-    return new PerlinNoise(randomSource, pair(firstOctave, amplitudes), true);
+PerlinNoise PerlinNoise::create(shared_ptr<RandomSource> randomSource, int32_t firstOctave,
+                                vector<double> const &amplitudes) {
+    return PerlinNoise(randomSource, pair(firstOctave, amplitudes), true);
 }
 
 pair<int32_t, vector<double>> PerlinNoise::makeAmplitudes(vector<int32_t> const &octaves) {
@@ -33,25 +35,25 @@ pair<int32_t, vector<double>> PerlinNoise::makeAmplitudes(vector<int32_t> const 
     return pair(-minusFirstOctave, amplitudes);
 }
 
-PerlinNoise::PerlinNoise(RandomSource *randomSource, pair<int32_t, vector<double>> const &octaveAndAmplitudes,
-                         bool notLegacy) {
+PerlinNoise::PerlinNoise(shared_ptr<RandomSource> randomSource,
+                         pair<int32_t, vector<double>> const &octaveAndAmplitudes, bool notLegacy) {
     this->firstOctave = octaveAndAmplitudes.first;
     this->amplitudes = octaveAndAmplitudes.second;
     int32_t amplitudesCount = this->amplitudes.size();
     int32_t minusFirstOctave = -this->firstOctave;
-    this->noiseLevels = vector<ImprovedNoise *>(amplitudesCount);
+    this->noiseLevels = vector<shared_ptr<ImprovedNoise>>(amplitudesCount);
     if (notLegacy) {
-        PositionalRandomFactory *positionalrandomfactory = randomSource->forkPositional();
+        unique_ptr<PositionalRandomFactory> positionalrandomfactory = randomSource->forkPositional();
 
         for (int32_t amplitudeIndex = 0; amplitudeIndex < amplitudesCount; ++amplitudeIndex) {
             if (this->amplitudes.at(amplitudeIndex) != 0.0) {
                 int32_t octave = this->firstOctave + amplitudeIndex;
                 this->noiseLevels.at(amplitudeIndex) =
-                    new ImprovedNoise(positionalrandomfactory->fromHashOf("octave_" + to_string(octave)));
+                    make_shared<ImprovedNoise>(positionalrandomfactory->fromHashOf("octave_" + to_string(octave)));
             }
         }
     } else {
-        ImprovedNoise *improvednoise = new ImprovedNoise(randomSource);
+        shared_ptr<ImprovedNoise> improvednoise = make_shared<ImprovedNoise>(randomSource);
         if (minusFirstOctave >= 0 && minusFirstOctave < amplitudesCount) {
             double amplitude = this->amplitudes.at(minusFirstOctave);
             if (amplitude != 0.0) {
@@ -63,7 +65,7 @@ PerlinNoise::PerlinNoise(RandomSource *randomSource, pair<int32_t, vector<double
             if (octaveIndex < amplitudesCount) {
                 double d1 = this->amplitudes.at(octaveIndex);
                 if (d1 != 0.0) {
-                    this->noiseLevels.at(octaveIndex) = new ImprovedNoise(randomSource);
+                    this->noiseLevels.at(octaveIndex) = make_shared<ImprovedNoise>(randomSource);
                 } else {
                     skipOctave(randomSource);
                 }
@@ -77,7 +79,7 @@ PerlinNoise::PerlinNoise(RandomSource *randomSource, pair<int32_t, vector<double
     this->lowestFreqValueFactor = pow(2.0, (double)(amplitudesCount - 1)) / (pow(2.0, (double)amplitudesCount) - 1.0);
 }
 
-void PerlinNoise::skipOctave(RandomSource *randomSource) {
+void PerlinNoise::skipOctave(shared_ptr<RandomSource> randomSource) {
     randomSource->consumeCount(262);
 }
 
@@ -92,7 +94,7 @@ double PerlinNoise::getValue(double x, double y, double z, double yStep, double 
     double outputScale = this->lowestFreqValueFactor;
 
     for (int32_t i = 0; i < this->noiseLevels.size(); ++i) {
-        ImprovedNoise *improvednoise = this->noiseLevels.at(i);
+        shared_ptr<ImprovedNoise> improvednoise = this->noiseLevels.at(i);
         if (improvednoise != nullptr) {
             double d3 = improvednoise->noise(wrap(x * inputScale),
                                              useYfractOverride ? -improvednoise->yo : wrap(y * inputScale),
@@ -107,6 +109,6 @@ double PerlinNoise::getValue(double x, double y, double z, double yStep, double 
     return value;
 }
 
-ImprovedNoise *PerlinNoise::getOctaveNoise(int32_t octave) const {
+shared_ptr<ImprovedNoise> PerlinNoise::getOctaveNoise(int32_t octave) const {
     return this->noiseLevels.at(this->noiseLevels.size() - 1 - octave);
 }

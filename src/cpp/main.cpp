@@ -1,4 +1,5 @@
 #include <emscripten.h>
+#include <memory>
 #include <stdio.h>
 
 #include "surface-generation/biomes/aquifer.hpp"
@@ -32,14 +33,14 @@ using namespace std;
 uint8_t *doTest() {
     int64_t seed = hashCode("test");
 
-    NoiseBasedChunkGenerator *chunkGenerator = WorldGenSettings::makeDefaultOverworld(seed);
+    shared_ptr<NoiseBasedChunkGenerator> chunkGenerator = WorldGenSettings::makeDefaultOverworld(seed);
     SimpleLevelHeightAccessor heightAccessor = SimpleLevelHeightAccessor();
 
     ChunkPos chunkPos = ChunkPos(1, 0);
-    ProtoChunk chunk = ProtoChunk(chunkPos, heightAccessor);
+    shared_ptr<ProtoChunk> chunk = make_shared<ProtoChunk>(chunkPos, heightAccessor);
 
-    ChunkStatus::BIOMES.generate(chunkGenerator, ChunkStatus::EMPTY_CONVERTER, {&chunk});
-    ChunkStatus::NOISE.generate(chunkGenerator, ChunkStatus::EMPTY_CONVERTER, {&chunk});
+    ChunkStatus::BIOMES.generate(chunkGenerator, ChunkStatus::EMPTY_CONVERTER, {chunk});
+    ChunkStatus::NOISE.generate(chunkGenerator, ChunkStatus::EMPTY_CONVERTER, {chunk});
 
     uint8_t *result = new uint8_t[16 * 16 * 384];
     MutableBlockPos pos = MutableBlockPos();
@@ -48,26 +49,11 @@ uint8_t *doTest() {
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
                 pos.set(x, y, z);
-                BlockState block = chunk.getBlockState(pos);
+                BlockState block = chunk->getBlockState(pos);
                 result[i++] = (uint8_t)block;
             }
         }
     }
-
-    /*
-    uint8_t *result = new uint8_t[4 * 4 * 96];
-    MutableBlockPos pos = MutableBlockPos();
-    int i = 0;
-    for (int y = -64 / 4; y < 256 / 4; y++) {
-        for (int x = 0; x < 4; x++) {
-            for (int z = 0; z < 4; z++) {
-                pos.set(x * 4, y * 4, z * 4);
-                Biomes biome = chunk->getBiome(pos);
-                result[i++] = (uint8_t)biome;
-            }
-        }
-    }
-    */
 
     return result;
 }

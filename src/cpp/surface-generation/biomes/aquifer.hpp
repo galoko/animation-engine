@@ -26,14 +26,19 @@ public:
     int32_t fluidLevel;
     BlockState fluidType;
 
+    FluidStatus();
     FluidStatus(int32_t fluidLevel, BlockState fluidType);
 
-    BlockState at(int32_t y);
+    bool isNull() const;
+    BlockState at(int32_t y) const;
 };
 
 class FluidPicker {
 public:
-    virtual FluidStatus *computeFluid(int32_t x, int32_t y, int32_t z) = 0;
+    virtual FluidStatus computeFluid(int32_t x, int32_t y, int32_t z) = 0;
+
+    virtual ~FluidPicker() {
+    }
 };
 
 class Aquifer {
@@ -41,24 +46,28 @@ public:
     typedef FluidStatus FluidStatus;
     typedef FluidPicker FluidPicker;
 
-    static Aquifer *create(NoiseChunk *noiseChunk, ChunkPos const &chunkPos, NormalNoise const &barrierNoise,
-                           NormalNoise const &fluidLevelFloodednessNoise, NormalNoise const &fluidLevelSpreadNoise,
-                           NormalNoise const &lavaNoise, PositionalRandomFactory *positionalRandomFactory, int32_t y,
-                           int32_t height, Aquifer::FluidPicker *globalFluidPicker);
+    static unique_ptr<Aquifer> create(shared_ptr<NoiseChunk> noiseChunk, ChunkPos const &chunkPos,
+                                      NormalNoise const &barrierNoise, NormalNoise const &fluidLevelFloodednessNoise,
+                                      NormalNoise const &fluidLevelSpreadNoise, NormalNoise const &lavaNoise,
+                                      shared_ptr<PositionalRandomFactory> positionalRandomFactory, int32_t y,
+                                      int32_t height, shared_ptr<Aquifer::FluidPicker> globalFluidPicker);
 
-    static Aquifer *createDisabled(Aquifer::FluidPicker *globalFluidPicker);
+    static unique_ptr<Aquifer> createDisabled(shared_ptr<Aquifer::FluidPicker> globalFluidPicker);
 
     virtual BlockState computeSubstance(int32_t x, int32_t y, int32_t z, double baseNoise, double clampedBaseNoise) = 0;
 
     virtual bool shouldScheduleFluidUpdate() = 0;
+
+    virtual ~Aquifer() {
+    }
 };
 
 class DisabledAquifer : public Aquifer {
 private:
-    FluidPicker *globalFluidPicker;
+    shared_ptr<FluidPicker> globalFluidPicker;
 
 public:
-    DisabledAquifer(FluidPicker *globalFluidPicker);
+    DisabledAquifer(shared_ptr<FluidPicker> globalFluidPicker);
 
     BlockState computeSubstance(int32_t x, int32_t y, int32_t z, double baseNoise, double clampedBaseNoise) override;
     bool shouldScheduleFluidUpdate() override;
@@ -84,15 +93,15 @@ private:
     static const int32_t MAX_REASONABLE_DISTANCE_TO_AQUIFER_CENTER = 11;
     static constexpr double FLOWING_UPDATE_SIMULARITY = NoiseBasedAquifer_similarity(Mth::square(10), Mth::square(12));
 
-    NoiseChunk *noiseChunk;
+    shared_ptr<NoiseChunk> noiseChunk;
     NormalNoise const &barrierNoise;
     NormalNoise const &fluidLevelFloodednessNoise;
     NormalNoise const &fluidLevelSpreadNoise;
     NormalNoise const &lavaNoise;
-    PositionalRandomFactory *positionalRandomFactory;
-    Aquifer::FluidStatus **aquiferCache;
-    int64_t *aquiferLocationCache;
-    Aquifer::FluidPicker *globalFluidPicker;
+    shared_ptr<PositionalRandomFactory> positionalRandomFactory;
+    unique_ptr<Aquifer::FluidStatus[]> aquiferCache;
+    unique_ptr<int64_t[]> aquiferLocationCache;
+    shared_ptr<Aquifer::FluidPicker> globalFluidPicker;
     bool _shouldScheduleFluidUpdate;
     int32_t minGridX;
     int32_t minGridY;
@@ -101,10 +110,10 @@ private:
     int32_t gridSizeZ;
 
 public:
-    NoiseBasedAquifer(NoiseChunk *noiseChunk, ChunkPos const &chunkPos, NormalNoise const &barrierNoise,
+    NoiseBasedAquifer(shared_ptr<NoiseChunk> noiseChunk, ChunkPos const &chunkPos, NormalNoise const &barrierNoise,
                       NormalNoise const &fluidLevelFloodednessNoise, NormalNoise const &fluidLevelSpreadNoise,
-                      NormalNoise const &lavaNoise, PositionalRandomFactory *positionalRandomFactory, int32_t y,
-                      int32_t height, Aquifer::FluidPicker *globalFluidPicker);
+                      NormalNoise const &lavaNoise, shared_ptr<PositionalRandomFactory> positionalRandomFactory,
+                      int32_t y, int32_t height, shared_ptr<Aquifer::FluidPicker> globalFluidPicker);
 
 private:
     int32_t getIndex(int32_t x, int32_t y, int32_t z);
@@ -120,16 +129,16 @@ private:
 
 private:
     double calculatePressure(int32_t x, int32_t y, int32_t z, double &savedBarrierNoise,
-                             Aquifer::FluidStatus *fluidStart, Aquifer::FluidStatus *fluidEnd);
+                             Aquifer::FluidStatus const &fluidStart, Aquifer::FluidStatus const &fluidEnd);
     int32_t gridX(int32_t x);
     int32_t gridY(int32_t y);
     int32_t gridZ(int32_t z);
 
-    Aquifer::FluidStatus *getAquiferStatus(int64_t coord);
+    Aquifer::FluidStatus getAquiferStatus(int64_t coord);
 
 public:
-    Aquifer::FluidStatus *computeFluid(int32_t x, int32_t y, int32_t z) override;
+    Aquifer::FluidStatus computeFluid(int32_t x, int32_t y, int32_t z) override;
 
 private:
-    BlockState getFluidType(int32_t x, int32_t y, int32_t z, Aquifer::FluidStatus *fluidStatus, int32_t fluidY);
+    BlockState getFluidType(int32_t x, int32_t y, int32_t z, Aquifer::FluidStatus const &fluidStatus, int32_t fluidY);
 };

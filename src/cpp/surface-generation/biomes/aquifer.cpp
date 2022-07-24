@@ -3,36 +3,44 @@
 
 // FluidStatus
 
+FluidStatus::FluidStatus() : fluidLevel(numeric_limits<int32_t>::lowest()) {
+}
+
 FluidStatus::FluidStatus(int32_t fluidLevel, BlockState fluidType) : fluidLevel(fluidLevel), fluidType(fluidType) {
 }
 
-BlockState FluidStatus::at(int32_t y) {
+bool FluidStatus::isNull() const {
+    return this->fluidLevel == numeric_limits<int32_t>::lowest();
+}
+
+BlockState FluidStatus::at(int32_t y) const {
     return y < this->fluidLevel ? this->fluidType : Blocks::AIR;
 }
 
 // Aquifer
 
-Aquifer *Aquifer::createDisabled(Aquifer::FluidPicker *globalFluidPicker) {
-    return new DisabledAquifer(globalFluidPicker);
+unique_ptr<Aquifer> Aquifer::createDisabled(shared_ptr<Aquifer::FluidPicker> globalFluidPicker) {
+    return make_unique<DisabledAquifer>(globalFluidPicker);
 }
 
-Aquifer *Aquifer::create(NoiseChunk *noiseChunk, ChunkPos const &chunkPos, NormalNoise const &barrierNoise,
-                         NormalNoise const &fluidLevelFloodednessNoise, NormalNoise const &fluidLevelSpreadNoise,
-                         NormalNoise const &lavaNoise, PositionalRandomFactory *positionalRandomFactory, int32_t y,
-                         int32_t height, Aquifer::FluidPicker *globalFluidPicker) {
-    return new NoiseBasedAquifer(noiseChunk, chunkPos, barrierNoise, fluidLevelFloodednessNoise, fluidLevelSpreadNoise,
-                                 lavaNoise, positionalRandomFactory, y, height, globalFluidPicker);
+unique_ptr<Aquifer> Aquifer::create(shared_ptr<NoiseChunk> noiseChunk, ChunkPos const &chunkPos,
+                                    NormalNoise const &barrierNoise, NormalNoise const &fluidLevelFloodednessNoise,
+                                    NormalNoise const &fluidLevelSpreadNoise, NormalNoise const &lavaNoise,
+                                    shared_ptr<PositionalRandomFactory> positionalRandomFactory, int32_t y,
+                                    int32_t height, shared_ptr<Aquifer::FluidPicker> globalFluidPicker) {
+    return make_unique<NoiseBasedAquifer>(noiseChunk, chunkPos, barrierNoise, fluidLevelFloodednessNoise,
+                                          fluidLevelSpreadNoise, lavaNoise, positionalRandomFactory, y, height,
+                                          globalFluidPicker);
 }
 
 // DisabledAquifer
 
-DisabledAquifer::DisabledAquifer(FluidPicker *globalFluidPicker) {
-    this->globalFluidPicker = globalFluidPicker;
+DisabledAquifer::DisabledAquifer(shared_ptr<FluidPicker> globalFluidPicker) : globalFluidPicker(globalFluidPicker) {
 }
 
 BlockState DisabledAquifer::computeSubstance(int32_t x, int32_t y, int32_t z, double baseNoise,
                                              double clampedBaseNoise) {
-    return clampedBaseNoise > 0.0 ? Blocks::NULL_BLOCK : this->globalFluidPicker->computeFluid(x, y, z)->at(y);
+    return clampedBaseNoise > 0.0 ? Blocks::NULL_BLOCK : this->globalFluidPicker->computeFluid(x, y, z).at(y);
 }
 
 bool DisabledAquifer::shouldScheduleFluidUpdate() {
@@ -41,16 +49,14 @@ bool DisabledAquifer::shouldScheduleFluidUpdate() {
 
 // NoiseBasedAquifer
 
-NoiseBasedAquifer::NoiseBasedAquifer(NoiseChunk *noiseChunk, ChunkPos const &chunkPos, NormalNoise const &barrierNoise,
-                                     NormalNoise const &fluidLevelFloodednessNoise,
+NoiseBasedAquifer::NoiseBasedAquifer(shared_ptr<NoiseChunk> noiseChunk, ChunkPos const &chunkPos,
+                                     NormalNoise const &barrierNoise, NormalNoise const &fluidLevelFloodednessNoise,
                                      NormalNoise const &fluidLevelSpreadNoise, NormalNoise const &lavaNoise,
-                                     PositionalRandomFactory *positionalRandomFactory, int32_t y, int32_t height,
-                                     Aquifer::FluidPicker *globalFluidPicker)
-    : barrierNoise(barrierNoise), fluidLevelFloodednessNoise(fluidLevelFloodednessNoise),
-      fluidLevelSpreadNoise(fluidLevelSpreadNoise), lavaNoise(lavaNoise) {
-    this->noiseChunk = noiseChunk;
-    this->positionalRandomFactory = positionalRandomFactory;
-    this->globalFluidPicker = globalFluidPicker;
+                                     shared_ptr<PositionalRandomFactory> positionalRandomFactory, int32_t y,
+                                     int32_t height, shared_ptr<Aquifer::FluidPicker> globalFluidPicker)
+    : noiseChunk(noiseChunk), barrierNoise(barrierNoise), fluidLevelFloodednessNoise(fluidLevelFloodednessNoise),
+      fluidLevelSpreadNoise(fluidLevelSpreadNoise), lavaNoise(lavaNoise),
+      positionalRandomFactory(positionalRandomFactory), globalFluidPicker(globalFluidPicker) {
 
     this->minGridX = this->gridX(chunkPos.getMinBlockX()) - 1;
     this->minGridY = this->gridY(y) - 1;
@@ -66,9 +72,10 @@ NoiseBasedAquifer::NoiseBasedAquifer(NoiseChunk *noiseChunk, ChunkPos const &chu
 
     int32_t gridSize = this->gridSizeX * gridSizeY * this->gridSizeZ;
 
-    this->aquiferCache = new Aquifer::FluidStatus *[gridSize]();
-    this->aquiferLocationCache = new int64_t[gridSize];
-    fill_n(this->aquiferLocationCache, gridSize, numeric_limits<int64_t>::max());
+    this->aquiferCache = make_unique<Aquifer::FluidStatus[]>(gridSize);
+    // TODO use make_unique_for_overwrite here
+    this->aquiferLocationCache = make_unique<int64_t[]>(gridSize);
+    fill_n(this->aquiferLocationCache.get(), gridSize, numeric_limits<int64_t>::max());
 }
 
 int32_t NoiseBasedAquifer::getIndex(int32_t x, int32_t y, int32_t z) {
@@ -81,14 +88,14 @@ int32_t NoiseBasedAquifer::getIndex(int32_t x, int32_t y, int32_t z) {
 BlockState NoiseBasedAquifer::computeSubstance(int32_t x, int32_t y, int32_t z, double baseNoise,
                                                double clampedBaseNoise) {
     if (baseNoise <= -64.0) {
-        return this->globalFluidPicker->computeFluid(x, y, z)->at(y);
+        return this->globalFluidPicker->computeFluid(x, y, z).at(y);
     } else {
         if (clampedBaseNoise <= 0.0) {
-            Aquifer::FluidStatus *fluidStatus = this->globalFluidPicker->computeFluid(x, y, z);
+            Aquifer::FluidStatus fluidStatus = this->globalFluidPicker->computeFluid(x, y, z);
             double clampedMaxPressureMulBySim;
             BlockState blockState;
             bool shouldScheduleFluidUpdate;
-            if (fluidStatus->at(y) == Blocks::LAVA) {
+            if (fluidStatus.at(y) == Blocks::LAVA) {
                 blockState = Blocks::LAVA;
                 clampedMaxPressureMulBySim = 0.0;
                 shouldScheduleFluidUpdate = false;
@@ -115,7 +122,7 @@ BlockState NoiseBasedAquifer::computeSubstance(int32_t x, int32_t y, int32_t z, 
                             if (cachedLocation != numeric_limits<int64_t>::max()) {
                                 location = cachedLocation;
                             } else {
-                                RandomSource *randomsource =
+                                unique_ptr<RandomSource> randomsource =
                                     this->positionalRandomFactory->at(currentX, currentY, currentZ);
                                 location = BlockPos::asLong(currentX * 16 + randomsource->nextInt(10),
                                                             currentY * 12 + randomsource->nextInt(9),
@@ -147,15 +154,15 @@ BlockState NoiseBasedAquifer::computeSubstance(int32_t x, int32_t y, int32_t z, 
                     }
                 }
 
-                Aquifer::FluidStatus *minFluidStatus0 = this->getAquiferStatus(minLocation0);
-                Aquifer::FluidStatus *minFluidStatus1 = this->getAquiferStatus(minLocation1);
-                Aquifer::FluidStatus *minFluidStatus2 = this->getAquiferStatus(minLocation2);
+                Aquifer::FluidStatus minFluidStatus0 = this->getAquiferStatus(minLocation0);
+                Aquifer::FluidStatus minFluidStatus1 = this->getAquiferStatus(minLocation1);
+                Aquifer::FluidStatus minFluidStatus2 = this->getAquiferStatus(minLocation2);
                 double sim01 = similarity(minDistanceSq0, minDistanceSq1);
                 double sim02 = similarity(minDistanceSq0, minDistanceSq2);
                 double sim03 = similarity(minDistanceSq1, minDistanceSq2);
                 shouldScheduleFluidUpdate = sim01 >= FLOWING_UPDATE_SIMULARITY;
-                if (minFluidStatus0->at(y) == Blocks::WATER &&
-                    this->globalFluidPicker->computeFluid(x, y - 1, z)->at(y - 1) == Blocks::LAVA) {
+                if (minFluidStatus0.at(y) == Blocks::WATER &&
+                    this->globalFluidPicker->computeFluid(x, y - 1, z).at(y - 1) == Blocks::LAVA) {
                     clampedMaxPressureMulBySim = 1.0;
                 } else if (sim01 > -1.0) {
                     double barrierNoise = NAN;
@@ -175,7 +182,7 @@ BlockState NoiseBasedAquifer::computeSubstance(int32_t x, int32_t y, int32_t z, 
                     clampedMaxPressureMulBySim = 0.0;
                 }
 
-                blockState = minFluidStatus0->at(y);
+                blockState = minFluidStatus0.at(y);
             }
 
             if (clampedBaseNoise + clampedMaxPressureMulBySim <= 0.0) {
@@ -194,16 +201,17 @@ bool NoiseBasedAquifer::shouldScheduleFluidUpdate() {
 }
 
 double NoiseBasedAquifer::calculatePressure(int32_t x, int32_t y, int32_t z, double &savedBarrierNoise,
-                                            Aquifer::FluidStatus *fluidStart, Aquifer::FluidStatus *fluidEnd) {
-    BlockState startBlock = fluidStart->at(y);
-    BlockState endBlock = fluidEnd->at(y);
+                                            Aquifer::FluidStatus const &fluidStart,
+                                            Aquifer::FluidStatus const &fluidEnd) {
+    BlockState startBlock = fluidStart.at(y);
+    BlockState endBlock = fluidEnd.at(y);
     if ((startBlock != Blocks::LAVA || endBlock != Blocks::WATER) &&
         (startBlock != Blocks::WATER || endBlock != Blocks::LAVA)) {
-        int32_t fluidDistance = abs(fluidStart->fluidLevel - fluidEnd->fluidLevel);
+        int32_t fluidDistance = abs(fluidStart.fluidLevel - fluidEnd.fluidLevel);
         if (fluidDistance == 0) {
             return 0.0;
         } else {
-            double fluidMiddleLevel = 0.5 * (double)(fluidStart->fluidLevel + fluidEnd->fluidLevel);
+            double fluidMiddleLevel = 0.5 * (double)(fluidStart.fluidLevel + fluidEnd.fluidLevel);
             double distanceAboveFluidMiddleLevel = (double)y + 0.5 - fluidMiddleLevel;
             double halfFluidDistance = (double)fluidDistance / 2.0;
             double distanceToFluidEdge = halfFluidDistance - abs(distanceAboveFluidMiddleLevel);
@@ -260,7 +268,7 @@ int32_t NoiseBasedAquifer::gridZ(int32_t z) {
     return Mth::floorDiv(z, NoiseBasedAquifer::Z_SPACING);
 }
 
-Aquifer::FluidStatus *NoiseBasedAquifer::getAquiferStatus(int64_t coord) {
+Aquifer::FluidStatus NoiseBasedAquifer::getAquiferStatus(int64_t coord) {
     int32_t x = BlockPos::getX(coord);
     int32_t y = BlockPos::getY(coord);
     int32_t z = BlockPos::getZ(coord);
@@ -268,11 +276,11 @@ Aquifer::FluidStatus *NoiseBasedAquifer::getAquiferStatus(int64_t coord) {
     int32_t gridY = this->gridY(y);
     int32_t gridZ = this->gridZ(z);
     int32_t gridIndex = this->getIndex(gridX, gridY, gridZ);
-    Aquifer::FluidStatus *fluidStatus = this->aquiferCache[gridIndex];
-    if (fluidStatus != nullptr) {
+    Aquifer::FluidStatus fluidStatus = this->aquiferCache[gridIndex];
+    if (!fluidStatus.isNull()) {
         return fluidStatus;
     } else {
-        Aquifer::FluidStatus *fluidStatus = this->computeFluid(x, y, z);
+        Aquifer::FluidStatus fluidStatus = this->computeFluid(x, y, z);
         this->aquiferCache[gridIndex] = fluidStatus;
         return fluidStatus;
     }
@@ -281,8 +289,8 @@ Aquifer::FluidStatus *NoiseBasedAquifer::getAquiferStatus(int64_t coord) {
 constexpr int32_t SURFACE_SAMPLING_OFFSETS_IN_CHUNKS[][2] = {
     {-2, -1}, {-1, -1}, {0, -1}, {1, -1}, {-3, 0}, {-2, 0}, {-1, 0}, {0, 0}, {1, 0}, {-2, 1}, {-1, 1}, {0, 1}, {1, 1}};
 
-Aquifer::FluidStatus *NoiseBasedAquifer::computeFluid(int32_t x, int32_t y, int32_t z) {
-    Aquifer::FluidStatus *fluidStatus = this->globalFluidPicker->computeFluid(x, y, z);
+Aquifer::FluidStatus NoiseBasedAquifer::computeFluid(int32_t x, int32_t y, int32_t z) {
+    Aquifer::FluidStatus fluidStatus = this->globalFluidPicker->computeFluid(x, y, z);
     int32_t minSurfaceY = numeric_limits<int32_t>::max();
     int32_t maxY = y + 12;
     int32_t minY = y - 12;
@@ -300,8 +308,8 @@ Aquifer::FluidStatus *NoiseBasedAquifer::computeFluid(int32_t x, int32_t y, int3
 
         bool isMaxSurfaceYinYRange = maxY > maxSurfaceY;
         if (isMaxSurfaceYinYRange || isOffsetInPlace) {
-            Aquifer::FluidStatus *fluidStatus = this->globalFluidPicker->computeFluid(shiftedX, maxSurfaceY, shiftedZ);
-            if (fluidStatus->at(maxSurfaceY) != Blocks::AIR) {
+            Aquifer::FluidStatus fluidStatus = this->globalFluidPicker->computeFluid(shiftedX, maxSurfaceY, shiftedZ);
+            if (fluidStatus.at(maxSurfaceY) != Blocks::AIR) {
                 if (isOffsetInPlace) {
                     haveFluidAtMaxSurfaceYinPlace = true;
                 }
@@ -327,7 +335,7 @@ Aquifer::FluidStatus *NoiseBasedAquifer::computeFluid(int32_t x, int32_t y, int3
     } else {
         double someFloodedness = Mth::map(t, 1.0, 0.0, -0.8, 0.4);
         if (floodedness <= someFloodedness) {
-            return new Aquifer::FluidStatus(DimensionType::WAY_BELOW_MIN_Y, fluidStatus->fluidType);
+            return Aquifer::FluidStatus(DimensionType::WAY_BELOW_MIN_Y, fluidStatus.fluidType);
         } else {
             int32_t scaledX = Mth::floorDiv(x, 16);
             int32_t scaledY = Mth::floorDiv(y, 40);
@@ -339,12 +347,12 @@ Aquifer::FluidStatus *NoiseBasedAquifer::computeFluid(int32_t x, int32_t y, int3
             int32_t fluidY = fluidBaseY + quantizedFluidLevelSpread;
             int32_t fluidLevel = min(minSurfaceY, fluidY);
             BlockState blockstate = this->getFluidType(x, y, z, fluidStatus, fluidY);
-            return new Aquifer::FluidStatus(fluidLevel, blockstate);
+            return Aquifer::FluidStatus(fluidLevel, blockstate);
         }
     }
 }
 
-BlockState NoiseBasedAquifer::getFluidType(int32_t x, int32_t y, int32_t z, Aquifer::FluidStatus *fluidStatus,
+BlockState NoiseBasedAquifer::getFluidType(int32_t x, int32_t y, int32_t z, Aquifer::FluidStatus const &fluidStatus,
                                            int32_t fluidY) {
     if (fluidY <= -10) {
         int32_t scaledX = Mth::floorDiv(x, 64);
@@ -356,5 +364,5 @@ BlockState NoiseBasedAquifer::getFluidType(int32_t x, int32_t y, int32_t z, Aqui
         }
     }
 
-    return fluidStatus->fluidType;
+    return fluidStatus.fluidType;
 }

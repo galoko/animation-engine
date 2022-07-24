@@ -11,9 +11,9 @@ TerrainShaper::Point::Point(float continents, float erosion, float ridges, float
 
 // TerrainShaper
 
-TerrainShaper::TerrainShaper(CubicSpline<TerrainShaper::Point> *offsetSampler,
-                             CubicSpline<TerrainShaper::Point> *factorSampler,
-                             CubicSpline<TerrainShaper::Point> *jaggednessSampler) {
+TerrainShaper::TerrainShaper(shared_ptr<CubicSpline<TerrainShaper::Point>> offsetSampler,
+                             shared_ptr<CubicSpline<TerrainShaper::Point>> factorSampler,
+                             shared_ptr<CubicSpline<TerrainShaper::Point>> jaggednessSampler) {
     this->_offsetSampler = offsetSampler;
     this->_factorSampler = factorSampler;
     this->_jaggednessSampler = jaggednessSampler;
@@ -23,15 +23,15 @@ TerrainShaper TerrainShaper::overworld(bool isAmplified) {
     ToFloatFunction<float> offsetTransformer = isAmplified ? TerrainShaper::getAmplifiedOffset : NO_TRANSFORM;
     ToFloatFunction<float> factorTransformer = isAmplified ? TerrainShaper::getAmplifiedFactor : NO_TRANSFORM;
     ToFloatFunction<float> jaggednessTransformer = isAmplified ? TerrainShaper::getAmplifiedJaggedness : NO_TRANSFORM;
-    CubicSpline<TerrainShaper::Point> *erosionOffset1 =
+    shared_ptr<CubicSpline<TerrainShaper::Point>> erosionOffset1 =
         buildErosionOffsetSpline(-0.15F, 0.0F, 0.0F, 0.1F, 0.0F, -0.03F, false, false, offsetTransformer);
-    CubicSpline<TerrainShaper::Point> *erosionOffset2 =
+    shared_ptr<CubicSpline<TerrainShaper::Point>> erosionOffset2 =
         buildErosionOffsetSpline(-0.1F, 0.03F, 0.1F, 0.1F, 0.01F, -0.03F, false, false, offsetTransformer);
-    CubicSpline<TerrainShaper::Point> *erosionOffset3 =
+    shared_ptr<CubicSpline<TerrainShaper::Point>> erosionOffset3 =
         buildErosionOffsetSpline(-0.1F, 0.03F, 0.1F, 0.7F, 0.01F, -0.03F, true, true, offsetTransformer);
-    CubicSpline<TerrainShaper::Point> *erosionOffset4 =
+    shared_ptr<CubicSpline<TerrainShaper::Point>> erosionOffset4 =
         buildErosionOffsetSpline(-0.05F, 0.03F, 0.1F, 1.0F, 0.01F, 0.01F, true, true, offsetTransformer);
-    CubicSpline<TerrainShaper::Point> *offsetSampler =
+    shared_ptr<CubicSpline<TerrainShaper::Point>> offsetSampler =
         CubicSpline<TerrainShaper::Point>::builder(CoordinateGetters[CONTINENTS], offsetTransformer)
             .addPoint(-1.1F, 0.044F, 0.0F)
             .addPoint(-1.02F, -0.2222F, 0.0F)
@@ -44,7 +44,7 @@ TerrainShaper TerrainShaper::overworld(bool isAmplified) {
             .addPoint(0.25F, erosionOffset3, 0.0F)
             .addPoint(1.0F, erosionOffset4, 0.0F)
             .build();
-    CubicSpline<TerrainShaper::Point> *factorSampler =
+    shared_ptr<CubicSpline<TerrainShaper::Point>> factorSampler =
         CubicSpline<TerrainShaper::Point>::builder(CoordinateGetters[CONTINENTS], NO_TRANSFORM)
             .addPoint(-0.19F, 3.95F, 0.0F)
             .addPoint(-0.15F, getErosionFactor(6.25F, true, NO_TRANSFORM), 0.0F)
@@ -52,7 +52,7 @@ TerrainShaper TerrainShaper::overworld(bool isAmplified) {
             .addPoint(0.03F, getErosionFactor(5.08F, true, factorTransformer), 0.0F)
             .addPoint(0.06F, getErosionFactor(4.69F, false, factorTransformer), 0.0F)
             .build();
-    CubicSpline<TerrainShaper::Point> *jaggednessSampler =
+    shared_ptr<CubicSpline<TerrainShaper::Point>> jaggednessSampler =
         CubicSpline<TerrainShaper::Point>::builder(CoordinateGetters[CONTINENTS], jaggednessTransformer)
             .addPoint(-0.11F, 0.0F, 0.0F)
             .addPoint(0.03F, buildErosionJaggednessSpline(1.0F, 0.5F, 0.0F, 0.0F, jaggednessTransformer), 0.0F)
@@ -61,11 +61,12 @@ TerrainShaper TerrainShaper::overworld(bool isAmplified) {
     return TerrainShaper(offsetSampler, factorSampler, jaggednessSampler);
 }
 
-CubicSpline<TerrainShaper::Point> *TerrainShaper::buildErosionJaggednessSpline(float p_187295_, float p_187296_,
-                                                                               float p_187297_, float p_187298_,
-                                                                               ToFloatFunction<float> p_187299_) {
-    CubicSpline<TerrainShaper::Point> *cubicspline = buildRidgeJaggednessSpline(p_187295_, p_187297_, p_187299_);
-    CubicSpline<TerrainShaper::Point> *cubicspline1 = buildRidgeJaggednessSpline(p_187296_, p_187298_, p_187299_);
+shared_ptr<CubicSpline<TerrainShaper::Point>> TerrainShaper::buildErosionJaggednessSpline(
+    float p_187295_, float p_187296_, float p_187297_, float p_187298_, ToFloatFunction<float> p_187299_) {
+    shared_ptr<CubicSpline<TerrainShaper::Point>> cubicspline =
+        buildRidgeJaggednessSpline(p_187295_, p_187297_, p_187299_);
+    shared_ptr<CubicSpline<TerrainShaper::Point>> cubicspline1 =
+        buildRidgeJaggednessSpline(p_187296_, p_187298_, p_187299_);
     return CubicSpline<TerrainShaper::Point>::builder(CoordinateGetters[EROSION], p_187299_)
         .addPoint(-1.0F, cubicspline, 0.0F)
         .addPoint(-0.78F, cubicspline1, 0.0F)
@@ -74,8 +75,8 @@ CubicSpline<TerrainShaper::Point> *TerrainShaper::buildErosionJaggednessSpline(f
         .build();
 }
 
-CubicSpline<TerrainShaper::Point> *TerrainShaper::buildRidgeJaggednessSpline(float weirdness1, float weirdness0,
-                                                                             ToFloatFunction<float> transformer) {
+shared_ptr<CubicSpline<TerrainShaper::Point>> TerrainShaper::buildRidgeJaggednessSpline(
+    float weirdness1, float weirdness0, ToFloatFunction<float> transformer) {
     float f = peaksAndValleys(0.4F);
     float f1 = peaksAndValleys(0.56666666F);
     float f2 = (f + f1) / 2.0F;
@@ -97,8 +98,8 @@ CubicSpline<TerrainShaper::Point> *TerrainShaper::buildRidgeJaggednessSpline(flo
     return builder.build();
 }
 
-CubicSpline<TerrainShaper::Point> *TerrainShaper::buildWeirdnessJaggednessSpline(float wierdness,
-                                                                                 ToFloatFunction<float> transformer) {
+shared_ptr<CubicSpline<TerrainShaper::Point>> TerrainShaper::buildWeirdnessJaggednessSpline(
+    float wierdness, ToFloatFunction<float> transformer) {
     float f = 0.63F * wierdness;
     float f1 = 0.3F * wierdness;
     return CubicSpline<TerrainShaper::Point>::builder(CoordinateGetters[WEIRDNESS], transformer)
@@ -107,9 +108,9 @@ CubicSpline<TerrainShaper::Point> *TerrainShaper::buildWeirdnessJaggednessSpline
         .build();
 }
 
-CubicSpline<TerrainShaper::Point> *TerrainShaper::getErosionFactor(float p_187308_, bool p_187309_,
-                                                                   ToFloatFunction<float> transformer) {
-    CubicSpline<TerrainShaper::Point> *cubicspline =
+shared_ptr<CubicSpline<TerrainShaper::Point>> TerrainShaper::getErosionFactor(float p_187308_, bool p_187309_,
+                                                                              ToFloatFunction<float> transformer) {
+    shared_ptr<CubicSpline<TerrainShaper::Point>> cubicspline =
         CubicSpline<TerrainShaper::Point>::builder(CoordinateGetters[WEIRDNESS], transformer)
             .addPoint(-0.2F, 6.3F, 0.0F)
             .addPoint(0.2F, p_187308_, 0.0F)
@@ -133,12 +134,12 @@ CubicSpline<TerrainShaper::Point> *TerrainShaper::getErosionFactor(float p_18730
                       0.0F)
             .addPoint(0.03F, cubicspline, 0.0F);
     if (p_187309_) {
-        CubicSpline<TerrainShaper::Point> *cubicspline1 =
+        shared_ptr<CubicSpline<TerrainShaper::Point>> cubicspline1 =
             CubicSpline<TerrainShaper::Point>::builder(CoordinateGetters[WEIRDNESS], transformer)
                 .addPoint(0.0F, p_187308_, 0.0F)
                 .addPoint(0.1F, 0.625F, 0.0F)
                 .build();
-        CubicSpline<TerrainShaper::Point> *cubicspline2 =
+        shared_ptr<CubicSpline<TerrainShaper::Point>> cubicspline2 =
             CubicSpline<TerrainShaper::Point>::builder(CoordinateGetters[RIDGES], transformer)
                 .addPoint(-0.9F, p_187308_, 0.0F)
                 .addPoint(-0.69F, cubicspline1, 0.0F)
@@ -148,12 +149,12 @@ CubicSpline<TerrainShaper::Point> *TerrainShaper::getErosionFactor(float p_18730
             .addPoint(0.55F, cubicspline2, 0.0F)
             .addPoint(0.62F, p_187308_, 0.0F);
     } else {
-        CubicSpline<TerrainShaper::Point> *cubicspline3 =
+        shared_ptr<CubicSpline<TerrainShaper::Point>> cubicspline3 =
             CubicSpline<TerrainShaper::Point>::builder(CoordinateGetters[RIDGES], transformer)
                 .addPoint(-0.7F, cubicspline, 0.0F)
                 .addPoint(-0.15F, 1.37F, 0.0F)
                 .build();
-        CubicSpline<TerrainShaper::Point> *cubicspline4 =
+        shared_ptr<CubicSpline<TerrainShaper::Point>> cubicspline4 =
             CubicSpline<TerrainShaper::Point>::builder(CoordinateGetters[RIDGES], transformer)
                 .addPoint(0.45F, cubicspline, 0.0F)
                 .addPoint(0.7F, 1.56F, 0.0F)
@@ -168,8 +169,8 @@ CubicSpline<TerrainShaper::Point> *TerrainShaper::getErosionFactor(float p_18730
     return builder.build();
 }
 
-CubicSpline<TerrainShaper::Point> *TerrainShaper::buildMountainRidgeSplineWithPoints(float p_187331_, bool p_187332_,
-                                                                                     ToFloatFunction<float> p_187333_) {
+shared_ptr<CubicSpline<TerrainShaper::Point>> TerrainShaper::buildMountainRidgeSplineWithPoints(
+    float p_187331_, bool p_187332_, ToFloatFunction<float> p_187333_) {
     CubicSpline<TerrainShaper::Point>::Builder builder =
         CubicSpline<TerrainShaper::Point>::builder(CoordinateGetters[RIDGES], p_187333_);
     float f2 = mountainContinentalness(-1.0F, p_187331_, -0.7F);
@@ -202,33 +203,31 @@ CubicSpline<TerrainShaper::Point> *TerrainShaper::buildMountainRidgeSplineWithPo
     return builder.build();
 }
 
-CubicSpline<TerrainShaper::Point> *TerrainShaper::buildErosionOffsetSpline(float p_187285_, float p_187286_,
-                                                                           float p_187287_, float p_187288_,
-                                                                           float p_187289_, float p_187290_,
-                                                                           bool p_187291_, bool p_187292_,
-                                                                           ToFloatFunction<float> p_187293_) {
-    CubicSpline<TerrainShaper::Point> *cubicspline =
+shared_ptr<CubicSpline<TerrainShaper::Point>> TerrainShaper::buildErosionOffsetSpline(
+    float p_187285_, float p_187286_, float p_187287_, float p_187288_, float p_187289_, float p_187290_,
+    bool p_187291_, bool p_187292_, ToFloatFunction<float> p_187293_) {
+    shared_ptr<CubicSpline<TerrainShaper::Point>> cubicspline =
         buildMountainRidgeSplineWithPoints(Mth::lerp(p_187288_, 0.6F, 1.5F), p_187292_, p_187293_);
-    CubicSpline<TerrainShaper::Point> *cubicspline1 =
+    shared_ptr<CubicSpline<TerrainShaper::Point>> cubicspline1 =
         buildMountainRidgeSplineWithPoints(Mth::lerp(p_187288_, 0.6F, 1.0F), p_187292_, p_187293_);
-    CubicSpline<TerrainShaper::Point> *cubicspline2 =
+    shared_ptr<CubicSpline<TerrainShaper::Point>> cubicspline2 =
         buildMountainRidgeSplineWithPoints(p_187288_, p_187292_, p_187293_);
-    CubicSpline<TerrainShaper::Point> *cubicspline3 =
+    shared_ptr<CubicSpline<TerrainShaper::Point>> cubicspline3 =
         ridgeSpline(p_187285_ - 0.15F, 0.5F * p_187288_, Mth::lerp(0.5F, 0.5F, 0.5F) * p_187288_, 0.5F * p_187288_,
                     0.6F * p_187288_, 0.5F, p_187293_);
-    CubicSpline<TerrainShaper::Point> *cubicspline4 = ridgeSpline(
+    shared_ptr<CubicSpline<TerrainShaper::Point>> cubicspline4 = ridgeSpline(
         p_187285_, p_187289_ * p_187288_, p_187286_ * p_187288_, 0.5F * p_187288_, 0.6F * p_187288_, 0.5F, p_187293_);
-    CubicSpline<TerrainShaper::Point> *cubicspline5 =
+    shared_ptr<CubicSpline<TerrainShaper::Point>> cubicspline5 =
         ridgeSpline(p_187285_, p_187289_, p_187289_, p_187286_, p_187287_, 0.5F, p_187293_);
-    CubicSpline<TerrainShaper::Point> *cubicspline6 =
+    shared_ptr<CubicSpline<TerrainShaper::Point>> cubicspline6 =
         ridgeSpline(p_187285_, p_187289_, p_187289_, p_187286_, p_187287_, 0.5F, p_187293_);
-    CubicSpline<TerrainShaper::Point> *cubicspline7 =
+    shared_ptr<CubicSpline<TerrainShaper::Point>> cubicspline7 =
         CubicSpline<TerrainShaper::Point>::builder(CoordinateGetters[RIDGES], p_187293_)
             .addPoint(-1.0F, p_187285_, 0.0F)
             .addPoint(-0.4F, cubicspline5, 0.0F)
             .addPoint(0.0F, p_187287_ + 0.07F, 0.0F)
             .build();
-    CubicSpline<TerrainShaper::Point> *cubicspline8 =
+    shared_ptr<CubicSpline<TerrainShaper::Point>> cubicspline8 =
         ridgeSpline(-0.02F, p_187290_, p_187290_, p_187286_, p_187287_, 0.0F, p_187293_);
     CubicSpline<TerrainShaper::Point>::Builder builder =
         CubicSpline<TerrainShaper::Point>::builder(CoordinateGetters[EROSION], p_187293_)
@@ -249,9 +248,10 @@ CubicSpline<TerrainShaper::Point> *TerrainShaper::buildErosionOffsetSpline(float
     return builder.build();
 }
 
-CubicSpline<TerrainShaper::Point> *TerrainShaper::ridgeSpline(float p_187277_, float p_187278_, float p_187279_,
-                                                              float p_187280_, float p_187281_, float p_187282_,
-                                                              ToFloatFunction<float> p_187283_) {
+shared_ptr<CubicSpline<TerrainShaper::Point>> TerrainShaper::ridgeSpline(float p_187277_, float p_187278_,
+                                                                         float p_187279_, float p_187280_,
+                                                                         float p_187281_, float p_187282_,
+                                                                         ToFloatFunction<float> p_187283_) {
     float f = max(0.5F * (p_187278_ - p_187277_), p_187282_);
     float f1 = 5.0F * (p_187279_ - p_187278_);
     return CubicSpline<TerrainShaper::Point>::builder(CoordinateGetters[RIDGES], p_187283_)
@@ -263,15 +263,15 @@ CubicSpline<TerrainShaper::Point> *TerrainShaper::ridgeSpline(float p_187277_, f
         .build();
 }
 
-CubicSpline<TerrainShaper::Point> *TerrainShaper::offsetSampler() {
+shared_ptr<CubicSpline<TerrainShaper::Point>> TerrainShaper::offsetSampler() {
     return this->_offsetSampler;
 }
 
-CubicSpline<TerrainShaper::Point> *TerrainShaper::factorSampler() {
+shared_ptr<CubicSpline<TerrainShaper::Point>> TerrainShaper::factorSampler() {
     return this->_factorSampler;
 }
 
-CubicSpline<TerrainShaper::Point> *TerrainShaper::jaggednessSampler() {
+shared_ptr<CubicSpline<TerrainShaper::Point>> TerrainShaper::jaggednessSampler() {
     return this->_jaggednessSampler;
 }
 

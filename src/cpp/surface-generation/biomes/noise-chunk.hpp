@@ -7,12 +7,15 @@
 #include "noise-chunk.fwd.hpp"
 
 #include <map>
+#include <memory>
 
 using namespace std;
 
 class Sampler {
 public:
     virtual double sample() = 0;
+    virtual ~Sampler() {
+    }
 };
 
 class ConstantSampler : public Sampler {
@@ -28,7 +31,7 @@ public:
 class NoiseChunk;
 class NoiseInterpolator;
 
-class NoiseChunk {
+class NoiseChunk : public enable_shared_from_this<NoiseChunk> {
 public:
     typedef Sampler Sampler;
     typedef NoiseInterpolator NoiseInterpolator;
@@ -36,7 +39,6 @@ public:
     typedef NoiseFiller NoiseFiller;
     typedef BlockStateFiller BlockStateFiller;
 
-public:
     int32_t cellCountXZ;
     int32_t cellCountY;
     int32_t cellNoiseMinY;
@@ -45,34 +47,39 @@ public:
     int32_t firstNoiseX;
     int32_t firstNoiseZ;
 
-    vector<NoiseChunk::NoiseInterpolator *> interpolators;
+    vector<shared_ptr<NoiseChunk::NoiseInterpolator>> interpolators;
     NoiseSettings const &noiseSettings;
 
     std::map<int64_t, int32_t> _preliminarySurfaceLevel = std::map<int64_t, int32_t>();
 
 private:
-    NoiseSampler *sampler;
+    shared_ptr<NoiseSampler> sampler;
 
     vector<vector<FlatNoiseData>> _noiseData;
-    Aquifer *_aquifer;
+    shared_ptr<Aquifer> _aquifer;
     NoiseChunk::BlockStateFiller baseNoise;
     NoiseChunk::BlockStateFiller oreVeins;
     Blender const &blender;
 
 public:
-    static NoiseChunk *forChunk(ChunkAccess *chunkAccess, NoiseSampler *sampler,
-                                function<NoiseChunk::NoiseFiller(void)> filler,
-                                NoiseGeneratorSettings const &generatorSettings, Aquifer::FluidPicker *fluidPicker,
-                                Blender const &blender);
+    static shared_ptr<NoiseChunk> forChunk(shared_ptr<ChunkAccess> chunkAccess, shared_ptr<NoiseSampler> sampler,
+                                           function<NoiseChunk::NoiseFiller(void)> filler,
+                                           NoiseGeneratorSettings const &generatorSettings,
+                                           shared_ptr<Aquifer::FluidPicker> fluidPicker, Blender const &blender);
 
-    static NoiseChunk *forColumn(int32_t startX, int32_t startZ, int32_t cellNoiseMinY, int32_t cellCountY,
-                                 NoiseSampler *sampler, NoiseGeneratorSettings const &noiseSettings,
-                                 Aquifer::FluidPicker *fluidPicker);
+    static shared_ptr<NoiseChunk> forColumn(int32_t startX, int32_t startZ, int32_t cellNoiseMinY, int32_t cellCountY,
+                                            shared_ptr<NoiseSampler> sampler,
+                                            NoiseGeneratorSettings const &noiseSettings,
+                                            shared_ptr<Aquifer::FluidPicker> fluidPicker);
 
-private:
-    NoiseChunk(int32_t cellCountXZ, int32_t cellCountY, int32_t cellNoiseMinY, NoiseSampler *sampler, int32_t startX,
-               int32_t startZ, NoiseChunk::NoiseFiller filler, NoiseGeneratorSettings const &noiseSettings,
-               Aquifer::FluidPicker *fluidPicker, Blender const &blender);
+    NoiseChunk(int32_t cellCountXZ, int32_t cellCountY, int32_t cellNoiseMinY, shared_ptr<NoiseSampler> sampler,
+               int32_t startX, int32_t startZ, NoiseChunk::NoiseFiller filler,
+               NoiseGeneratorSettings const &noiseSettings, shared_ptr<Aquifer::FluidPicker> fluidPicker,
+               Blender const &blender);
+    shared_ptr<NoiseChunk> afterConstructor(int32_t cellCountXZ, int32_t cellCountY, int32_t cellNoiseMinY,
+                                            shared_ptr<NoiseSampler> sampler, int32_t startX, int32_t startZ,
+                                            NoiseChunk::NoiseFiller filler, NoiseGeneratorSettings const &noiseSettings,
+                                            shared_ptr<Aquifer::FluidPicker> fluidPicker, Blender const &blender);
 
 public:
     FlatNoiseData const &noiseData(int32_t x, int32_t z);
@@ -83,7 +90,7 @@ private:
     int32_t computePreliminarySurfaceLevel(int64_t loc);
 
 public:
-    NoiseChunk::NoiseInterpolator *createNoiseInterpolator(NoiseChunk::NoiseFiller filler);
+    shared_ptr<NoiseChunk::NoiseInterpolator> createNoiseInterpolator(NoiseChunk::NoiseFiller filler);
 
     Blender const &getBlender();
 
@@ -95,17 +102,17 @@ public:
     void updateForZ(double t);
     void swapSlices();
 
-    Aquifer *aquifer();
+    shared_ptr<Aquifer> aquifer();
 
     BlockState updateNoiseAndGenerateBaseState(int32_t x, int32_t y, int32_t z);
     BlockState oreVeinify(int32_t x, int32_t y, int32_t z);
 };
 
-class NoiseInterpolator : public Sampler {
+class NoiseInterpolator : public Sampler, public enable_shared_from_this<NoiseInterpolator> {
 private:
-    NoiseChunk *noiseChunk;
-    double *slice0;
-    double *slice1;
+    shared_ptr<NoiseChunk> noiseChunk;
+    shared_ptr<double> slice0;
+    shared_ptr<double> slice1;
     NoiseFiller noiseFiller;
     double noise000;
     double noise001;
@@ -124,10 +131,10 @@ private:
     double value;
 
 public:
-    NoiseInterpolator(NoiseChunk *noiseChunk, NoiseFiller filler);
+    NoiseInterpolator(shared_ptr<NoiseChunk> noiseChunk, NoiseFiller filler);
 
 private:
-    double *allocateSlice(int32_t cellCountY, int32_t cellCountXZ);
+    unique_ptr<double[]> allocateSlice(int32_t cellCountY, int32_t cellCountXZ);
     int32_t getSliceIndex(int32_t cellZ, int32_t cellY);
 
 public:
@@ -135,7 +142,7 @@ public:
     void advanceCellX(int32_t cellX);
 
 private:
-    void fillSlice(double *slice, int32_t cellX);
+    void fillSlice(shared_ptr<double> slice, int32_t cellX);
 
 public:
     void selectCellYZ(int32_t cellY, int32_t cellZ);

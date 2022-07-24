@@ -19,20 +19,24 @@ public:
         LEVELCHUNK,
     };
 
-    using ChunkConverter = function<ChunkAccess *(ChunkAccess *)>;
+    using ChunkConverter = function<shared_ptr<ChunkAccess>(shared_ptr<ChunkAccess>)>;
 
-    using GenerationTask =
-        function<ChunkAccess *(ChunkStatus const &chunkStatus, ChunkGenerator *generator, ChunkConverter converter,
-                               vector<ChunkAccess *> neighbors, ChunkAccess *chunkAccess)>;
+    using GenerationTask = function<shared_ptr<ChunkAccess>(
+        ChunkStatus const &chunkStatus, shared_ptr<ChunkGenerator> generator, ChunkConverter converter,
+        vector<shared_ptr<ChunkAccess>> neighbors, shared_ptr<ChunkAccess> chunkAccess)>;
 
-    using SimpleGenerationTask = function<void(ChunkStatus const &chunkStatus, ChunkGenerator *generator,
-                                               vector<ChunkAccess *> neighbors, ChunkAccess *chunkAccess)>;
+    using SimpleGenerationTask =
+        function<void(ChunkStatus const &chunkStatus, shared_ptr<ChunkGenerator> generator,
+                      vector<shared_ptr<ChunkAccess>> neighbors, shared_ptr<ChunkAccess> chunkAccess)>;
 
-    using LoadingTask = ChunkAccess *(*)(ChunkStatus const &chunkStatus, ChunkAccess *chunkAccess);
+    using LoadingTask = shared_ptr<ChunkAccess> (*)(ChunkStatus const &chunkStatus,
+                                                    shared_ptr<ChunkAccess> chunkAccess);
 
     static GenerationTask makeGenerationTask(SimpleGenerationTask simpleTask);
 
-    static constexpr auto EMPTY_CONVERTER = [](ChunkAccess *chunkAccess) -> ChunkAccess * { return chunkAccess; };
+    static constexpr auto EMPTY_CONVERTER = [](shared_ptr<ChunkAccess> chunkAccess) -> shared_ptr<ChunkAccess> {
+        return chunkAccess;
+    };
 
 public:
     static const int32_t MAX_STRUCTURE_DISTANCE = 8;
@@ -42,8 +46,8 @@ public:
     static vector<HeightmapTypes> POST_FEATURES;
 
 private:
-    static constexpr ChunkStatus::LoadingTask PASSTHROUGH_LOAD_TASK = [](ChunkStatus const &chunkStatus,
-                                                                         ChunkAccess *chunkAccess) -> ChunkAccess * {
+    static constexpr ChunkStatus::LoadingTask PASSTHROUGH_LOAD_TASK =
+        [](ChunkStatus const &chunkStatus, shared_ptr<ChunkAccess> chunkAccess) -> shared_ptr<ChunkAccess> {
         // TODO status progress
         return chunkAccess;
     };
@@ -92,7 +96,7 @@ public:
     static vector<ChunkStatus const *> getStatusList();
 
 private:
-    static bool isLighted(ChunkStatus const &chunkStatus, ChunkAccess *chunkAccess);
+    static bool isLighted(ChunkStatus const &chunkStatus, shared_ptr<ChunkAccess> chunkAccess);
 
     ChunkStatus(string name, ChunkStatus *parent, int32_t range, vector<HeightmapTypes> heightmapsAfter,
                 ChunkStatus::ChunkType chunkType, ChunkStatus::GenerationTask generationTask,
@@ -103,7 +107,8 @@ private:
     ChunkStatus const &getParent() const;
 
 public:
-    ChunkAccess *generate(ChunkGenerator *generator, ChunkConverter converter, vector<ChunkAccess *> chunks);
+    shared_ptr<ChunkAccess> generate(shared_ptr<ChunkGenerator> generator, ChunkConverter converter,
+                                     vector<shared_ptr<ChunkAccess>> chunks);
 
     int32_t getRange() const;
 

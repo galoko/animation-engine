@@ -9,8 +9,8 @@ private:
     static constexpr double INPUT_FACTOR = 1.0181268882175227;
 
     double valueFactor;
-    PerlinNoise *first;
-    PerlinNoise *second;
+    PerlinNoise first;
+    PerlinNoise second;
 
 public:
     class NoiseParameters {
@@ -26,13 +26,15 @@ public:
                         vector<double> const &amplitudes = vector<double>());
     };
 
-    static NormalNoise createLegacyNetherBiome(RandomSource *randomSource,
+    static NormalNoise createLegacyNetherBiome(shared_ptr<RandomSource> randomSource,
                                                NormalNoise::NoiseParameters const &parameters);
-    static NormalNoise create(RandomSource *randomSource, NormalNoise::NoiseParameters const &parameters);
-    static NormalNoise create(RandomSource *randomSource, int32_t firstOctave, vector<double> const &amplitudes);
+    static NormalNoise create(shared_ptr<RandomSource> randomSource, NormalNoise::NoiseParameters const &parameters);
+    static NormalNoise create(shared_ptr<RandomSource> randomSource, int32_t firstOctave,
+                              vector<double> const &amplitudes);
 
 private:
-    NormalNoise(RandomSource *randomSource, int32_t firstOctave, vector<double> const &amplitudes, bool notLegacy);
+    NormalNoise(shared_ptr<RandomSource> randomSource, int32_t firstOctave, vector<double> const &amplitudes,
+                bool notLegacy);
 
 public:
     NormalNoise() {

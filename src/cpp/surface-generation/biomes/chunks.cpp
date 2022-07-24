@@ -134,8 +134,8 @@ Biomes LevelChunkSection::getNoiseBiome(int32_t x, int32_t y, int32_t z) const {
     return this->biomes.at(getBiomesIndex(x, y, z));
 }
 
-void LevelChunkSection::fillBiomesFromNoise(BiomeResolver *resolver, Climate::Sampler *sampler, int32_t offsetX,
-                                            int32_t offsetZ) {
+void LevelChunkSection::fillBiomesFromNoise(shared_ptr<BiomeResolver> resolver, shared_ptr<Climate::Sampler> sampler,
+                                            int32_t offsetX, int32_t offsetZ) {
     vector<Biomes> &biomes = this->biomes;
     // biomes->acquire();
 
@@ -167,6 +167,9 @@ ChunkAccess::ChunkAccess(ChunkPos const &chunkPos, LevelHeightAccessor const &le
     this->heightmaps = std::map<HeightmapTypes, Heightmap>();
 
     replaceMissingSections(levelHeightAccessor, this->sections);
+}
+
+ChunkAccess::~ChunkAccess() {
 }
 
 void ChunkAccess::replaceMissingSections(LevelHeightAccessor const &heightAccessor,
@@ -238,11 +241,14 @@ int32_t ChunkAccess::getHeight() const {
     return this->levelHeightAccessor.getHeight();
 }
 
-NoiseChunk *ChunkAccess::getOrCreateNoiseChunk(NoiseSampler *sampler, function<NoiseFiller(void)> filler,
-                                               NoiseGeneratorSettings const &settings,
-                                               Aquifer::FluidPicker *fluidPicker, Blender const &blender) {
+shared_ptr<NoiseChunk> ChunkAccess::getOrCreateNoiseChunk(shared_ptr<NoiseSampler> sampler,
+                                                          function<NoiseFiller(void)> filler,
+                                                          NoiseGeneratorSettings const &settings,
+                                                          shared_ptr<Aquifer::FluidPicker> fluidPicker,
+                                                          Blender const &blender) {
     if (this->noiseChunk == nullptr) {
-        this->noiseChunk = NoiseChunk::forChunk(this, sampler, filler, settings, fluidPicker, blender);
+        this->noiseChunk =
+            NoiseChunk::forChunk(this->shared_from_this(), sampler, filler, settings, fluidPicker, blender);
     }
 
     return this->noiseChunk;
@@ -256,7 +262,7 @@ Biomes ChunkAccess::getNoiseBiome(int32_t x, int32_t y, int32_t z) {
     return this->getSection(sectionIndex).getNoiseBiome(x & 3, clampedY & 3, z & 3);
 }
 
-void ChunkAccess::fillBiomesFromNoise(BiomeResolver *resolver, Climate::Sampler *sampler) {
+void ChunkAccess::fillBiomesFromNoise(shared_ptr<BiomeResolver> resolver, shared_ptr<Climate::Sampler> sampler) {
     ChunkPos const &chunkpos = this->getPos();
     int32_t x = QuartPos::fromBlock(chunkpos.getMinBlockX());
     int32_t z = QuartPos::fromBlock(chunkpos.getMinBlockZ());
@@ -326,6 +332,6 @@ BlockState ProtoChunk::setBlockState(BlockPos const &pos, BlockState blockState,
     }
 }
 
-ChunkStatus *ProtoChunk::getStatus() {
+shared_ptr<ChunkStatus> ProtoChunk::getStatus() {
     return nullptr;
 }

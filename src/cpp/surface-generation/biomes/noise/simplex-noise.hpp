@@ -1,7 +1,11 @@
 #pragma once
 
+#include <memory>
+
 #include "../mth.hpp"
 #include "../random.hpp"
+
+using namespace std;
 
 class SimplexNoise {
 public:
@@ -22,7 +26,7 @@ public:
     SimplexNoise() {
     }
 
-    SimplexNoise(RandomSource *randomSource);
+    SimplexNoise(shared_ptr<RandomSource> randomSource);
 
     static double dot(const int32_t v[], double x, double y, double z);
 

@@ -9,7 +9,7 @@ using namespace std;
 
 class PerlinNoise {
 private:
-    vector<ImprovedNoise *> noiseLevels;
+    vector<shared_ptr<ImprovedNoise>> noiseLevels;
     double lowestFreqValueFactor;
     double lowestFreqInputFactor;
 
@@ -17,12 +17,14 @@ public:
     int32_t firstOctave;
     vector<double> amplitudes;
 
-    static PerlinNoise createLegacyForBlendedNoise(RandomSource *randomSource, vector<int32_t> const &octaves);
-    static PerlinNoise *createLegacyForLegacyNormalNoise(RandomSource *randomSource, int32_t firstOctave,
-                                                         vector<double> const &amplitudes);
+    static PerlinNoise createLegacyForBlendedNoise(shared_ptr<RandomSource> randomSource,
+                                                   vector<int32_t> const &octaves);
+    static PerlinNoise createLegacyForLegacyNormalNoise(shared_ptr<RandomSource> randomSource, int32_t firstOctave,
+                                                        vector<double> const &amplitudes);
 
-    static PerlinNoise *create(RandomSource *randomSource, vector<int32_t> const &octaves);
-    static PerlinNoise *create(RandomSource *randomSource, int32_t firstOctave, vector<double> const &amplitudes);
+    static PerlinNoise create(shared_ptr<RandomSource> randomSource, vector<int32_t> const &octaves);
+    static PerlinNoise create(shared_ptr<RandomSource> randomSource, int32_t firstOctave,
+                              vector<double> const &amplitudes);
 
 private:
     static pair<int32_t, vector<double>> makeAmplitudes(vector<int32_t> const &octaves);
@@ -31,16 +33,17 @@ public:
     PerlinNoise() {
     }
 
-    PerlinNoise(RandomSource *randomSource, pair<int32_t, vector<double>> const &octaveAndAmplitudes, bool notLegacy);
+    PerlinNoise(shared_ptr<RandomSource> randomSource, pair<int32_t, vector<double>> const &octaveAndAmplitudes,
+                bool notLegacy);
 
 private:
-    static void skipOctave(RandomSource *randomSource);
+    static void skipOctave(shared_ptr<RandomSource> randomSource);
 
 public:
     double getValue(double x, double y, double z) const;
     double getValue(double x, double y, double z, double yStep, double maxYfract, bool useYfractOverride) const;
 
-    ImprovedNoise *getOctaveNoise(int32_t octave) const;
+    shared_ptr<ImprovedNoise> getOctaveNoise(int32_t octave) const;
 
     static constexpr inline double wrap(double num) {
         return num - (double)Mth::lfloor(num / 3.3554432E7 + 0.5) * 3.3554432E7;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <vector>
 
 #include "mth.hpp"
@@ -16,7 +17,7 @@ public:
         ToFloatFunction<C> coordinate;
         ToFloatFunction<float> valueTransformer;
         vector<float> locations = vector<float>();
-        vector<CubicSpline<C> *> values = vector<CubicSpline<C> *>();
+        vector<shared_ptr<CubicSpline<C>>> values = vector<shared_ptr<CubicSpline<C>>>();
         vector<float> derivatives = vector<float>();
 
     public:
@@ -31,23 +32,24 @@ public:
 
     public:
         CubicSpline<C>::Builder &addPoint(float loc, float value, float derivative) {
-            return this->addPoint(loc, new CubicSpline::Constant(this->valueTransformer(value)), derivative);
+            return this->addPoint(loc, make_shared<CubicSpline::Constant>(this->valueTransformer(value)), derivative);
         }
 
-        CubicSpline<C>::Builder &addPoint(float loc, CubicSpline<C> *value, float derivative) {
+        CubicSpline<C>::Builder &addPoint(float loc, shared_ptr<CubicSpline<C>> value, float derivative) {
             this->locations.push_back(loc);
             this->values.push_back(value);
             this->derivatives.push_back(derivative);
             return *this;
         }
 
-        CubicSpline<C> *build() {
-            return new CubicSpline<C>::Multipoint(this->coordinate, this->locations, this->values, this->derivatives);
+        shared_ptr<CubicSpline<C>> build() {
+            return make_shared<CubicSpline<C>::Multipoint>(this->coordinate, this->locations, this->values,
+                                                           this->derivatives);
         }
     };
 
-    static CubicSpline<C> *constant(float value) {
-        return new CubicSpline::Constant(value);
+    static shared_ptr<CubicSpline<C>> constant(float value) {
+        return make_shared<CubicSpline::Constant>(value);
     }
 
     static CubicSpline<C>::Builder builder(ToFloatFunction<C> coordinate) {
@@ -58,6 +60,8 @@ public:
         return CubicSpline<C>::Builder(coordinate, valueTransformer);
     }
 
+    virtual ~CubicSpline() {
+    }
     virtual float apply(C value) = 0;
 
     class Constant : public CubicSpline {
@@ -77,12 +81,12 @@ public:
     private:
         ToFloatFunction<C> coordinate;
         vector<float> locations;
-        vector<CubicSpline<C> *> values;
+        vector<shared_ptr<CubicSpline<C>>> values;
         vector<float> derivatives;
 
     public:
         Multipoint(ToFloatFunction<C> coordinate, vector<float> const &locations,
-                   vector<CubicSpline<C> *> const &values, vector<float> const &derivatives) {
+                   vector<shared_ptr<CubicSpline<C>>> const &values, vector<float> const &derivatives) {
             this->coordinate = coordinate;
             this->locations = locations;
             this->values = values;
@@ -102,8 +106,8 @@ public:
                 float prevLoc = this->locations.at(index);
                 float nextLoc = this->locations.at(index + 1);
                 float t = (loc - prevLoc) / (nextLoc - prevLoc);
-                CubicSpline<C> *valueGetter0 = this->values.at(index);
-                CubicSpline<C> *valueGetter1 = this->values.at(index + 1);
+                shared_ptr<CubicSpline<C>> valueGetter0 = this->values.at(index);
+                shared_ptr<CubicSpline<C>> valueGetter1 = this->values.at(index + 1);
                 float d0 = this->derivatives.at(index);
                 float d1 = this->derivatives.at(index + 1);
                 float v0 = valueGetter0->apply(value);

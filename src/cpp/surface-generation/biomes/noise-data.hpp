@@ -1,8 +1,10 @@
 #pragma once
 
+#include <memory>
+#include <string>
+
 #include "noise/normal-noise.hpp"
 #include "random.hpp"
-#include <string>
 
 using namespace std;
 
@@ -75,4 +77,4 @@ const char *getNoiseName(Noises noise);
 
 NormalNoise::NoiseParameters const &getNoiseParameters(Noises noise);
 
-NormalNoise Noises_instantiate(PositionalRandomFactory *random, Noises noise);
+NormalNoise Noises_instantiate(shared_ptr<PositionalRandomFactory> random, Noises noise);
