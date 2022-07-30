@@ -191,7 +191,7 @@ public:
                   TerrainInfo const &terrainInfo);
 };
 
-class NoiseSampler : public Climate::Sampler {
+class NoiseSampler : public Climate::Sampler, public enable_shared_from_this<NoiseSampler> {
 public:
     enum VeinType
     {
@@ -292,6 +292,8 @@ private:
 public:
     NoiseSampler(NoiseSettings const &noiseSettings, bool isNoiseCavesEnabled, int64_t seed,
                  WorldgenRandom::Algorithm algorithm);
+    void afterConstructor(NoiseSettings const &noiseSettings, bool isNoiseCavesEnabled, int64_t seed,
+                          WorldgenRandom::Algorithm algorithm);
 
 private:
     static NoiseChunk::InterpolatableNoise yLimitedInterpolatableNoise(NormalNoise const &noise, int32_t minY,

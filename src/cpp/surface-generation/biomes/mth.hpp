@@ -5,8 +5,6 @@
 #include <map>
 #include <vector>
 
-// [this, loc](int32_t index) { return loc < this->locations->at(index); })
-
 using namespace std;
 
 #define ushr_l(value, bits) ((int64_t)((uint64_t)value >> bits))

@@ -21,8 +21,7 @@ public:
         vector<float> derivatives = vector<float>();
 
     public:
-        Builder(ToFloatFunction<C> coordinate) {
-            this(coordinate, [](float value) { return value; });
+        Builder(ToFloatFunction<C> coordinate) : Builder(coordinate, [](float value) { return value; }) {
         }
 
         Builder(ToFloatFunction<C> coordinate, ToFloatFunction<float> valueTransformer) {

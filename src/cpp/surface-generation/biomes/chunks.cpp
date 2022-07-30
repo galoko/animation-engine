@@ -208,7 +208,7 @@ LevelChunkSection &ChunkAccess::getSection(int32_t sectionIndex) {
 Heightmap &ChunkAccess::getOrCreateHeightmapUnprimed(HeightmapTypes type) {
     auto iterator = this->heightmaps.find(type);
     if (iterator == this->heightmaps.end()) {
-        Heightmap heightmap = Heightmap(this, type);
+        Heightmap heightmap = Heightmap(this->shared_from_this(), type);
         this->heightmaps.insert({type, heightmap});
         return this->heightmaps.at(type);
     } else {
@@ -223,7 +223,7 @@ bool ChunkAccess::hasPrimedHeightmap(HeightmapTypes type) const {
 int32_t ChunkAccess::getHeight(HeightmapTypes type, int32_t x, int32_t z) {
     auto heightmapIterator = this->heightmaps.find(type);
     if (heightmapIterator == this->heightmaps.end()) {
-        Heightmap::primeHeightmaps(this, {type});
+        Heightmap::primeHeightmaps(this->shared_from_this(), {type});
     }
     Heightmap const &heightmap = this->heightmaps.at(type);
     return heightmap.getFirstAvailable(x & 15, z & 15) - 1;
@@ -318,7 +318,7 @@ BlockState ProtoChunk::setBlockState(BlockPos const &pos, BlockState blockState,
             }
 
             if (createdHeightmaps.size() > 0) {
-                Heightmap::primeHeightmaps(this, createdHeightmaps);
+                Heightmap::primeHeightmaps(this->shared_from_this(), createdHeightmaps);
             }
 
             for (HeightmapTypes &type : heightmapsAfter) {

@@ -227,11 +227,15 @@ FlatNoiseData::FlatNoiseData(double shiftedX, double shiftedZ, double continenta
 
 NoiseSampler::NoiseSampler(NoiseSettings const &noiseSettings, bool isNoiseCavesEnabled, int64_t seed,
                            WorldgenRandom::Algorithm algorithm)
-    : noiseSettings(noiseSettings) {
-    this->isNoiseCavesEnabled = isNoiseCavesEnabled;
-    this->baseNoise = [this](shared_ptr<NoiseChunk> noiseChunk) -> shared_ptr<NoiseChunk::Sampler> {
-        return noiseChunk->createNoiseInterpolator([this, noiseChunk](int32_t x, int32_t y, int32_t z) -> double {
-            return this->calculateBaseNoise(
+    : noiseSettings(noiseSettings), isNoiseCavesEnabled(isNoiseCavesEnabled) {
+}
+
+void NoiseSampler::afterConstructor(NoiseSettings const &noiseSettings, bool isNoiseCavesEnabled, int64_t seed,
+                                    WorldgenRandom::Algorithm algorithm) {
+    shared_ptr<NoiseSampler> sharedThis = this->shared_from_this();
+    this->baseNoise = [sharedThis](shared_ptr<NoiseChunk> noiseChunk) -> shared_ptr<NoiseChunk::Sampler> {
+        return noiseChunk->createNoiseInterpolator([sharedThis, noiseChunk](int32_t x, int32_t y, int32_t z) -> double {
+            return sharedThis->calculateBaseNoise(
                 x, y, z, noiseChunk->noiseData(QuartPos::fromBlock(x), QuartPos::fromBlock(z)).terrainInfo,
                 noiseChunk->getBlender());
         });
@@ -466,20 +470,21 @@ NoiseChunk::BlockStateFiller NoiseSampler::makeOreVeinifier(shared_ptr<NoiseChun
         shared_ptr<NoiseChunk::Sampler> veinASampler = this->veinA(noiseChunk);
         shared_ptr<NoiseChunk::Sampler> veinBSampler = this->veinB(noiseChunk);
         BlockState blockState = Blocks::NULL_BLOCK;
-        return [this, blockState, veininessSampler, veinASampler, veinBSampler](int32_t x, int32_t y,
-                                                                                int32_t z) -> BlockState {
-            shared_ptr<RandomSource> randomSource = this->oreVeinsPositionalRandomFactory->at(x, y, z);
+        shared_ptr<NoiseSampler> sharedThis = this->shared_from_this();
+        return [sharedThis, blockState, veininessSampler, veinASampler, veinBSampler](int32_t x, int32_t y,
+                                                                                      int32_t z) -> BlockState {
+            shared_ptr<RandomSource> randomSource = sharedThis->oreVeinsPositionalRandomFactory->at(x, y, z);
             double veininess = veininessSampler->sample();
-            NoiseSampler::VeinType veinType = this->getVeinType(veininess, y);
+            NoiseSampler::VeinType veinType = sharedThis->getVeinType(veininess, y);
             if (veinType == VeinType::NULL_VEIN) {
                 return blockState;
             } else if (randomSource->nextFloat() > 0.7F) {
                 return blockState;
-            } else if (this->isVein(veinASampler->sample(), veinBSampler->sample())) {
+            } else if (sharedThis->isVein(veinASampler->sample(), veinBSampler->sample())) {
                 double clampedVeininess =
                     Mth::clampedMap(abs(veininess), (double)0.4F, (double)0.6F, (double)0.1F, (double)0.3F);
                 if ((double)randomSource->nextFloat() < clampedVeininess &&
-                    this->gapNoise.getValue((double)x, (double)y, (double)z) > (double)-0.3F) {
+                    sharedThis->gapNoise.getValue((double)x, (double)y, (double)z) > (double)-0.3F) {
                     /*
                     return randomsource->nextFloat() < 0.02F ? noisesampler$veintype.rawOreBlock
                                                              : noisesampler$veintype.ore;
@@ -561,7 +566,7 @@ TerrainInfo const NoiseSampler::terrainInfo(int32_t x, int32_t z, float continen
 }
 
 BlockPos const NoiseSampler::findSpawnPosition() const {
-    // return Climate::findSpawnPosition(this->spawnTarget, this);
+    // return Climate::findSpawnPosition(this->spawnTarget, this->shared_from_this());
     return BlockPos(0, 0, 0);
 }
 
@@ -781,6 +786,8 @@ NoiseBasedChunkGenerator::NoiseBasedChunkGenerator(shared_ptr<BiomeSource> biome
     NoiseSettings const &noisesettings = noiseGeneratorSettings.noiseSettings();
     this->sampler = make_shared<NoiseSampler>(noisesettings, noiseGeneratorSettings.isNoiseCavesEnabled(), seed,
                                               noiseGeneratorSettings.getRandomSource());
+    this->sampler->afterConstructor(noisesettings, noiseGeneratorSettings.isNoiseCavesEnabled(), seed,
+                                    noiseGeneratorSettings.getRandomSource());
     vector<WorldGenMaterialRule> rules = vector<WorldGenMaterialRule>();
     rules.push_back([](shared_ptr<NoiseChunk> noiseChunk, int32_t x, int32_t y, int32_t z) -> BlockState {
         return noiseChunk->updateNoiseAndGenerateBaseState(x, y, z);

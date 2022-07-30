@@ -1,10 +1,10 @@
 #include "heightmap.hpp"
 
-Heightmap::Heightmap(ChunkAccess const *chunk, Heightmap::Types type) : chunk(chunk) {
+Heightmap::Heightmap(shared_ptr<ChunkAccess> chunk, Heightmap::Types type) : chunk(chunk) {
     this->isOpaque = Type_isOpaque(type);
 }
 
-void Heightmap::primeHeightmaps(ChunkAccess *chunkAccess, vector<Heightmap::Types> types) {
+void Heightmap::primeHeightmaps(shared_ptr<ChunkAccess> chunkAccess, vector<Heightmap::Types> types) {
     int32_t typeCount = types.size();
     vector<Heightmap *> heightmaps = vector<Heightmap *>();
     heightmaps.reserve(typeCount);
