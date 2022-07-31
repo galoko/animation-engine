@@ -70,6 +70,8 @@ enum class Noises
     NETHERRACK,
     NETHER_WART,
     NETHER_STATE_SELECTOR,
+
+    FIRST = TEMPERATURE,
     LAST = NETHER_STATE_SELECTOR
 };
 
@@ -78,3 +80,5 @@ const char *getNoiseName(Noises noise);
 NormalNoise::NoiseParameters const &getNoiseParameters(Noises noise);
 
 NormalNoise Noises_instantiate(shared_ptr<PositionalRandomFactory> random, Noises noise);
+
+void Noises_finalize();

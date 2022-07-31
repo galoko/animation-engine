@@ -137,6 +137,8 @@ public:
     static const NoiseGeneratorSettings END;
     static const NoiseGeneratorSettings CAVES;
     static const NoiseGeneratorSettings FLOATING_ISLANDS;
+
+    static void finalize();
 };
 
 class TerrainInfo {
@@ -295,6 +297,9 @@ public:
     void afterConstructor(NoiseSettings const &noiseSettings, bool isNoiseCavesEnabled, int64_t seed,
                           WorldgenRandom::Algorithm algorithm);
 
+    virtual ~NoiseSampler() {
+    }
+
 private:
     static NoiseChunk::InterpolatableNoise yLimitedInterpolatableNoise(NormalNoise const &noise, int32_t minY,
                                                                        int32_t maxY, int32_t outOfRangeValue,
@@ -362,6 +367,7 @@ class NoiseBiomeSource {
 public:
     virtual Biomes getNoiseBiome(int32_t x, int32_t y, int32_t z) = 0;
     virtual ~NoiseBiomeSource() {
+        objectFreed("NoiseBiomeSource");
     }
 };
 
@@ -381,7 +387,7 @@ public:
 
     virtual shared_ptr<ChunkGenerator> withSeed(int64_t seed) = 0;
 
-    virtual shared_ptr<ChunkAccess> createBiomes(Blender const &blender, shared_ptr<ChunkAccess> chunk);
+    virtual shared_ptr<ChunkAccess> createBiomes(Blender const &blender, shared_ptr<ChunkAccess> chunkAccess);
     virtual shared_ptr<Climate::Sampler> climateSampler() const = 0;
 
     Biomes getNoiseBiome(int32_t x, int32_t y, int32_t z) override;
@@ -440,6 +446,10 @@ private:
 
 public:
     NoiseClimateSampler(shared_ptr<NoiseSampler> sampler, shared_ptr<NoiseChunk> noisechunk);
+
+    virtual ~NoiseClimateSampler() {
+        objectFreed("NoiseClimateSampler");
+    }
 
     Climate::TargetPoint const sample(int32_t x, int32_t y, int32_t z) const override;
 };

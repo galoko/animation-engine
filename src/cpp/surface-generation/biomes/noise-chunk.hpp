@@ -15,6 +15,7 @@ class Sampler {
 public:
     virtual double sample() = 0;
     virtual ~Sampler() {
+        objectFreed("Sampler");
     }
 };
 
@@ -81,6 +82,8 @@ public:
                                             NoiseChunk::NoiseFiller filler, NoiseGeneratorSettings const &noiseSettings,
                                             shared_ptr<Aquifer::FluidPicker> fluidPicker, Blender const &blender);
 
+    virtual ~NoiseChunk();
+
 public:
     FlatNoiseData const &noiseData(int32_t x, int32_t z);
 
@@ -110,7 +113,7 @@ public:
 
 class NoiseInterpolator : public Sampler, public enable_shared_from_this<NoiseInterpolator> {
 private:
-    shared_ptr<NoiseChunk> noiseChunk;
+    weak_ptr<NoiseChunk> noiseChunk;
     shared_ptr<double> slice0;
     shared_ptr<double> slice1;
     NoiseFiller noiseFiller;
@@ -132,6 +135,9 @@ private:
 
 public:
     NoiseInterpolator(shared_ptr<NoiseChunk> noiseChunk, NoiseFiller filler);
+
+    virtual ~NoiseInterpolator() {
+    }
 
 private:
     unique_ptr<double[]> allocateSlice(int32_t cellCountY, int32_t cellCountXZ);

@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 
+#include "memory-debug.hpp"
 #include "mth.hpp"
 
 using namespace std;
@@ -60,6 +61,7 @@ public:
     }
 
     virtual ~CubicSpline() {
+        objectFreed("CubicSpline");
     }
     virtual float apply(C value) = 0;
 
@@ -69,6 +71,7 @@ public:
 
     public:
         Constant(float value) : value(value) {
+            objectCreated("CubicSpline");
         }
 
         float apply(C value) override {
@@ -90,6 +93,8 @@ public:
             this->locations = locations;
             this->values = values;
             this->derivatives = derivatives;
+
+            objectCreated("CubicSpline");
         }
 
         float apply(C value) override {

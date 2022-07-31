@@ -133,3 +133,22 @@ ChunkStatus ChunkStatus::NOISE = _register("noise", &BIOMES, 8, PRE_FEATURES, Ch
                                               shared_ptr<ChunkAccess> chunkAccess) -> shared_ptr<ChunkAccess> {
                                                return generator->fillFromNoise(Blender::empty(), chunkAccess);
                                            });
+
+void ChunkStatus::finalize() {
+    ChunkStatus::PRE_FEATURES.~vector();
+    ChunkStatus::POST_FEATURES.~vector();
+    ChunkStatus::EMPTY.~ChunkStatus();
+    ChunkStatus::STRUCTURE_STARTS.~ChunkStatus();
+    ChunkStatus::STRUCTURE_REFERENCES.~ChunkStatus();
+    ChunkStatus::BIOMES.~ChunkStatus();
+    ChunkStatus::NOISE.~ChunkStatus();
+    // ChunkStatus::SURFACE.~ChunkStatus();
+    // ChunkStatus::CARVERS.~ChunkStatus();
+    // ChunkStatus::LIQUID_CARVERS.~ChunkStatus();
+    // ChunkStatus::FEATURES.~ChunkStatus();
+    // ChunkStatus::LIGHT.~ChunkStatus();
+    // ChunkStatus::SPAWN.~ChunkStatus();
+    // ChunkStatus::HEIGHTMAPS.~ChunkStatus();
+    // ChunkStatus::FULL.~ChunkStatus();
+    // ChunkStatus::STATUS_BY_RANGE.~vector();
+}

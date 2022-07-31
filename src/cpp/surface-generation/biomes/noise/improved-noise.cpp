@@ -17,6 +17,8 @@ ImprovedNoise::ImprovedNoise(shared_ptr<RandomSource> randomSource) {
         this->_p[k] = this->_p[k + value];
         this->_p[k + value] = temp;
     }
+
+    objectCreated("ImprovedNoise");
 }
 
 double ImprovedNoise::noise(double x, double y, double z) const {

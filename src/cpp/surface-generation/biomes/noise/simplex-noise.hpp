@@ -2,6 +2,7 @@
 
 #include <memory>
 
+#include "../memory-debug.hpp"
 #include "../mth.hpp"
 #include "../random.hpp"
 
@@ -24,9 +25,14 @@ public:
     double xo, yo, zo;
 
     SimplexNoise() {
+        objectCreated("SimplexNoise");
     }
 
     SimplexNoise(shared_ptr<RandomSource> randomSource);
+
+    virtual ~SimplexNoise() {
+        objectFreed("SimplexNoise");
+    }
 
     static double dot(const int32_t v[], double x, double y, double z);
 

@@ -42,7 +42,7 @@ export function test() {
 
     const chunk = testJS()
 
-    alert(`JS chunk generation: ${performance.now() - startTime}`)
+    // alert(`JS chunk generation: ${performance.now() - startTime}`)
 
     let result = "const BLOCKS = ["
 
@@ -70,7 +70,7 @@ export function test() {
     try {
         const startTime = performance.now()
         const ptr = module._test()
-        alert(`C++ chunk generation: ${performance.now() - startTime}`)
+        // alert(`C++ chunk generation: ${performance.now() - startTime}`)
         // debugger
 
         let result = "const BLOCKS = ["
@@ -112,12 +112,16 @@ export function test() {
         }
         result += "]"
         */
-        console.log(result)
+        // console.log(result)
 
         module._free(ptr)
     } catch (ptr) {
         module._print_exception(ptr)
     }
+
+    module._finalize()
+
+    module._print_memory_stats()
 
     // debugger
 }

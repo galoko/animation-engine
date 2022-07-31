@@ -106,6 +106,8 @@ class ChunkAccess : public BlockGetter, public enable_shared_from_this<ChunkAcce
 private:
     ChunkPos chunkPos;
     LevelHeightAccessor const &levelHeightAccessor;
+    // DEBUG
+public:
     shared_ptr<NoiseChunk> noiseChunk;
 
 protected:

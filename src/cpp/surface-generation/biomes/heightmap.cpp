@@ -1,6 +1,6 @@
 #include "heightmap.hpp"
 
-Heightmap::Heightmap(shared_ptr<ChunkAccess> chunk, Heightmap::Types type) : chunk(chunk) {
+Heightmap::Heightmap(shared_ptr<ChunkAccess> chunkAccess, Heightmap::Types type) : chunkAccess(chunkAccess) {
     this->isOpaque = Type_isOpaque(type);
 }
 
@@ -58,15 +58,17 @@ bool Heightmap::update(int32_t x, int32_t y, int32_t z, BlockState block) {
         } else if (height - 1 == y) {
             MutableBlockPos pos = MutableBlockPos();
 
-            for (int32_t currentY = y - 1; currentY >= this->chunk->getMinBuildHeight(); --currentY) {
+            shared_ptr<ChunkAccess> chunkAccess = this->chunkAccess.lock();
+
+            for (int32_t currentY = y - 1; currentY >= chunkAccess->getMinBuildHeight(); --currentY) {
                 pos.set(x, currentY, z);
-                if (this->isOpaque(this->chunk->getBlockState(pos))) {
+                if (this->isOpaque(chunkAccess->getBlockState(pos))) {
                     this->setHeight(x, z, currentY + 1);
                     return true;
                 }
             }
 
-            this->setHeight(x, z, this->chunk->getMinBuildHeight());
+            this->setHeight(x, z, chunkAccess->getMinBuildHeight());
             return true;
         }
 
@@ -83,9 +85,9 @@ int32_t Heightmap::getHighestTaken(int32_t x, int32_t z) const {
 }
 
 int32_t Heightmap::getFirstAvailable(int32_t index) const {
-    return this->data[index] + this->chunk->getMinBuildHeight();
+    return this->data[index] + this->chunkAccess.lock()->getMinBuildHeight();
 }
 
 void Heightmap::setHeight(int32_t x, int32_t z, int32_t height) {
-    this->data[getIndex(x, z)] = height - this->chunk->getMinBuildHeight();
+    this->data[getIndex(x, z)] = height - this->chunkAccess.lock()->getMinBuildHeight();
 }

@@ -14,6 +14,8 @@ SimplexNoise::SimplexNoise(shared_ptr<RandomSource> randomSource) {
         this->_p[i] = this->_p[value + i];
         this->_p[value + i] = temp;
     }
+
+    objectCreated("SimplexNoise");
 }
 
 int32_t SimplexNoise::p(int32_t index) {

@@ -36,6 +36,8 @@ unique_ptr<Aquifer> Aquifer::create(shared_ptr<NoiseChunk> noiseChunk, ChunkPos 
 // DisabledAquifer
 
 DisabledAquifer::DisabledAquifer(shared_ptr<FluidPicker> globalFluidPicker) : globalFluidPicker(globalFluidPicker) {
+    objectCreated("Aquifer");
+    objectCreated("FluidPicker");
 }
 
 BlockState DisabledAquifer::computeSubstance(int32_t x, int32_t y, int32_t z, double baseNoise,
@@ -57,6 +59,8 @@ NoiseBasedAquifer::NoiseBasedAquifer(shared_ptr<NoiseChunk> noiseChunk, ChunkPos
     : noiseChunk(noiseChunk), barrierNoise(barrierNoise), fluidLevelFloodednessNoise(fluidLevelFloodednessNoise),
       fluidLevelSpreadNoise(fluidLevelSpreadNoise), lavaNoise(lavaNoise),
       positionalRandomFactory(positionalRandomFactory), globalFluidPicker(globalFluidPicker) {
+    objectCreated("Aquifer");
+    objectCreated("FluidPicker");
 
     this->minGridX = this->gridX(chunkPos.getMinBlockX()) - 1;
     this->minGridY = this->gridY(y) - 1;
@@ -299,7 +303,7 @@ Aquifer::FluidStatus NoiseBasedAquifer::computeFluid(int32_t x, int32_t y, int32
     for (const int32_t(&offset)[2] : SURFACE_SAMPLING_OFFSETS_IN_CHUNKS) {
         int32_t shiftedX = x + SectionPos::sectionToBlockCoord(offset[0]);
         int32_t shiftedZ = z + SectionPos::sectionToBlockCoord(offset[1]);
-        int32_t surfaceY = this->noiseChunk->preliminarySurfaceLevel(shiftedX, shiftedZ);
+        int32_t surfaceY = this->noiseChunk.lock()->preliminarySurfaceLevel(shiftedX, shiftedZ);
         int32_t maxSurfaceY = surfaceY + 8;
         bool isOffsetInPlace = offset[0] == 0 && offset[1] == 0;
         if (isOffsetInPlace && minY > maxSurfaceY) {

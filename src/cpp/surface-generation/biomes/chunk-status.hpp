@@ -67,7 +67,7 @@ public:
     static ChunkStatus HEIGHTMAPS;
     static ChunkStatus FULL;
 
-    static vector<ChunkStatus> STATUS_BY_RANGE;
+    // static vector<ChunkStatus> STATUS_BY_RANGE;
 
 private:
     string name;
@@ -91,6 +91,7 @@ public:
     static ChunkStatus _register(string name, ChunkStatus *chunkStatus, int32_t index,
                                  vector<HeightmapTypes> heightmapsAfter, ChunkStatus::ChunkType chunkType,
                                  ChunkStatus::GenerationTask generationTask, ChunkStatus::LoadingTask loadingTask);
+    static void finalize();
 
 public:
     static vector<ChunkStatus const *> getStatusList();

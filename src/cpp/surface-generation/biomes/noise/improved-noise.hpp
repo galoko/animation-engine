@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <memory>
 
+#include "../memory-debug.hpp"
 #include "../mth.hpp"
 #include "../random.hpp"
 #include "simplex-noise.hpp"
@@ -16,6 +17,10 @@ public:
     double xo, yo, zo;
 
     ImprovedNoise(shared_ptr<RandomSource> randomSource);
+
+    virtual ~ImprovedNoise() {
+        objectFreed("ImprovedNoise");
+    }
 
     double noise(double x, double y, double z) const;
     double noise(double x, double y, double z, double yFractStep, double maxYfract) const;

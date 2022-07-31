@@ -32,7 +32,15 @@ function silentExecSync(line) {
     }
 }
 
-const EXPORTED_FUNCTIONS = ["_malloc", "_free", "_init", "_test", "_print_exception"]
+const EXPORTED_FUNCTIONS = [
+    "_malloc",
+    "_free",
+    "_init",
+    "_test",
+    "_print_exception",
+    "_print_memory_stats",
+    "_finalize",
+]
 
 const FLAGS = ["-s WASM=1", "-s MODULARIZE=1", "-std=c++2a", "-Wall"]
 

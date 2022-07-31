@@ -13,6 +13,8 @@ interface EmscriptenModule {
     _init(): void
     _test(): number
     _print_exception(ptr: number): void
+    _print_memory_stats(): void
+    _finalize(): void
 }
 
 export default function Module(...args: unknown[]): Promise<EmscriptenModule>

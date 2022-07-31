@@ -167,9 +167,12 @@ ChunkAccess::ChunkAccess(ChunkPos const &chunkPos, LevelHeightAccessor const &le
     this->heightmaps = std::map<HeightmapTypes, Heightmap>();
 
     replaceMissingSections(levelHeightAccessor, this->sections);
+
+    objectCreated("ChunkAccess");
 }
 
 ChunkAccess::~ChunkAccess() {
+    objectFreed("ChunkAccess");
 }
 
 void ChunkAccess::replaceMissingSections(LevelHeightAccessor const &heightAccessor,

@@ -5,6 +5,7 @@
 
 #include <cstdint>
 
+#include "memory-debug.hpp"
 #include "mth.hpp"
 
 using namespace std;
@@ -109,6 +110,7 @@ public:
     public:
         virtual Climate::TargetPoint const sample(int32_t x, int32_t y, int32_t z) const = 0;
         virtual ~Sampler() {
+            objectFreed("Climate::Sampler");
         }
     };
 };

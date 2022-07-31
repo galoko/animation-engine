@@ -2,6 +2,7 @@
 
 #include "biomes.hpp"
 #include "climate.hpp"
+#include "memory-debug.hpp"
 
 #include <functional>
 #include <set>
@@ -30,6 +31,10 @@ public:
     vector<BiomeSource::StepFeatureData> featuresPerStep;
 
     BiomeSource(vector<Biomes> const &biomes);
+
+    virtual ~BiomeSource() {
+        objectFreed("BiomeSource");
+    }
 
     virtual shared_ptr<BiomeSource> withSeed(int64_t seed) = 0;
     virtual Biomes getNoiseBiome(int32_t x, int32_t y, int32_t z, shared_ptr<Climate::Sampler> sampler) const = 0;
@@ -72,6 +77,8 @@ public:
                                                       bool usePresetInstance) const;
         unique_ptr<MultiNoiseBiomeSource> biomeSource(bool usePresetInstance) const;
         unique_ptr<MultiNoiseBiomeSource> biomeSource() const;
+
+        static void finalize();
     };
 
 private:

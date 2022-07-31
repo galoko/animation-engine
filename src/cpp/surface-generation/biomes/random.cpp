@@ -96,10 +96,12 @@ int64_t Xoroshiro128PlusPlus::nextLong() {
 
 XoroshiroRandomSource::XoroshiroRandomSource(int64_t seed)
     : randomNumberGenerator(RandomSupport::upgradeSeedTo128bit(seed)) {
+    objectCreated("RandomSource");
 }
 
 XoroshiroRandomSource::XoroshiroRandomSource(int64_t seedLo, int64_t seedHi)
     : randomNumberGenerator(Xoroshiro128PlusPlus(seedLo, seedHi)) {
+    objectCreated("RandomSource");
 }
 
 unique_ptr<RandomSource> XoroshiroRandomSource::fork() {
@@ -171,6 +173,7 @@ int64_t XoroshiroRandomSource::nextBits(int32_t bits) {
 XoroshiroRandomSource::XoroshiroPositionalRandomFactory::XoroshiroPositionalRandomFactory(int64_t seedLo,
                                                                                           int64_t seedHi)
     : seedLo(seedLo), seedHi(seedHi) {
+    objectCreated("PositionalRandomFactory");
 }
 
 unique_ptr<RandomSource> XoroshiroRandomSource::XoroshiroPositionalRandomFactory::at(int32_t x, int32_t y, int32_t z) {
@@ -239,6 +242,7 @@ double BitRandomSource::nextDouble() {
 
 LegacyRandomSource::LegacyRandomSource(int64_t seed) {
     this->setSeed(seed);
+    objectCreated("RandomSource");
 }
 
 unique_ptr<RandomSource> LegacyRandomSource::fork() {
@@ -269,6 +273,7 @@ double LegacyRandomSource::nextGaussian() {
 // LegacyPositionalRandomFactory
 
 LegacyRandomSource::LegacyPositionalRandomFactory::LegacyPositionalRandomFactory(int64_t seed) : seed(seed) {
+    objectCreated("PositionalRandomFactory");
 }
 
 unique_ptr<RandomSource> LegacyRandomSource::LegacyPositionalRandomFactory::at(int32_t x, int32_t y, int32_t z) {
@@ -362,6 +367,7 @@ double Random::nextGaussian() {
 
 WorldgenRandom::WorldgenRandom(unique_ptr<RandomSource> randomSource)
     : Random(0LL), randomSource(std::move(randomSource)), count(0) {
+    objectCreated("RandomSource");
 }
 
 unique_ptr<RandomSource> WorldgenRandom::fork() {

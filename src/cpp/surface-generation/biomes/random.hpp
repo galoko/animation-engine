@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 
+#include "memory-debug.hpp"
 #include "mth.hpp"
 #include "pos.hpp"
 
@@ -52,6 +53,7 @@ public:
     virtual void consumeCount(int32_t count);
 
     virtual ~RandomSource() {
+        objectFreed("RandomSource");
     }
 };
 
@@ -64,6 +66,7 @@ public:
     unique_ptr<RandomSource> at(BlockPos const &pos);
 
     virtual ~PositionalRandomFactory() {
+        objectFreed("PositionalRandomFactory");
     }
 };
 

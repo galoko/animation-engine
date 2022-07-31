@@ -158,3 +158,9 @@ NormalNoise::NoiseParameters const &getNoiseParameters(Noises noise) {
 NormalNoise Noises_instantiate(shared_ptr<PositionalRandomFactory> random, Noises noise) {
     return NormalNoise::create(random->fromHashOfResourceLocation(getNoiseName(noise)), getNoiseParameters(noise));
 }
+
+void Noises_finalize() {
+    for (int32_t noise = (int32_t)Noises::FIRST; noise <= (int32_t)Noises::LAST; noise++) {
+        NOISE_PARAMETERS[noise].~NoiseParameters();
+    }
+}

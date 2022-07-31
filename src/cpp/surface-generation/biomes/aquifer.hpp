@@ -3,6 +3,7 @@
 #include <functional>
 
 #include "blocks.hpp"
+#include "memory-debug.hpp"
 #include "noise-chunk.fwd.hpp"
 #include "noise/normal-noise.hpp"
 #include "pos.hpp"
@@ -38,6 +39,7 @@ public:
     virtual FluidStatus computeFluid(int32_t x, int32_t y, int32_t z) = 0;
 
     virtual ~FluidPicker() {
+        objectFreed("FluidPicker");
     }
 };
 
@@ -59,6 +61,7 @@ public:
     virtual bool shouldScheduleFluidUpdate() = 0;
 
     virtual ~Aquifer() {
+        objectFreed("Aquifer");
     }
 };
 
@@ -93,7 +96,7 @@ private:
     static const int32_t MAX_REASONABLE_DISTANCE_TO_AQUIFER_CENTER = 11;
     static constexpr double FLOWING_UPDATE_SIMULARITY = NoiseBasedAquifer_similarity(Mth::square(10), Mth::square(12));
 
-    shared_ptr<NoiseChunk> noiseChunk;
+    weak_ptr<NoiseChunk> noiseChunk;
     NormalNoise const &barrierNoise;
     NormalNoise const &fluidLevelFloodednessNoise;
     NormalNoise const &fluidLevelSpreadNoise;

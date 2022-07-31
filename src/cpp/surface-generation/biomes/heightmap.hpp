@@ -23,7 +23,7 @@ private:
 
     int32_t data[256];
     Predicate<BlockState> isOpaque;
-    shared_ptr<ChunkAccess> chunk;
+    weak_ptr<ChunkAccess> chunkAccess;
 
 public:
     enum Usage
@@ -67,7 +67,7 @@ public:
         return isOpaqueData[type].isOpaque;
     };
 
-    Heightmap(shared_ptr<ChunkAccess> chunk, Heightmap::Types type);
+    Heightmap(shared_ptr<ChunkAccess> chunkAccess, Heightmap::Types type);
 
     static void primeHeightmaps(shared_ptr<ChunkAccess> chunkAccess, vector<Heightmap::Types> types);
 

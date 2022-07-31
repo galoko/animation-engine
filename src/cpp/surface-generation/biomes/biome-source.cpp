@@ -1,6 +1,7 @@
 #include "biome-source.hpp"
 #include "biomes.hpp"
 #include "climate.hpp"
+#include "memory-debug.hpp"
 #include "overworld-biome-builder.hpp"
 
 using namespace std;
@@ -15,6 +16,7 @@ BiomeSource::StepFeatureData::StepFeatureData(vector<PlacedFeature> features,
 BiomeSource::BiomeSource(vector<Biomes> const &biomes) {
     this->possibleBiomes = set<Biomes>(make_move_iterator(biomes.begin()), make_move_iterator(biomes.end()));
     // this->featuresPerStep = this->buildFeaturesPerStep(biomes, true);
+    objectCreated("BiomeSource");
 }
 
 // Preset
@@ -63,6 +65,12 @@ MultiNoiseBiomeSource::Preset MultiNoiseBiomeSource::Preset::NETHER =
              pair(Climate::parameters(0.0F, 0.5F, 0.0F, 0.0F, 0.0F, 0.0F, 0.375F), Biomes::WARPED_FOREST),
              pair(Climate::parameters(-0.5F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.175F), Biomes::BASALT_DELTAS)});
     });
+
+void MultiNoiseBiomeSource::Preset::finalize() {
+    MultiNoiseBiomeSource::Preset::NULL_PRESET.~Preset();
+    MultiNoiseBiomeSource::Preset::OVERWORLD.~Preset();
+    MultiNoiseBiomeSource::Preset::NETHER.~Preset();
+}
 
 // PresetInstance
 
