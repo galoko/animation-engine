@@ -50,9 +50,7 @@ shared_ptr<ProtoChunk> doTest2() {
 uint8_t *doTest() {
     shared_ptr<ProtoChunk> chunk = nullptr;
 
-    for (int i = 0; i < 5; i++) {
-        chunk = doTest2();
-    }
+    chunk = doTest2();
 
     uint8_t *result = new uint8_t[16 * 16 * 384];
     MutableBlockPos pos = MutableBlockPos();

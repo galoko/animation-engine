@@ -34,15 +34,22 @@ function testJS() {
     ChunkStatus.BIOMES.generate(null!, chunkGenerator, chunkAccess => chunkAccess, [chunk])
     ChunkStatus.NOISE.generate(null!, chunkGenerator, chunkAccess => chunkAccess, [chunk])
 
+    if (window.gc) {
+        window.gc()
+    }
+
     return chunk
 }
 
 export function test() {
+    if (window.gc) {
+        console.log("force GC is available!")
+    }
     const startTime = performance.now()
 
     const chunk = testJS()
 
-    // alert(`JS chunk generation: ${performance.now() - startTime}`)
+    alert(`JS chunk generation: ${performance.now() - startTime}`)
 
     let result = "const BLOCKS = ["
 
@@ -70,7 +77,7 @@ export function test() {
     try {
         const startTime = performance.now()
         const ptr = module._test()
-        // alert(`C++ chunk generation: ${performance.now() - startTime}`)
+        alert(`C++ chunk generation: ${performance.now() - startTime}`)
         // debugger
 
         let result = "const BLOCKS = ["
