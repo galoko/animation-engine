@@ -36,11 +36,11 @@ ChunkStatus ChunkStatus::_register(string name, ChunkStatus *chunkStatus, int32_
     return ChunkStatus(name, chunkStatus, index, heightmapsAfter, chunkType, generationTask, loadingTask);
 }
 
-vector<ChunkStatus const *> ChunkStatus::getStatusList() {
-    vector<ChunkStatus const *> list = vector<ChunkStatus const *>();
+const vector<ChunkStatus *> ChunkStatus::getStatusList() {
+    vector<ChunkStatus *> list = vector<ChunkStatus *>();
 
-    ChunkStatus const *chunkstatus;
-    for (chunkstatus = &FULL; &chunkstatus->getParent() != chunkstatus; chunkstatus = &chunkstatus->getParent()) {
+    ChunkStatus *chunkstatus;
+    for (chunkstatus = &FULL; &chunkstatus->getParent() != chunkstatus; chunkstatus = (ChunkStatus*) & chunkstatus->getParent()) {
         list.push_back(chunkstatus);
     }
 
@@ -134,6 +134,13 @@ ChunkStatus ChunkStatus::NOISE = _register("noise", &BIOMES, 8, PRE_FEATURES, Ch
                                                return generator->fillFromNoise(Blender::empty(), chunkAccess);
                                            });
 
+ChunkStatus ChunkStatus::FULL = _register("fill", &NOISE, 8, PRE_FEATURES, ChunkStatus::ChunkType::PROTOCHUNK,
+    [](ChunkStatus const& chunkStatus, shared_ptr<ChunkGenerator> generator,
+        ChunkConverter converter, vector<shared_ptr<ChunkAccess>> neighbors,
+        shared_ptr<ChunkAccess> chunkAccess) -> shared_ptr<ChunkAccess> {
+            return chunkAccess;
+    });
+
 void ChunkStatus::finalize() {
     ChunkStatus::PRE_FEATURES.~vector();
     ChunkStatus::POST_FEATURES.~vector();
@@ -149,6 +156,6 @@ void ChunkStatus::finalize() {
     // ChunkStatus::LIGHT.~ChunkStatus();
     // ChunkStatus::SPAWN.~ChunkStatus();
     // ChunkStatus::HEIGHTMAPS.~ChunkStatus();
-    // ChunkStatus::FULL.~ChunkStatus();
+    ChunkStatus::FULL.~ChunkStatus();
     // ChunkStatus::STATUS_BY_RANGE.~vector();
 }

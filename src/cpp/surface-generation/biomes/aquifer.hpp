@@ -19,7 +19,7 @@ public:
     static const int32_t MAX_Y = (Y_SIZE >> 1) - 1;
     static const int32_t MIN_Y = MAX_Y - Y_SIZE + 1;
     static const int32_t WAY_ABOVE_MAX_Y = MAX_Y << 4;
-    static const int32_t WAY_BELOW_MIN_Y = MIN_Y << 4;
+    static const int32_t WAY_BELOW_MIN_Y = (uint32_t)MIN_Y << 4;
 };
 
 class FluidStatus {

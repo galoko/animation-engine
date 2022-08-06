@@ -20,8 +20,8 @@ const getAllFiles = (dirPath, ext, arrayOfFiles) => {
     return arrayOfFiles
 }
 
-const cpp_files = getAllFiles(".", ".cpp")
-const c_files = getAllFiles(".", ".c")
+const cpp_files = getAllFiles("./src/cpp", ".cpp")
+const c_files = getAllFiles("./src/cpp", ".c")
 const o_files = []
 
 function silentExecSync(line) {

@@ -2,7 +2,7 @@
 
 class Heightmap;
 
-enum HeightmapTypes
+enum class HeightmapTypes
 {
     WORLD_SURFACE_WG,
     WORLD_SURFACE,

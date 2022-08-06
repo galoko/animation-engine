@@ -6,15 +6,15 @@ BlockPos::BlockPos(double x, double y, double z) : x(x), y(y), z(z) {
 }
 
 int32_t BlockPos::getX() const {
-    return this->x;
+    return (int32_t)this->x;
 }
 
 int32_t BlockPos::getY() const {
-    return this->y;
+    return (int32_t)this->y;
 }
 
 int32_t BlockPos::getZ() const {
-    return this->z;
+    return (int32_t)this->z;
 }
 
 BlockPos &BlockPos::setX(int32_t value) {

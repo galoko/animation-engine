@@ -49,7 +49,7 @@ export function test() {
 
     const chunk = testJS()
 
-    alert(`JS chunk generation: ${performance.now() - startTime}`)
+    // alert(`JS chunk generation: ${performance.now() - startTime}`)
 
     let result = "const BLOCKS = ["
 
@@ -84,21 +84,29 @@ export function test() {
 
         const pos = new MutableBlockPos()
         let i = 0
+        let ok = true
         for (let y = -64; y < 256; y++) {
             for (let x = 0; x < 16; x++) {
                 for (let z = 0; z < 16; z++) {
                     pos.set(x, y, z)
-                    const block = chunk.getBlockState(pos)
-                    const templateBlock = CPP_ID_TO_BLOCK_NAME[module.HEAPU8[ptr + i]]
+                    const block = CPP_ID_TO_BLOCK_NAME[module.HEAPU8[ptr + i]]
+                    const templateBlock = BLOCKS[i]
                     i++
                     if (block !== templateBlock) {
                         debugger
+                        ok = false
                     }
                     result += "'" + templateBlock + "', \n"
                 }
             }
         }
         result += "]"
+
+        if (!ok) {
+            alert("NOT OK")
+        } else {
+            alert("ok")
+        }
 
         /*
         const pos = new MutableBlockPos()

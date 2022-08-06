@@ -1,4 +1,6 @@
+#ifdef __EMSCRIPTEN__
 #include <emscripten.h>
+#endif
 #include <memory>
 #include <stdio.h>
 
@@ -28,8 +30,10 @@
 using namespace Mth;
 using namespace std;
 
+#ifndef _MSC_VER
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-variable"
+#endif
 
 SimpleLevelHeightAccessor heightAccessor = SimpleLevelHeightAccessor();
 
@@ -74,20 +78,24 @@ extern "C" {
     }
 
     uint8_t *test() {
-        printf("enter\n");
+        // printf("enter\n");
 
-        uint8_t *blocks = doTest();
+        uint8_t *blocks;
 
-        printf("exit\n");
+        blocks = doTest();
+
+        // printf("exit\n");
 
         return blocks;
     }
 
+#ifdef __EMSCRIPTEN__
     // gets an exception object, and prints it out.
     void print_exception(int32_t exceptionPtr) {
         auto e = reinterpret_cast<exception *>(exceptionPtr);
         printf("%s\n", e->what());
     }
+#endif
 
     void print_memory_stats() {
         printMemoryStats();
@@ -101,4 +109,6 @@ extern "C" {
     }
 }
 
+#ifndef _MSC_VER
 #pragma GCC diagnostic pop
+#endif

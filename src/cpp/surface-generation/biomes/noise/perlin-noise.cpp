@@ -39,7 +39,7 @@ PerlinNoise::PerlinNoise(shared_ptr<RandomSource> randomSource,
                          pair<int32_t, vector<double>> const &octaveAndAmplitudes, bool notLegacy) {
     this->firstOctave = octaveAndAmplitudes.first;
     this->amplitudes = octaveAndAmplitudes.second;
-    int32_t amplitudesCount = this->amplitudes.size();
+    int32_t amplitudesCount = (int32_t)this->amplitudes.size();
     int32_t minusFirstOctave = -this->firstOctave;
     this->noiseLevels = vector<shared_ptr<ImprovedNoise>>(amplitudesCount);
     if (notLegacy) {

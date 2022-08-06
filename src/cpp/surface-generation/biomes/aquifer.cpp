@@ -128,9 +128,11 @@ BlockState NoiseBasedAquifer::computeSubstance(int32_t x, int32_t y, int32_t z, 
                             } else {
                                 unique_ptr<RandomSource> randomsource =
                                     this->positionalRandomFactory->at(currentX, currentY, currentZ);
-                                location = BlockPos::asLong(currentX * 16 + randomsource->nextInt(10),
-                                                            currentY * 12 + randomsource->nextInt(9),
-                                                            currentZ * 16 + randomsource->nextInt(10));
+                                int32_t xOffset = randomsource->nextInt(10);
+                                int32_t yOffset = randomsource->nextInt(9);
+                                int32_t zOffset = randomsource->nextInt(10);
+                                location = BlockPos::asLong(currentX * 16 + xOffset, currentY * 12 + yOffset,
+                                                            currentZ * 16 + zOffset);
                                 this->aquiferLocationCache[gridIndex] = location;
                             }
 

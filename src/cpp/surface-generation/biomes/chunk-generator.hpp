@@ -195,7 +195,7 @@ public:
 
 class NoiseSampler : public Climate::Sampler, public enable_shared_from_this<NoiseSampler> {
 public:
-    enum VeinType
+    enum class VeinType
     {
         NULL_VEIN,
         COPPER,

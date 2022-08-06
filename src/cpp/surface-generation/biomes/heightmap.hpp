@@ -26,7 +26,7 @@ private:
     weak_ptr<ChunkAccess> chunkAccess;
 
 public:
-    enum Usage
+    enum class Usage
     {
         WORLDGEN,
         LIVE_WORLD,
@@ -56,15 +56,15 @@ public:
     };
 
     static constexpr inline const char *Type_name(Types type) {
-        return isOpaqueData[type].name;
+        return isOpaqueData[(int32_t)type].name;
     };
 
     static constexpr inline Usage Type_usage(Types type) {
-        return isOpaqueData[type].usage;
+        return isOpaqueData[(int32_t)type].usage;
     };
 
     static constexpr inline Predicate<BlockState> Type_isOpaque(Types type) {
-        return isOpaqueData[type].isOpaque;
+        return isOpaqueData[(int32_t)type].isOpaque;
     };
 
     Heightmap(shared_ptr<ChunkAccess> chunkAccess, Heightmap::Types type);

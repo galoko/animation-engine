@@ -17,6 +17,12 @@ public:
     }
 };
 
+struct BlendedNoiseInput {
+    PerlinNoise minLimitNoise;
+    PerlinNoise maxLimitNoise;
+    PerlinNoise mainNoise;
+};
+
 class BlendedNoise {
 private:
     PerlinNoise minLimitNoise;
@@ -29,8 +35,7 @@ private:
     int32_t cellWidth;
     int32_t cellHeight;
 
-    BlendedNoise(PerlinNoise const &minLimitNoise, PerlinNoise const &maxLimitNoise, PerlinNoise const &mainNoise,
-                 NoiseSamplingSettings const &settings, int32_t cellWidth, int32_t cellHeight);
+    BlendedNoise(BlendedNoiseInput const &blendedNoiseInput, NoiseSamplingSettings const &settings, int32_t cellWidth, int32_t cellHeight);
 
 public:
     BlendedNoise() {

@@ -14,10 +14,9 @@ vector<int32_t> IntStream::rangeClosed(int32_t startInclusive, int32_t endInclus
 
 // BlendedNoise
 
-BlendedNoise::BlendedNoise(PerlinNoise const &minLimitNoise, PerlinNoise const &maxLimitNoise,
-                           PerlinNoise const &mainNoise, NoiseSamplingSettings const &settings, int32_t cellWidth,
+BlendedNoise::BlendedNoise(BlendedNoiseInput const& blendedNoiseInput, NoiseSamplingSettings const &settings, int32_t cellWidth,
                            int32_t cellHeight)
-    : minLimitNoise(minLimitNoise), maxLimitNoise(maxLimitNoise), mainNoise(mainNoise) {
+    : minLimitNoise(blendedNoiseInput.minLimitNoise), maxLimitNoise(blendedNoiseInput.maxLimitNoise), mainNoise(blendedNoiseInput.mainNoise) {
     this->xzScale = 684.412 * settings.xzScale;
     this->yScale = 684.412 * settings.yScale;
     this->xzMainScale = this->xzScale / settings.xzFactor;
@@ -26,12 +25,19 @@ BlendedNoise::BlendedNoise(PerlinNoise const &minLimitNoise, PerlinNoise const &
     this->cellHeight = cellHeight;
 }
 
+BlendedNoiseInput makeBlendedNoiseInput(shared_ptr<RandomSource> randomSource) {
+    BlendedNoiseInput input;
+
+    input.minLimitNoise = PerlinNoise::createLegacyForBlendedNoise(randomSource, IntStream::rangeClosed(-15, 0));
+    input.maxLimitNoise = PerlinNoise::createLegacyForBlendedNoise(randomSource, IntStream::rangeClosed(-15, 0));
+    input.mainNoise = PerlinNoise::createLegacyForBlendedNoise(randomSource, IntStream::rangeClosed(-7, 0));
+
+    return input;
+}
+
 BlendedNoise::BlendedNoise(shared_ptr<RandomSource> randomSource, NoiseSamplingSettings const &settings,
                            int32_t cellWidth, int32_t cellHeight)
-    : BlendedNoise(PerlinNoise::createLegacyForBlendedNoise(randomSource, IntStream::rangeClosed(-15, 0)),
-                   PerlinNoise::createLegacyForBlendedNoise(randomSource, IntStream::rangeClosed(-15, 0)),
-                   PerlinNoise::createLegacyForBlendedNoise(randomSource, IntStream::rangeClosed(-7, 0)), settings,
-                   cellWidth, cellHeight) {
+    : BlendedNoise(makeBlendedNoiseInput(randomSource), settings, cellWidth, cellHeight) {
 }
 
 double BlendedNoise::calculateNoise(int32_t x, int32_t y, int32_t z) const {

@@ -185,7 +185,7 @@ void ChunkAccess::replaceMissingSections(LevelHeightAccessor const &heightAccess
 LevelChunkSection *ChunkAccess::getHighestSection() {
     vector<LevelChunkSection> &sections = this->getSections();
 
-    for (int32_t sectionIndex = sections.size() - 1; sectionIndex >= 0; --sectionIndex) {
+    for (int32_t sectionIndex = (int32_t)sections.size() - 1; sectionIndex >= 0; --sectionIndex) {
         LevelChunkSection &section = this->getSection(sectionIndex);
         if (!section.hasOnlyAir()) {
             return &section;

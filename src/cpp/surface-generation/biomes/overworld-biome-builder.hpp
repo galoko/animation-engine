@@ -31,12 +31,12 @@ public:
 private:
     Climate::Parameter const FULL_RANGE = Climate::Parameter::span(-1.0F, 1.0F);
 
-    vector<const Climate::Parameter> temperatures = {
+    const vector<Climate::Parameter> temperatures = {
         Climate::Parameter::span(-1.0F, -0.45F), Climate::Parameter::span(-0.45F, -0.15F),
         Climate::Parameter::span(-0.15F, 0.2F), Climate::Parameter::span(0.2F, 0.55F),
         Climate::Parameter::span(0.55F, 1.0F)};
 
-    vector<const Climate::Parameter> humidities = {
+    const vector<Climate::Parameter> humidities = {
         Climate::Parameter::span(-1.0F, -0.35F), Climate::Parameter::span(-0.35F, -0.1F),
         Climate::Parameter::span(-0.1F, 0.1F), Climate::Parameter::span(0.1F, 0.3F),
         Climate::Parameter::span(0.3F, 1.0F)};
@@ -104,9 +104,9 @@ private:
         {Biomes::NULL_BIOME, Biomes::NULL_BIOME, Biomes::NULL_BIOME, Biomes::NULL_BIOME, Biomes::NULL_BIOME},
         {Biomes::NULL_BIOME, Biomes::NULL_BIOME, Biomes::NULL_BIOME, Biomes::NULL_BIOME, Biomes::NULL_BIOME}};
 
-    vector<const Climate::ParameterPoint> spawnTarget() {
+    const vector<Climate::ParameterPoint> spawnTarget() {
         const Climate::Parameter depth = Climate::Parameter::point(0.0F);
-        return vector<const Climate::ParameterPoint>(
+        return vector<Climate::ParameterPoint>(
             {Climate::ParameterPoint(this->FULL_RANGE, this->FULL_RANGE,
                                      Climate::Parameter::span(this->inlandContinentalness, this->FULL_RANGE),
                                      this->FULL_RANGE, depth, Climate::Parameter::span(-1.0F, -0.16F), 0LL),

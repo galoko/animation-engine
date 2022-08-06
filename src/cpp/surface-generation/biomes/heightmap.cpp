@@ -5,7 +5,7 @@ Heightmap::Heightmap(shared_ptr<ChunkAccess> chunkAccess, Heightmap::Types type)
 }
 
 void Heightmap::primeHeightmaps(shared_ptr<ChunkAccess> chunkAccess, vector<Heightmap::Types> types) {
-    int32_t typeCount = types.size();
+    int32_t typeCount = (int32_t)types.size();
     vector<Heightmap *> heightmaps = vector<Heightmap *>();
     heightmaps.reserve(typeCount);
 

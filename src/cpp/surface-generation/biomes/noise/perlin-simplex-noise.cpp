@@ -12,9 +12,6 @@ PerlinSimplexNoise::PerlinSimplexNoise(shared_ptr<RandomSource> randomSource, ve
     unique_ptr<SimplexNoise> simplexnoise = make_unique<SimplexNoise>(randomSource);
     int32_t l = lastOctave;
     this->noiseLevels = vector<unique_ptr<SimplexNoise>>(octaveLength);
-    if (lastOctave >= 0 && lastOctave < octaveLength && contains(octaves, 0)) {
-        this->noiseLevels.at(lastOctave) = std::move(simplexnoise);
-    }
 
     for (int32_t octaveIndex = lastOctave + 1; octaveIndex < octaveLength; ++octaveIndex) {
         if (octaveIndex >= 0 && contains(octaves, l - octaveIndex)) {
@@ -36,6 +33,10 @@ PerlinSimplexNoise::PerlinSimplexNoise(shared_ptr<RandomSource> randomSource, ve
                 randomSource->consumeCount(262);
             }
         }
+    }
+
+    if (lastOctave >= 0 && lastOctave < octaveLength && contains(octaves, 0)) {
+        this->noiseLevels.at(lastOctave) = std::move(simplexnoise);
     }
 
     this->highestFreqInputFactor = pow(2.0, (double)lastOctave);

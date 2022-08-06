@@ -114,8 +114,8 @@ public:
 class NoiseInterpolator : public Sampler, public enable_shared_from_this<NoiseInterpolator> {
 private:
     weak_ptr<NoiseChunk> noiseChunk;
-    shared_ptr<double> slice0;
-    shared_ptr<double> slice1;
+    shared_ptr<double[]> slice0;
+    shared_ptr<double[]> slice1;
     NoiseFiller noiseFiller;
     double noise000;
     double noise001;
@@ -148,7 +148,7 @@ public:
     void advanceCellX(int32_t cellX);
 
 private:
-    void fillSlice(shared_ptr<double> slice, int32_t cellX);
+    void fillSlice(shared_ptr<double[]> slice, int32_t cellX);
 
 public:
     void selectCellYZ(int32_t cellY, int32_t cellZ);

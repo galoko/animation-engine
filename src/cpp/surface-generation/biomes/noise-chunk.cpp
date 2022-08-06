@@ -115,7 +115,7 @@ int32_t NoiseChunk::computePreliminarySurfaceLevel(int64_t loc) {
     int32_t chunkY = ChunkPos::getZ(loc);
     int32_t shiftedChunkX = chunkX - this->firstNoiseX;
     int32_t shiftedChunkY = chunkY - this->firstNoiseZ;
-    int32_t noiseDataSize = this->_noiseData.size();
+    int32_t noiseDataSize = (int32_t)this->_noiseData.size();
     TerrainInfo const &terraininfo =
         (shiftedChunkX >= 0 && shiftedChunkY >= 0 && shiftedChunkX < noiseDataSize && shiftedChunkY < noiseDataSize)
             ? this->_noiseData[shiftedChunkX][shiftedChunkY].terrainInfo
@@ -222,7 +222,7 @@ void NoiseInterpolator::advanceCellX(int32_t cellX) {
     this->fillSlice(this->slice1, this->noiseChunk.lock()->firstCellX + cellX + 1);
 }
 
-void NoiseInterpolator::fillSlice(shared_ptr<double> slice, int32_t cellX) {
+void NoiseInterpolator::fillSlice(shared_ptr<double[]> slice, int32_t cellX) {
     shared_ptr<NoiseChunk> noiseChunk = this->noiseChunk.lock();
     int32_t cellWidth = noiseChunk->noiseSettings.getCellWidth();
     int32_t cellHeight = noiseChunk->noiseSettings.getCellHeight();
@@ -271,7 +271,7 @@ double NoiseInterpolator::sample() {
 }
 
 void NoiseInterpolator::swapSlices() {
-    shared_ptr<double> adouble = this->slice0;
+    shared_ptr<double[]> adouble = this->slice0;
     this->slice0 = this->slice1;
     this->slice1 = adouble;
 }

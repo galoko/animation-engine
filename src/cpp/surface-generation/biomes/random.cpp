@@ -105,13 +105,15 @@ XoroshiroRandomSource::XoroshiroRandomSource(int64_t seedLo, int64_t seedHi)
 }
 
 unique_ptr<RandomSource> XoroshiroRandomSource::fork() {
-    return make_unique<XoroshiroRandomSource>(this->randomNumberGenerator.nextLong(),
-                                              this->randomNumberGenerator.nextLong());
+    int64_t seedLo = this->randomNumberGenerator.nextLong();
+    int64_t seedHi = this->randomNumberGenerator.nextLong();
+    return make_unique<XoroshiroRandomSource>(seedLo, seedHi);
 }
 
 unique_ptr<PositionalRandomFactory> XoroshiroRandomSource::forkPositional() {
-    return make_unique<XoroshiroRandomSource::XoroshiroPositionalRandomFactory>(this->randomNumberGenerator.nextLong(),
-                                                                                this->randomNumberGenerator.nextLong());
+    int64_t seedLo = this->randomNumberGenerator.nextLong();
+    int64_t seedHi = this->randomNumberGenerator.nextLong();
+    return make_unique<XoroshiroRandomSource::XoroshiroPositionalRandomFactory>(seedLo, seedHi);
 }
 
 void XoroshiroRandomSource::setSeed(int64_t seed) {

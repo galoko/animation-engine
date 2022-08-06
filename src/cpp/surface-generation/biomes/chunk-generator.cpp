@@ -239,21 +239,7 @@ NoiseSampler::NoiseSampler(NoiseSettings const &noiseSettings, bool isNoiseCaves
                            WorldgenRandom::Algorithm algorithm)
     : noiseSettings(noiseSettings), isNoiseCavesEnabled(isNoiseCavesEnabled) {
     objectCreated("Climate::Sampler");
-}
 
-void NoiseSampler::afterConstructor(NoiseSettings const &noiseSettings, bool isNoiseCavesEnabled, int64_t seed,
-                                    WorldgenRandom::Algorithm algorithm) {
-    weak_ptr<NoiseSampler> weakThis = this->shared_from_this();
-    this->baseNoise = [weakThis](shared_ptr<NoiseChunk> noiseChunk) -> shared_ptr<NoiseChunk::Sampler> {
-        weak_ptr<NoiseChunk> weakNoiseChunk = noiseChunk;
-        return noiseChunk->createNoiseInterpolator(
-            [weakThis, weakNoiseChunk](int32_t x, int32_t y, int32_t z) -> double {
-                shared_ptr<NoiseChunk> noiseChunk = weakNoiseChunk.lock();
-                return weakThis.lock()->calculateBaseNoise(
-                    x, y, z, noiseChunk->noiseData(QuartPos::fromBlock(x), QuartPos::fromBlock(z)).terrainInfo,
-                    noiseChunk->getBlender());
-            });
-    };
     if (noiseSettings.islandNoiseOverride) {
         shared_ptr<RandomSource> randomsource = WorldgenRandom::Algorithm_newInstance(algorithm, seed);
         randomsource->consumeCount(17292);
@@ -342,6 +328,21 @@ void NoiseSampler::afterConstructor(NoiseSettings const &noiseSettings, bool isN
         yLimitedInterpolatableNoise(Noises_instantiate(positionalrandomfactory, Noises::NOODLE_RIDGE_B), clampedMinY,
                                     clampedMaxY, 0, 2.6666666666666665);
     this->jaggedNoise = Noises_instantiate(positionalrandomfactory, Noises::JAGGED);
+}
+
+void NoiseSampler::afterConstructor(NoiseSettings const &noiseSettings, bool isNoiseCavesEnabled, int64_t seed,
+                                    WorldgenRandom::Algorithm algorithm) {
+    weak_ptr<NoiseSampler> weakThis = this->shared_from_this();
+    this->baseNoise = [weakThis](shared_ptr<NoiseChunk> noiseChunk) -> shared_ptr<NoiseChunk::Sampler> {
+        weak_ptr<NoiseChunk> weakNoiseChunk = noiseChunk;
+        return noiseChunk->createNoiseInterpolator(
+            [weakThis, weakNoiseChunk](int32_t x, int32_t y, int32_t z) -> double {
+                shared_ptr<NoiseChunk> noiseChunk = weakNoiseChunk.lock();
+                return weakThis.lock()->calculateBaseNoise(
+                    x, y, z, noiseChunk->noiseData(QuartPos::fromBlock(x), QuartPos::fromBlock(z)).terrainInfo,
+                    noiseChunk->getBlender());
+            });
+    };
 }
 
 NoiseChunk::InterpolatableNoise NoiseSampler::yLimitedInterpolatableNoise(NormalNoise const &noise, int32_t minY,

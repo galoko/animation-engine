@@ -94,7 +94,7 @@ public:
     static void finalize();
 
 public:
-    static vector<ChunkStatus const *> getStatusList();
+    static const vector<ChunkStatus *> getStatusList();
 
 private:
     static bool isLighted(ChunkStatus const &chunkStatus, shared_ptr<ChunkAccess> chunkAccess);
