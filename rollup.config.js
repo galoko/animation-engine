@@ -10,7 +10,7 @@ import copy from "rollup-plugin-copy"
 import * as insert from "rollup-plugin-insert"
 
 export default {
-    input: "src/ts/index.ts",
+    input: "src/ts/browser-main.ts",
     output: {
         file: "build/index.js",
         useStrict: false,
@@ -23,7 +23,7 @@ export default {
             inlineSources: true,
         }),
         insert.transform((magicString, code) => `${code}\nexport default Module;`, {
-            include: "src/wasm/cpp.js",
+            include: "src/wasm/engine.js",
         }),
         string({
             // Required to be specified
@@ -39,8 +39,8 @@ export default {
         arraybuffer({ include: "**/*.wasm" }),
         copy({
             targets: [
-                { src: "src/wasm/cpp.js", dest: "build/wasm" },
-                { src: "src/wasm/cpp.ww.js", dest: "build/wasm" },
+                { src: "src/wasm/engine.js", dest: "build/wasm" },
+                { src: "src/wasm/engine.ww.js", dest: "build/wasm" },
             ],
         }),
         serve({

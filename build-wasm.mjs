@@ -37,6 +37,7 @@ const EXPORTED_FUNCTIONS = [
     "_free",
     "_init",
     "_test",
+    "_check",
     "_print_exception",
     "_print_memory_stats",
     "_finalize",
@@ -101,7 +102,7 @@ for (const c_file of c_files) {
 
 buildCommandLines.push(...o_files)
 
-buildCommandLines.push("-o src/wasm/cpp.js")
+buildCommandLines.push("-o src/wasm/engine.js")
 
 const buildCommand = buildCommandLines.join(" ")
 

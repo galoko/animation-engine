@@ -173,7 +173,7 @@
     <ClCompile Include="..\src\cpp\surface-generation\biomes\terrain-shaper.cpp" />
     <ClCompile Include="..\src\cpp\surface-generation\biomes\worldgen-settings.cpp" />
     <ClCompile Include="..\src\cpp\thirdparty\md5.c" />
-    <ClCompile Include="animation-engine.cpp" />
+    <ClCompile Include="native-main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\cpp\main.hpp" />

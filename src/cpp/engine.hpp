@@ -3,9 +3,11 @@
 extern "C" {
     void init();
 
-    uint8_t* test();
+    void test();
 
-    void print_memory_stats();
+    bool check();
 
     void finalize();
+
+    void print_memory_stats();
 }

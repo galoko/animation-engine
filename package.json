@@ -2,13 +2,15 @@
     "name": "animation-engine",
     "version": "1.0.0",
     "description": "",
-    "main": "index.js",
+    "main": "browser-main.ts",
     "scripts": {
         "start": "rollup -c rollup.config.js --watch --no-treeshake",
         "lint": "eslint --ignore-path .eslintignore --ext .js,.ts .",
         "format": "prettier --ignore-path .gitignore --write \"**/*.+(js|ts|json)\"",
-        "watch:wasm": "nodemon --watch ./src/cpp/ --ext c,cpp,h,hpp --exec build-wasm",
-        "watch:wasm:debug": "nodemon --watch ./*.bat --watch ./src/cpp/ --ext c,cpp,h,hpp --exec build-wasm-debug"
+        "build:release": "node build-wasm.mjs release",
+        "build:debug": "node build-wasm.mjs debug",
+        "build:full-debug": "node build-wasm.mjs full-debug",
+        "build:release-with-debug-info": "node build-wasm.mjs release-with-memory-profiler"
     },
     "author": "",
     "license": "ISC",

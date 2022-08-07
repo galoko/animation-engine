@@ -10,11 +10,14 @@ interface EmscriptenModule {
 
     _malloc(size: number): number
     _free(ptr: number): void
+
     _init(): void
-    _test(): number
-    _print_exception(ptr: number): void
-    _print_memory_stats(): void
+    _test(): void
+    _check(): boolean
     _finalize(): void
+    _print_memory_stats(): void
+
+    _print_exception(ptr: number): void
 }
 
 export default function Module(...args: unknown[]): Promise<EmscriptenModule>
