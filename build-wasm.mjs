@@ -41,6 +41,8 @@ const EXPORTED_FUNCTIONS = [
     "_print_exception",
     "_print_memory_stats",
     "_finalize",
+    "_get_input_queue_ptr",
+    "_get_output_queue_ptr",
 ]
 
 const FLAGS = ["-s WASM=1", "-s MODULARIZE=1", "-std=c++2a", "-Wall"]
@@ -64,6 +66,10 @@ const BUILD_TYPE = process.argv[2] ?? "debug"
 const buildCommandLines = []
 
 buildCommandLines.push("em++")
+
+buildCommandLines.push("--js-library")
+buildCommandLines.push("./src/ts/lib.js")
+
 buildCommandLines.push(...FLAGS)
 
 switch (BUILD_TYPE) {

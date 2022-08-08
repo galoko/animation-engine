@@ -4,17 +4,16 @@
 #include <memory>
 #include <stdio.h>
 
-#include "surface-generation/biomes/aquifer.hpp"
-#include "surface-generation/biomes/biome-source.hpp"
+#include "engine.hpp"
+
 #include "surface-generation/biomes/blocks.hpp"
 #include "surface-generation/biomes/chunk-generator.hpp"
 #include "surface-generation/biomes/chunk-status.hpp"
 #include "surface-generation/biomes/chunks.hpp"
 #include "surface-generation/biomes/memory-debug.hpp"
-#include "surface-generation/biomes/noise-chunk.hpp"
-#include "surface-generation/biomes/overworld-biome-builder.hpp"
 #include "surface-generation/biomes/pos.hpp"
 #include "surface-generation/biomes/worldgen-settings.hpp"
+
 #include "template-1-0.hpp"
 
 using namespace Mth;
@@ -77,9 +76,17 @@ void doTest() {
     saveTestResult(chunk);
 }
 
+const char *TEST_STR = "TESTINAS";
+
+int test_callback() {
+    return 6;
+}
+
 extern "C" {
     void init() {
-        // nothing for now
+        test_api();
+
+        pushMessage(OutputMessageId::TEST_CALLBACK, Test(5, TEST_STR, test_callback));
     }
 
     void test() {
@@ -98,6 +105,14 @@ extern "C" {
         printf("%s\n", e->what());
     }
 #endif
+
+    ServicesQueue *get_input_queue_ptr() {
+        return getInputQueue();
+    }
+
+    ServicesQueue *get_output_queue_ptr() {
+        return getOutputQueue();
+    }
 
     void print_memory_stats() {
         printMemoryStats();

@@ -17,6 +17,9 @@ interface EmscriptenModule {
     _finalize(): void
     _print_memory_stats(): void
 
+    _get_input_queue_ptr(): number
+    _get_output_queue_ptr(): number
+
     _print_exception(ptr: number): void
 }
 

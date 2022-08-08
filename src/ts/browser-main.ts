@@ -1,29 +1,24 @@
-import { module, loadEngine } from "./engine-bridge"
-
-function test(): void {
-    module._init()
-
-    const startTime = performance.now()
-    module._test()
-    const endTime = performance.now()
-
-    const ok = module._check()
-
-    const ms_int = Math.round(endTime - startTime)
-    alert(`${ms_int} ms`)
-
-    alert(ok ? "ok" : "NOT OK")
-
-    module._finalize()
-
-    module._print_memory_stats()
-}
+import { Engine, loadEngine } from "./engine-bridge/module"
+import { GameLoop } from "./external-services/game-loop"
+import { Services } from "./external-services/services"
 
 async function main() {
     // load the engine first
     await loadEngine()
+    Engine._init()
 
-    test()
+    Services.init()
+
+    GameLoop.start()
+}
+
+function shutdown() {
+    GameLoop.stop()
+
+    Engine._finalize()
+    Engine._print_memory_stats()
+
+    //
 }
 
 main()

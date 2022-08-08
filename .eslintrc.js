@@ -22,6 +22,7 @@ module.exports = {
                 code: 100,
             },
         ],
+        "no-debugger": "off",
         "no-multi-spaces": [
             "error",
             { exceptions: { ImportDeclaration: false, VariableDeclarator: true } },
