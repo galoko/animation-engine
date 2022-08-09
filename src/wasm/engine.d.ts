@@ -11,15 +11,19 @@ interface EmscriptenModule {
     _malloc(size: number): number
     _free(ptr: number): void
 
-    _init(): void
+    // debug
     _test(): void
     _check(): boolean
+
+    // life cycle
+    _init(): void
+    _tick(dt: number): void
     _finalize(): void
-    _print_memory_stats(): void
 
     _get_input_queue_ptr(): number
     _get_output_queue_ptr(): number
 
+    _print_memory_stats(): void
     _print_exception(ptr: number): void
 }
 

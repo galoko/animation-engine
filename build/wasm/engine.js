@@ -45,21 +45,6 @@ if (!Object.getOwnPropertyDescriptor(Module["ready"], "_free")) {
  });
 }
 
-if (!Object.getOwnPropertyDescriptor(Module["ready"], "_init")) {
- Object.defineProperty(Module["ready"], "_init", {
-  configurable: true,
-  get: function() {
-   abort("You are getting _init on the Promise object, instead of the instance. Use .then() to get called back with the instance, see the MODULARIZE docs in src/settings.js");
-  }
- });
- Object.defineProperty(Module["ready"], "_init", {
-  configurable: true,
-  set: function() {
-   abort("You are setting _init on the Promise object, instead of the instance. Use .then() to get called back with the instance, see the MODULARIZE docs in src/settings.js");
-  }
- });
-}
-
 if (!Object.getOwnPropertyDescriptor(Module["ready"], "_test")) {
  Object.defineProperty(Module["ready"], "_test", {
   configurable: true,
@@ -90,6 +75,51 @@ if (!Object.getOwnPropertyDescriptor(Module["ready"], "_check")) {
  });
 }
 
+if (!Object.getOwnPropertyDescriptor(Module["ready"], "_init")) {
+ Object.defineProperty(Module["ready"], "_init", {
+  configurable: true,
+  get: function() {
+   abort("You are getting _init on the Promise object, instead of the instance. Use .then() to get called back with the instance, see the MODULARIZE docs in src/settings.js");
+  }
+ });
+ Object.defineProperty(Module["ready"], "_init", {
+  configurable: true,
+  set: function() {
+   abort("You are setting _init on the Promise object, instead of the instance. Use .then() to get called back with the instance, see the MODULARIZE docs in src/settings.js");
+  }
+ });
+}
+
+if (!Object.getOwnPropertyDescriptor(Module["ready"], "_tick")) {
+ Object.defineProperty(Module["ready"], "_tick", {
+  configurable: true,
+  get: function() {
+   abort("You are getting _tick on the Promise object, instead of the instance. Use .then() to get called back with the instance, see the MODULARIZE docs in src/settings.js");
+  }
+ });
+ Object.defineProperty(Module["ready"], "_tick", {
+  configurable: true,
+  set: function() {
+   abort("You are setting _tick on the Promise object, instead of the instance. Use .then() to get called back with the instance, see the MODULARIZE docs in src/settings.js");
+  }
+ });
+}
+
+if (!Object.getOwnPropertyDescriptor(Module["ready"], "_finalize")) {
+ Object.defineProperty(Module["ready"], "_finalize", {
+  configurable: true,
+  get: function() {
+   abort("You are getting _finalize on the Promise object, instead of the instance. Use .then() to get called back with the instance, see the MODULARIZE docs in src/settings.js");
+  }
+ });
+ Object.defineProperty(Module["ready"], "_finalize", {
+  configurable: true,
+  set: function() {
+   abort("You are setting _finalize on the Promise object, instead of the instance. Use .then() to get called back with the instance, see the MODULARIZE docs in src/settings.js");
+  }
+ });
+}
+
 if (!Object.getOwnPropertyDescriptor(Module["ready"], "_print_exception")) {
  Object.defineProperty(Module["ready"], "_print_exception", {
   configurable: true,
@@ -116,21 +146,6 @@ if (!Object.getOwnPropertyDescriptor(Module["ready"], "_print_memory_stats")) {
   configurable: true,
   set: function() {
    abort("You are setting _print_memory_stats on the Promise object, instead of the instance. Use .then() to get called back with the instance, see the MODULARIZE docs in src/settings.js");
-  }
- });
-}
-
-if (!Object.getOwnPropertyDescriptor(Module["ready"], "_finalize")) {
- Object.defineProperty(Module["ready"], "_finalize", {
-  configurable: true,
-  get: function() {
-   abort("You are getting _finalize on the Promise object, instead of the instance. Use .then() to get called back with the instance, see the MODULARIZE docs in src/settings.js");
-  }
- });
- Object.defineProperty(Module["ready"], "_finalize", {
-  configurable: true,
-  set: function() {
-   abort("You are setting _finalize on the Promise object, instead of the instance. Use .then() to get called back with the instance, see the MODULARIZE docs in src/settings.js");
   }
  });
 }
@@ -2752,13 +2767,15 @@ var asm = createWasm();
 
 var ___wasm_call_ctors = Module["___wasm_call_ctors"] = createExportWrapper("__wasm_call_ctors");
 
-var _init = Module["_init"] = createExportWrapper("init");
-
 var _test = Module["_test"] = createExportWrapper("test");
 
 var _check = Module["_check"] = createExportWrapper("check");
 
-var _print_exception = Module["_print_exception"] = createExportWrapper("print_exception");
+var _init = Module["_init"] = createExportWrapper("init");
+
+var _tick = Module["_tick"] = createExportWrapper("tick");
+
+var _finalize = Module["_finalize"] = createExportWrapper("finalize");
 
 var _get_input_queue_ptr = Module["_get_input_queue_ptr"] = createExportWrapper("get_input_queue_ptr");
 
@@ -2766,7 +2783,7 @@ var _get_output_queue_ptr = Module["_get_output_queue_ptr"] = createExportWrappe
 
 var _print_memory_stats = Module["_print_memory_stats"] = createExportWrapper("print_memory_stats");
 
-var _finalize = Module["_finalize"] = createExportWrapper("finalize");
+var _print_exception = Module["_print_exception"] = createExportWrapper("print_exception");
 
 var ___errno_location = Module["___errno_location"] = createExportWrapper("__errno_location");
 
@@ -2840,28 +2857,6 @@ var dynCall_jiji = Module["dynCall_jiji"] = createExportWrapper("dynCall_jiji");
 
 var ___heap_base = Module["___heap_base"] = 5848880;
 
-function invoke_iiddd(index, a1, a2, a3, a4) {
- var sp = stackSave();
- try {
-  return getWasmTableEntry(index)(a1, a2, a3, a4);
- } catch (e) {
-  stackRestore(sp);
-  if (e !== e + 0) throw e;
-  _setThrew(1, 0);
- }
-}
-
-function invoke_iiiii(index, a1, a2, a3, a4) {
- var sp = stackSave();
- try {
-  return getWasmTableEntry(index)(a1, a2, a3, a4);
- } catch (e) {
-  stackRestore(sp);
-  if (e !== e + 0) throw e;
-  _setThrew(1, 0);
- }
-}
-
 function invoke_iii(index, a1, a2) {
  var sp = stackSave();
  try {
@@ -2884,10 +2879,10 @@ function invoke_ii(index, a1) {
  }
 }
 
-function invoke_iiii(index, a1, a2, a3) {
+function invoke_vii(index, a1, a2) {
  var sp = stackSave();
  try {
-  return getWasmTableEntry(index)(a1, a2, a3);
+  getWasmTableEntry(index)(a1, a2);
  } catch (e) {
   stackRestore(sp);
   if (e !== e + 0) throw e;
@@ -2906,43 +2901,21 @@ function invoke_viii(index, a1, a2, a3) {
  }
 }
 
+function invoke_iiii(index, a1, a2, a3) {
+ var sp = stackSave();
+ try {
+  return getWasmTableEntry(index)(a1, a2, a3);
+ } catch (e) {
+  stackRestore(sp);
+  if (e !== e + 0) throw e;
+  _setThrew(1, 0);
+ }
+}
+
 function invoke_viiiii(index, a1, a2, a3, a4, a5) {
  var sp = stackSave();
  try {
   getWasmTableEntry(index)(a1, a2, a3, a4, a5);
- } catch (e) {
-  stackRestore(sp);
-  if (e !== e + 0) throw e;
-  _setThrew(1, 0);
- }
-}
-
-function invoke_vi(index, a1) {
- var sp = stackSave();
- try {
-  getWasmTableEntry(index)(a1);
- } catch (e) {
-  stackRestore(sp);
-  if (e !== e + 0) throw e;
-  _setThrew(1, 0);
- }
-}
-
-function invoke_viiii(index, a1, a2, a3, a4) {
- var sp = stackSave();
- try {
-  getWasmTableEntry(index)(a1, a2, a3, a4);
- } catch (e) {
-  stackRestore(sp);
-  if (e !== e + 0) throw e;
-  _setThrew(1, 0);
- }
-}
-
-function invoke_vii(index, a1, a2) {
- var sp = stackSave();
- try {
-  getWasmTableEntry(index)(a1, a2);
  } catch (e) {
   stackRestore(sp);
   if (e !== e + 0) throw e;
@@ -2965,6 +2938,28 @@ function invoke_iiiiiiiiiiii(index, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11
  var sp = stackSave();
  try {
   return getWasmTableEntry(index)(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11);
+ } catch (e) {
+  stackRestore(sp);
+  if (e !== e + 0) throw e;
+  _setThrew(1, 0);
+ }
+}
+
+function invoke_vi(index, a1) {
+ var sp = stackSave();
+ try {
+  getWasmTableEntry(index)(a1);
+ } catch (e) {
+  stackRestore(sp);
+  if (e !== e + 0) throw e;
+  _setThrew(1, 0);
+ }
+}
+
+function invoke_iiiii(index, a1, a2, a3, a4) {
+ var sp = stackSave();
+ try {
+  return getWasmTableEntry(index)(a1, a2, a3, a4);
  } catch (e) {
   stackRestore(sp);
   if (e !== e + 0) throw e;
@@ -3042,6 +3037,17 @@ function invoke_viiiiid(index, a1, a2, a3, a4, a5, a6) {
  var sp = stackSave();
  try {
   getWasmTableEntry(index)(a1, a2, a3, a4, a5, a6);
+ } catch (e) {
+  stackRestore(sp);
+  if (e !== e + 0) throw e;
+  _setThrew(1, 0);
+ }
+}
+
+function invoke_viiii(index, a1, a2, a3, a4) {
+ var sp = stackSave();
+ try {
+  getWasmTableEntry(index)(a1, a2, a3, a4);
  } catch (e) {
   stackRestore(sp);
   if (e !== e + 0) throw e;
@@ -3196,6 +3202,17 @@ function invoke_i(index) {
  var sp = stackSave();
  try {
   return getWasmTableEntry(index)();
+ } catch (e) {
+  stackRestore(sp);
+  if (e !== e + 0) throw e;
+  _setThrew(1, 0);
+ }
+}
+
+function invoke_iiddd(index, a1, a2, a3, a4) {
+ var sp = stackSave();
+ try {
+  return getWasmTableEntry(index)(a1, a2, a3, a4);
  } catch (e) {
   stackRestore(sp);
   if (e !== e + 0) throw e;

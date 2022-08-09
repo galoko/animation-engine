@@ -1,8 +1,8 @@
 #pragma once
 
+#include "../../memory-debug.hpp"
 #include "biomes.hpp"
 #include "climate.hpp"
-#include "memory-debug.hpp"
 
 #include <functional>
 #include <set>

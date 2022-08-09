@@ -2,8 +2,8 @@
 
 #include <functional>
 
+#include "../../memory-debug.hpp"
 #include "blocks.hpp"
-#include "memory-debug.hpp"
 #include "noise-chunk.fwd.hpp"
 #include "noise/normal-noise.hpp"
 #include "pos.hpp"

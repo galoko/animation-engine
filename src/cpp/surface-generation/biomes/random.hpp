@@ -5,7 +5,7 @@
 #include <memory>
 #include <string>
 
-#include "memory-debug.hpp"
+#include "../../memory-debug.hpp"
 #include "mth.hpp"
 #include "pos.hpp"
 

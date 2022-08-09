@@ -35,12 +35,13 @@ function silentExecSync(line) {
 const EXPORTED_FUNCTIONS = [
     "_malloc",
     "_free",
-    "_init",
     "_test",
     "_check",
+    "_init",
+    "_tick",
+    "_finalize",
     "_print_exception",
     "_print_memory_stats",
-    "_finalize",
     "_get_input_queue_ptr",
     "_get_output_queue_ptr",
 ]

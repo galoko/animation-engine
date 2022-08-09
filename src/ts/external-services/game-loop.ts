@@ -3,6 +3,10 @@ import { Services } from "./services"
 let lastTickTime: number | undefined = undefined
 
 export class GameLoop {
+    static init(): void {
+        //
+    }
+
     static start(): void {
         requestAnimationFrame(GameLoop.tick)
     }
@@ -26,5 +30,9 @@ export class GameLoop {
         Services.process(dt)
 
         requestAnimationFrame(GameLoop.tick)
+    }
+
+    static finalize(): void {
+        //
     }
 }

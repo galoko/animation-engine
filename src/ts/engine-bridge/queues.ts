@@ -42,6 +42,8 @@ export class Queues {
             message.deserialize()
             message.apply()
         }
+
+        writeU32(outputQueue, 0)
     }
 
     static pushMessage<T extends InputMessage>(data: T) {
@@ -62,5 +64,9 @@ export class Queues {
         data.serialize()
 
         writeU32(inputQueue, messagesCount + 1)
+    }
+
+    static finalize(): void {
+        //
     }
 }
