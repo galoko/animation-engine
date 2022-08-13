@@ -1,10 +1,12 @@
-import { Services } from "./services"
-
 let lastTickTime: number | undefined = undefined
 
+type ProcessMethod = (dt: number) => void
+
 export class GameLoop {
-    static init(): void {
-        //
+    static process: ProcessMethod
+
+    static init(process: ProcessMethod): void {
+        GameLoop.process = process
     }
 
     static start(): void {
@@ -27,7 +29,7 @@ export class GameLoop {
         const dt = (time - lastTickTime) / 1000
         lastTickTime = time
 
-        Services.process(dt)
+        GameLoop.process(dt)
 
         requestAnimationFrame(GameLoop.tick)
     }

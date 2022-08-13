@@ -92,10 +92,11 @@ export class Render {
             antialias: true,
             powerPreference: "high-performance",
         })!
-        this.matrices = this.gl.createTexture()!
-        this.matricesBuffer = new Float32Array(ANIMATION_TEXTURE_SIZE * 1 * 4)
 
         const { gl, matrices } = this
+
+        this.matrices = gl.createTexture()!
+        this.matricesBuffer = new Float32Array(ANIMATION_TEXTURE_SIZE * 1 * 4)
         gl.getExtension("OES_texture_float")
 
         gl.bindTexture(gl.TEXTURE_2D, matrices)
