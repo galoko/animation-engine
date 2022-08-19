@@ -13,6 +13,8 @@
 
 #include "memory-debug.hpp"
 
+#include "btBulletDynamicsCommon.h"
+
 using namespace std;
 
 #ifndef _MSC_VER
@@ -26,6 +28,10 @@ int test_callback() {
     return 6;
 }
 
+void testPhysics() {
+    btBroadphaseInterface *Broadphase = new btDbvtBroadphase();
+}
+
 extern "C" {
     void test() {
         doTest();
@@ -37,7 +43,7 @@ extern "C" {
     }
 
     void init() {
-        //
+        // testPhysics();
     }
 
     void tick(double dt) {

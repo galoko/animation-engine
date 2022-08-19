@@ -3,8 +3,10 @@ import { Mesh, Texture } from "../../render/render-data"
 import { Component, Entity } from "../entity"
 
 export class TransformComponent extends Component {
-    constructor(public transform: mat4) {
+    public transform = mat4.create()
+    constructor(transform: mat4) {
         super()
+        this.setTransform(transform)
     }
 
     setTransform(transform: mat4) {

@@ -27,7 +27,7 @@ class CapsuleTransformPrimitive extends TransformComponent {
 
     constructor(private readonly capsule: Entity, transform: mat4) {
         super(transform)
-        this.applyTransform(transform)
+        this.applyTransform(this.transform)
     }
 
     setTransform(transform: mat4) {
@@ -35,6 +35,10 @@ class CapsuleTransformPrimitive extends TransformComponent {
     }
 
     private applyTransform(transform: mat4) {
+        if (this.capsule === undefined) {
+            return
+        }
+
         const renderable = this.capsule.getComponentOrError(RenderableComponent)
         const [top, body, bottom] = renderable.getRenderableEntities()
         const { rotation, position, size, temp } = this

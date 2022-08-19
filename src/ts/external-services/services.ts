@@ -46,6 +46,16 @@ export class Services {
             transform
         )
         Render.addEntity(ground)
+
+        mat4.identity(transform)
+        mat4.translate(transform, transform, vec3.fromValues(10, 0, 0))
+        mat4.scale(transform, transform, vec3.fromValues(2, 2, 5))
+
+        setInterval(() => {
+            mat4.scale(transform, transform, vec3.fromValues(0.999, 0.999, 1))
+
+            Render.setTransform(capsule, transform)
+        }, 1)
     }
 
     static process(dt: number): void {

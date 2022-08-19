@@ -22,6 +22,7 @@ const getAllFiles = (dirPath, ext, arrayOfFiles) => {
 
 const cpp_files = getAllFiles("./src/cpp", ".cpp")
 const c_files = getAllFiles("./src/cpp", ".c")
+const a_files = getAllFiles("./lib/emscripten", ".a")
 const o_files = []
 
 function silentExecSync(line) {
@@ -99,15 +100,19 @@ buildCommandLines.push(exportedFunctionsLine)
 
 buildCommandLines.push(...cpp_files)
 
+buildCommandLines.push("-Isrc/cpp/thirdparty/bullet")
+
 console.time("Compilation")
 
 for (const c_file of c_files) {
-    const o_file = `./lib/${path.basename(c_file, ".c")}.o`
+    const o_file = `./lib/emscripten/${path.basename(c_file, ".c")}.o`
     silentExecSync(`emcc -c ${c_file} -o ${o_file}`)
     o_files.push(o_file)
 }
 
 buildCommandLines.push(...o_files)
+
+buildCommandLines.push(...a_files)
 
 buildCommandLines.push("-o src/wasm/engine.js")
 
