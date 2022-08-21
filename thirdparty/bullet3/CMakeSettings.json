@@ -1,0 +1,349 @@
+﻿{
+  "configurations": [
+    {
+      "name": "x64-Debug",
+      "generator": "Ninja",
+      "configurationType": "Debug",
+      "inheritEnvironments": [ "msvc_x64_x64" ],
+      "buildRoot": "${projectDir}\\out\\build\\${name}",
+      "installRoot": "${projectDir}\\out\\install\\${name}",
+      "cmakeCommandArgs": "",
+      "buildCommandArgs": "",
+      "ctestCommandArgs": "",
+      "variables": [
+        {
+          "name": "BUILD_BULLET3",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "USE_MSVC_DISABLE_RTTI",
+          "value": "True",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_BULLET_ROBOTICS_EXTRA",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_BULLET2_DEMOS",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_CONVEX_DECOMPOSITION_EXTRA",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_CPU_DEMOS",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_ENET",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_HACD_EXTRA",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_UNIT_TESTS",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_CLSOCKET",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_EXTRAS",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_INVERSE_DYNAMIC_EXTRA",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_OBJ2SDF_EXTRA",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_SERIALIZE_EXTRA",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "ENABLE_VHACD",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_BULLET_ROBOTICS_GUI_EXTRA",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_GIMPACTUTILS_EXTRA",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "USE_GLUT",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "USE_GRAPHICAL_BENCHMARK",
+          "value": "False",
+          "type": "BOOL"
+        }
+      ]
+    },
+    {
+      "name": "x64-Release",
+      "generator": "Ninja",
+      "configurationType": "Release",
+      "buildRoot": "${projectDir}\\out\\build\\${name}",
+      "installRoot": "${projectDir}\\out\\install\\${name}",
+      "cmakeCommandArgs": "",
+      "buildCommandArgs": "",
+      "ctestCommandArgs": "",
+      "inheritEnvironments": [ "msvc_x64_x64" ],
+      "variables": [
+        {
+          "name": "BUILD_BULLET3",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "USE_MSVC_DISABLE_RTTI",
+          "value": "True",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_BULLET_ROBOTICS_EXTRA",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_BULLET2_DEMOS",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_CONVEX_DECOMPOSITION_EXTRA",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_CPU_DEMOS",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_ENET",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_HACD_EXTRA",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_UNIT_TESTS",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_CLSOCKET",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_EXTRAS",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_INVERSE_DYNAMIC_EXTRA",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_OBJ2SDF_EXTRA",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_SERIALIZE_EXTRA",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "ENABLE_VHACD",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_BULLET_ROBOTICS_GUI_EXTRA",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_GIMPACTUTILS_EXTRA",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "USE_GLUT",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "USE_GRAPHICAL_BENCHMARK",
+          "value": "False",
+          "type": "BOOL"
+        }
+      ]
+    },
+    {
+      "name": "Emscripten-Release",
+      "generator": "Ninja",
+      "configurationType": "Release",
+      "buildRoot": "${projectDir}\\out\\build\\${name}",
+      "installRoot": "${projectDir}\\out\\install\\${name}",
+      "cmakeCommandArgs": "",
+      "buildCommandArgs": "",
+      "ctestCommandArgs": "",
+      "inheritEnvironments": [ "msvc_x64_x64" ],
+      "variables": [
+        {
+          "name": "BUILD_BULLET3",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "USE_MSVC_DISABLE_RTTI",
+          "value": "True",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_BULLET_ROBOTICS_EXTRA",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_BULLET2_DEMOS",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_CONVEX_DECOMPOSITION_EXTRA",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_CPU_DEMOS",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_ENET",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_HACD_EXTRA",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_UNIT_TESTS",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_CLSOCKET",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_EXTRAS",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_INVERSE_DYNAMIC_EXTRA",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_OBJ2SDF_EXTRA",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_SERIALIZE_EXTRA",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "ENABLE_VHACD",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_BULLET_ROBOTICS_GUI_EXTRA",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "BUILD_GIMPACTUTILS_EXTRA",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "USE_GLUT",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "USE_GRAPHICAL_BENCHMARK",
+          "value": "False",
+          "type": "BOOL"
+        },
+        {
+          "name": "CMAKE_C_COMPILER",
+          "value": "C:/Projects/emsdk/upstream/emscripten/emcc.bat",
+          "type": "FILEPATH"
+        },
+        {
+          "name": "CMAKE_CXX_COMPILER",
+          "value": "C:/Projects/emsdk/upstream/emscripten/em++.bat",
+          "type": "FILEPATH"
+        },
+        {
+          "name": "LIBRARY_OUTPUT_PATH",
+          "value": "C:/Projects/bullet3/out/build/Emscripten-Release/lib",
+          "type": "PATH"
+        },
+        {
+          "name": "BUILD_EGL",
+          "value": "False",
+          "type": "BOOL"
+        }
+      ],
+      "cmakeToolchain": "C:/Projects/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake"
+    }
+  ]
+}

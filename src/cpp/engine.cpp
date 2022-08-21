@@ -25,7 +25,7 @@ using namespace std;
 const char *TEST_STR = "TESTINAS";
 
 int test_callback() {
-    return 6;
+    return 7;
 }
 
 void testPhysics() {
@@ -43,7 +43,7 @@ extern "C" {
     }
 
     void init() {
-        // testPhysics();
+        testPhysics();
     }
 
     void tick(double dt) {

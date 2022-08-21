@@ -5,6 +5,7 @@
 #include "climate.hpp"
 
 #include <functional>
+#include <memory>
 #include <set>
 #include <vector>
 
