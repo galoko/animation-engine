@@ -70,7 +70,10 @@
         "random": "cpp",
         "set": "cpp",
         "numbers": "cpp",
-        "*.rh": "cpp"
+        "*.rh": "cpp",
+        "__config": "cpp",
+        "__hash_table": "cpp",
+        "__node_handle": "cpp"
     },
     "editor.formatOnSave": true,
     "[cpp]": {

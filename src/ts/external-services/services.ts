@@ -60,7 +60,7 @@ export class Services {
 
     static process(dt: number): void {
         // engine tick
-        // Engine._tick(dt)
+        Engine._tick(dt)
         // resolve output queue messages
         Queues.processOutputQueue()
         // render

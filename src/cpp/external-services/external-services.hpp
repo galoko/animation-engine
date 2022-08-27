@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <stdexcept>
+#include <vector>
 
 using namespace std;
 
@@ -15,6 +16,12 @@ enum class InputMessageId
     MOUSE_MOVE,
     MOUSE_DOWN,
     MOUSE_UP,
+
+    KEY_DOWN,
+    KEY_UP,
+
+    FIRST_INPUT_MESSAGE = MOUSE_MOVE,
+    LAST_INPUT_MESSAGE = KEY_UP
 };
 
 // Output
@@ -31,38 +38,9 @@ enum class OutputMessageId
     REQUEST_TEXTURE,
     REQUEST_MODEL,
     REQUEST_ANIMATION,
-
-    // Test
-
-    TEST_CALLBACK
-};
-
-// Messages
-
-struct MouseMessage {
-    int32_t button, x, y;
-
-    MouseMessage(int32_t button, int32_t x, int32_t y) : button(button), x(x), y(y) {
-    }
-};
-
-struct Test {
-    int32_t test_number;
-    char const *test_str;
-    int (*test_callback)();
-
-    Test(int32_t test_number, char const *test_str, int (*test_callback)())
-        : test_number(test_number), test_str(test_str), test_callback(test_callback) {
-    }
 };
 
 // Queue
-
-struct ServicesMessage {
-    uint32_t id;
-    // reserved data
-    uint8_t data[60];
-};
 
 #define MESSAGES_SIZE_IN_BYTES 64
 #define MESSAGES_MAX_COUNT 1024
@@ -70,12 +48,28 @@ struct ServicesMessage {
 
 #pragma pack(push, 1)
 
+struct ServicesMessageData {
+    uint8_t reserved[60];
+};
+
+struct ServicesMessage {
+    uint32_t id;
+    ServicesMessageData data;
+};
+
 struct ServicesQueue {
     int32_t messagesCount;
     ServicesMessage messages[MESSAGES_MAX_COUNT];
 };
 
 #pragma pack(pop)
+
+namespace {
+    template <typename T> using MessageHandler = function<void(InputMessageId, T const &)>;
+    using GenericMessageHandler = MessageHandler<ServicesMessageData>;
+}; // namespace
+
+extern GenericMessageHandler inputHandlers[(int)InputMessageId::LAST_INPUT_MESSAGE + 1];
 
 ServicesQueue *getInputQueue();
 ServicesQueue *getOutputQueue();
@@ -96,7 +90,23 @@ template <typename T> void pushMessage(OutputMessageId id, T data) {
     ServicesMessage *msg = &queue->messages[queue->messagesCount];
 
     msg->id = (uint32_t)id;
-    memcpy(&msg->data[0], &data, messageBodySize);
+    memcpy(&msg->data.reserved[0], &data, messageBodySize);
 
     queue->messagesCount++;
+}
+
+void processInputQueue();
+
+template <typename T> void registerHandler(InputMessageId id, MessageHandler<T> handler) {
+    if (inputHandlers[(int)id] != nullptr) {
+        throw runtime_error("Handler is already registered for id.");
+        return;
+    }
+    inputHandlers[(int)id] = *((GenericMessageHandler *)&handler);
+}
+
+template <typename T> void registerHandler(vector<InputMessageId> const &ids, MessageHandler<T> handler) {
+    for (InputMessageId id : ids) {
+        registerHandler(id, handler);
+    }
 }

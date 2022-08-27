@@ -1,4 +1,4 @@
-import { readU32, writeU32 } from "./read-write-utils"
+import { readU32, writeFloat, writeU32 } from "./read-write-utils"
 
 export const MESSAGES_SIZE_IN_BYTES = 64
 export const MESSAGES_BODY_SIZE_IN_BYTES = MESSAGES_SIZE_IN_BYTES - 4
@@ -10,6 +10,9 @@ export enum InputMessageId {
     MOUSE_MOVE,
     MOUSE_DOWN,
     MOUSE_UP,
+
+    KEY_DOWN,
+    KEY_UP,
 }
 
 export abstract class InputMessage {
@@ -24,6 +27,15 @@ export abstract class InputMessage {
         }
 
         writeU32(this.ptr, value)
+        this.seek(4)
+    }
+
+    protected writeFloat(value: number) {
+        if (this.ptr === undefined) {
+            throw new Error("InputMessage ptr is not set.")
+        }
+
+        writeFloat(this.ptr, value)
         this.seek(4)
     }
 

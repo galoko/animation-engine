@@ -29,6 +29,18 @@
                 "CMAKE_CXX_COMPILER": "c:/Projects/emsdk/upstream/emscripten/em++.bat",
                 "CMAKE_BUILD_TYPE": "Release"
             }
+        },
+        {
+            "name": "Emscripten-Full-Debug",
+            "displayName": "Emscripten-Full-Debug",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/out/${presetName}",
+            "toolchainFile": "c:/Projects/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "c:/Projects/emsdk/upstream/emscripten/emcc.bat",
+                "CMAKE_CXX_COMPILER": "c:/Projects/emsdk/upstream/emscripten/em++.bat",
+                "CMAKE_BUILD_TYPE": "FullDebug"
+            }
         }
     ],
     "buildPresets": [

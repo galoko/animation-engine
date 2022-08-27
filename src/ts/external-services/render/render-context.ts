@@ -14,7 +14,7 @@ export class RenderContext {
     static {
         RenderContext.canvas2D.style.pointerEvents = "none"
 
-        document.body.appendChild(RenderContext.canvasWebGL)
-        document.body.appendChild(RenderContext.canvas2D)
+        document.body.insertBefore(RenderContext.canvas2D, null)
+        document.body.insertBefore(RenderContext.canvasWebGL, null)
     }
 }

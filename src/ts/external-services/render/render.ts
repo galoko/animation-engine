@@ -13,6 +13,7 @@ import { Entity } from "../ecs/entity"
 import { AttributeDef, Mesh } from "./render-data"
 import { CompiledShader, compileShader } from "./render-utils"
 import { RenderContext } from "./render-context"
+
 export class Render {
     private static mvp: mat4
     private static viewMatrix: mat4

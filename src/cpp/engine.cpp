@@ -5,15 +5,17 @@
 #include <stdio.h>
 
 #include "engine.hpp"
+
+#include "external-services/external-services.hpp"
+#include "memory-debug.hpp"
+#include "services/services.hpp"
+
 #include "test/test.hpp"
 
+// for finalize
 #include "surface-generation/biomes/chunk-generator.hpp"
 #include "surface-generation/biomes/chunk-status.hpp"
 #include "surface-generation/biomes/worldgen-settings.hpp"
-
-#include "memory-debug.hpp"
-
-#include "btBulletDynamicsCommon.h"
 
 using namespace std;
 
@@ -22,17 +24,9 @@ using namespace std;
 #pragma GCC diagnostic ignored "-Wunused-variable"
 #endif
 
-const char *TEST_STR = "TESTINAS";
-
-int test_callback() {
-    return 7;
-}
-
-void testPhysics() {
-    btBroadphaseInterface *Broadphase = new btDbvtBroadphase();
-}
-
 extern "C" {
+    // debug
+
     void test() {
         doTest();
     }
@@ -42,12 +36,15 @@ extern "C" {
         return result;
     }
 
+    // life cycle
+
     void init() {
-        testPhysics();
+        Services = make_unique<ServicesManager>();
     }
 
     void tick(double dt) {
-        printf("tick\n");
+        // printf("tick\n");
+        processInputQueue();
     }
 
     void finalize() {
@@ -55,6 +52,7 @@ extern "C" {
         NoiseGeneratorSettings::finalize();
         MultiNoiseBiomeSource::Preset::finalize();
         Noises_finalize();
+        Services = nullptr;
     }
 
     ServicesQueue *get_input_queue_ptr() {

@@ -22,9 +22,6 @@ export default {
             sourceMap: true,
             inlineSources: true,
         }),
-        insert.transform((magicString, code) => `${code}\nexport default Module;`, {
-            include: "src/wasm/engine.js",
-        }),
         string({
             // Required to be specified
             include: ["**/*.frag", "**/*.vert"],
