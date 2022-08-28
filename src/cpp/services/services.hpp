@@ -76,6 +76,7 @@ private:
     bool mouseState[(int)MouseButton::LAST_BUTTON + 1];
 
     vec2 mousePoint, mouseDelta;
+    bool mouseCaptured;
 
 public:
     InputManager();
@@ -93,7 +94,10 @@ class PhysicsManager {
 
 // keeps a list of all bodies and terrain?
 class WorldManager {
-    //
+public:
+    WorldManager();
+
+    void loadTestMap();
 };
 
 class ServicesManager {

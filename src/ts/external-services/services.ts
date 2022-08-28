@@ -17,45 +17,6 @@ export class Services {
         InputManager.init()
         GameLoop.init(Services.process)
         Engine._init()
-
-        Services.test()
-    }
-
-    private static async test(): Promise<void> {
-        Render.setCamera(vec3.fromValues(0, 10, 0), vec3.fromValues(10, 0, 0))
-
-        const transform = mat4.create()
-
-        mat4.identity(transform)
-        mat4.translate(transform, transform, vec3.fromValues(10, 0, 0))
-        mat4.scale(transform, transform, vec3.fromValues(2, 2, 5))
-
-        const capsule = await createPrimitive(
-            PrimitiveType.Capsule,
-            vec4.fromValues(1, 0, 0, 1),
-            transform
-        )
-        Render.addEntity(capsule)
-
-        mat4.identity(transform)
-        mat4.translate(transform, transform, vec3.fromValues(10, 0, -2.5))
-        mat4.scale(transform, transform, vec3.fromValues(10, 10, 1))
-        const ground = await createPrimitive(
-            PrimitiveType.Plane,
-            vec4.fromValues(0, 0, 1, 1),
-            transform
-        )
-        Render.addEntity(ground)
-
-        mat4.identity(transform)
-        mat4.translate(transform, transform, vec3.fromValues(10, 0, 0))
-        mat4.scale(transform, transform, vec3.fromValues(2, 2, 5))
-
-        setInterval(() => {
-            mat4.scale(transform, transform, vec3.fromValues(0.999, 0.999, 1))
-
-            Render.setTransform(capsule, transform)
-        }, 1)
     }
 
     static process(dt: number): void {

@@ -40,6 +40,8 @@ extern "C" {
 
     void init() {
         Services = make_unique<ServicesManager>();
+
+        Services->worldManager.loadTestMap();
     }
 
     void tick(double dt) {

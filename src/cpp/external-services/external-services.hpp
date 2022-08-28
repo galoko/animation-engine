@@ -31,6 +31,16 @@ enum class OutputMessageId
     NULL_ID = 0,
 
     // Render
+    SET_CAMERA,
+
+    CREATE_PRIMITIVE,
+
+    SET_TRANSFORM,
+
+    SET_PRIMITIVE_COLOR,
+    SET_PRIMITIVE_LINE_ENDS,
+    SET_PRIMITIVE_TEXT,
+
     ADD_OBJECT,
     REMOVE_OBJECT,
 
