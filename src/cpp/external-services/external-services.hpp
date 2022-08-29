@@ -31,6 +31,7 @@ enum class OutputMessageId
     NULL_ID = 0,
 
     // Render
+
     SET_CAMERA,
 
     CREATE_PRIMITIVE,
@@ -41,10 +42,11 @@ enum class OutputMessageId
     SET_PRIMITIVE_LINE_ENDS,
     SET_PRIMITIVE_TEXT,
 
-    ADD_OBJECT,
-    REMOVE_OBJECT,
+    ADD_ENTITY,
+    REMOVE_ENTITY,
 
     // Resources
+
     REQUEST_TEXTURE,
     REQUEST_MODEL,
     REQUEST_ANIMATION,
@@ -52,30 +54,35 @@ enum class OutputMessageId
 
 // Queue
 
-#define MESSAGES_SIZE_IN_BYTES 64
 #define MESSAGES_MAX_COUNT 1024
-#define MESSAGES_BODY_SIZE_IN_BYTES (MESSAGES_SIZE_IN_BYTES - 4)
+
+#define MESSAGE_SIZE_IN_BYTES 64
+#define MESSAGE_HEADER_SIZE_IN_BYTES 12
+#define MESSAGE_BODY_SIZE_IN_BYTES (MESSAGE_SIZE_IN_BYTES - MESSAGE_HEADER_SIZE_IN_BYTES)
+
+typedef uint64_t MessageHandle;
 
 #pragma pack(push, 1)
 
 struct ServicesMessageData {
-    uint8_t reserved[60];
+    uint8_t reserved[MESSAGE_BODY_SIZE_IN_BYTES];
 };
 
 struct ServicesMessage {
     uint32_t id;
+    MessageHandle handle;
     ServicesMessageData data;
 };
 
 struct ServicesQueue {
-    int32_t messagesCount;
+    uint32_t messagesCount;
     ServicesMessage messages[MESSAGES_MAX_COUNT];
 };
 
 #pragma pack(pop)
 
 namespace {
-    template <typename T> using MessageHandler = function<void(InputMessageId, T const &)>;
+    template <typename T> using MessageHandler = function<void(InputMessageId, MessageHandle, T const &)>;
     using GenericMessageHandler = MessageHandler<ServicesMessageData>;
 }; // namespace
 
@@ -84,7 +91,9 @@ extern GenericMessageHandler inputHandlers[(int)InputMessageId::LAST_INPUT_MESSA
 ServicesQueue *getInputQueue();
 ServicesQueue *getOutputQueue();
 
-template <typename T> void pushMessage(OutputMessageId id, T data) {
+extern MessageHandle nextHandle;
+
+template <typename T> MessageHandle pushMessage(OutputMessageId id, T data) {
     ServicesQueue *queue = getOutputQueue();
 
     if (queue->messagesCount >= MESSAGES_MAX_COUNT) {
@@ -93,16 +102,20 @@ template <typename T> void pushMessage(OutputMessageId id, T data) {
 
     int messageBodySize = sizeof(T);
 
-    if (messageBodySize > MESSAGES_BODY_SIZE_IN_BYTES) {
+    if (messageBodySize > MESSAGE_BODY_SIZE_IN_BYTES) {
         throw length_error("Message body exceeds size.");
     }
 
     ServicesMessage *msg = &queue->messages[queue->messagesCount];
 
     msg->id = (uint32_t)id;
+    msg->handle = nextHandle++;
+
     memcpy(&msg->data.reserved[0], &data, messageBodySize);
 
     queue->messagesCount++;
+
+    return msg->handle;
 }
 
 void processInputQueue();

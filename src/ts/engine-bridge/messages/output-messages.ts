@@ -1,7 +1,7 @@
 import { OutputMessage, OutputMessageId, registerOutputClass } from "../queue-messages"
 
 class TestCallback extends OutputMessage {
-    static ID = OutputMessageId.TEST_CALLBACK
+    static ID = OutputMessageId.REMOVE_OBJECT // TODO
 
     test_num: number | undefined
     test_str_ptr: number | undefined

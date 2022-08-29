@@ -1,7 +1,10 @@
 import { readU32, writeFloat, writeU32 } from "./read-write-utils"
 
-export const MESSAGES_SIZE_IN_BYTES = 64
-export const MESSAGES_BODY_SIZE_IN_BYTES = MESSAGES_SIZE_IN_BYTES - 4
+export const MESSAGE_SIZE_IN_BYTES = 64
+export const MESSAGE_HEADER_SIZE_IN_BYTES = 12
+export const MESSAGE_BODY_SIZE_IN_BYTES = MESSAGE_SIZE_IN_BYTES - MESSAGE_HEADER_SIZE_IN_BYTES
+
+export type MessageHandle = number
 
 export enum InputMessageId {
     NULL_ID = 0,
@@ -14,6 +17,31 @@ export enum InputMessageId {
     KEY_DOWN,
     KEY_UP,
 }
+
+export enum OutputMessageId {
+    NULL_ID = 0,
+
+    // Render
+    SET_CAMERA,
+
+    CREATE_PRIMITIVE,
+
+    SET_TRANSFORM,
+
+    SET_PRIMITIVE_COLOR,
+    SET_PRIMITIVE_LINE_ENDS,
+    SET_PRIMITIVE_TEXT,
+
+    ADD_ENTITY,
+    REMOVE_ENTITY,
+
+    // Resources
+    REQUEST_TEXTURE,
+    REQUEST_MODEL,
+    REQUEST_ANIMATION,
+}
+
+// Input
 
 export abstract class InputMessage {
     static ID = InputMessageId.NULL_ID
@@ -44,7 +72,7 @@ export abstract class InputMessage {
             throw new Error("InputMessage ptr is not set.")
         }
 
-        if (this.size + amount > MESSAGES_BODY_SIZE_IN_BYTES) {
+        if (this.size + amount > MESSAGE_BODY_SIZE_IN_BYTES) {
             throw new Error("Message body exceeds size.")
         }
 
@@ -64,29 +92,14 @@ export type InputMessageClass = {
     ID: InputMessageId
 }
 
-export enum OutputMessageId {
-    NULL_ID = 0,
-
-    // Render
-    ADD_OBJECT,
-    REMOVE_OBJECT,
-
-    // Resources
-    REQUEST_TEXTURE,
-    REQUEST_MODEL,
-    REQUEST_ANIMATION,
-
-    // Test
-
-    TEST_CALLBACK,
-}
+// Output
 
 export abstract class OutputMessage {
     static ID = OutputMessageId.NULL_ID
 
-    private avaiableBytesCount = MESSAGES_BODY_SIZE_IN_BYTES
+    private avaiableBytesCount = MESSAGE_BODY_SIZE_IN_BYTES
 
-    constructor(private ptr: number) {}
+    constructor(private handle: MessageHandle, private ptr: number) {}
 
     protected readU32(): number {
         const result = readU32(this.ptr)
@@ -108,7 +121,7 @@ export abstract class OutputMessage {
 }
 
 type OutputMessageClass = {
-    new (ptr: number): OutputMessage
+    new (handle: MessageHandle, ptr: number): OutputMessage
     ID: OutputMessageId
 }
 

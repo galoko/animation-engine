@@ -2210,6 +2210,10 @@ function unSign(value, bits) {
  return bits <= 32 ? 2 * Math.abs(1 << bits - 1) + value : Math.pow(2, bits) + value;
 }
 
+function ___assert_fail(condition, filename, line, func) {
+ abort("Assertion failed: " + UTF8ToString(condition) + ", at: " + [ filename ? UTF8ToString(filename) : "unknown filename", line, func ? UTF8ToString(func) : "unknown function" ]);
+}
+
 function ___cxa_allocate_exception(size) {
  return _malloc(size + 24) + 24;
 }
@@ -2684,6 +2688,7 @@ function checkIncomingModuleAPI() {
 }
 
 var asmLibraryArg = {
+ "__assert_fail": ___assert_fail,
  "__cxa_allocate_exception": ___cxa_allocate_exception,
  "__cxa_begin_catch": ___cxa_begin_catch,
  "__cxa_find_matching_catch_2": ___cxa_find_matching_catch_2,
@@ -2756,6 +2761,7 @@ var asmLibraryArg = {
  "invoke_viiiiiiiiiii": invoke_viiiiiiiiiii,
  "invoke_viiiiiiiiiiii": invoke_viiiiiiiiiiii,
  "invoke_viiiji": invoke_viiiji,
+ "invoke_viiji": invoke_viiji,
  "invoke_vij": invoke_vij,
  "segfault": segfault,
  "setTempRet0": _setTempRet0
@@ -2827,6 +2833,8 @@ var ___cxa_can_catch = Module["___cxa_can_catch"] = createExportWrapper("__cxa_c
 
 var ___cxa_is_pointer_type = Module["___cxa_is_pointer_type"] = createExportWrapper("__cxa_is_pointer_type");
 
+var dynCall_viiji = Module["dynCall_viiji"] = createExportWrapper("dynCall_viiji");
+
 var dynCall_jiii = Module["dynCall_jiii"] = createExportWrapper("dynCall_jiii");
 
 var dynCall_viij = Module["dynCall_viij"] = createExportWrapper("dynCall_viij");
@@ -2853,7 +2861,7 @@ var dynCall_iiiji = Module["dynCall_iiiji"] = createExportWrapper("dynCall_iiiji
 
 var dynCall_jiji = Module["dynCall_jiji"] = createExportWrapper("dynCall_jiji");
 
-var ___heap_base = Module["___heap_base"] = 5849808;
+var ___heap_base = Module["___heap_base"] = 5850144;
 
 function invoke_ii(index, a1) {
  var sp = stackSave();
@@ -2877,10 +2885,10 @@ function invoke_iiii(index, a1, a2, a3) {
  }
 }
 
-function invoke_viii(index, a1, a2, a3) {
+function invoke_iii(index, a1, a2) {
  var sp = stackSave();
  try {
-  getWasmTableEntry(index)(a1, a2, a3);
+  return getWasmTableEntry(index)(a1, a2);
  } catch (e) {
   stackRestore(sp);
   if (e !== e + 0) throw e;
@@ -2888,10 +2896,10 @@ function invoke_viii(index, a1, a2, a3) {
  }
 }
 
-function invoke_iii(index, a1, a2) {
+function invoke_viii(index, a1, a2, a3) {
  var sp = stackSave();
  try {
-  return getWasmTableEntry(index)(a1, a2);
+  getWasmTableEntry(index)(a1, a2, a3);
  } catch (e) {
   stackRestore(sp);
   if (e !== e + 0) throw e;
@@ -3387,6 +3395,17 @@ function invoke_fii(index, a1, a2) {
  var sp = stackSave();
  try {
   return getWasmTableEntry(index)(a1, a2);
+ } catch (e) {
+  stackRestore(sp);
+  if (e !== e + 0) throw e;
+  _setThrew(1, 0);
+ }
+}
+
+function invoke_viiji(index, a1, a2, a3, a4, a5) {
+ var sp = stackSave();
+ try {
+  dynCall_viiji(index, a1, a2, a3, a4, a5);
  } catch (e) {
   stackRestore(sp);
   if (e !== e + 0) throw e;

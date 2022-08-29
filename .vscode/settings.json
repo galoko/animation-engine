@@ -73,7 +73,8 @@
         "*.rh": "cpp",
         "__config": "cpp",
         "__hash_table": "cpp",
-        "__node_handle": "cpp"
+        "__node_handle": "cpp",
+        "__locale": "cpp"
     },
     "editor.formatOnSave": true,
     "[cpp]": {
