@@ -2,14 +2,13 @@
 
 import { Engine } from "./module"
 import {
-    InputMessage,
-    getOutputMessageClass,
     InputMessageId,
     MESSAGE_SIZE_IN_BYTES,
     OutputMessageId,
-    InputMessageClass,
     MESSAGE_HEADER_SIZE_IN_BYTES,
     MessageHandle,
+    getOutputMessageHandler,
+    InputMessageWriter,
 } from "./queue-messages"
 import { readU32, readU64, writeU32, writeU64 } from "./read-write-utils"
 import "./messages/output-messages"
@@ -39,26 +38,23 @@ export class Queues {
 
             const id = readU32(msgPtr) as OutputMessageId
             const handle = readU64(msgPtr) as OutputMessageId
-            const clazz = getOutputMessageClass(id)
+            const handler = getOutputMessageHandler(id)
 
-            if (clazz === undefined) {
-                throw new Error("Output message class is not registered.")
+            if (handler === undefined) {
+                throw new Error("Output message have no handler.")
             }
 
-            const message = new clazz(handle, msgPtr + MESSAGE_HEADER_SIZE_IN_BYTES)
-            message.deserialize()
-            message.apply()
+            handler(id, handle, msgPtr + MESSAGE_HEADER_SIZE_IN_BYTES)
         }
 
         writeU32(outputQueue, 0)
     }
 
-    static pushMessage<T extends InputMessage>(data: T): MessageHandle {
-        const id = (data.constructor as InputMessageClass).ID
-        if (id === InputMessageId.NULL_ID) {
-            throw new Error("ID for InputMessage is not set.")
-        }
-
+    static pushMessage(
+        id: InputMessageId,
+        writer: InputMessageWriter,
+        ...args: any[]
+    ): MessageHandle {
         const messagesCount = readU32(inputQueue)
         if (messagesCount >= MESSAGES_MAX_COUNT) {
             throw new Error("Input queue is full.")
@@ -70,8 +66,7 @@ export class Queues {
         writeU32(msgPtr, id as number)
         writeU64(msgPtr + 4, handle as number)
 
-        data.setPtr(msgPtr + MESSAGE_HEADER_SIZE_IN_BYTES)
-        data.serialize()
+        writer(id, msgPtr + MESSAGE_HEADER_SIZE_IN_BYTES, ...args)
 
         writeU32(inputQueue, messagesCount + 1)
 

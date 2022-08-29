@@ -1,13 +1,15 @@
 import { Engine } from "./module"
 
-export function writeU32(ptr: number, value: number): void {
+export function writeU32(ptr: number, value: number): number {
     if (ptr % 4 !== 0) {
         throw new Error("TODO implement not aligned writeU32")
     }
     Engine.HEAPU32[ptr / 4] = value
+
+    return ptr + 4
 }
 
-export function writeU64(ptr: number, value: number): void {
+export function writeU64(ptr: number, value: number): number {
     if (ptr % 4 !== 0) {
         throw new Error("TODO implement not aligned writeU64")
     }
@@ -17,13 +19,17 @@ export function writeU64(ptr: number, value: number): void {
 
     Engine.HEAPU32[ptr / 4] = low
     Engine.HEAPU32[ptr / 4 + 1] = high
+
+    return ptr + 8
 }
 
-export function writeFloat(ptr: number, value: number): void {
+export function writeFloat(ptr: number, value: number): number {
     if (ptr % 4 !== 0) {
         throw new Error("TODO implement not aligned writeU32")
     }
     Engine.HEAPF32[ptr / 4] = value
+
+    return ptr + 4
 }
 
 export function readU32(ptr: number): number {

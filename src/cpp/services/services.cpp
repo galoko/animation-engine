@@ -67,6 +67,7 @@ WorldManager::WorldManager() {
 }
 
 void WorldManager::loadTestMap() {
+    /*
     Render::setCamera(vec3(0, 10, 0), vec3(10, 0, 0));
 
     mat4 transform;
@@ -82,4 +83,5 @@ void WorldManager::loadTestMap() {
     transform = scale(translate(mat4(), vec3(10, 0, -2.5)), vec3(10, 10, 1));
     Render::setTransform(ground, transform);
     Render::addEntity(ground);
+    */
 }

@@ -2210,10 +2210,6 @@ function unSign(value, bits) {
  return bits <= 32 ? 2 * Math.abs(1 << bits - 1) + value : Math.pow(2, bits) + value;
 }
 
-function ___assert_fail(condition, filename, line, func) {
- abort("Assertion failed: " + UTF8ToString(condition) + ", at: " + [ filename ? UTF8ToString(filename) : "unknown filename", line, func ? UTF8ToString(func) : "unknown function" ]);
-}
-
 function ___cxa_allocate_exception(size) {
  return _malloc(size + 24) + 24;
 }
@@ -2688,7 +2684,6 @@ function checkIncomingModuleAPI() {
 }
 
 var asmLibraryArg = {
- "__assert_fail": ___assert_fail,
  "__cxa_allocate_exception": ___cxa_allocate_exception,
  "__cxa_begin_catch": ___cxa_begin_catch,
  "__cxa_find_matching_catch_2": ___cxa_find_matching_catch_2,
@@ -2861,7 +2856,7 @@ var dynCall_iiiji = Module["dynCall_iiiji"] = createExportWrapper("dynCall_iiiji
 
 var dynCall_jiji = Module["dynCall_jiji"] = createExportWrapper("dynCall_jiji");
 
-var ___heap_base = Module["___heap_base"] = 5850144;
+var ___heap_base = Module["___heap_base"] = 5849920;
 
 function invoke_ii(index, a1) {
  var sp = stackSave();

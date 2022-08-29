@@ -1,5 +1,6 @@
-import { InputMessage, InputMessageId } from "../engine-bridge/queue-messages"
+import { InputMessageId } from "../engine-bridge/queue-messages"
 import { Queues } from "../engine-bridge/queues"
+import { writeFloat, writeU32 } from "../engine-bridge/read-write-utils"
 import { RenderContext } from "./render/render-context"
 
 enum MouseButton {
@@ -107,56 +108,26 @@ const CODE_TO_KEY: {
     ControlRight: KeyboardKey.KEY_RCONTROL,
 }
 
-abstract class KeyboardKeyMessage extends InputMessage {
-    constructor(readonly key: KeyboardKey) {
-        super()
-    }
-
-    public serialize(): void {
-        this.writeU32(this.key)
-    }
+function KeyboardKeyMessage(id: InputMessageId, ptr: number, key: KeyboardKey): void {
+    ptr = writeU32(ptr, key as number)
 }
 
-class KeyboardDownMessage extends KeyboardKeyMessage {
-    static ID = InputMessageId.KEY_DOWN
-}
-
-class KeyboardUpMessage extends KeyboardKeyMessage {
-    static ID = InputMessageId.KEY_UP
-}
-
-abstract class MouseButtonMessage extends InputMessage {
-    constructor(
-        readonly button: MouseButton,
-        readonly x: number,
-        readonly y: number,
-        readonly dx: number,
-        readonly dy: number,
-        readonly isCaptured: boolean
-    ) {
-        super()
-    }
-
-    public serialize(): void {
-        this.writeU32(this.button)
-        this.writeFloat(this.x)
-        this.writeFloat(this.y)
-        this.writeFloat(this.dx)
-        this.writeFloat(this.dy)
-        this.writeU32(this.isCaptured ? 1 : 0)
-    }
-}
-
-class MouseDownMessage extends MouseButtonMessage {
-    static ID = InputMessageId.MOUSE_DOWN
-}
-
-class MouseMoveMessage extends MouseButtonMessage {
-    static ID = InputMessageId.MOUSE_MOVE
-}
-
-class MouseUpMessage extends MouseButtonMessage {
-    static ID = InputMessageId.MOUSE_UP
+function MouseButtonMessage(
+    id: InputMessageId,
+    ptr: number,
+    button: MouseButton,
+    x: number,
+    y: number,
+    dx: number,
+    dy: number,
+    isCaptured: boolean
+): void {
+    ptr = writeU32(ptr, button)
+    ptr = writeFloat(ptr, x)
+    ptr = writeFloat(ptr, y)
+    ptr = writeFloat(ptr, dx)
+    ptr = writeFloat(ptr, dy)
+    ptr = writeU32(ptr, isCaptured ? 1 : 0)
 }
 
 export class InputManager {
@@ -202,14 +173,14 @@ export class InputManager {
 
         const isCaptured = document.pointerLockElement === InputManager.canvas
 
-        const clazz = {
-            mousedown: MouseDownMessage,
-            mousemove: MouseMoveMessage,
-            mouseup: MouseUpMessage,
+        const id = {
+            mousedown: InputMessageId.MOUSE_DOWN,
+            mousemove: InputMessageId.MOUSE_MOVE,
+            mouseup: InputMessageId.MOUSE_UP,
         }[e.type]
 
-        if (clazz) {
-            Queues.pushMessage(new clazz(button, x, y, dx, dy, isCaptured))
+        if (id !== undefined) {
+            Queues.pushMessage(id, MouseButtonMessage, button, x, y, dx, dy, isCaptured)
         }
     }
 
@@ -220,13 +191,13 @@ export class InputManager {
             return
         }
 
-        const clazz = {
-            keydown: KeyboardDownMessage,
-            keyup: KeyboardUpMessage,
+        const id = {
+            keydown: InputMessageId.KEY_DOWN,
+            keyup: InputMessageId.KEY_UP,
         }[e.type]
 
-        if (clazz) {
-            Queues.pushMessage(new clazz(key))
+        if (id !== undefined) {
+            Queues.pushMessage(id, KeyboardKeyMessage, key)
         }
     }
 }

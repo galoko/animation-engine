@@ -1,9 +1,7 @@
-import { mat4, vec3, vec4 } from "gl-matrix"
 import { Engine, loadEngine } from "../engine-bridge/module"
 import { Queues } from "../engine-bridge/queues"
 import { GameLoop } from "./game-loop"
 import { InputManager } from "./input-manager"
-import { createPrimitive, PrimitiveType } from "./render/primitives"
 import { Render } from "./render/render"
 import { ResourceManager } from "./resources/resource-manager"
 
