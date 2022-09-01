@@ -10,8 +10,9 @@ import {
     getOutputMessageHandler,
     InputMessageWriter,
 } from "./queue-messages"
-import { readU32, readU64, writeU32, writeU64 } from "./read-write-utils"
+import { readU32, readU64, SeekablePtr, writeU32, writeU64 } from "./read-write-utils"
 import "./messages/output-messages"
+import { Deferred } from "ts-deferred"
 
 // Queues
 
@@ -20,6 +21,9 @@ const QUEUE_HEADER_SIZE_IN_BYTES = 4
 
 let inputQueue: number
 let outputQueue: number
+const ptr = new SeekablePtr(0)
+const results = new Map<MessageHandle, any>()
+const resultListeners = new Map<MessageHandle, Array<Deferred<any>>>()
 
 export class Queues {
     private static nextHandle: MessageHandle = 0
@@ -29,6 +33,48 @@ export class Queues {
         outputQueue = Engine._get_output_queue_ptr()
     }
 
+    static registerResult(handle: MessageHandle, result: any): void {
+        results.set(handle, result)
+        if (result instanceof Promise) {
+            result.then(value => {
+                if (value !== undefined) {
+                    results.set(handle, value)
+                } else {
+                    results.delete(handle)
+                }
+
+                // resolve all listeners
+                const listeners = resultListeners.get(handle)
+                if (listeners) {
+                    for (const listener of listeners) {
+                        listener.resolve(value)
+                    }
+                    resultListeners.delete(handle)
+                }
+            })
+        }
+    }
+
+    static getResult<T>(handle: MessageHandle): Promise<T> {
+        const result = new Deferred<T>()
+
+        const value = results.get(handle)
+        if (value === undefined) {
+            result.reject("Result not found")
+        } else if (value instanceof Promise) {
+            let listeners = resultListeners.get(handle)
+            if (listeners === undefined) {
+                listeners = []
+                resultListeners.set(handle, listeners)
+            }
+            listeners.push(result)
+        } else {
+            result.resolve(value)
+        }
+
+        return result.promise
+    }
+
     static processOutputQueue(): void {
         const messagesCount = readU32(outputQueue)
 
@@ -36,15 +82,25 @@ export class Queues {
             const msgPtr =
                 outputQueue + QUEUE_HEADER_SIZE_IN_BYTES + messageIndex * MESSAGE_SIZE_IN_BYTES
 
-            const id = readU32(msgPtr) as OutputMessageId
-            const handle = readU64(msgPtr) as OutputMessageId
-            const handler = getOutputMessageHandler(id)
+            ptr.value = msgPtr + MESSAGE_HEADER_SIZE_IN_BYTES
 
+            const id = readU32(ptr) as OutputMessageId
+            const handle = readU64(ptr) as OutputMessageId
+
+            const handler = getOutputMessageHandler(id)
             if (handler === undefined) {
                 throw new Error("Output message have no handler.")
             }
 
-            handler(id, handle, msgPtr + MESSAGE_HEADER_SIZE_IN_BYTES)
+            const result = handler(ptr, handle, id)
+            if (result !== undefined) {
+                Queues.registerResult(handle, result)
+            }
+
+            if (ptr.value > msgPtr + MESSAGE_SIZE_IN_BYTES) {
+                // TODO === after exact size of packet
+                throw new Error("Overflow while reading")
+            }
         }
 
         writeU32(outputQueue, 0)
@@ -61,12 +117,12 @@ export class Queues {
         }
 
         const handle = Queues.nextHandle++
-        const msgPtr =
-            inputQueue + QUEUE_HEADER_SIZE_IN_BYTES + messagesCount * MESSAGE_SIZE_IN_BYTES
-        writeU32(msgPtr, id as number)
-        writeU64(msgPtr + 4, handle as number)
 
-        writer(id, msgPtr + MESSAGE_HEADER_SIZE_IN_BYTES, ...args)
+        ptr.value = inputQueue + QUEUE_HEADER_SIZE_IN_BYTES + messagesCount * MESSAGE_SIZE_IN_BYTES
+
+        writeU32(ptr, id as number)
+        writeU64(ptr, handle as number)
+        writer(id, ptr, ...args)
 
         writeU32(inputQueue, messagesCount + 1)
 

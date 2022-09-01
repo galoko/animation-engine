@@ -67,21 +67,19 @@ WorldManager::WorldManager() {
 }
 
 void WorldManager::loadTestMap() {
-    /*
     Render::setCamera(vec3(0, 10, 0), vec3(10, 0, 0));
 
     mat4 transform;
 
     RenderHandle capsule = Render::createPrimitive(PrimitiveType::Capsule);
-    Render::setPrimitiveColor(capsule, vec4(1, 0, 0, 1));
     transform = scale(translate(mat4(), vec3(10, 0, 0)), vec3(2, 2, 5));
     Render::setTransform(capsule, transform);
-    Render::addEntity(capsule);
+    // Render::setPrimitiveColor(capsule, vec4(1, 0, 0, 1));
+    // Render::addEntity(capsule);
 
     RenderHandle ground = Render::createPrimitive(PrimitiveType::Plane);
-    Render::setPrimitiveColor(ground, vec4(0, 0, 1, 1));
     transform = scale(translate(mat4(), vec3(10, 0, -2.5)), vec3(10, 10, 1));
     Render::setTransform(ground, transform);
-    Render::addEntity(ground);
-    */
+    // Render::setPrimitiveColor(ground, vec4(0, 0, 1, 1));
+    // Render::addEntity(ground);
 }
