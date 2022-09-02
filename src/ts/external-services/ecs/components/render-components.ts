@@ -40,6 +40,10 @@ export class ColorComponent extends Component {
     constructor(readonly color: vec4) {
         super()
     }
+
+    setColor(color: vec4): void {
+        vec4.copy(this.color, color)
+    }
 }
 
 export class AnimationComponent extends Component {

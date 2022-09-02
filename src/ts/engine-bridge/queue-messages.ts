@@ -1,9 +1,5 @@
 import { SeekablePtr } from "./read-write-utils"
 
-export const MESSAGE_SIZE_IN_BYTES = 64
-export const MESSAGE_HEADER_SIZE_IN_BYTES = 12
-export const MESSAGE_BODY_SIZE_IN_BYTES = MESSAGE_SIZE_IN_BYTES - MESSAGE_HEADER_SIZE_IN_BYTES
-
 export type MessageHandle = number
 
 export enum InputMessageId {

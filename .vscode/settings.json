@@ -74,7 +74,10 @@
         "__config": "cpp",
         "__hash_table": "cpp",
         "__node_handle": "cpp",
-        "__locale": "cpp"
+        "__locale": "cpp",
+        "__config_site": "cpp",
+        "array": "cpp",
+        "string_view": "cpp"
     },
     "editor.formatOnSave": true,
     "[cpp]": {

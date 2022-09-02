@@ -3,9 +3,7 @@
 import { Engine } from "./module"
 import {
     InputMessageId,
-    MESSAGE_SIZE_IN_BYTES,
     OutputMessageId,
-    MESSAGE_HEADER_SIZE_IN_BYTES,
     MessageHandle,
     getOutputMessageHandler,
     InputMessageWriter,
@@ -14,10 +12,9 @@ import { readU32, readU64, SeekablePtr, writeU32, writeU64 } from "./read-write-
 import "./messages/output-messages"
 import { Deferred } from "ts-deferred"
 
-// Queues
+const QUEUE_BUFFER_SIZE = 3 * 1024 * 1024
 
-const MESSAGES_MAX_COUNT = 1024
-const QUEUE_HEADER_SIZE_IN_BYTES = 4
+// Queues
 
 let inputQueue: number
 let outputQueue: number
@@ -76,34 +73,37 @@ export class Queues {
     }
 
     static processOutputQueue(): void {
-        const messagesCount = readU32(outputQueue)
+        ptr.value = outputQueue
+        const messagesCount = readU32(ptr)
+        const bytesAvailable = readU32(ptr)
 
         for (let messageIndex = 0; messageIndex < messagesCount; messageIndex++) {
-            const msgPtr =
-                outputQueue + QUEUE_HEADER_SIZE_IN_BYTES + messageIndex * MESSAGE_SIZE_IN_BYTES
-
-            ptr.value = msgPtr + MESSAGE_HEADER_SIZE_IN_BYTES
-
             const id = readU32(ptr) as OutputMessageId
-            const handle = readU64(ptr) as OutputMessageId
+            const size = readU32(ptr) as number
+            const handle = readU64(ptr) as MessageHandle
 
             const handler = getOutputMessageHandler(id)
             if (handler === undefined) {
                 throw new Error("Output message have no handler.")
             }
 
+            const dataPtr = ptr.value
+
             const result = handler(ptr, handle, id)
             if (result !== undefined) {
                 Queues.registerResult(handle, result)
             }
 
-            if (ptr.value > msgPtr + MESSAGE_SIZE_IN_BYTES) {
-                // TODO === after exact size of packet
-                throw new Error("Overflow while reading")
+            if (ptr.value > dataPtr + size) {
+                throw new Error("Overflow while reading message")
             }
+
+            ptr.value = dataPtr + size
         }
 
-        writeU32(outputQueue, 0)
+        ptr.value = outputQueue
+        writeU32(ptr, 0)
+        writeU32(ptr, 0)
     }
 
     static pushMessage(
@@ -111,20 +111,42 @@ export class Queues {
         writer: InputMessageWriter,
         ...args: any[]
     ): MessageHandle {
-        const messagesCount = readU32(inputQueue)
-        if (messagesCount >= MESSAGES_MAX_COUNT) {
-            throw new Error("Input queue is full.")
-        }
+        ptr.value = inputQueue
+
+        const messagesCount = readU32(ptr)
+        const bytesWritten = readU32(ptr)
+
+        ptr.value += bytesWritten
 
         const handle = Queues.nextHandle++
 
-        ptr.value = inputQueue + QUEUE_HEADER_SIZE_IN_BYTES + messagesCount * MESSAGE_SIZE_IN_BYTES
+        const messagePtr = ptr.value
 
         writeU32(ptr, id as number)
+        const sizePtr = ptr.value
+        // size place older
+        writeU32(ptr, 0)
         writeU64(ptr, handle as number)
-        writer(id, ptr, ...args)
 
-        writeU32(inputQueue, messagesCount + 1)
+        const dataPtr = ptr.value
+        writer(id, ptr, ...args)
+        const messageBodySize = ptr.value - dataPtr
+
+        const messageSize = ptr.value - messagePtr
+
+        if (bytesWritten + messageSize > QUEUE_BUFFER_SIZE) {
+            // TODO here we have already have written out of bounds, we need to prevent this
+            throw new Error("Input queue buffer overflow.")
+        }
+
+        // update message header (size)
+        ptr.value = sizePtr
+        writeU32(ptr, messageBodySize)
+
+        // update queue header
+        ptr.value = inputQueue
+        writeU32(ptr, messagesCount + 1)
+        writeU32(ptr, bytesWritten + messageSize)
 
         return handle
     }

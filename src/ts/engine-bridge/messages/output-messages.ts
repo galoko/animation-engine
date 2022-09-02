@@ -10,6 +10,7 @@ REMOVE_ENTITY,
 */
 
 import { mat4, vec3, vec4 } from "gl-matrix"
+import { ColorComponent } from "../../external-services/ecs/components/render-components"
 import { Entity } from "../../external-services/ecs/entity"
 import { createPrimitive, PrimitiveType } from "../../external-services/render/primitives"
 import { Render } from "../../external-services/render/render"
@@ -19,7 +20,6 @@ import { readFloat, readU32, readU64, SeekablePtr } from "../read-write-utils"
 
 const pos = vec3.create()
 const lookAt = vec3.create()
-const transform = mat4.create()
 
 function SetCameraHandler(ptr: SeekablePtr): void {
     vec3.set(pos, readFloat(ptr), readFloat(ptr), readFloat(ptr))
@@ -41,8 +41,7 @@ registerOutputHandler(OutputMessageId.CREATE_PRIMITIVE, CreatePrimitiveHandler)
 
 async function SetTransformHandler(ptr: SeekablePtr): Promise<void> {
     const entityHandle = readU64(ptr)
-    mat4.set(
-        transform,
+    const transform = mat4.fromValues(
         readFloat(ptr),
         readFloat(ptr),
         readFloat(ptr),
@@ -62,8 +61,31 @@ async function SetTransformHandler(ptr: SeekablePtr): Promise<void> {
     )
 
     const entity = await Queues.getResult<Entity>(entityHandle)
-    debugger
     Render.setTransform(entity, transform)
 }
 
 registerOutputHandler(OutputMessageId.SET_TRANSFORM, SetTransformHandler)
+
+async function SetPrimitiveColorHandler(ptr: SeekablePtr): Promise<void> {
+    const entityHandle = readU64(ptr)
+    const r = readFloat(ptr)
+    const g = readFloat(ptr)
+    const b = readFloat(ptr)
+    const a = readFloat(ptr)
+
+    const entity = await Queues.getResult<Entity>(entityHandle)
+
+    Render.setPrimitiveColor(entity, vec4.fromValues(r, g, b, a))
+}
+
+registerOutputHandler(OutputMessageId.SET_PRIMITIVE_COLOR, SetPrimitiveColorHandler)
+
+async function AddEntityHandler(ptr: SeekablePtr): Promise<void> {
+    const entityHandle = readU64(ptr)
+
+    const entity = await Queues.getResult<Entity>(entityHandle)
+
+    Render.addEntity(entity)
+}
+
+registerOutputHandler(OutputMessageId.ADD_ENTITY, AddEntityHandler)

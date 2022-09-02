@@ -55,6 +55,7 @@ extern "C" {
         MultiNoiseBiomeSource::Preset::finalize();
         Noises_finalize();
         Services = nullptr;
+        unregisterAll();
     }
 
     ServicesQueue *get_input_queue_ptr() {

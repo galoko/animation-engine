@@ -80,6 +80,29 @@ class CapsuleTransformPrimitive extends TransformComponent {
     }
 }
 
+class ComplexColorComponent extends ColorComponent {
+    constructor(private readonly entity: Entity, color: vec4) {
+        super(color)
+        this.applyColor(this.color)
+    }
+
+    setColor(color: vec4) {
+        this.applyColor(color)
+    }
+
+    private applyColor(color: vec4) {
+        if (this.entity === undefined) {
+            return
+        }
+
+        const renderable = this.entity.getComponentOrError(RenderableComponent)
+
+        for (const entity of renderable.getRenderableEntities()) {
+            entity.getComponentOrError(ColorComponent).setColor(color)
+        }
+    }
+}
+
 export function createObject(mesh: Mesh, textureOrColor: Texture | vec4, transform: mat4): Entity {
     const entity = new Entity()
     entity.addComponent(new MeshComponent(mesh))
@@ -103,6 +126,7 @@ export async function createCapsulePrimitive(color: vec4, transform: mat4): Prom
     const capsule = new Entity()
     capsule.addComponent(new RenderableComponent([top, body, bottom]))
     capsule.addComponent(new CapsuleTransformPrimitive(capsule, transform))
+    capsule.addComponent(new ComplexColorComponent(capsule, color))
 
     return capsule
 }

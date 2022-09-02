@@ -12,7 +12,10 @@ export class RenderContext {
     static readonly ctx = this.canvas2D.getContext("2d")!
 
     static {
+        RenderContext.canvasWebGL.style.position = "fixed"
+
         RenderContext.canvas2D.style.pointerEvents = "none"
+        RenderContext.canvas2D.style.position = "fixed"
 
         document.body.insertBefore(RenderContext.canvas2D, null)
         document.body.insertBefore(RenderContext.canvasWebGL, null)

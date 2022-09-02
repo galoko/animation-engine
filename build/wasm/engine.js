@@ -2861,7 +2861,7 @@ var dynCall_iiiji = Module["dynCall_iiiji"] = createExportWrapper("dynCall_iiiji
 
 var dynCall_jiji = Module["dynCall_jiji"] = createExportWrapper("dynCall_jiji");
 
-var ___heap_base = Module["___heap_base"] = 5850144;
+var ___heap_base = Module["___heap_base"] = 12010528;
 
 function invoke_ii(index, a1) {
  var sp = stackSave();

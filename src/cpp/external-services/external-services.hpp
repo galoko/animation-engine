@@ -54,29 +54,31 @@ enum class OutputMessageId
 
 // Queue
 
-#define MESSAGES_MAX_COUNT 1024
-
-#define MESSAGE_SIZE_IN_BYTES 64
-#define MESSAGE_HEADER_SIZE_IN_BYTES 12
-#define MESSAGE_BODY_SIZE_IN_BYTES (MESSAGE_SIZE_IN_BYTES - MESSAGE_HEADER_SIZE_IN_BYTES)
+#define QUEUE_BUFFER_SIZE 3 * 1024 * 1024
 
 typedef uint64_t MessageHandle;
 
 #pragma pack(push, 1)
 
+struct ServiceMessageHeader {
+    uint32_t id;
+    uint32_t size;
+    MessageHandle handle;
+};
+
 struct ServicesMessageData {
-    uint8_t reserved[MESSAGE_BODY_SIZE_IN_BYTES];
+    uint8_t bytes[1];
 };
 
 struct ServicesMessage {
-    uint32_t id;
-    MessageHandle handle;
+    ServiceMessageHeader header;
     ServicesMessageData data;
 };
 
 struct ServicesQueue {
     uint32_t messagesCount;
-    ServicesMessage messages[MESSAGES_MAX_COUNT];
+    uint32_t bufferPosition;
+    uint8_t buffer[QUEUE_BUFFER_SIZE];
 };
 
 #pragma pack(pop)
@@ -95,27 +97,26 @@ extern MessageHandle nextHandle;
 
 template <typename T> MessageHandle pushMessage(OutputMessageId id, T data) {
     ServicesQueue *queue = getOutputQueue();
-
-    if (queue->messagesCount >= MESSAGES_MAX_COUNT) {
-        throw length_error("Output queue is full.");
-    }
-
     int messageBodySize = sizeof(T);
+    int messageSize = sizeof(ServiceMessageHeader) + messageBodySize;
 
-    if (messageBodySize > MESSAGE_BODY_SIZE_IN_BYTES) {
-        throw length_error("Message body exceeds size.");
+    if (queue->bufferPosition + messageSize > QUEUE_BUFFER_SIZE) {
+        throw overflow_error("Output queue buffer overflow.");
     }
 
-    ServicesMessage *msg = &queue->messages[queue->messagesCount];
+    ServicesMessage *msg = (ServicesMessage *)&queue->buffer[queue->bufferPosition];
 
-    msg->id = (uint32_t)id;
-    msg->handle = nextHandle++;
+    msg->header.id = (uint32_t)id;
+    msg->header.size = messageBodySize;
+    msg->header.handle = nextHandle++;
 
-    memcpy(&msg->data.reserved[0], &data, messageBodySize);
+    memcpy(&msg->data.bytes, &data, messageBodySize);
 
     queue->messagesCount++;
 
-    return msg->handle;
+    queue->bufferPosition += messageSize;
+
+    return msg->header.handle;
 }
 
 void processInputQueue();
@@ -133,3 +134,5 @@ template <typename T> void registerHandler(vector<InputMessageId> const &ids, Me
         registerHandler(id, handler);
     }
 }
+
+void unregisterAll();

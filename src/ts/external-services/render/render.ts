@@ -1,7 +1,7 @@
 import objectsVert from "../../shaders/objects.vert"
 import objectsFrag from "../../shaders/objects.frag"
 
-import { mat4, vec3 } from "gl-matrix"
+import { mat4, vec3, vec4 } from "gl-matrix"
 import {
     ColorComponent,
     MeshComponent,
@@ -76,6 +76,11 @@ export class Render {
     static setTransform(entity: Entity, transform: mat4): void {
         const transformComponent = entity.getComponentOrError(TransformComponent)
         transformComponent.setTransform(transform)
+    }
+
+    static setPrimitiveColor(entity: Entity, color: vec4): void {
+        const colorComponent = entity.getComponentOrError(ColorComponent)
+        colorComponent.setColor(color)
     }
 
     // camera

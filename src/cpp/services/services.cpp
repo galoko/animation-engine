@@ -72,14 +72,14 @@ void WorldManager::loadTestMap() {
     mat4 transform;
 
     RenderHandle capsule = Render::createPrimitive(PrimitiveType::Capsule);
-    transform = scale(translate(mat4(), vec3(10, 0, 0)), vec3(2, 2, 5));
+    Render::setPrimitiveColor(capsule, vec4(1, 0, 0, 1));
+    transform = scale(translate(mat4(1), vec3(10, 0, 0)), vec3(2, 2, 5));
     Render::setTransform(capsule, transform);
-    // Render::setPrimitiveColor(capsule, vec4(1, 0, 0, 1));
-    // Render::addEntity(capsule);
+    Render::addEntity(capsule);
 
     RenderHandle ground = Render::createPrimitive(PrimitiveType::Plane);
-    transform = scale(translate(mat4(), vec3(10, 0, -2.5)), vec3(10, 10, 1));
+    Render::setPrimitiveColor(ground, vec4(0, 0, 1, 1));
+    transform = scale(translate(mat4(1), vec3(10, 0, -2.5)), vec3(10, 10, 1));
     Render::setTransform(ground, transform);
-    // Render::setPrimitiveColor(ground, vec4(0, 0, 1, 1));
-    // Render::addEntity(ground);
+    Render::addEntity(ground);
 }
