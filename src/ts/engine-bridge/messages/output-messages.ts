@@ -10,7 +10,6 @@ REMOVE_ENTITY,
 */
 
 import { mat4, vec3, vec4 } from "gl-matrix"
-import { ColorComponent } from "../../external-services/ecs/components/render-components"
 import { Entity } from "../../external-services/ecs/entity"
 import { createPrimitive, PrimitiveType } from "../../external-services/render/primitives"
 import { Render } from "../../external-services/render/render"

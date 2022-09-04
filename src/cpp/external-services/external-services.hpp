@@ -58,6 +58,8 @@ enum class OutputMessageId
 
 typedef uint64_t MessageHandle;
 
+#define NULL_HANDLE ((MessageHandle)0)
+
 #pragma pack(push, 1)
 
 struct ServiceMessageHeader {

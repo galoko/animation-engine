@@ -23,7 +23,7 @@ const results = new Map<MessageHandle, any>()
 const resultListeners = new Map<MessageHandle, Array<Deferred<any>>>()
 
 export class Queues {
-    private static nextHandle: MessageHandle = 0
+    private static nextHandle: MessageHandle = 1
 
     static init(): void {
         inputQueue = Engine._get_input_queue_ptr()

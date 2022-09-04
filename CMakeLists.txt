@@ -59,6 +59,7 @@ endif()
 
 target_include_directories(engine PUBLIC "thirdparty/bullet3/src")
 target_include_directories(engine PUBLIC "thirdparty/glm/glm")
+target_include_directories(engine PUBLIC "thirdparty/entt/single_include")
 
 target_compile_options(engine PRIVATE
   $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>

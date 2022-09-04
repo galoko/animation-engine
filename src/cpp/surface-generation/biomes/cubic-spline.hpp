@@ -3,7 +3,7 @@
 #include <memory>
 #include <vector>
 
-#include "../../memory-debug.hpp"
+#include "../../utils/memory-debug.hpp"
 #include "mth.hpp"
 
 using namespace std;

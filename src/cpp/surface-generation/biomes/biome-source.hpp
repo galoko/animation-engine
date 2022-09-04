@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../memory-debug.hpp"
+#include "../../utils/memory-debug.hpp"
 #include "biomes.hpp"
 #include "climate.hpp"
 

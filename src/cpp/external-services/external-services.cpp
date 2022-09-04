@@ -14,7 +14,7 @@ ServicesQueue *getOutputQueue() {
 
 GenericMessageHandler inputHandlers[(int)InputMessageId::LAST_INPUT_MESSAGE + 1];
 
-MessageHandle nextHandle = 0;
+MessageHandle nextHandle = 1;
 
 void processInputQueue() {
     ServicesQueue *queue = getInputQueue();
@@ -23,8 +23,8 @@ void processInputQueue() {
     for (int messageIndex = 0; messageIndex < queue->messagesCount; messageIndex++) {
         ServicesMessage const *msg = (ServicesMessage const *)ptr;
 
-        printf("message received, id: %d, size: %d, handle: %lld\n", msg->header.id, msg->header.size,
-               msg->header.handle);
+        // printf("message received, id: %d, size: %d, handle: %lld\n", msg->header.id, msg->header.size,
+        //        msg->header.handle);
 
         GenericMessageHandler handler = inputHandlers[msg->header.id];
 

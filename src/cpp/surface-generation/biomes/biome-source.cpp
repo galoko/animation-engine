@@ -1,5 +1,5 @@
 #include "biome-source.hpp"
-#include "../../memory-debug.hpp"
+#include "../../utils/memory-debug.hpp"
 #include "biomes.hpp"
 #include "climate.hpp"
 #include "overworld-biome-builder.hpp"

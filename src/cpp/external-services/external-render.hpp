@@ -10,7 +10,14 @@ using namespace glm;
 struct RenderHandle {
     MessageHandle handle;
 
+    RenderHandle() : handle(NULL_HANDLE) {
+    }
+
     RenderHandle(MessageHandle handle) : handle(handle) {
+    }
+
+    bool isNull() {
+        return this->handle != NULL_HANDLE;
     }
 };
 

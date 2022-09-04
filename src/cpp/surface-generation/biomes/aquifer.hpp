@@ -2,7 +2,7 @@
 
 #include <functional>
 
-#include "../../memory-debug.hpp"
+#include "../../utils/memory-debug.hpp"
 #include "blocks.hpp"
 #include "noise-chunk.fwd.hpp"
 #include "noise/normal-noise.hpp"

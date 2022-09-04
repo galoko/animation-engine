@@ -7,8 +7,8 @@
 #include "engine.hpp"
 
 #include "external-services/external-services.hpp"
-#include "memory-debug.hpp"
-#include "services/services.hpp"
+#include "services.hpp"
+#include "utils/memory-debug.hpp"
 
 #include "test/test.hpp"
 
@@ -41,12 +41,15 @@ extern "C" {
     void init() {
         Services = make_unique<ServicesManager>();
 
-        Services->worldManager.loadTestMap();
+        Services->cameraManager.init();
+        Services->worldManager.init();
     }
 
     void tick(double dt) {
         // printf("tick\n");
         processInputQueue();
+
+        Services->tick(dt);
     }
 
     void finalize() {
