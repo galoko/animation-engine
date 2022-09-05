@@ -18,6 +18,7 @@ export class Services {
     }
 
     static process(dt: number): void {
+        // console.log("TICK")
         // engine tick
         Engine._tick(dt)
         // resolve output queue messages

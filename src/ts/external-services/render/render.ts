@@ -89,6 +89,7 @@ export class Render {
 
     static setCamera(pos: vec3, lookAt: vec3): void {
         mat4.lookAt(Render.viewMatrix, pos, lookAt, Render.UP)
+        // console.log("CAMERA EBLO: ", lookAt[0], lookAt[1], lookAt[2])
     }
 
     // utils
@@ -186,6 +187,10 @@ export class Render {
             mat4.multiply(mvp, mvp, Render.projectionMatrix)
             mat4.multiply(mvp, mvp, Render.viewMatrix)
             mat4.multiply(mvp, mvp, transform.transform)
+
+            const position = vec3.create()
+            mat4.getTranslation(position, transform.transform)
+            // console.log("REAL TRANSFORM POS: ", position[0], position[1], position[2])
 
             gl.uniformMatrix4fv(objectsShader.mvp, false, mvp)
             gl.uniformMatrix4fv(objectsShader.model, false, transform.transform)

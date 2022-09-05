@@ -53,3 +53,17 @@ InputManager::InputManager()
     registerHandler({InputMessageId::KEY_UP, InputMessageId::KEY_DOWN}, keyHandler);
     registerHandler({InputMessageId::MOUSE_DOWN, InputMessageId::MOUSE_MOVE, InputMessageId::MOUSE_UP}, mouseHandler);
 }
+
+bool InputManager::isPressed(KeyboardKey key) {
+    return this->keyboardState[(int)key];
+}
+
+bool InputManager::isPressed(vector<KeyboardKey> keys) {
+    for (KeyboardKey key : keys) {
+        if (this->isPressed(key)) {
+            return true;
+        }
+    }
+
+    return false;
+}

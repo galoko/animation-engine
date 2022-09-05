@@ -37,6 +37,10 @@ void CameraManager::orbit(shared_ptr<Entity> entity, float yAngle, float zAngle,
     this->orbitCamera.height = height;
 }
 
+float CameraManager::getZAngle() {
+    return this->orbitCamera.zAngle;
+}
+
 void CameraManager::tick(double dt) {
     if (this->orbitCamera.entityToOrbit != nullptr) {
         this->applyOrbit();
@@ -44,10 +48,16 @@ void CameraManager::tick(double dt) {
 }
 
 void CameraManager::applyOrbit() {
-    const TransformComponent &transform =
+    TransformComponent &transformComponent =
         Services->worldManager.registry.get<TransformComponent>(this->orbitCamera.entityToOrbit->handle);
+    const mat4 &transform = transformComponent.getTransform();
 
-    vec3 center = vec3(transform.transform * vec4(0, 0, this->orbitCamera.height, 0));
+    /*
+    printf("camera manager pos: %f %f %f\n", transformComponent.position.x, transformComponent.position.y,
+           transformComponent.position.z);
+    */
+
+    vec3 center = vec3(transform * vec4(0, 0, this->orbitCamera.height, 1));
 
     quat q = quat(vec3(0, -this->orbitCamera.yAngle, -this->orbitCamera.zAngle));
 

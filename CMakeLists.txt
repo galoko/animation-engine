@@ -63,7 +63,7 @@ target_include_directories(engine PUBLIC "thirdparty/entt/single_include")
 
 target_compile_options(engine PRIVATE
   $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
-  $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall>
+  $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wno-deprecated-volatile>
 )
 
 target_link_libraries(engine LinearMath BulletCollision BulletDynamics)

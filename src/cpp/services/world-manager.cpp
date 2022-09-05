@@ -1,7 +1,5 @@
 #include "world-manager.hpp"
 
-#pragma GCC diagnostic ignored "-Wdeprecated-volatile"
-
 #include <gtc/quaternion.hpp>
 #include <gtx/transform.hpp>
 #include <mat4x4.hpp>
@@ -48,6 +46,7 @@ void WorldManager::init() {
     this->registry.get<GraphicsComponent>(player->handle).show();
 
     Services->cameraManager.orbit(player, 0.418879, 4.01426, 5, 1);
+    Services->playerInputManager.setManagedEntity(player);
 
     this->addGround();
 }
@@ -56,6 +55,10 @@ void WorldManager::tick(double dt) {
     auto view = registry.view<TransformComponent, GraphicsComponent>();
     for (auto [entity, transformComponent, graphicsComponent] : view.each()) {
         const mat4 &transform = transformComponent.getTransform();
+        /*
+        printf("world manager pos: %f %f %f\n", transformComponent.position.x, transformComponent.position.y,
+               transformComponent.position.z);
+        */
         graphicsComponent.sync(transform);
     }
 }

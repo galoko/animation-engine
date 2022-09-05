@@ -209,6 +209,6 @@ public:
     }
 
     constexpr inline int32_t getChessboardDistance(ChunkPos const &otherPos) const {
-        return max(Mth::c_abs(this->x - otherPos.x), Mth::c_abs(this->z - otherPos.z));
+        return std::max(Mth::c_abs(this->x - otherPos.x), Mth::c_abs(this->z - otherPos.z));
     }
 };

@@ -82,7 +82,7 @@ private:
         float f3 = 0.5F * (1.0F - p_187328_);
         float f4 = (p_187327_ + 1.17F) * 0.46082947F;
         float f5 = f4 * f2 - f3;
-        return p_187327_ < p_187329_ ? max(f5, -0.2222F) : max(f5, 0.0F);
+        return p_187327_ < p_187329_ ? std::max(f5, -0.2222F) : std::max(f5, 0.0F);
     }
 
     static constexpr inline float calculateMountainRidgeZeroContinentalnessPoint(float p_187344_) {

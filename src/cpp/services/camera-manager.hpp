@@ -37,4 +37,6 @@ public:
     void tick(double dt);
 
     void orbit(shared_ptr<Entity> entity, float yAngle, float zAngle, float distance, float height);
+
+    float getZAngle();
 };

@@ -59,7 +59,12 @@ async function SetTransformHandler(ptr: SeekablePtr): Promise<void> {
         readFloat(ptr)
     )
 
-    const entity = await Queues.getResult<Entity>(entityHandle)
+    const entity =
+        Queues.getResultSync<Entity>(entityHandle) ||
+        (await Queues.getResultAsync<Entity>(entityHandle))
+    const position = vec3.create()
+    mat4.getTranslation(position, transform)
+    // console.log("SET TRANSFORM POS: ", position[0], position[1], position[2])
     Render.setTransform(entity, transform)
 }
 
@@ -72,7 +77,9 @@ async function SetPrimitiveColorHandler(ptr: SeekablePtr): Promise<void> {
     const b = readFloat(ptr)
     const a = readFloat(ptr)
 
-    const entity = await Queues.getResult<Entity>(entityHandle)
+    const entity =
+        Queues.getResultSync<Entity>(entityHandle) ||
+        (await Queues.getResultAsync<Entity>(entityHandle))
 
     Render.setPrimitiveColor(entity, vec4.fromValues(r, g, b, a))
 }
@@ -82,7 +89,9 @@ registerOutputHandler(OutputMessageId.SET_PRIMITIVE_COLOR, SetPrimitiveColorHand
 async function AddEntityHandler(ptr: SeekablePtr): Promise<void> {
     const entityHandle = readU64(ptr)
 
-    const entity = await Queues.getResult<Entity>(entityHandle)
+    const entity =
+        Queues.getResultSync<Entity>(entityHandle) ||
+        (await Queues.getResultAsync<Entity>(entityHandle))
 
     Render.addEntity(entity)
 }

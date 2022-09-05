@@ -1,7 +1,5 @@
 #pragma once
 
-#pragma GCC diagnostic ignored "-Wdeprecated-volatile"
-
 #include <gtc/quaternion.hpp>
 #include <gtx/quaternion.hpp>
 #include <gtx/transform.hpp>
@@ -14,14 +12,15 @@
 using namespace glm;
 
 struct TransformComponent {
+private:
+    mat4 transform;
+
+public:
     vec3 position;
     vec3 scale;
     quat rotation;
 
-    mat4 transform;
-    bool changed;
-
-    TransformComponent() : position(0), scale(1), rotation(1, 0, 0, 0), changed(false) {
+    TransformComponent() : position(0), scale(1), rotation(1, 0, 0, 0) {
     }
 
     const mat4 &getTransform() {

@@ -52,7 +52,7 @@ export class Queues {
         }
     }
 
-    static getResult<T>(handle: MessageHandle): Promise<T> {
+    static getResultAsync<T>(handle: MessageHandle): Promise<T> {
         const result = new Deferred<T>()
 
         const value = results.get(handle)
@@ -70,6 +70,16 @@ export class Queues {
         }
 
         return result.promise
+    }
+
+    static getResultSync<T>(handle: MessageHandle): T | undefined {
+        const value = results.get(handle)
+
+        if (value instanceof Promise) {
+            return undefined
+        } else {
+            return value
+        }
     }
 
     static processOutputQueue(): void {
