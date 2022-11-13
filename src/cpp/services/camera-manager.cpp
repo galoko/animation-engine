@@ -50,12 +50,7 @@ void CameraManager::tick(double dt) {
 void CameraManager::applyOrbit() {
     TransformComponent &transformComponent =
         Services->worldManager.registry.get<TransformComponent>(this->orbitCamera.entityToOrbit->handle);
-    const mat4 &transform = transformComponent.getTransform();
-
-    /*
-    printf("camera manager pos: %f %f %f\n", transformComponent.position.x, transformComponent.position.y,
-           transformComponent.position.z);
-    */
+    const mat4 &transform = transformComponent.transform.toMat4();
 
     vec3 center = vec3(transform * vec4(0, 0, this->orbitCamera.height, 1));
 

@@ -1,4 +1,3 @@
-import { RenderContext } from "../render/render-context"
 import { Mesh, RefCountingResource, Texture } from "../render/render-data"
 import { loadMeshFromURL, loadTexture } from "./loaders"
 
@@ -16,8 +15,7 @@ export class ResourceManager {
         return ResourceManager.request(
             meshName,
             this.meshes,
-            (name: string): Promise<RefCountingResource> =>
-                loadMeshFromURL(RenderContext.gl, `/build/${name}.mdl`)
+            (name: string): Promise<RefCountingResource> => loadMeshFromURL(`/build/${name}.mdl`)
         ) as unknown as Promise<Mesh>
     }
 
@@ -31,8 +29,7 @@ export class ResourceManager {
         return ResourceManager.request(
             textureName,
             this.textures,
-            (name: string): Promise<RefCountingResource> =>
-                loadTexture(RenderContext.gl, `/build/${name}`)
+            (name: string): Promise<RefCountingResource> => loadTexture(`/build/${name}`)
         ) as unknown as Promise<Texture>
     }
 

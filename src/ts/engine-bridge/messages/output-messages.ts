@@ -1,99 +1,89 @@
-/*
-SET_TRANSFORM,
-
-SET_PRIMITIVE_COLOR,
-SET_PRIMITIVE_LINE_ENDS,
-SET_PRIMITIVE_TEXT,
-
-ADD_ENTITY,
-REMOVE_ENTITY,
-*/
-
-import { mat4, vec3, vec4 } from "gl-matrix"
-import { Entity } from "../../external-services/ecs/entity"
-import { createPrimitive, PrimitiveType } from "../../external-services/render/primitives"
+import { mat4, quat, vec3 } from "gl-matrix"
 import { Render } from "../../external-services/render/render"
+import { Mesh, Model, Texture } from "../../external-services/render/render-data"
+import { Renderable } from "../../external-services/render/renderable"
+import { ResourceManager } from "../../external-services/resources/resource-manager"
 import { OutputMessageId, registerOutputHandler } from "../queue-messages"
 import { Queues } from "../queues"
-import { readFloat, readU32, readU64, SeekablePtr } from "../read-write-utils"
+import { readFloat, readString, readToFloatArray, readU64, SeekablePtr } from "../read-write-utils"
 
 const pos = vec3.create()
 const lookAt = vec3.create()
 
 function SetCameraHandler(ptr: SeekablePtr): void {
-    vec3.set(pos, readFloat(ptr), readFloat(ptr), readFloat(ptr))
-    vec3.set(lookAt, readFloat(ptr), readFloat(ptr), readFloat(ptr))
+    readToFloatArray(ptr, pos)
+    readToFloatArray(ptr, lookAt)
 
     Render.setCamera(pos, lookAt)
 }
 
 registerOutputHandler(OutputMessageId.SET_CAMERA, SetCameraHandler)
 
-function CreatePrimitiveHandler(ptr: SeekablePtr): Promise<Entity> {
-    const primitiveType = readU32(ptr) as PrimitiveType
-    const transform = mat4.create()
-    mat4.identity(transform)
-    return createPrimitive(primitiveType, vec4.fromValues(1, 1, 1, 1), transform)
+async function CreateRenderableHandler(ptr: SeekablePtr): Promise<Renderable> {
+    const meshHandle = readU64(ptr)
+    const textureHandle = readU64(ptr)
+
+    const mesh =
+        Queues.getResultSync<Mesh>(meshHandle) || (await Queues.getResultAsync<Mesh>(meshHandle))
+
+    const texture =
+        Queues.getResultSync<Texture>(textureHandle) ||
+        (await Queues.getResultAsync<Texture>(textureHandle))
+
+    const renderable = new Renderable(mesh, texture)
+
+    return renderable
 }
 
-registerOutputHandler(OutputMessageId.CREATE_PRIMITIVE, CreatePrimitiveHandler)
+registerOutputHandler(OutputMessageId.CREATE_RENDERABLE, CreateRenderableHandler)
 
 async function SetTransformHandler(ptr: SeekablePtr): Promise<void> {
-    const entityHandle = readU64(ptr)
-    const transform = mat4.fromValues(
-        readFloat(ptr),
-        readFloat(ptr),
-        readFloat(ptr),
-        readFloat(ptr),
-        readFloat(ptr),
-        readFloat(ptr),
-        readFloat(ptr),
-        readFloat(ptr),
-        readFloat(ptr),
-        readFloat(ptr),
-        readFloat(ptr),
-        readFloat(ptr),
-        readFloat(ptr),
-        readFloat(ptr),
-        readFloat(ptr),
-        readFloat(ptr)
-    )
+    const renderableHandle = readU64(ptr)
 
-    const entity =
-        Queues.getResultSync<Entity>(entityHandle) ||
-        (await Queues.getResultAsync<Entity>(entityHandle))
-    const position = vec3.create()
-    mat4.getTranslation(position, transform)
-    // console.log("SET TRANSFORM POS: ", position[0], position[1], position[2])
-    Render.setTransform(entity, transform)
+    const transformData = new Float32Array(4 + 1 + 3)
+    readToFloatArray(ptr, transformData)
+
+    const renderable =
+        Queues.getResultSync<Renderable>(renderableHandle) ||
+        (await Queues.getResultAsync<Renderable>(renderableHandle))
+
+    Render.setTransform(renderable, transformData)
 }
 
 registerOutputHandler(OutputMessageId.SET_TRANSFORM, SetTransformHandler)
 
-async function SetPrimitiveColorHandler(ptr: SeekablePtr): Promise<void> {
-    const entityHandle = readU64(ptr)
-    const r = readFloat(ptr)
-    const g = readFloat(ptr)
-    const b = readFloat(ptr)
-    const a = readFloat(ptr)
+async function AddRenderableHandler(ptr: SeekablePtr): Promise<void> {
+    const renderableHandle = readU64(ptr)
 
-    const entity =
-        Queues.getResultSync<Entity>(entityHandle) ||
-        (await Queues.getResultAsync<Entity>(entityHandle))
+    const renderable =
+        Queues.getResultSync<Renderable>(renderableHandle) ||
+        (await Queues.getResultAsync<Renderable>(renderableHandle))
 
-    Render.setPrimitiveColor(entity, vec4.fromValues(r, g, b, a))
+    Render.addRenderable(renderable)
 }
 
-registerOutputHandler(OutputMessageId.SET_PRIMITIVE_COLOR, SetPrimitiveColorHandler)
+registerOutputHandler(OutputMessageId.ADD_RENDERABLE, AddRenderableHandler)
 
-async function AddEntityHandler(ptr: SeekablePtr): Promise<void> {
-    const entityHandle = readU64(ptr)
+const MAX_NAME_LENGTH = 64
 
-    const entity =
-        Queues.getResultSync<Entity>(entityHandle) ||
-        (await Queues.getResultAsync<Entity>(entityHandle))
-
-    Render.addEntity(entity)
+async function RequestTexture(ptr: SeekablePtr): Promise<Texture> {
+    const texName = readString(ptr, MAX_NAME_LENGTH)
+    const texture = await ResourceManager.requestTexture(texName)
+    return texture
 }
 
-registerOutputHandler(OutputMessageId.ADD_ENTITY, AddEntityHandler)
+registerOutputHandler(OutputMessageId.REQUEST_TEXTURE, RequestTexture)
+
+async function RequestMesh(ptr: SeekablePtr): Promise<Mesh> {
+    const meshName = readString(ptr, MAX_NAME_LENGTH)
+    const mesh = await ResourceManager.requestMesh(meshName)
+    return mesh
+}
+
+registerOutputHandler(OutputMessageId.REQUEST_MESH, RequestMesh)
+
+async function GenerateOneColorTexture(ptr: SeekablePtr): Promise<void> {
+    // TODO
+}
+
+registerOutputHandler(OutputMessageId.GENERATE_ONE_COLOR_TEXTURE, GenerateOneColorTexture)

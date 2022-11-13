@@ -1,10 +1,4 @@
 import { mat4, quat, vec3 } from "gl-matrix"
-import { RenderContext } from "./render-context"
-
-export type AttributeDef = {
-    name: string
-    size: number
-}
 
 export class RefCountingResource {
     private refCount = 0
@@ -24,80 +18,18 @@ export class RefCountingResource {
 }
 
 export class Mesh extends RefCountingResource {
-    static readonly ATTRIBUTES: AttributeDef[] = [
-        {
-            name: "p",
-            size: 3,
-        },
-        {
-            name: "n",
-            size: 3,
-        },
-        {
-            name: "uv",
-            size: 2,
-        },
-    ]
-    static readonly STRIDE = Mesh.ATTRIBUTES.reduce((acum, value) => acum + value.size, 0)
-
-    constructor(
-        readonly vertices: WebGLBuffer,
-        readonly vertexCount: number,
-        readonly indices?: WebGLBuffer,
-        readonly indexCount?: number
-    ) {
+    constructor(readonly vertices: Float32Array, readonly indices: Uint16Array) {
         super()
     }
-}
-
-export enum TextureFiltering {
-    NearestNeighbor,
-    Linear,
-    Anisotropic,
-}
-
-export class TextureOptions {
-    constructor(public filtering = TextureFiltering.Anisotropic, public texMul = 1) {}
 }
 
 export class Texture extends RefCountingResource {
-    constructor(readonly texture: WebGLTexture, readonly options = new TextureOptions()) {
+    constructor(
+        readonly pixels: Uint8ClampedArray,
+        readonly width: number,
+        readonly height: number
+    ) {
         super()
-        this.applyOptions()
-    }
-
-    public applyOptions() {
-        const { gl, anisotropic } = RenderContext
-        const { options } = this
-
-        switch (options.filtering) {
-            case TextureFiltering.NearestNeighbor: {
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
-                break
-            }
-            case TextureFiltering.Anisotropic:
-            case TextureFiltering.Linear: {
-                if (options.filtering === TextureFiltering.Anisotropic && anisotropic) {
-                    const max = gl.getParameter(anisotropic.MAX_TEXTURE_MAX_ANISOTROPY_EXT)
-                    gl.texParameterf(gl.TEXTURE_2D, anisotropic.TEXTURE_MAX_ANISOTROPY_EXT, max)
-                }
-
-                gl.generateMipmap(gl.TEXTURE_2D)
-
-                if (gl.getError() === gl.NO_ERROR) {
-                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR)
-                } else {
-                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
-                }
-
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
-
-                break
-            }
-        }
     }
 }
 
@@ -180,38 +112,12 @@ export class Bone {
 }
 
 export class Model {
-    static readonly ATTRIBUTES: AttributeDef[] = [
-        {
-            name: "p",
-            size: 3,
-        },
-        {
-            name: "n",
-            size: 3,
-        },
-        {
-            name: "uv",
-            size: 2,
-        },
-        {
-            name: "w",
-            size: 4,
-        },
-        {
-            name: "j",
-            size: 4,
-        },
-    ]
-    static readonly STRIDE = Model.ATTRIBUTES.reduce((acum, value) => acum + value.size, 0)
-
     readonly inverseMatrices: mat4[]
     readonly boneIdToBoneIndex: Map<number, number>
 
     constructor(
-        readonly vertices: WebGLBuffer,
-        readonly vertexCount: number,
-        readonly indices: WebGLBuffer,
-        readonly indexCount: number,
+        readonly vertices: Float32Array,
+        readonly indices: Uint16Array,
         readonly bones: Bone[]
     ) {
         this.inverseMatrices = new Array(bones.length)

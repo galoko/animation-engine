@@ -20,21 +20,22 @@ export enum OutputMessageId {
     // Render
     SET_CAMERA,
 
-    CREATE_PRIMITIVE,
+    CREATE_RENDERABLE,
 
     SET_TRANSFORM,
 
-    SET_PRIMITIVE_COLOR,
-    SET_PRIMITIVE_LINE_ENDS,
-    SET_PRIMITIVE_TEXT,
-
-    ADD_ENTITY,
-    REMOVE_ENTITY,
+    ADD_RENDERABLE,
+    REMOVE_RENDERABLE,
 
     // Resources
     REQUEST_TEXTURE,
-    REQUEST_MODEL,
+    REQUEST_MESH,
     REQUEST_ANIMATION,
+
+    // Resource generators
+    GENERATE_ONE_COLOR_TEXTURE,
+    GENERATE_LINE_MESH,
+    GENERATE_TEXT_TEXTURE,
 }
 
 type OutputMessageHandler = (ptr: SeekablePtr, handle: MessageHandle, id: OutputMessageId) => any

@@ -1,9 +1,9 @@
 #pragma once
 
-#include "mat4x4.hpp"
-
 #include "external-services.hpp"
 #include "output-messages.hpp"
+
+#include "../utils/transform.hpp"
 
 using namespace glm;
 
@@ -25,14 +25,15 @@ class Render {
 public:
     static void setCamera(vec3 pos, vec3 lookAt);
 
-    static RenderHandle createPrimitive(PrimitiveType primitiveType);
+    static RenderHandle createRenderable(RenderHandle mesh, RenderHandle texture);
 
-    static void setTransform(RenderHandle handle, mat4 transform);
+    static void setTransform(RenderHandle handle, const Transformation &transform);
 
-    static void setPrimitiveColor(RenderHandle handle, vec4 color);
-    static void setPrimitiveLineEnds(RenderHandle handle, vec3 start, vec3 end);
-    static void setPrimitiveText(RenderHandle handle, const char *str);
+    static void addRenderable(RenderHandle handle);
+    static void removeRenderable(RenderHandle handle);
 
-    static void addEntity(RenderHandle handle);
-    static void removeEntity(RenderHandle handle);
+    static RenderHandle requestTexture(string texName);
+    static RenderHandle requestMesh(string meshName);
+
+    static RenderHandle generateOneColorTexture(vec4 color);
 };

@@ -3,71 +3,49 @@
 #include <gtc/quaternion.hpp>
 #include <gtx/quaternion.hpp>
 #include <gtx/transform.hpp>
-#include <mat4x4.hpp>
 #include <vec3.hpp>
 #include <vec4.hpp>
 
 #include "../../external-services/external-render.hpp"
+#include "../../utils/transform.hpp"
 
 using namespace glm;
 
 struct TransformComponent {
-private:
-    mat4 transform;
-
 public:
-    vec3 position;
-    vec3 scale;
-    quat rotation;
+    Transformation transform;
 
-    TransformComponent() : position(0), scale(1), rotation(1, 0, 0, 0) {
-    }
-
-    const mat4 &getTransform() {
-        this->transform =
-            glm::translate(glm::toMat4(this->rotation) * glm::scale(mat4(1), this->scale), this->position);
-        return this->transform;
+    TransformComponent() : transform() {
     }
 };
 
 class Graphics {
-public:
-    virtual void sync(const mat4 &rootTransform) = 0;
-    virtual void show() = 0;
-    virtual void hide() = 0;
-
-    virtual ~Graphics() {
-    }
-};
-
-class PrimitiveGraphics : public Graphics {
 private:
     RenderHandle handle;
-    mat4 localTransform;
+    Transformation localTransform;
 
 public:
-    PrimitiveGraphics(PrimitiveType primitiveType, vec4 color, mat4 localTransform) : localTransform(localTransform) {
-        this->handle = Render::createPrimitive(primitiveType);
-        Render::setPrimitiveColor(this->handle, color);
+    Graphics(RenderHandle handle, const Transformation &localTransform)
+        : handle(handle), localTransform(localTransform) {
     }
 
-    virtual void sync(const mat4 &rootTransform) {
-        mat4 transform = this->localTransform * rootTransform;
+    void sync(const Transformation &rootTransform) {
+        Transformation transform = this->localTransform * rootTransform;
         Render::setTransform(this->handle, transform);
     }
 
-    virtual void show() {
-        Render::addEntity(this->handle);
+    void show() {
+        Render::addRenderable(this->handle);
     }
 
-    virtual void hide() {
+    void hide() {
     }
 };
 
 struct GraphicsComponent {
     vector<shared_ptr<Graphics>> graphics;
 
-    void sync(const mat4 &rootTransform) {
+    void sync(const Transformation &rootTransform) {
         for (shared_ptr<Graphics> graphics : this->graphics) {
             graphics->sync(rootTransform);
         }

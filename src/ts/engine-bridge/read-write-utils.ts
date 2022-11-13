@@ -75,3 +75,38 @@ export function readFloat(ptr: SeekablePtr | number): number {
 
     return Engine.HEAPF32[ptr / 4]
 }
+
+export function readString(ptr: SeekablePtr | number, bufferSize: number): string {
+    ptr = getAndSeekPtr(ptr, bufferSize)
+
+    let result = ""
+
+    for (let i = 0; i < bufferSize; i++) {
+        const c = Engine.HEAPU8[ptr + i]
+        if (c === 0) {
+            break
+        }
+
+        result += String.fromCharCode(c)
+    }
+
+    return result
+}
+
+interface WrtiableArrayLike<T> {
+    length: number
+    [n: number]: T
+}
+
+export function readToFloatArray(ptr: SeekablePtr | number, dst: WrtiableArrayLike<number>): void {
+    ptr = getAndSeekPtr(ptr, dst.length * 4)
+
+    if (ptr % 4 !== 0) {
+        throw new Error("TODO implement not aligned readFloat")
+    }
+
+    ptr /= 4
+    for (let i = 0; i < dst.length; i++) {
+        dst[i] = Engine.HEAPF32[ptr + i]
+    }
+}

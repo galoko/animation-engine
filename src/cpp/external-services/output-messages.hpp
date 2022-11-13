@@ -1,8 +1,9 @@
 #pragma once
 
-#include <mat4x4.hpp>
 #include <vec3.hpp>
 #include <vec4.hpp>
+
+#include "../utils/transform.hpp"
 
 using namespace glm;
 
@@ -15,43 +16,55 @@ struct SetCameraMessage {
     }
 };
 
-enum class PrimitiveType
-{
-    Plane,
-    Cube,
-    Sphere,
-    Capsule,
-    Line,
-    Text,
-};
+struct CreateRenderableMessage {
+    MessageHandle meshHandle, textureHandle;
 
-struct CreatePrimitiveMessage {
-    uint32_t primitiveType;
-
-    CreatePrimitiveMessage(PrimitiveType primitiveType) : primitiveType((uint32_t)primitiveType) {
+    CreateRenderableMessage(MessageHandle meshHandle, MessageHandle textureHandle)
+        : meshHandle(meshHandle), textureHandle(textureHandle) {
     }
 };
 
 struct SetTransformMessage {
     MessageHandle handle;
-    mat4 transform;
+    Transformation transform;
 
-    SetTransformMessage(MessageHandle handle, mat4 transform) : handle(handle), transform(transform) {
+    SetTransformMessage(MessageHandle handle, const Transformation &transform) : handle(handle), transform(transform) {
     }
 };
 
-struct SetPrimitiveColorMessage {
+struct AddRenderableMessage {
     MessageHandle handle;
+
+    AddRenderableMessage(MessageHandle handle) : handle(handle) {
+    }
+};
+
+#define MAX_NAME_LENGTH 64
+
+struct RequestMeshMessage {
+    char meshName[MAX_NAME_LENGTH];
+
+    RequestMeshMessage(string meshName) {
+        size_t length = std::min(meshName.length(), (size_t)MAX_NAME_LENGTH - 1);
+        memcpy(this->meshName, meshName.c_str(), length);
+        this->meshName[length] = 0;
+    }
+};
+
+struct RequestTextureMessage {
+    char texName[MAX_NAME_LENGTH];
+
+    RequestTextureMessage(string texName) {
+        size_t length = std::min(texName.length(), (size_t)MAX_NAME_LENGTH - 1);
+        memcpy(this->texName, texName.c_str(), length);
+        this->texName[length] = 0;
+    }
+};
+
+struct GenerateOneColorTextureMessage {
     vec4 color;
 
-    SetPrimitiveColorMessage(MessageHandle handle, vec4 color) : handle(handle), color(color) {
-    }
-};
-
-struct AddEntityMessage {
-    MessageHandle handle;
-
-    AddEntityMessage(MessageHandle handle) : handle(handle) {
+    GenerateOneColorTextureMessage(vec4 color) : color(color) {
     }
 };
 

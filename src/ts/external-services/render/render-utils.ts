@@ -1,14 +1,17 @@
-export type CompiledShader = {
-    program: WebGLProgram
-    [key: string]: WebGLUniformLocation | number
+import { gl } from "./render-context"
+
+export interface WebGLProgramWithUniforms extends WebGLProgram {
+    [key: string]: WebGLUniformLocation
 }
 
 export function compileShader(
-    gl: WebGLRenderingContext,
     vertText: string,
     fragText: string,
-    parameters: Array<string>
-): CompiledShader {
+    uboMap: {
+        [key: string]: number
+    },
+    unifroms: Array<string>
+): WebGLProgramWithUniforms {
     const vertexShader = gl.createShader(gl.VERTEX_SHADER)
     const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER)
 
@@ -33,7 +36,7 @@ export function compileShader(
         )
     }
 
-    const program = gl.createProgram()
+    const program = gl.createProgram() as WebGLProgramWithUniforms
     if (!program) {
         throw new Error("Cannot create program")
     }
@@ -49,28 +52,24 @@ export function compileShader(
         throw new Error(`ERROR validating program! ${gl.getProgramInfoLog(program)}`)
     }
 
-    const result = { program } as CompiledShader
+    for (const [name, index] of Object.entries(uboMap)) {
+        const uboIndex = gl.getUniformBlockIndex(program, name)
+        gl.uniformBlockBinding(program, uboIndex, index)
+    }
 
-    parameters.forEach((parameter: string): void => {
-        const uniformLocation = gl.getUniformLocation(program, parameter)
-        if (uniformLocation !== null) {
-            result[parameter] = uniformLocation
-        } else {
-            const attributeLocation = gl.getAttribLocation(program, parameter)
-            if (attributeLocation !== -1) {
-                result[parameter] = attributeLocation
-            } else {
-                console.warn(`${parameter} is not found in shader.`)
-            }
+    for (const uniform of unifroms) {
+        const uniformLocation = gl.getUniformLocation(program, uniform)
+        if (uniformLocation) {
+            program[uniform] = uniformLocation
         }
-    })
+    }
 
-    return result
+    return program
 }
 
 type Context = {
     [key: string]: unknown
-} & WebGLRenderingContext
+} & WebGL2RenderingContext
 
 type ContextMethod = (...args: unknown[]) => unknown
 
@@ -87,11 +86,13 @@ function glEnumToString(gl: Context, value: number): string {
     return "0x" + value.toString(16)
 }
 
-function createGLErrorWrapper(context: WebGLRenderingContext, fname: string) {
-    return (...rest: unknown[]) => {
+function createGLErrorWrapper(context: WebGL2RenderingContext, fname: string) {
+    return (...args: unknown[]) => {
         const ctx = context as unknown as Context
         const f = ctx[fname] as ContextMethod
-        const rv = f(...rest)
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        const rv = f.apply(ctx, args)
         const err = context.getError()
         if (err !== context.NO_ERROR) throw "GL error " + glEnumToString(ctx, err) + " in " + fname
         return rv
@@ -99,8 +100,10 @@ function createGLErrorWrapper(context: WebGLRenderingContext, fname: string) {
 }
 
 export function create3DContextWithWrapperThatThrowsOnGLError(
-    context: Context
-): WebGLRenderingContext {
+    gl: WebGL2RenderingContext
+): WebGL2RenderingContext {
+    const context = gl as Context
+
     const wrap = {
         getError: function () {
             return context.getError()
@@ -115,5 +118,5 @@ export function create3DContextWithWrapperThatThrowsOnGLError(
         }
     }
 
-    return wrap as WebGLRenderingContext
+    return wrap as WebGL2RenderingContext
 }

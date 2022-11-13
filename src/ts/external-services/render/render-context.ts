@@ -1,23 +1,23 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 
-export class RenderContext {
-    static readonly canvasWebGL = document.createElement("canvas")
-    static readonly canvas2D = document.createElement("canvas")
+import { create3DContextWithWrapperThatThrowsOnGLError } from "./render-utils"
 
-    static readonly gl = this.canvasWebGL.getContext("webgl", {
+const canvasWebGL = document.createElement("canvas")
+const canvas2D = document.createElement("canvas")
+
+export const gl = create3DContextWithWrapperThatThrowsOnGLError(
+    canvasWebGL.getContext("webgl2", {
         antialias: true,
         powerPreference: "high-performance",
     })!
-    static readonly anisotropic = this.gl.getExtension("EXT_texture_filter_anisotropic")
-    static readonly ctx = this.canvas2D.getContext("2d")!
+)
 
-    static {
-        RenderContext.canvasWebGL.style.position = "fixed"
+export const anisotropic = gl.getExtension("EXT_texture_filter_anisotropic")
+export const ctx = canvas2D.getContext("2d")!
 
-        RenderContext.canvas2D.style.pointerEvents = "none"
-        RenderContext.canvas2D.style.position = "fixed"
+canvasWebGL.style.position = "fixed"
+document.body.insertBefore(canvas2D, null)
 
-        document.body.insertBefore(RenderContext.canvas2D, null)
-        document.body.insertBefore(RenderContext.canvasWebGL, null)
-    }
-}
+canvas2D.style.pointerEvents = "none"
+canvas2D.style.position = "fixed"
+document.body.insertBefore(canvasWebGL, null)

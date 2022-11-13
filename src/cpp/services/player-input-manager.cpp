@@ -13,8 +13,9 @@ void PlayerInputManager::tick(double dt) {
         Services->worldManager.registry.get<TransformComponent>(this->managedEntity->handle);
 
     float speed = 0.0;
-    if (Services->inputManager.isPressed({KeyboardKey::KEY_W, KeyboardKey::KEY_S, KeyboardKey::KEY_A,
-                                          KeyboardKey::KEY_D, KeyboardKey::KEY_LCONTROL, KeyboardKey::KEY_LSHIFT})) {
+    if (Services->inputManager.isPressed(
+            {KeyboardKey::KEY_W, KeyboardKey::KEY_S, KeyboardKey::KEY_A,
+             KeyboardKey::KEY_D /*, KeyboardKey::KEY_LCONTROL, KeyboardKey::KEY_LSHIFT*/})) {
         speed = 7.62;
     }
 
@@ -36,5 +37,5 @@ void PlayerInputManager::tick(double dt) {
     quat q = quat(vec3(0, 0, -desiredAngle));
     vec3 velocity = q * vec3(-speed, 0, 0);
 
-    transform.position += velocity * vec3((float)dt);
+    transform.transform.position += velocity * vec3((float)dt);
 }

@@ -2,36 +2,32 @@
 import { vec3, quat } from "gl-matrix"
 import { Mesh, Model, Bone, Animation, Texture } from "../render/render-data"
 
-export function loadMesh(gl: WebGLRenderingContext, data: ArrayBuffer): Mesh {
+export const MESH_VERTEX_SIZE = 3 + 3 + 2
+
+export function loadMesh(data: ArrayBuffer): Mesh {
     const header = new Uint32Array(data, 0, 2)
     const [vertexCount, indexCount] = header
 
     const indices = new Uint16Array(data, 2 * 4, indexCount)
     const floatPosition = Math.ceil((2 * 4 + indexCount * 2) / 4) * 4
-    const vertices = new Float32Array(data, floatPosition, Mesh.STRIDE * vertexCount)
+    const vertices = new Float32Array(data, floatPosition, MESH_VERTEX_SIZE * vertexCount)
 
-    const vertexBuffer = gl.createBuffer()!
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer)
-    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW)
-
-    const indexBuffer = gl.createBuffer()!
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer)
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW)
-
-    const model = new Mesh(vertexBuffer, vertexCount, indexBuffer, indexCount)
+    const model = new Mesh(vertices, indices)
 
     return model
 }
 
-export function loadModel(gl: WebGLRenderingContext, data: ArrayBuffer): Model {
+export const MODEL_VERTEX_SIZE = 3 + 3 + 2 + 4 + 4
+
+export function loadModel(data: ArrayBuffer): Model {
     const header = new Uint32Array(data, 0, 3)
     const [vertexCount, indexCount, boneCount] = header
     const indices = new Uint16Array(data, 3 * 4, indexCount)
     const floatPosition = Math.ceil((3 * 4 + indexCount * 2) / 4) * 4
-    const vertices = new Float32Array(data, floatPosition, Model.STRIDE * vertexCount)
+    const vertices = new Float32Array(data, floatPosition, MODEL_VERTEX_SIZE * vertexCount)
     const boneData = new Float32Array(
         data,
-        floatPosition + Model.STRIDE * vertexCount * 4,
+        floatPosition + MODEL_VERTEX_SIZE * vertexCount * 4,
         boneCount * Bone.STRIDE
     )
 
@@ -55,15 +51,7 @@ export function loadModel(gl: WebGLRenderingContext, data: ArrayBuffer): Model {
         bones.push(bone)
     }
 
-    const vertexBuffer = gl.createBuffer()!
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer)
-    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW)
-
-    const indexBuffer = gl.createBuffer()!
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer)
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW)
-
-    const skin = new Model(vertexBuffer, vertexCount, indexBuffer, indexCount, bones)
+    const skin = new Model(vertices, indices, bones)
 
     return skin
 }
@@ -106,16 +94,23 @@ export function loadAnimation(data: ArrayBuffer) {
     return animation
 }
 
-export async function loadTexture(gl: WebGLRenderingContext, url: string): Promise<Texture> {
+const MAX_TEX_SIZE = 2048
+const canvas = document.createElement("canvas")
+canvas.width = MAX_TEX_SIZE
+canvas.height = MAX_TEX_SIZE
+const ctx = canvas.getContext("2d", { willReadFrequently: true })!
+
+export async function loadTexture(url: string): Promise<Texture> {
     return new Promise(resolve => {
         const image = new Image()
         image.onload = () => {
-            const texture = gl.createTexture()!
+            const canvas = ctx.canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height)
+            ctx.drawImage(image, 0, 0)
 
-            gl.bindTexture(gl.TEXTURE_2D, texture)
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image)
+            const data = ctx.getImageData(0, 0, image.width, image.height)
 
-            resolve(new Texture(texture))
+            resolve(new Texture(data.data, data.width, data.height))
         }
         image.src = url
     })
@@ -123,14 +118,14 @@ export async function loadTexture(gl: WebGLRenderingContext, url: string): Promi
 
 // URL adapters
 
-export async function loadMeshFromURL(gl: WebGLRenderingContext, url: string): Promise<Mesh> {
+export async function loadMeshFromURL(url: string): Promise<Mesh> {
     const data = await (await fetch(url)).arrayBuffer()
-    return loadMesh(gl, data)
+    return loadMesh(data)
 }
 
-export async function loadModelFromURL(gl: WebGLRenderingContext, url: string): Promise<Model> {
+export async function loadModelFromURL(url: string): Promise<Model> {
     const data = await (await fetch(url)).arrayBuffer()
-    return loadModel(gl, data)
+    return loadModel(data)
 }
 
 export async function loadAnimationFromURL(url: string): Promise<Animation> {
