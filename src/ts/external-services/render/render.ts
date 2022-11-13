@@ -329,6 +329,8 @@ export class Render {
 
         gl.disable(gl.BLEND)
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+
+        gl.hint(gl.FRAGMENT_SHADER_DERIVATIVE_HINT, gl.FASTEST)
     }
 
     // entities

@@ -5,10 +5,18 @@ import { Texture } from "./render-data"
 
 export const ATLAS_SIZE = 2048
 
+class AtlasRow {
+    nextX = 0
+    constructor(readonly y: number, readonly height: number) {}
+}
+
 export class Atlas {
     private hasChanges = false
 
     texture: WebGLTexture
+
+    private nextY = 0
+    private rows: AtlasRow[] = []
 
     constructor(readonly num: number) {
         this.texture = gl.createTexture()!
@@ -49,8 +57,70 @@ export class Atlas {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
     }
 
+    private findRowForTexture(texture: Texture): AtlasRow | undefined {
+        let smallestRowToFit: AtlasRow | undefined = undefined
+
+        // TODO use binary search
+
+        for (const row of this.rows) {
+            if (
+                row.height >= texture.height &&
+                row.nextX + texture.width <= ATLAS_SIZE &&
+                (smallestRowToFit === undefined || smallestRowToFit.height > row.height)
+            ) {
+                smallestRowToFit = row
+            }
+        }
+
+        // can't fit texture in existing rows
+        if (smallestRowToFit === undefined) {
+            const rowHeight = texture.height
+            if (this.nextY + rowHeight > ATLAS_SIZE) {
+                // can't allocate new row this size
+                return undefined
+            }
+
+            smallestRowToFit = new AtlasRow(this.nextY, rowHeight)
+            this.rows.push(smallestRowToFit)
+
+            this.nextY += rowHeight
+        }
+
+        return smallestRowToFit
+    }
+
     tryAddTexture(texture: Texture): [number, number] | undefined {
-        return [0, 0]
+        if (texture.width > ATLAS_SIZE || texture.height > ATLAS_SIZE) {
+            throw new Error("Texture is larger than Atlas size.")
+        }
+
+        const row = this.findRowForTexture(texture)
+        if (!row) {
+            return undefined
+        }
+
+        gl.activeTexture(gl.TEXTURE1 + this.num)
+        gl.bindTexture(gl.TEXTURE_2D, this.texture)
+        const x = row.nextX
+        const y = row.y
+
+        gl.texSubImage2D(
+            gl.TEXTURE_2D,
+            0,
+            x,
+            y,
+            texture.width,
+            texture.height,
+            gl.RGBA,
+            gl.UNSIGNED_BYTE,
+            texture.pixels
+        )
+
+        this.hasChanges = true
+
+        row.nextX += texture.width
+
+        return [x / ATLAS_SIZE, y / ATLAS_SIZE]
     }
 
     update() {

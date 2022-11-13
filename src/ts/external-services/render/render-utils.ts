@@ -120,3 +120,35 @@ export function create3DContextWithWrapperThatThrowsOnGLError(
 
     return wrap as WebGL2RenderingContext
 }
+
+;(window as any).saveTexture = (texture: WebGLTexture): void => {
+    const w = 2048
+    const h = 2048
+
+    const canvas = document.createElement("canvas")
+    canvas.width = w
+    canvas.height = h
+
+    const ctx = canvas.getContext("2d")!
+    const data = ctx.createImageData(w, h)
+
+    // make a framebuffer
+    const fb = gl.createFramebuffer()
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb)
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0)
+
+    gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, data.data)
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+
+    ctx.putImageData(data, 0, 0)
+
+    const url = canvas.toDataURL("image/png")
+
+    const link = document.createElement("a")
+    link.href = url
+    link.download = "tex.png"
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+}
