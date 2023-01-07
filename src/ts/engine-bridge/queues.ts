@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 // Queues
 
 import { Engine } from "./module"
@@ -85,7 +87,7 @@ export class Queues {
     static processOutputQueue(): void {
         ptr.value = outputQueue
         const messagesCount = readU32(ptr)
-        const bytesAvailable = readU32(ptr)
+        /*const bytesAvailable = */ readU32(ptr)
 
         for (let messageIndex = 0; messageIndex < messagesCount; messageIndex++) {
             const id = readU32(ptr) as OutputMessageId

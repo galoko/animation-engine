@@ -91,7 +91,7 @@ export const CODE_TO_KEY: {
     ControlRight: KeyboardKey.KEY_RCONTROL,
 }
 
-export function KeyboardKeyMessage(id: InputMessageId, ptr: SeekablePtr, key: KeyboardKey): void {
+export function KeyboardKeyMessage(_id: InputMessageId, ptr: SeekablePtr, key: KeyboardKey): void {
     writeU32(ptr, key as number)
 }
 
@@ -111,7 +111,7 @@ export const CODE_TO_BUTTON: {
 }
 
 export function MouseButtonMessage(
-    id: InputMessageId,
+    _id: InputMessageId,
     ptr: SeekablePtr,
     button: MouseButton,
     x: number,

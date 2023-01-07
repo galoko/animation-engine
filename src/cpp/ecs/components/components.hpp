@@ -35,7 +35,7 @@ public:
     }
 
     void show() {
-        // Render::addRenderable(this->handle);
+        Render::addRenderable(this->handle);
     }
 
     void hide() {

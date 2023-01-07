@@ -3,7 +3,7 @@
 import objectsVert from "../../shaders/objects.vert"
 import objectsFrag from "../../shaders/objects.frag"
 
-import { mat4, quat, vec3 } from "gl-matrix"
+import { mat4, vec3 } from "gl-matrix"
 import { compileShader, WebGLProgramWithUniforms } from "./render-utils"
 import { gl, ctx } from "./render-context"
 import { Renderable, VERTEX_SIZE } from "./renderable"
@@ -397,8 +397,9 @@ export class Render {
         ctx.canvas.width = newWidth
         ctx.canvas.height = newHeight
 
-        gl.canvas.style.width = newWidth / dpr + "px"
-        gl.canvas.style.height = newHeight / dpr + "px"
+        const glCanvas = gl.canvas as HTMLCanvasElement
+        glCanvas.style.width = newWidth / dpr + "px"
+        glCanvas.style.height = newHeight / dpr + "px"
         gl.canvas.width = newWidth
         gl.canvas.height = newHeight
 

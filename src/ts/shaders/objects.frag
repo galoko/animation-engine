@@ -27,14 +27,15 @@ void main(void) {
     vec3 diffuse = diff * lightColor;
 
     float ambient = 0.5;
-    // TODO use atlasNum somehow
     float mipLevel = GetMipLevel(fragUV * ATLAS_SIZE);
     float mipMul = pow(2., mipLevel);
     vec2 mipMapPadding = vec2(0.5 / ATLAS_SIZE * mipMul);
 
+    // we need 
     vec2 minUV = vec2(0.0, 0.0) / ATLAS_SIZE + mipMapPadding;
-    vec2 maxUV = vec2(512.0, 512.0) / ATLAS_SIZE - mipMapPadding;
+    vec2 maxUV = vec2(128.0, 128.0) / ATLAS_SIZE - mipMapPadding;
 
+    // TODO use atlasNum somehow
     vec4 objectColor = textureLod(textures[1], clamp(fragUV, minUV, maxUV), mipLevel);
 
     outputColor = vec4(min(ambient + diffuse, 1.0) * objectColor.rgb, objectColor.a);

@@ -57,8 +57,8 @@ void WorldManager::addGround() {
 
     RenderHandle ground = Render::createRenderable(planeModel, grassTexture);
 
-    Transformation transform = Transformation(0, 0, 0, 0.05);
+    Transformation transform = Transformation(0, 0, 0, 1);
     Render::setTransform(ground, transform);
 
-    Render::addRenderable(ground);
+    // Render::addRenderable(ground);
 }

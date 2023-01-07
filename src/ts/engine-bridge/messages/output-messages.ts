@@ -1,11 +1,11 @@
-import { mat4, quat, vec3 } from "gl-matrix"
+import { vec3 } from "gl-matrix"
 import { Render } from "../../external-services/render/render"
-import { Mesh, Model, Texture } from "../../external-services/render/render-data"
+import { Mesh, Texture } from "../../external-services/render/render-data"
 import { Renderable } from "../../external-services/render/renderable"
 import { ResourceManager } from "../../external-services/resources/resource-manager"
 import { OutputMessageId, registerOutputHandler } from "../queue-messages"
 import { Queues } from "../queues"
-import { readFloat, readString, readToFloatArray, readU64, SeekablePtr } from "../read-write-utils"
+import { readString, readToFloatArray, readU64, SeekablePtr } from "../read-write-utils"
 
 const pos = vec3.create()
 const lookAt = vec3.create()
@@ -82,7 +82,7 @@ async function RequestMesh(ptr: SeekablePtr): Promise<Mesh> {
 
 registerOutputHandler(OutputMessageId.REQUEST_MESH, RequestMesh)
 
-async function GenerateOneColorTexture(ptr: SeekablePtr): Promise<void> {
+async function GenerateOneColorTexture(/*ptr: SeekablePtr*/): Promise<void> {
     // TODO
 }
 

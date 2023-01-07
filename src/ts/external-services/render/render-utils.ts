@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+
 import { gl } from "./render-context"
 
 export interface WebGLProgramWithUniforms extends WebGLProgram {
@@ -121,6 +123,7 @@ export function create3DContextWithWrapperThatThrowsOnGLError(
     return wrap as WebGL2RenderingContext
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 ;(window as any).saveTexture = (texture: WebGLTexture): void => {
     const w = 2048
     const h = 2048

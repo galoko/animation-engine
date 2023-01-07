@@ -1,4 +1,4 @@
-import { mat4, quat, vec3 } from "gl-matrix"
+import { quat, vec3 } from "gl-matrix"
 import { Mesh, Texture } from "./render-data"
 
 // pos, normal, uv, pos in per object data
