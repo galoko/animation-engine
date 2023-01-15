@@ -15,6 +15,8 @@ export class Services {
         InputManager.init()
         GameLoop.init(Services.process)
         Engine._init()
+
+        await Render.setupTest()
     }
 
     static process(dt: number): void {

@@ -8,6 +8,7 @@ const canvas2D = document.createElement("canvas")
 export const gl = create3DContextWithWrapperThatThrowsOnGLError(
     canvasWebGL.getContext("webgl2", {
         antialias: false,
+        alpha: false,
         powerPreference: "high-performance",
     })!
 )

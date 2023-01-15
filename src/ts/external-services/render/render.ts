@@ -3,23 +3,112 @@
 import objectsVert from "../../shaders/objects.vert"
 import objectsFrag from "../../shaders/objects.frag"
 
+import skydomeVert from "../../shaders/skydome.vert"
+import skydomeFrag from "../../shaders/skydome.frag"
+
+import sunVert from "../../shaders/sun.vert"
+import sunFrag from "../../shaders/sun.frag"
+
 import { mat4, vec3 } from "gl-matrix"
 import { compileShader, WebGLProgramWithUniforms } from "./render-utils"
-import { gl, ctx } from "./render-context"
-import { Renderable, VERTEX_SIZE } from "./renderable"
+import { gl, ctx, anisotropic } from "./render-context"
+import { CHUNK_MESH_VERTEX_SIZE, Renderable } from "./renderable"
 import { Atlas, ATLAS_SIZE } from "./atlas"
-import { MESH_VERTEX_SIZE } from "../resources/loaders"
-import { Texture } from "./render-data"
-
-const VERTEX_BUFFER_SIZE = Math.trunc((4 * 1024 * 1024) / 4 / VERTEX_SIZE) // in vertex count
-const INDEX_BUFFER_SIZE = VERTEX_BUFFER_SIZE // in index count
+import {
+    COLORED_MESH_SIZE,
+    COLORED_TEXTURED_MESH_SIZE,
+    loadColoredMeshFromURL,
+    loadColoredTexturedMeshFromURL,
+    loadMeshFromURL,
+    loadTexture,
+    MESH_VERTEX_SIZE,
+} from "../resources/loaders"
+import { ColoredMesh, Texture } from "./render-data"
+import { ResourceManager } from "../resources/resource-manager"
 
 const POSITION_INDEX = 0
+const COLOR_INDEX = 1
 const NORMAL_INDEX = 1
 const UV_INDEX = 2
 const PARAMS_INDEX = 3
 
-const ramVertexBuffer = new Float32Array(VERTEX_BUFFER_SIZE * VERTEX_SIZE)
+class ColoredMeshBuffer {
+    vao: WebGLVertexArrayObject
+
+    vertices: WebGLBuffer
+    indices: WebGLBuffer
+
+    constructor(public mesh: ColoredMesh) {
+        this.vao = gl.createVertexArray()!
+
+        this.vertices = gl.createBuffer()!
+        this.indices = gl.createBuffer()!
+
+        gl.bindVertexArray(this.vao)
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertices)
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indices)
+
+        gl.bufferData(gl.ARRAY_BUFFER, mesh.vertices, gl.STATIC_DRAW)
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.indices, gl.STATIC_DRAW)
+
+        gl.enableVertexAttribArray(POSITION_INDEX)
+        gl.enableVertexAttribArray(COLOR_INDEX)
+
+        gl.vertexAttribPointer(POSITION_INDEX, 3, gl.FLOAT, false, COLORED_MESH_SIZE * 4, 0)
+        gl.vertexAttribPointer(COLOR_INDEX, 4, gl.UNSIGNED_BYTE, true, COLORED_MESH_SIZE * 4, 3 * 4)
+    }
+}
+
+class ColoredTexturedMeshBuffer {
+    vao: WebGLVertexArrayObject
+
+    vertices: WebGLBuffer
+    indices: WebGLBuffer
+
+    constructor(public mesh: ColoredMesh) {
+        this.vao = gl.createVertexArray()!
+
+        this.vertices = gl.createBuffer()!
+        this.indices = gl.createBuffer()!
+
+        gl.bindVertexArray(this.vao)
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertices)
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indices)
+
+        gl.bufferData(gl.ARRAY_BUFFER, mesh.vertices, gl.STATIC_DRAW)
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.indices, gl.STATIC_DRAW)
+
+        gl.enableVertexAttribArray(POSITION_INDEX)
+        gl.enableVertexAttribArray(COLOR_INDEX)
+        gl.enableVertexAttribArray(UV_INDEX)
+
+        gl.vertexAttribPointer(
+            POSITION_INDEX,
+            3,
+            gl.FLOAT,
+            false,
+            COLORED_TEXTURED_MESH_SIZE * 4,
+            0
+        )
+        gl.vertexAttribPointer(UV_INDEX, 2, gl.FLOAT, false, COLORED_TEXTURED_MESH_SIZE * 4, 3 * 4)
+        gl.vertexAttribPointer(
+            COLOR_INDEX,
+            4,
+            gl.UNSIGNED_BYTE,
+            true,
+            COLORED_TEXTURED_MESH_SIZE * 4,
+            (3 + 2) * 4
+        )
+    }
+}
+
+// in vertex count
+const VERTEX_BUFFER_SIZE = Math.trunc((4 * 1024 * 1024) / 4 / CHUNK_MESH_VERTEX_SIZE)
+const INDEX_BUFFER_SIZE = VERTEX_BUFFER_SIZE // in index count
+
+const ramVertexBuffer = new Float32Array(VERTEX_BUFFER_SIZE * CHUNK_MESH_VERTEX_SIZE)
 const ramIndexBuffer = new Uint32Array(INDEX_BUFFER_SIZE)
 
 class BufferChunk {
@@ -44,7 +133,11 @@ class BufferChunk {
         gl.bindBuffer(gl.ARRAY_BUFFER, this.vertices)
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indices)
 
-        gl.bufferData(gl.ARRAY_BUFFER, VERTEX_BUFFER_SIZE * VERTEX_SIZE * 4, gl.STREAM_DRAW)
+        gl.bufferData(
+            gl.ARRAY_BUFFER,
+            VERTEX_BUFFER_SIZE * CHUNK_MESH_VERTEX_SIZE * 4,
+            gl.STREAM_DRAW
+        )
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, INDEX_BUFFER_SIZE * 4, gl.STREAM_DRAW)
 
         gl.enableVertexAttribArray(POSITION_INDEX)
@@ -60,7 +153,7 @@ class BufferChunk {
             const index = attributes[i]
             const size = sizes[i]
 
-            gl.vertexAttribPointer(index, size, gl.FLOAT, false, VERTEX_SIZE * 4, offset)
+            gl.vertexAttribPointer(index, size, gl.FLOAT, false, CHUNK_MESH_VERTEX_SIZE * 4, offset)
 
             offset += size * 4
         }
@@ -119,7 +212,7 @@ class BufferChunk {
         for (let vertexIndex = 0; vertexIndex < vertexCount; vertexIndex++) {
             const MESH_VERTEX_STATIC_SIZE = 3 + 3
             for (let i = 0; i < MESH_VERTEX_STATIC_SIZE; i++) {
-                ramVertexBuffer[vertexIndex * VERTEX_SIZE + i] =
+                ramVertexBuffer[vertexIndex * CHUNK_MESH_VERTEX_SIZE + i] =
                     mesh.vertices[vertexIndex * MESH_VERTEX_SIZE + i]
             }
 
@@ -131,19 +224,20 @@ class BufferChunk {
             u = uOffset + u * uScale
             v = vOffset + v * vScale
 
-            ramVertexBuffer[vertexIndex * VERTEX_SIZE + MESH_VERTEX_STATIC_SIZE + 0] = u
-            ramVertexBuffer[vertexIndex * VERTEX_SIZE + MESH_VERTEX_STATIC_SIZE + 1] = v
+            ramVertexBuffer[vertexIndex * CHUNK_MESH_VERTEX_SIZE + MESH_VERTEX_STATIC_SIZE + 0] = u
+            ramVertexBuffer[vertexIndex * CHUNK_MESH_VERTEX_SIZE + MESH_VERTEX_STATIC_SIZE + 1] = v
 
-            ramVertexBuffer[vertexIndex * VERTEX_SIZE + MESH_VERTEX_SIZE + 0] = perObjectDataIndex
+            ramVertexBuffer[vertexIndex * CHUNK_MESH_VERTEX_SIZE + MESH_VERTEX_SIZE + 0] =
+                perObjectDataIndex
         }
 
         // pass vertices to GPU
         gl.bufferSubData(
             gl.ARRAY_BUFFER,
-            this.vertexPos * VERTEX_SIZE * 4,
+            this.vertexPos * CHUNK_MESH_VERTEX_SIZE * 4,
             ramVertexBuffer,
             0,
-            vertexCount * VERTEX_SIZE
+            vertexCount * CHUNK_MESH_VERTEX_SIZE
         )
 
         // setup indices
@@ -178,6 +272,39 @@ const PER_OBJECT_DATA_ENTRY_SIZE_IN_PIXELS = Math.ceil(PER_OBJECT_DATA_ENTRY_SIZ
 
 const ramPerObjectDataBuffer = new Float32Array(PER_OBJECT_DATA_ENTRY_SIZE_IN_PIXELS * 4)
 
+function createTexture(tex: Texture): WebGLTexture {
+    const texture = gl.createTexture()!
+    gl.activeTexture(gl.TEXTURE1)
+    gl.bindTexture(gl.TEXTURE_2D, texture)
+
+    gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        tex.width,
+        tex.height,
+        0,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        tex.pixels
+    )
+
+    if (anisotropic) {
+        const max = gl.getParameter(anisotropic.MAX_TEXTURE_MAX_ANISOTROPY_EXT)
+        gl.texParameterf(gl.TEXTURE_2D, anisotropic.TEXTURE_MAX_ANISOTROPY_EXT, max)
+    }
+
+    gl.generateMipmap(gl.TEXTURE_2D)
+
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR)
+
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
+
+    return texture
+}
+
 export class Render {
     private static viewMatrix: mat4
     private static projectionMatrix: mat4
@@ -188,6 +315,12 @@ export class Render {
         0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
     ])
 
+    // TODO
+    private static skydome: ColoredMeshBuffer
+    private static checkerboard: WebGLTexture
+    private static sun: ColoredTexturedMeshBuffer
+    private static sunTexture: WebGLTexture
+
     private static perObjectData: WebGLBuffer
     // TODO keep list of free entries
     private static nextPerObjectX = 0
@@ -195,6 +328,8 @@ export class Render {
 
     private static settings: WebGLBuffer
     private static objectsShader: WebGLProgramWithUniforms
+    private static skydomeShader: WebGLProgramWithUniforms
+    private static sunShader: WebGLProgramWithUniforms
 
     private static scene: BufferChunk[] = []
 
@@ -208,6 +343,79 @@ export class Render {
         Render.compilerShaders()
 
         Render.setupWebGL()
+    }
+
+    static async setupTest(): Promise<void> {
+        this.skydome = new ColoredMeshBuffer(await loadColoredMeshFromURL("/build/skydome.cml"))
+        this.checkerboard = createTexture(await loadTexture("/build/checkerboard.png"))
+
+        this.sun = new ColoredTexturedMeshBuffer(
+            await loadColoredTexturedMeshFromURL("/build/sun.ctml")
+        )
+        this.sunTexture = createTexture(await loadTexture("/build/sun.png"))
+
+        const coordinates = [
+            //
+            8, -101515.1328125, -38915.29296875, -1551.75769042969,
+            //
+            8, -101515.1328125, -71683.296875, -1551.75769042969,
+            //
+            4, -35979.12890625, 10236.70703125, -1551.75769042969,
+            //
+            4, -35979.12890625, 10236.70703125, -1551.75769042969,
+            //
+            4, -35979.12890625, -6147.29296875, -1551.75769042969,
+            //
+            4, -35979.12890625, -6147.29296875, -1551.75769042969,
+            //
+            8, -68747.1328125, -6147.29296875, -1551.75769042969,
+            //
+            4, -35979.12890625, -22531.29296875, -1551.75769042969,
+            //
+            4, -35979.12890625, -22531.29296875, -1551.75769042969,
+            //
+            8, -68747.1328125, -38915.29296875, -1551.75769042969,
+            //
+            8, -68747.1328125, -71683.296875, -1551.75769042969,
+            //
+            8, -101515.1328125, -6147.29296875, -1551.75769042969,
+            //
+            8, -134283.125, 26620.70703125, -1551.75769042969,
+            //
+            8, -134283.125, -6147.29296875, -1551.75769042969,
+            //
+            16, -134283.125, -137219.296875, -1551.75769042969,
+            //
+            16, -199819.125, 59388.70703125, -1551.75769042969,
+            //
+            16, -199819.125, -6147.29296875, -1551.75769042969,
+            //
+            16, -265355.125, -6147.29296875, -1551.75769042969,
+        ]
+
+        for (let i = 0; i < 18; i++) {
+            const mountains = new Renderable(
+                await ResourceManager.requestMesh(`mountains_${i}`),
+                await ResourceManager.requestTexture("mountains.png")
+            )
+            Render.setTransform(
+                mountains,
+                new Float32Array([
+                    0,
+                    0,
+                    0,
+                    1,
+                    // scale
+                    coordinates[i * 4 + 0],
+                    // xyz
+                    coordinates[i * 4 + 1],
+                    coordinates[i * 4 + 2],
+                    coordinates[i * 4 + 3],
+                ])
+            )
+
+            Render.addRenderable(mountains)
+        }
     }
 
     private static createPerObjectData() {
@@ -299,12 +507,9 @@ export class Render {
 
     private static createUBOs() {
         Render.settingsBuffer = new Float32Array(SETTINGS_SIZE)
-
-        // view
         Render.vp = new Float32Array(Render.settingsBuffer.buffer, 0, 4 * 4)
-
+        // settings for objects
         Render.settings = gl.createBuffer()!
-
         gl.bindBuffer(gl.UNIFORM_BUFFER, Render.settings)
         gl.bufferData(gl.UNIFORM_BUFFER, SETTINGS_SIZE * 4, gl.DYNAMIC_DRAW)
         gl.bindBufferBase(gl.UNIFORM_BUFFER, SETTINGS_INDEX, Render.settings)
@@ -319,6 +524,24 @@ export class Render {
             },
             ["textures"]
         )
+
+        Render.skydomeShader = compileShader(
+            skydomeVert,
+            skydomeFrag,
+            {
+                settings: SETTINGS_INDEX,
+            },
+            ["checkerboard"]
+        )
+
+        Render.sunShader = compileShader(
+            sunVert,
+            sunFrag,
+            {
+                settings: SETTINGS_INDEX,
+            },
+            ["tex"]
+        )
     }
 
     private static setupWebGL(): void {
@@ -327,7 +550,7 @@ export class Render {
         gl.disable(gl.CULL_FACE)
         gl.enable(gl.DEPTH_TEST)
 
-        gl.disable(gl.BLEND)
+        gl.enable(gl.BLEND)
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 
         gl.hint(gl.FRAGMENT_SHADER_DERIVATIVE_HINT, gl.FASTEST)
@@ -354,10 +577,10 @@ export class Render {
     }
 
     static setTransform(renderable: Renderable, transformData: Float32Array): void {
-        renderable.position[0] = transformData[0]
-        renderable.position[1] = transformData[1]
-        renderable.position[2] = transformData[2]
-        renderable.position[3] = transformData[3]
+        renderable.rotation[0] = transformData[0]
+        renderable.rotation[1] = transformData[1]
+        renderable.rotation[2] = transformData[2]
+        renderable.rotation[3] = transformData[3]
 
         renderable.scale = transformData[4]
 
@@ -372,12 +595,16 @@ export class Render {
 
     static UP = vec3.fromValues(0, 0, 1)
 
+    static zAngle = 0
+
     static setCamera(pos: vec3, lookAt: vec3): void {
         mat4.lookAt(Render.viewMatrix, pos, lookAt, Render.UP)
 
         mat4.identity(Render.vp)
         mat4.multiply(Render.vp, Render.vp, Render.projectionMatrix)
         mat4.multiply(Render.vp, Render.vp, Render.viewMatrix)
+
+        this.zAngle = Math.atan2(lookAt[0] - pos[0], lookAt[1] - pos[1])
     }
 
     // utils
@@ -412,16 +639,23 @@ export class Render {
             Render.projectionMatrix,
             (65 * Math.PI) / 180,
             gl.canvas.width / gl.canvas.height,
-            0.1,
-            100
+            15,
+            undefined!
         )
     }
 
     static render(): void {
+        gl.colorMask(true, true, true, false)
+
         Render.handleResize()
 
-        const { objectsShader } = Render
+        const { objectsShader, skydomeShader } = Render
 
+        gl.disable(gl.BLEND)
+
+        mat4.identity(Render.vp)
+        mat4.multiply(Render.vp, Render.vp, Render.projectionMatrix)
+        mat4.multiply(Render.vp, Render.vp, Render.viewMatrix)
         gl.bindBuffer(gl.UNIFORM_BUFFER, Render.settings)
         gl.bufferSubData(gl.UNIFORM_BUFFER, 0, Render.settingsBuffer)
 
@@ -446,6 +680,66 @@ export class Render {
 
             gl.drawElements(gl.TRIANGLES, chunk.indexPos, gl.UNSIGNED_INT, 0)
         }
+
+        // shader for sky
+
+        gl.depthFunc(gl.LEQUAL)
+        gl.enable(gl.BLEND)
+
+        const viewMatrixWithoutTranslation = mat4.clone(Render.viewMatrix)
+        viewMatrixWithoutTranslation[12] = 0
+        viewMatrixWithoutTranslation[13] = 0
+        viewMatrixWithoutTranslation[14] = 0
+        viewMatrixWithoutTranslation[15] = 0
+
+        // sky dome
+
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+
+        mat4.identity(Render.vp)
+        mat4.multiply(Render.vp, Render.vp, Render.projectionMatrix)
+        mat4.multiply(Render.vp, Render.vp, viewMatrixWithoutTranslation)
+        gl.bindBuffer(gl.UNIFORM_BUFFER, Render.settings)
+        gl.bufferSubData(gl.UNIFORM_BUFFER, 0, Render.settingsBuffer)
+
+        gl.useProgram(skydomeShader)
+        gl.uniform1i(skydomeShader.checkerboard, 0)
+
+        gl.activeTexture(gl.TEXTURE0)
+        gl.bindTexture(gl.TEXTURE_2D, Render.checkerboard)
+
+        gl.bindVertexArray(this.skydome.vao)
+
+        gl.drawElements(gl.TRIANGLES, this.skydome.mesh.indices.length, gl.UNSIGNED_SHORT, 0)
+
+        // sun
+
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE)
+
+        mat4.identity(Render.vp)
+        mat4.multiply(Render.vp, Render.vp, Render.projectionMatrix)
+        mat4.multiply(Render.vp, Render.vp, viewMatrixWithoutTranslation)
+        // mat4.rotateY(Render.vp, Render.vp, (performance.now() / 10000) % (Math.PI * 2))
+        mat4.rotateY(Render.vp, Render.vp, 5)
+        // mat4.rotateZ(Render.vp, Render.vp, this.zAngle)
+
+        mat4.translate(
+            Render.vp,
+            Render.vp,
+            vec3.fromValues(20.6666469573975, 77.4717559814453, 341.035034179687)
+        )
+        gl.bindBuffer(gl.UNIFORM_BUFFER, Render.settings)
+        gl.bufferSubData(gl.UNIFORM_BUFFER, 0, Render.settingsBuffer)
+
+        gl.useProgram(this.sunShader)
+        gl.uniform1i(this.sunShader.tex, 0)
+
+        gl.activeTexture(gl.TEXTURE0)
+        gl.bindTexture(gl.TEXTURE_2D, Render.sunTexture)
+
+        gl.bindVertexArray(this.sun.vao)
+
+        gl.drawElements(gl.TRIANGLES, this.sun.mesh.indices.length, gl.UNSIGNED_SHORT, 0)
     }
 
     static finalize(): void {

@@ -1,8 +1,9 @@
 import { quat, vec3 } from "gl-matrix"
 import { Mesh, Texture } from "./render-data"
 
+export const COLORED_VERTEX_SIZE = 3 + 4
 // pos, normal, uv, pos in per object data
-export const VERTEX_SIZE = 3 + 3 + 2 + 1
+export const CHUNK_MESH_VERTEX_SIZE = 3 + 3 + 2 + 1
 
 export const SKINNED_VERTEX_SIZE = 3 + 3 + 2 + 4 + 4
 

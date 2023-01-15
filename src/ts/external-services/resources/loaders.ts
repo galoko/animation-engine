@@ -1,6 +1,14 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { vec3, quat } from "gl-matrix"
-import { Mesh, Model, Bone, Animation, Texture, ColoredMesh } from "../render/render-data"
+import {
+    Mesh,
+    Model,
+    Bone,
+    Animation,
+    Texture,
+    ColoredMesh,
+    ColoredTexturedMesh,
+} from "../render/render-data"
 
 export const MESH_VERTEX_SIZE = 3 + 3 + 2
 
@@ -31,6 +39,24 @@ export function loadColoredMesh(data: ArrayBuffer): ColoredMesh {
     )
 
     const model = new ColoredMesh(verticesAndColors, indices)
+
+    return model
+}
+
+export const COLORED_TEXTURED_MESH_SIZE = 3 + 2 + 1
+
+export function loadColoredTexturedMesh(data: ArrayBuffer): ColoredMesh {
+    const header = new Uint32Array(data, 0, 2)
+    const [vertexCount, indexCount] = header
+
+    const indices = new Uint16Array(data, 2 * 4, indexCount)
+    const verticesAndColors = new Uint8Array(
+        data,
+        2 * 4 + indexCount * 2,
+        COLORED_TEXTURED_MESH_SIZE * vertexCount * 4
+    )
+
+    const model = new ColoredTexturedMesh(verticesAndColors, indices)
 
     return model
 }
@@ -144,6 +170,11 @@ export async function loadMeshFromURL(url: string): Promise<Mesh> {
 export async function loadColoredMeshFromURL(url: string): Promise<ColoredMesh> {
     const data = await (await fetch(url)).arrayBuffer()
     return loadColoredMesh(data)
+}
+
+export async function loadColoredTexturedMeshFromURL(url: string): Promise<ColoredMesh> {
+    const data = await (await fetch(url)).arrayBuffer()
+    return loadColoredTexturedMesh(data)
 }
 
 export async function loadModelFromURL(url: string): Promise<Model> {

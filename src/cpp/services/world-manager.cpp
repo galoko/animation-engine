@@ -22,7 +22,7 @@ shared_ptr<Entity> WorldManager::createCharacter() {
 
     RenderHandle cubeHandle = Render::createRenderable(cubeModel, rockTexture);
 
-    Transformation transform = Transformation(0, 0, 0.5, 1);
+    Transformation transform = Transformation(0, 0, 0.5, 1 * 100);
     shared_ptr<Graphics> cube = make_shared<Graphics>(cubeHandle, transform);
     graphicsComponent.add(cube);
 
@@ -37,7 +37,7 @@ void WorldManager::init() {
     shared_ptr<Entity> player = this->createCharacter();
     this->registry.get<GraphicsComponent>(player->handle).show();
 
-    Services->cameraManager.orbit(player, 0.418879, 4.01426, 5, 0.5);
+    Services->cameraManager.orbit(player, 0, 0, 5 * 100, 0.5 * 100);
     Services->playerInputManager.setManagedEntity(player);
 
     this->addGround();
@@ -57,8 +57,8 @@ void WorldManager::addGround() {
 
     RenderHandle ground = Render::createRenderable(planeModel, grassTexture);
 
-    Transformation transform = Transformation(0, 0, 0, 1);
+    Transformation transform = Transformation(0, 0, 0, 1 * 100);
     Render::setTransform(ground, transform);
 
-    // Render::addRenderable(ground);
+    Render::addRenderable(ground);
 }

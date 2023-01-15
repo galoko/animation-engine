@@ -24,7 +24,13 @@ export class Mesh extends RefCountingResource {
 }
 
 export class ColoredMesh extends RefCountingResource {
-    constructor(readonly verticesAndColors: Uint8Array, readonly indices: Uint16Array) {
+    constructor(readonly vertices: Uint8Array, readonly indices: Uint16Array) {
+        super()
+    }
+}
+
+export class ColoredTexturedMesh extends RefCountingResource {
+    constructor(readonly vertices: Uint8Array, readonly indices: Uint16Array) {
         super()
     }
 }
