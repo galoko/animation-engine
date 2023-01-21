@@ -913,13 +913,16 @@ export class Render {
         const p = vec3.fromValues(0, 1, 0)
         vec3.transformQuat(p, p, q)
 
-        const a = Math.atan2(p[1], p[0]) - Math.PI / 2
+        const a = Math.atan2(p[1], p[0])
 
         console.log("angle: ", (a / Math.PI) * 180)
 
         mat4.translate(model, model, vec3.fromValues(0, 0, 350))
 
         mat4.rotateZ(model, model, a)
+
+        mat4.rotateX(model, model, Math.PI)
+        mat4.rotateZ(model, model, -Math.PI / 2)
 
         mat4.multiply(Render.vp, Render.vp, model)
 

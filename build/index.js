@@ -9068,10 +9068,12 @@ class Render {
         invert$1(q, q);
         const p = fromValues$4(0, 1, 0);
         transformQuat$1(p, p, q);
-        const a = Math.atan2(p[1], p[0]) - Math.PI / 2;
+        const a = Math.atan2(p[1], p[0]);
         console.log("angle: ", (a / Math.PI) * 180);
         translate$1(model, model, fromValues$4(0, 0, 350));
         rotateZ$3(model, model, a);
+        rotateX$3(model, model, Math.PI);
+        rotateZ$3(model, model, -Math.PI / 2);
         multiply$5(Render.vp, Render.vp, model);
         gl.bindBuffer(gl.UNIFORM_BUFFER, Render.settings);
         gl.bufferSubData(gl.UNIFORM_BUFFER, 0, Render.settingsBuffer);
