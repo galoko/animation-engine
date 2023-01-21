@@ -13,7 +13,7 @@ out highp vec2 vertUV;
 
 void main(void) {
     vec4 pos = vp * vec4(inputPosition, 1.0);
-    pos.w = pos.z;
+    pos.z = pos.w;
     // max in depth
     gl_Position = pos;
 

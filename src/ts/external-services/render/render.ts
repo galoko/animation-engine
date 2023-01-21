@@ -9,7 +9,12 @@ import skydomeFrag from "../../shaders/skydome.frag"
 import sunVert from "../../shaders/sun.vert"
 import sunFrag from "../../shaders/sun.frag"
 
-import { mat4, vec3 } from "gl-matrix"
+import passthroughVert from "../../shaders/passthrough.vert"
+import passthroughFrag from "../../shaders/passthrough.frag"
+
+import fogFrag from "../../shaders/fog.frag"
+
+import { mat4, quat, vec3, vec4 } from "gl-matrix"
 import { compileShader, WebGLProgramWithUniforms } from "./render-utils"
 import { gl, ctx, anisotropic } from "./render-context"
 import { CHUNK_MESH_VERTEX_SIZE, Renderable } from "./renderable"
@@ -19,11 +24,10 @@ import {
     COLORED_TEXTURED_MESH_SIZE,
     loadColoredMeshFromURL,
     loadColoredTexturedMeshFromURL,
-    loadMeshFromURL,
     loadTexture,
     MESH_VERTEX_SIZE,
 } from "../resources/loaders"
-import { ColoredMesh, Texture } from "./render-data"
+import { ColoredMesh, Mesh, Texture } from "./render-data"
 import { ResourceManager } from "../resources/resource-manager"
 
 const POSITION_INDEX = 0
@@ -57,6 +61,36 @@ class ColoredMeshBuffer {
 
         gl.vertexAttribPointer(POSITION_INDEX, 3, gl.FLOAT, false, COLORED_MESH_SIZE * 4, 0)
         gl.vertexAttribPointer(COLOR_INDEX, 4, gl.UNSIGNED_BYTE, true, COLORED_MESH_SIZE * 4, 3 * 4)
+    }
+}
+
+class MeshBuffer {
+    vao: WebGLVertexArrayObject
+
+    vertices: WebGLBuffer
+    indices: WebGLBuffer
+
+    constructor(public mesh: Mesh) {
+        this.vao = gl.createVertexArray()!
+
+        this.vertices = gl.createBuffer()!
+        this.indices = gl.createBuffer()!
+
+        gl.bindVertexArray(this.vao)
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertices)
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indices)
+
+        gl.bufferData(gl.ARRAY_BUFFER, mesh.vertices, gl.STATIC_DRAW)
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.indices, gl.STATIC_DRAW)
+
+        gl.enableVertexAttribArray(POSITION_INDEX)
+        gl.enableVertexAttribArray(NORMAL_INDEX)
+        gl.enableVertexAttribArray(UV_INDEX)
+
+        gl.vertexAttribPointer(POSITION_INDEX, 3, gl.FLOAT, false, MESH_VERTEX_SIZE * 4, 0)
+        gl.vertexAttribPointer(NORMAL_INDEX, 3, gl.FLOAT, false, COLORED_MESH_SIZE * 4, 3 * 4)
+        gl.vertexAttribPointer(UV_INDEX, 2, gl.FLOAT, false, MESH_VERTEX_SIZE * 4, 6 * 4)
     }
 }
 
@@ -203,6 +237,8 @@ class BufferChunk {
         const [uOffset, vOffset, atlasNum] = this.allocateAndCopyTextureToAtlas(texture)
 
         gl.bindVertexArray(this.vao)
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertices)
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indices)
 
         // we can add this object to this chunk
 
@@ -305,6 +341,53 @@ function createTexture(tex: Texture): WebGLTexture {
     return texture
 }
 
+function createFloatTexture(width: number, height: number): WebGLTexture {
+    const texture = gl.createTexture()!
+    gl.bindTexture(gl.TEXTURE_2D, texture)
+
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, gl.FLOAT, null)
+
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+
+    return texture
+}
+
+function clampValue(value: number, min: number, max: number): number {
+    if (value < min) value = min
+    else if (value > max) value = max
+    return value
+}
+
+function angleBetweenVectors(objectDirection: vec3, right: vec3, cameraDirection: vec3): number {
+    const UP = vec3.fromValues(0, 0, 1)
+    const objAngle = Math.acos(vec3.dot(objectDirection, UP))
+    const objAxis = vec3.create()
+    vec3.cross(objAxis, objectDirection, UP)
+
+    const objQ = quat.create()
+    quat.setAxisAngle(objQ, objAxis, objAngle)
+    quat.invert(objQ, objQ)
+
+    const FORWARD = vec3.fromValues(1, 0, 0)
+    const cameraAngle = Math.acos(vec3.dot(cameraDirection, FORWARD))
+    const cameraAxis = vec3.create()
+    vec3.cross(cameraAxis, cameraDirection, FORWARD)
+
+    const cameraQ = quat.create()
+    quat.setAxisAngle(cameraQ, cameraAxis, cameraAngle)
+
+    const q = quat.create()
+    quat.mul(q, cameraQ, objQ)
+
+    const siny_cosp = 2 * (q[3] * q[2] + q[0] * q[1])
+    const cosy_cosp = 1 - 2 * (q[1] * q[1] + q[2] * q[2])
+
+    return Math.atan2(siny_cosp, cosy_cosp)
+}
+
 export class Render {
     private static viewMatrix: mat4
     private static projectionMatrix: mat4
@@ -315,11 +398,19 @@ export class Render {
         0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
     ])
 
+    // render targets
+    private static mainPass: WebGLFramebuffer
+    private static mainPassTexture: WebGLTexture
+    private static depthBuffer: WebGLTexture
+    private static fogPass: WebGLFramebuffer
+    private static fogPassTexture: WebGLTexture
+
     // TODO
     private static skydome: ColoredMeshBuffer
     private static checkerboard: WebGLTexture
     private static sun: ColoredTexturedMeshBuffer
     private static sunTexture: WebGLTexture
+    private static fullscreenPlain: MeshBuffer
 
     private static perObjectData: WebGLBuffer
     // TODO keep list of free entries
@@ -330,14 +421,23 @@ export class Render {
     private static objectsShader: WebGLProgramWithUniforms
     private static skydomeShader: WebGLProgramWithUniforms
     private static sunShader: WebGLProgramWithUniforms
+    private static fogShader: WebGLProgramWithUniforms
+    private static passthroughShader: WebGLProgramWithUniforms
 
     private static scene: BufferChunk[] = []
 
     static init(): void {
+        gl.getExtension("OES_texture_float")
+        gl.getExtension("OES_texture_float_linear")
+        gl.getExtension("EXT_color_buffer_float")
+
         Render.projectionMatrix = mat4.create()
         Render.viewMatrix = mat4.create()
         Render.vp = mat4.create()
 
+        Render.handleResize()
+
+        Render.setupFrameBuffers()
         Render.createPerObjectData()
         Render.createUBOs()
         Render.compilerShaders()
@@ -352,7 +452,7 @@ export class Render {
         this.sun = new ColoredTexturedMeshBuffer(
             await loadColoredTexturedMeshFromURL("/build/sun.ctml")
         )
-        this.sunTexture = createTexture(await loadTexture("/build/sun.png"))
+        this.sunTexture = createTexture(await loadTexture("/build/sun_glare_debug.png"))
 
         const coordinates = [
             //
@@ -416,6 +516,64 @@ export class Render {
 
             Render.addRenderable(mountains)
         }
+
+        this.fullscreenPlain = new MeshBuffer(await ResourceManager.requestMesh("fullscreen_plane"))
+    }
+
+    private static setupFrameBuffers() {
+        this.mainPass = gl.createFramebuffer()!
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.mainPass)
+
+        this.mainPassTexture = createFloatTexture(gl.canvas.width, gl.canvas.height)
+        gl.framebufferTexture2D(
+            gl.FRAMEBUFFER,
+            gl.COLOR_ATTACHMENT0,
+            gl.TEXTURE_2D,
+            this.mainPassTexture,
+            0
+        )
+
+        // create a depth texture
+        this.depthBuffer = gl.createTexture()!
+        gl.bindTexture(gl.TEXTURE_2D, this.depthBuffer)
+
+        gl.texImage2D(
+            gl.TEXTURE_2D,
+            0,
+            gl.DEPTH_COMPONENT24,
+            gl.canvas.width,
+            gl.canvas.height,
+            0,
+            gl.DEPTH_COMPONENT,
+            gl.UNSIGNED_INT,
+            null
+        )
+
+        // set the filtering so we don't need mips
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+
+        // attach the depth texture to the framebuffer
+        gl.framebufferTexture2D(
+            gl.FRAMEBUFFER,
+            gl.DEPTH_ATTACHMENT,
+            gl.TEXTURE_2D,
+            this.depthBuffer,
+            0
+        )
+
+        this.fogPass = gl.createFramebuffer()!
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.fogPass)
+        this.fogPassTexture = createFloatTexture(gl.canvas.width, gl.canvas.height)
+        gl.framebufferTexture2D(
+            gl.FRAMEBUFFER,
+            gl.COLOR_ATTACHMENT0,
+            gl.TEXTURE_2D,
+            this.fogPassTexture,
+            0
+        )
     }
 
     private static createPerObjectData() {
@@ -542,6 +700,12 @@ export class Render {
             },
             ["tex"]
         )
+
+        Render.fogShader = compileShader(passthroughVert, fogFrag, {}, [
+            "sceneColors",
+            "depthBuffer",
+        ])
+        Render.passthroughShader = compileShader(passthroughVert, passthroughFrag, {}, ["tex"])
     }
 
     private static setupWebGL(): void {
@@ -595,7 +759,8 @@ export class Render {
 
     static UP = vec3.fromValues(0, 0, 1)
 
-    static zAngle = 0
+    static cameraPos = vec3.create()
+    static cameraDirection = vec3.create()
 
     static setCamera(pos: vec3, lookAt: vec3): void {
         mat4.lookAt(Render.viewMatrix, pos, lookAt, Render.UP)
@@ -604,7 +769,9 @@ export class Render {
         mat4.multiply(Render.vp, Render.vp, Render.projectionMatrix)
         mat4.multiply(Render.vp, Render.vp, Render.viewMatrix)
 
-        this.zAngle = Math.atan2(lookAt[0] - pos[0], lookAt[1] - pos[1])
+        vec3.copy(this.cameraPos, pos)
+        vec3.sub(this.cameraDirection, lookAt, this.cameraPos)
+        vec3.normalize(this.cameraDirection, this.cameraDirection)
     }
 
     // utils
@@ -645,6 +812,11 @@ export class Render {
     }
 
     static render(): void {
+        gl.enable(gl.CULL_FACE)
+        gl.cullFace(gl.BACK)
+
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.mainPass)
+
         gl.colorMask(true, true, true, false)
 
         Render.handleResize()
@@ -652,6 +824,7 @@ export class Render {
         const { objectsShader, skydomeShader } = Render
 
         gl.disable(gl.BLEND)
+        gl.enable(gl.DEPTH_TEST)
 
         mat4.identity(Render.vp)
         mat4.multiply(Render.vp, Render.vp, Render.projectionMatrix)
@@ -714,20 +887,42 @@ export class Render {
 
         // sun
 
+        gl.disable(gl.BLEND)
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE)
 
         mat4.identity(Render.vp)
         mat4.multiply(Render.vp, Render.vp, Render.projectionMatrix)
         mat4.multiply(Render.vp, Render.vp, viewMatrixWithoutTranslation)
-        // mat4.rotateY(Render.vp, Render.vp, (performance.now() / 10000) % (Math.PI * 2))
-        mat4.rotateY(Render.vp, Render.vp, 5)
-        // mat4.rotateZ(Render.vp, Render.vp, this.zAngle)
 
-        mat4.translate(
-            Render.vp,
-            Render.vp,
-            vec3.fromValues(20.6666469573975, 77.4717559814453, 341.035034179687)
-        )
+        const yAngle = Math.PI * 1.5
+
+        const model = mat4.create()
+        mat4.rotateY(model, model, yAngle)
+        // mat4.rotateY(model, model, 0.1)
+        // const sunPos = vec3.fromValues(20.6666469573975, 77.4717559814453, 341.035034179687)
+
+        const q = quat.create()
+        mat4.getRotation(q, this.viewMatrix)
+
+        const objQ = quat.create()
+        mat4.getRotation(objQ, model)
+
+        quat.mul(q, q, objQ)
+        quat.invert(q, q)
+
+        const p = vec3.fromValues(0, 1, 0)
+        vec3.transformQuat(p, p, q)
+
+        const a = Math.atan2(p[1], p[0]) - Math.PI / 2
+
+        console.log("angle: ", (a / Math.PI) * 180)
+
+        mat4.translate(model, model, vec3.fromValues(0, 0, 350))
+
+        mat4.rotateZ(model, model, a)
+
+        mat4.multiply(Render.vp, Render.vp, model)
+
         gl.bindBuffer(gl.UNIFORM_BUFFER, Render.settings)
         gl.bufferSubData(gl.UNIFORM_BUFFER, 0, Render.settingsBuffer)
 
@@ -740,6 +935,59 @@ export class Render {
         gl.bindVertexArray(this.sun.vao)
 
         gl.drawElements(gl.TRIANGLES, this.sun.mesh.indices.length, gl.UNSIGNED_SHORT, 0)
+
+        // fog
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.fogPass)
+
+        gl.disable(gl.DEPTH_TEST)
+
+        gl.colorMask(true, true, true, true)
+
+        gl.blendFunc(gl.ONE, gl.ZERO)
+
+        gl.useProgram(this.fogShader)
+        gl.uniform1i(this.fogShader.sceneColors, 0)
+        gl.uniform1i(this.fogShader.depthBuffer, 1)
+
+        gl.activeTexture(gl.TEXTURE0)
+        gl.bindTexture(gl.TEXTURE_2D, Render.mainPassTexture)
+
+        gl.activeTexture(gl.TEXTURE1)
+        gl.bindTexture(gl.TEXTURE_2D, Render.depthBuffer)
+
+        gl.bindVertexArray(this.fullscreenPlain.vao)
+
+        gl.drawElements(
+            gl.TRIANGLES,
+            this.fullscreenPlain.mesh.indices.length,
+            gl.UNSIGNED_SHORT,
+            0
+        )
+
+        // render to canvas
+
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+
+        gl.disable(gl.DEPTH_TEST)
+        gl.disable(gl.BLEND)
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE)
+
+        gl.colorMask(true, true, true, true)
+
+        gl.useProgram(this.passthroughShader)
+        gl.uniform1i(this.passthroughShader.tex, 0)
+
+        gl.activeTexture(gl.TEXTURE0)
+        gl.bindTexture(gl.TEXTURE_2D, Render.fogPassTexture)
+
+        gl.bindVertexArray(this.fullscreenPlain.vao)
+
+        gl.drawElements(
+            gl.TRIANGLES,
+            this.fullscreenPlain.mesh.indices.length,
+            gl.UNSIGNED_SHORT,
+            0
+        )
     }
 
     static finalize(): void {
