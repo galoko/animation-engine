@@ -7862,7 +7862,7 @@ var skydomeVert = "#version 300 es\r\n\r\nlayout(location = 0) in vec3 inputPosi
 
 var skydomeFrag = "#version 300 es\r\n\r\nprecision highp float;\r\n\r\nin highp vec4 vertColor;\r\nout vec4 outputColor;\r\n\r\nuniform sampler2D checkerboard;\r\n\r\nvoid main(void) {\r\n\tvec2 UV = gl_FragCoord.xy / 8.0;\r\n\tfloat checkerboardValue = texture(checkerboard, UV).r * 0.03125 - 0.0078125;\r\n\r\n    float colorOffset = 0.0107804285362363;\r\n\tvec3 offsettedColor = colorOffset + vertColor.rgb;\r\n\toutputColor = vec4(offsettedColor + checkerboardValue, vertColor.a);\r\n}";
 
-var sunVert = "#version 300 es\r\n\r\nlayout(location = 0) in vec3 inputPosition;\r\nlayout(location = 1) in vec4 inputColor;\r\nlayout(location = 2) in vec2 inputUV;\r\n\r\nlayout(std140) uniform settings {\r\n    mat4 vp;\r\n};\r\n\r\nout highp vec4 vertColor;\r\nout highp vec2 vertUV;\r\n\r\nvoid main(void) {\r\n    vec4 pos = vp * vec4(inputPosition, 1.0);\r\n    pos.z = pos.w;\r\n    // max in depth\r\n    gl_Position = pos;\r\n\r\n    vertUV = inputUV;\r\n\r\n    vec3 rWeight = vec3(0.327245563268662, 0.148633718490601, 0.0669654905796051);\r\n    vec3 gWeight = vec3(0, 0, 0);\r\n    vec3 bWeight = vec3(0, 0, 0);\r\n    float alpha = 0.833333313465118;\r\n\r\n    vec3 tintedColor = rWeight * inputColor.r + gWeight * inputColor.g + bWeight * inputColor.b;\r\n\r\n    vertColor = vec4(tintedColor * alpha, inputColor.a);\r\n}";
+var sunVert = "#version 300 es\r\n\r\nprecision highp float;\r\n\r\nlayout(location = 0) in vec3 inputPosition;\r\nlayout(location = 1) in vec4 inputColor;\r\nlayout(location = 2) in vec2 inputUV;\r\n\r\nlayout(std140) uniform settings {\r\n    mat4 vp;\r\n};\r\n\r\nout highp vec4 vertColor;\r\nout highp vec2 vertUV;\r\n\r\nvoid main(void) {\r\n    vec4 pos = vp * vec4(inputPosition, 1.0);\r\n    pos.z = pos.w;\r\n    // max in depth\r\n    gl_Position = pos;\r\n\r\n    vertUV = inputUV;\r\n\r\n    vec3 rWeight = vec3(0.327245563268662, 0.148633718490601, 0.0669654905796051);\r\n    vec3 gWeight = vec3(0, 0, 0);\r\n    vec3 bWeight = vec3(0, 0, 0);\r\n    float alpha = 0.833333313465118;\r\n\r\n    vec3 tintedColor = rWeight * inputColor.r + gWeight * inputColor.g + bWeight * inputColor.b;\r\n\r\n    vertColor = vec4(tintedColor * alpha, inputColor.a);\r\n}";
 
 var sunFrag = "#version 300 es\r\n\r\nprecision highp float;\r\n\r\nin highp vec4 vertColor;\r\nin highp vec2 vertUV;\r\nout vec4 outputColor;\r\n\r\nuniform sampler2D tex;\r\n\r\nvoid main(void) {\r\n    vec4 color = texture(tex, vertUV);\r\n\r\n\toutputColor = vertColor * color;\r\n\r\n    // outputColor = vec4(1.0, 0, 1.0, 1.0);\r\n}";
 
@@ -7870,7 +7870,17 @@ var passthroughVert = "#version 300 es\r\n\r\nlayout(location = 0) in vec3 input
 
 var passthroughFrag = "#version 300 es\r\n\r\nprecision highp float;\r\n\r\nin highp vec3 fragNormal;\r\nin vec2 fragUV;\r\n\r\nout vec4 outputColor;\r\n\r\nuniform sampler2D tex;\r\n\r\nvoid main(void) {\r\n    outputColor = texture(tex, fragUV);\r\n}";
 
+var blankVert = "#version 300 es\r\n\r\nprecision highp float;\r\n\r\nlayout(location = 0) in vec3 inputPosition;\r\nlayout(location = 1) in vec4 inputColor;\r\nlayout(location = 2) in vec2 inputUV;\r\n\r\nlayout(std140) uniform settings {\r\n    mat4 vp;\r\n};\r\n\r\nvoid main(void) {\r\n    vec4 pos = vp * vec4(inputPosition, 1.0);\r\n    pos.z = pos.w * (1.0 - 10e-7);\r\n    // max in depth\r\n    gl_Position = pos;\r\n}";
+
+var blankFrag = "#version 300 es\r\n\r\nprecision highp float;\r\n\r\nout vec4 outputColor;\r\n\r\nvoid main(void) {\r\n\toutputColor = vec4(0.0, 0.0, 0.0, 1.0);\r\n}";
+
+var glareVert = "#version 300 es\r\n\r\nlayout(location = 0) in vec3 inputPosition;\r\nlayout(location = 1) in vec4 inputColor;\r\nlayout(location = 2) in vec2 inputUV;\r\n\r\nlayout(std140) uniform settings {\r\n    mat4 vp;\r\n};\r\n\r\nout highp vec4 vertColor;\r\nout highp vec2 vertUV;\r\n\r\nvoid main(void) {\r\n    vec4 pos = vp * vec4(inputPosition, 1.0);\r\n    pos.z = pos.w;\r\n    // max in depth\r\n    gl_Position = pos;\r\n\r\n    vec3 rWeight = vec3(0.565203845500946, 0.228658571839333, 0.0142048010602593);\r\n    float alpha = 0.833333313465118;\r\n\r\n    vec3 tintedColor = rWeight * inputColor.r;\r\n\r\n    vertColor = vec4(tintedColor * alpha, inputColor.a);\r\n\r\n    vertUV = inputUV;\r\n}";
+
+var glareFrag = "#version 300 es\r\n\r\nprecision highp float;\r\n\r\nin highp vec4 vertColor;\r\nin highp vec2 vertUV;\r\n\r\nout vec4 outputColor;\r\n\r\nuniform sampler2D glare;\r\nuniform sampler2D checkerboard;\r\n\r\nvoid main(void) {\r\n\tvec2 UV = gl_FragCoord.xy / 8.0;\r\n\tfloat checkerboardValue = texture(checkerboard, UV).r * 0.03125 - 0.0078125;\r\n\r\n\tvec4 colorValue = texture(glare, vertUV);\r\n\tvec3 finalColor = vertColor.rgb * colorValue.rgb;\r\n\r\n\toutputColor = vec4(finalColor + checkerboardValue, colorValue.a * vertColor.a);\r\n}";
+
 var fogFrag = "#version 300 es\r\n\r\nprecision highp float;\r\n\r\nin highp vec3 fragNormal;\r\nin vec2 fragUV;\r\n\r\nout vec4 outputColor;\r\n\r\nuniform sampler2D sceneColors;\r\nuniform sampler2D depthBuffer;\r\n\r\nvoid main(void) {\r\n\tfloat depthOffset = 0.0;\r\n\tfloat depthMul = 1.0 / 67870.;\r\n\tfloat depthLogMul = 0.4;\r\n\tfloat minDepthValue = 0.85;\r\n\r\n\tvec4 fogBaseColorRGBA = vec4(0.125627145171165, 0.256408363580704, 0.279881805181503, 0.833333313465118);\r\n\tvec4 maxFogColorRGBA = vec4(0.315368860960007, 0.388478130102158, 0.441431760787964, 0.833333313465118);\r\n\r\n    float depthMin = 15.0;\r\n\tfloat depthMax = 353840.0;\r\n\r\n    vec3 sceneColor = texture(sceneColors, fragUV).rgb;\r\n\r\n    float depthValue = texture(depthBuffer, fragUV).r;\r\n\tfloat stretchedDepthValue = (depthValue * 1.01 - 0.01) * 2.0 - 1.0;\r\n\r\n\tfloat someBullshit = depthMin * depthMax * 2.0;\r\n\r\n    float depthDistanceFromZero = depthMax + depthMin;\r\n    float depthLength = depthMax - depthMin;\r\n\r\n    float depthValueInRangeFromOtherSide = depthDistanceFromZero - stretchedDepthValue * depthLength;\r\n\r\n    float depthPower = someBullshit / depthValueInRangeFromOtherSide;\r\n\r\n\tfloat depthMulClamped = min(minDepthValue, exp2(depthLogMul * log2(clamp(depthPower * depthMul - depthOffset, 0.0, 1.0))));\r\n\r\n\tvec3 fogBaseColor = fogBaseColorRGBA.rgb;\r\n\tvec3 maxFogColor = maxFogColorRGBA.rgb;\r\n\r\n    vec3 fogColorRange = maxFogColor - fogBaseColor;\r\n    vec3 fogColor = fogBaseColor + vec3(depthMulClamped, depthMulClamped, depthMulClamped) * fogColorRange;\r\n\r\n    vec3 sceneAfterFog = (sceneColor + vec3(depthMulClamped, depthMulClamped, depthMulClamped) * (fogColor - sceneColor)) * fogBaseColorRGBA.a;\r\n\r\n    sceneColor = (depthValue < 1.0 - 10e-8) ? sceneAfterFog : sceneColor;\r\n\r\n    outputColor = vec4(clamp(sceneColor, 0.0, 1.0), 1.0);\r\n}";
+
+var sunFogFrag = "#version 300 es\r\n\r\nprecision highp float;\r\n\r\nin highp vec3 fragNormal;\r\nin vec2 fragUV;\r\n\r\nout vec4 outputColor;\r\n\r\nuniform sampler2D depthBuffer;\r\n\r\nvoid main(void) {\r\n\tvec3 sunFogColor = vec3(0.739284157752991, 0.570270836353302, 0.490357995033264);\r\n    float depthValue = texture(depthBuffer, fragUV).r;\r\n\r\n    outputColor = vec4(sunFogColor * depthValue, 1.0);\r\n}";
 
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 const canvasWebGL = document.createElement("canvas");
@@ -8735,15 +8745,18 @@ class Render {
     ]);
     // render targets
     static mainPass;
-    static mainPassTexture;
-    static depthBuffer;
     static fogPass;
+    static glarePass;
+    static depthBuffer;
+    static mainPassTexture;
     static fogPassTexture;
-    // TODO
     static skydome;
     static checkerboard;
     static sun;
     static sunTexture;
+    static blank;
+    static glare;
+    static glareTexture;
     static fullscreenPlain;
     static perObjectData;
     // TODO keep list of free entries
@@ -8754,7 +8767,14 @@ class Render {
     static skydomeShader;
     static sunShader;
     static fogShader;
+    static glareShader;
     static passthroughShader;
+    static blankShader;
+    static blankQuery;
+    static blankQueryUsed = false;
+    static blankSamplesCount = 0;
+    static sunFogShader;
+    static glareScale = 0;
     static scene = [];
     static init() {
         gl.getExtension("OES_texture_float");
@@ -8774,7 +8794,10 @@ class Render {
         this.skydome = new ColoredMeshBuffer(await loadColoredMeshFromURL("/build/skydome.cml"));
         this.checkerboard = createTexture(await loadTexture("/build/checkerboard.png"));
         this.sun = new ColoredTexturedMeshBuffer(await loadColoredTexturedMeshFromURL("/build/sun.ctml"));
-        this.sunTexture = createTexture(await loadTexture("/build/sun_glare_debug.png"));
+        this.sunTexture = createTexture(await loadTexture("/build/sun.png"));
+        this.blank = new ColoredTexturedMeshBuffer(await loadColoredTexturedMeshFromURL("/build/blank.ctml"));
+        this.glare = new ColoredTexturedMeshBuffer(await loadColoredTexturedMeshFromURL("/build/glare.ctml"));
+        this.glareTexture = createTexture(await loadTexture("/build/glare.png"));
         const coordinates = [
             //
             8, -101515.1328125, -38915.29296875, -1551.75769042969,
@@ -8851,6 +8874,10 @@ class Render {
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.fogPass);
         this.fogPassTexture = createFloatTexture(gl.canvas.width, gl.canvas.height);
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.fogPassTexture, 0);
+        this.glarePass = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.glarePass);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.fogPassTexture, 0);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, this.depthBuffer, 0);
     }
     static createPerObjectData() {
         const pixels = new Float32Array(PER_OBJECT_DATA_TEXTURE_SIZE * PER_OBJECT_DATA_TEXTURE_SIZE * 4);
@@ -8927,7 +8954,15 @@ class Render {
             "sceneColors",
             "depthBuffer",
         ]);
+        Render.sunFogShader = compileShader(passthroughVert, sunFogFrag, {}, ["depthBuffer"]);
         Render.passthroughShader = compileShader(passthroughVert, passthroughFrag, {}, ["tex"]);
+        Render.glareShader = compileShader(glareVert, glareFrag, {
+            settings: SETTINGS_INDEX,
+        }, ["glare", "checkerboard"]);
+        Render.blankShader = compileShader(blankVert, blankFrag, {
+            settings: SETTINGS_INDEX,
+        }, ["tex"]);
+        this.blankQuery = gl.createQuery();
     }
     static setupWebGL() {
         gl.clearColor(0.284532, 0.365823, 0.423077, 1);
@@ -8997,9 +9032,26 @@ class Render {
         ctx$1.resetTransform();
         ctx$1.scale(dpr, dpr);
         gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-        perspective(Render.projectionMatrix, (65 * Math.PI) / 180, gl.canvas.width / gl.canvas.height, 15, undefined);
+        perspective(Render.projectionMatrix, (65 * Math.PI) / 180, gl.canvas.width / gl.canvas.height, 15, 353840);
     }
-    static render() {
+    static applyCameraRotationToModelMatrix(model) {
+        const q = create$2();
+        getRotation(q, this.viewMatrix);
+        const objQ = create$2();
+        getRotation(objQ, model);
+        mul$2(q, q, objQ);
+        invert$1(q, q);
+        const p = fromValues$4(0, 1, 0);
+        transformQuat$1(p, p, q);
+        const a = Math.atan2(p[1], p[0]);
+        rotateZ$3(model, model, a);
+    }
+    static rotateModelUpfront(model) {
+        rotateX$3(model, model, Math.PI);
+        rotateZ$3(model, model, -Math.PI / 2);
+    }
+    static render(dt) {
+        gl.depthFunc(gl.LESS);
         gl.enable(gl.CULL_FACE);
         gl.cullFace(gl.BACK);
         gl.bindFramebuffer(gl.FRAMEBUFFER, this.mainPass);
@@ -9050,31 +9102,18 @@ class Render {
         gl.bindVertexArray(this.skydome.vao);
         gl.drawElements(gl.TRIANGLES, this.skydome.mesh.indices.length, gl.UNSIGNED_SHORT, 0);
         // sun
-        gl.disable(gl.BLEND);
+        const sunYAngle = Math.PI * 1.55;
+        const sunPosition = fromValues$4(20.6666469573975, 77.4717559814453, 341.035034179687);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
         identity$2(Render.vp);
         multiply$5(Render.vp, Render.vp, Render.projectionMatrix);
         multiply$5(Render.vp, Render.vp, viewMatrixWithoutTranslation);
-        const yAngle = Math.PI * 1.5;
-        const model = create$5();
-        rotateY$3(model, model, yAngle);
-        // mat4.rotateY(model, model, 0.1)
-        // const sunPos = vec3.fromValues(20.6666469573975, 77.4717559814453, 341.035034179687)
-        const q = create$2();
-        getRotation(q, this.viewMatrix);
-        const objQ = create$2();
-        getRotation(objQ, model);
-        mul$2(q, q, objQ);
-        invert$1(q, q);
-        const p = fromValues$4(0, 1, 0);
-        transformQuat$1(p, p, q);
-        const a = Math.atan2(p[1], p[0]);
-        console.log("angle: ", (a / Math.PI) * 180);
-        translate$1(model, model, fromValues$4(0, 0, 350));
-        rotateZ$3(model, model, a);
-        rotateX$3(model, model, Math.PI);
-        rotateZ$3(model, model, -Math.PI / 2);
-        multiply$5(Render.vp, Render.vp, model);
+        const sunModel = create$5();
+        rotateY$3(sunModel, sunModel, sunYAngle);
+        translate$1(sunModel, sunModel, sunPosition);
+        Render.applyCameraRotationToModelMatrix(sunModel);
+        Render.rotateModelUpfront(sunModel);
+        multiply$5(Render.vp, Render.vp, sunModel);
         gl.bindBuffer(gl.UNIFORM_BUFFER, Render.settings);
         gl.bufferSubData(gl.UNIFORM_BUFFER, 0, Render.settingsBuffer);
         gl.useProgram(this.sunShader);
@@ -9084,8 +9123,8 @@ class Render {
         gl.bindVertexArray(this.sun.vao);
         gl.drawElements(gl.TRIANGLES, this.sun.mesh.indices.length, gl.UNSIGNED_SHORT, 0);
         // fog
-        gl.bindFramebuffer(gl.FRAMEBUFFER, this.fogPass);
         gl.disable(gl.DEPTH_TEST);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.fogPass);
         gl.colorMask(true, true, true, true);
         gl.blendFunc(gl.ONE, gl.ZERO);
         gl.useProgram(this.fogShader);
@@ -9094,6 +9133,97 @@ class Render {
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, Render.mainPassTexture);
         gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, Render.depthBuffer);
+        gl.bindVertexArray(this.fullscreenPlain.vao);
+        gl.drawElements(gl.TRIANGLES, this.fullscreenPlain.mesh.indices.length, gl.UNSIGNED_SHORT, 0);
+        // glare
+        const haveResult = this.blankQueryUsed && gl.getQueryParameter(this.blankQuery, gl.QUERY_RESULT_AVAILABLE);
+        if (haveResult) {
+            const result = gl.getQueryParameter(this.blankQuery, gl.QUERY_RESULT);
+            this.blankSamplesCount = result ? 30000 : 0;
+        }
+        const MIN_SAMPLES = 750;
+        const MAX_SAMPLES = 1500;
+        const MIN_GLARE_SCALE = 0.25;
+        const MAX_GLARE_SCALE = 1;
+        let glareTargetScale;
+        if (this.blankSamplesCount > MIN_SAMPLES) {
+            const t = Math.min((this.blankSamplesCount - MIN_SAMPLES) / (MAX_SAMPLES - MIN_SAMPLES), 1);
+            glareTargetScale = MIN_GLARE_SCALE + t * (MAX_GLARE_SCALE - MIN_GLARE_SCALE);
+        }
+        else {
+            glareTargetScale = 0;
+        }
+        const GLARE_SPEED = 1 / 0.075;
+        if (glareTargetScale - this.glareScale) {
+            const direction = Math.sign(glareTargetScale - this.glareScale);
+            this.glareScale += GLARE_SPEED * direction * dt;
+            this.glareScale =
+                Math.min(glareTargetScale * direction, this.glareScale * direction) * direction;
+        }
+        // this.glareScale = MAX_GLARE_SCALE
+        if (this.glareScale > 10e-6) {
+            gl.disable(gl.DEPTH_TEST);
+            gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+            identity$2(Render.vp);
+            multiply$5(Render.vp, Render.vp, Render.projectionMatrix);
+            multiply$5(Render.vp, Render.vp, viewMatrixWithoutTranslation);
+            const glareModel = create$5();
+            rotateY$3(glareModel, glareModel, sunYAngle);
+            translate$1(glareModel, glareModel, sunPosition);
+            Render.applyCameraRotationToModelMatrix(glareModel);
+            Render.rotateModelUpfront(glareModel);
+            scale$5(glareModel, glareModel, fromValues$4(this.glareScale, this.glareScale, this.glareScale));
+            multiply$5(Render.vp, Render.vp, glareModel);
+            gl.bindBuffer(gl.UNIFORM_BUFFER, Render.settings);
+            gl.bufferSubData(gl.UNIFORM_BUFFER, 0, Render.settingsBuffer);
+            gl.useProgram(this.glareShader);
+            gl.uniform1i(this.glareShader.glare, 0);
+            gl.uniform1i(this.glareShader.checkerboard, 1);
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, Render.glareTexture);
+            gl.activeTexture(gl.TEXTURE1);
+            gl.bindTexture(gl.TEXTURE_2D, Render.checkerboard);
+            gl.bindVertexArray(this.glare.vao);
+            gl.drawElements(gl.TRIANGLES, this.glare.mesh.indices.length, gl.UNSIGNED_SHORT, 0);
+        }
+        // blank to measure size of glare
+        if (!this.blankQueryUsed || haveResult) {
+            gl.depthFunc(gl.LEQUAL);
+            gl.enable(gl.DEPTH_TEST);
+            gl.bindFramebuffer(gl.FRAMEBUFFER, this.glarePass);
+            gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+            identity$2(Render.vp);
+            multiply$5(Render.vp, Render.vp, Render.projectionMatrix);
+            multiply$5(Render.vp, Render.vp, viewMatrixWithoutTranslation);
+            const blankModel = create$5();
+            rotateY$3(blankModel, blankModel, sunYAngle);
+            translate$1(blankModel, blankModel, sunPosition);
+            Render.applyCameraRotationToModelMatrix(blankModel);
+            Render.rotateModelUpfront(blankModel);
+            scale$5(blankModel, blankModel, fromValues$4(0.04, 0.04, 0.04));
+            multiply$5(Render.vp, Render.vp, blankModel);
+            gl.bindBuffer(gl.UNIFORM_BUFFER, Render.settings);
+            gl.bufferSubData(gl.UNIFORM_BUFFER, 0, Render.settingsBuffer);
+            gl.useProgram(this.blankShader);
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, null);
+            gl.activeTexture(gl.TEXTURE1);
+            gl.bindTexture(gl.TEXTURE_2D, null);
+            gl.bindVertexArray(this.blank.vao);
+            gl.beginQuery(gl.ANY_SAMPLES_PASSED, this.blankQuery);
+            gl.drawElements(gl.TRIANGLES, this.blank.mesh.indices.length, gl.UNSIGNED_SHORT, 0);
+            gl.endQuery(gl.ANY_SAMPLES_PASSED);
+            Render.blankQueryUsed = true;
+        }
+        // sun fog
+        gl.disable(gl.DEPTH_TEST);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.fogPass);
+        gl.colorMask(true, true, true, true);
+        gl.blendFunc(gl.ONE, gl.ONE);
+        gl.useProgram(this.sunFogShader);
+        gl.uniform1i(this.sunFogShader.depthBuffer, 0);
+        gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, Render.depthBuffer);
         gl.bindVertexArray(this.fullscreenPlain.vao);
         gl.drawElements(gl.TRIANGLES, this.fullscreenPlain.mesh.indices.length, gl.UNSIGNED_SHORT, 0);
@@ -9540,7 +9670,7 @@ class Services {
         // resolve output queue messages
         Queues.processOutputQueue();
         // render
-        Render.render();
+        Render.render(dt);
     }
     static finalize() {
         Engine._finalize();

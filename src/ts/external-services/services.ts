@@ -26,7 +26,7 @@ export class Services {
         // resolve output queue messages
         Queues.processOutputQueue()
         // render
-        Render.render()
+        Render.render(dt)
     }
 
     static finalize(): void {

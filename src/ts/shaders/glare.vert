@@ -1,7 +1,5 @@
 #version 300 es
 
-precision highp float;
-
 layout(location = 0) in vec3 inputPosition;
 layout(location = 1) in vec4 inputColor;
 layout(location = 2) in vec2 inputUV;
@@ -19,14 +17,12 @@ void main(void) {
     // max in depth
     gl_Position = pos;
 
-    vertUV = inputUV;
-
-    vec3 rWeight = vec3(0.327245563268662, 0.148633718490601, 0.0669654905796051);
-    vec3 gWeight = vec3(0, 0, 0);
-    vec3 bWeight = vec3(0, 0, 0);
+    vec3 rWeight = vec3(0.565203845500946, 0.228658571839333, 0.0142048010602593);
     float alpha = 0.833333313465118;
 
-    vec3 tintedColor = rWeight * inputColor.r + gWeight * inputColor.g + bWeight * inputColor.b;
+    vec3 tintedColor = rWeight * inputColor.r;
 
     vertColor = vec4(tintedColor * alpha, inputColor.a);
+
+    vertUV = inputUV;
 }

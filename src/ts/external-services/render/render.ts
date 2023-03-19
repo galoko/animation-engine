@@ -12,9 +12,16 @@ import sunFrag from "../../shaders/sun.frag"
 import passthroughVert from "../../shaders/passthrough.vert"
 import passthroughFrag from "../../shaders/passthrough.frag"
 
-import fogFrag from "../../shaders/fog.frag"
+import blankVert from "../../shaders/blank.vert"
+import blankFrag from "../../shaders/blank.frag"
 
-import { mat4, quat, vec3, vec4 } from "gl-matrix"
+import glareVert from "../../shaders/glare.vert"
+import glareFrag from "../../shaders/glare.frag"
+
+import fogFrag from "../../shaders/fog.frag"
+import sunFogFrag from "../../shaders/sun_fog.frag"
+
+import { mat4, quat, vec3 } from "gl-matrix"
 import { compileShader, WebGLProgramWithUniforms } from "./render-utils"
 import { gl, ctx, anisotropic } from "./render-context"
 import { CHUNK_MESH_VERTEX_SIZE, Renderable } from "./renderable"
@@ -400,16 +407,21 @@ export class Render {
 
     // render targets
     private static mainPass: WebGLFramebuffer
-    private static mainPassTexture: WebGLTexture
-    private static depthBuffer: WebGLTexture
     private static fogPass: WebGLFramebuffer
+    private static glarePass: WebGLFramebuffer
+
+    private static depthBuffer: WebGLTexture
+
+    private static mainPassTexture: WebGLTexture
     private static fogPassTexture: WebGLTexture
 
-    // TODO
     private static skydome: ColoredMeshBuffer
     private static checkerboard: WebGLTexture
     private static sun: ColoredTexturedMeshBuffer
     private static sunTexture: WebGLTexture
+    private static blank: ColoredTexturedMeshBuffer
+    private static glare: ColoredTexturedMeshBuffer
+    private static glareTexture: WebGLTexture
     private static fullscreenPlain: MeshBuffer
 
     private static perObjectData: WebGLBuffer
@@ -422,7 +434,15 @@ export class Render {
     private static skydomeShader: WebGLProgramWithUniforms
     private static sunShader: WebGLProgramWithUniforms
     private static fogShader: WebGLProgramWithUniforms
+    private static glareShader: WebGLProgramWithUniforms
     private static passthroughShader: WebGLProgramWithUniforms
+    private static blankShader: WebGLProgramWithUniforms
+    private static blankQuery: WebGLQuery
+    private static blankQueryUsed = false
+    private static blankSamplesCount = 0
+    private static sunFogShader: WebGLProgramWithUniforms
+
+    private static glareScale = 0
 
     private static scene: BufferChunk[] = []
 
@@ -452,7 +472,16 @@ export class Render {
         this.sun = new ColoredTexturedMeshBuffer(
             await loadColoredTexturedMeshFromURL("/build/sun.ctml")
         )
-        this.sunTexture = createTexture(await loadTexture("/build/sun_glare_debug.png"))
+        this.sunTexture = createTexture(await loadTexture("/build/sun.png"))
+
+        this.blank = new ColoredTexturedMeshBuffer(
+            await loadColoredTexturedMeshFromURL("/build/blank.ctml")
+        )
+
+        this.glare = new ColoredTexturedMeshBuffer(
+            await loadColoredTexturedMeshFromURL("/build/glare.ctml")
+        )
+        this.glareTexture = createTexture(await loadTexture("/build/glare.png"))
 
         const coordinates = [
             //
@@ -572,6 +601,23 @@ export class Render {
             gl.COLOR_ATTACHMENT0,
             gl.TEXTURE_2D,
             this.fogPassTexture,
+            0
+        )
+
+        this.glarePass = gl.createFramebuffer()!
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.glarePass)
+        gl.framebufferTexture2D(
+            gl.FRAMEBUFFER,
+            gl.COLOR_ATTACHMENT0,
+            gl.TEXTURE_2D,
+            this.fogPassTexture,
+            0
+        )
+        gl.framebufferTexture2D(
+            gl.FRAMEBUFFER,
+            gl.DEPTH_ATTACHMENT,
+            gl.TEXTURE_2D,
+            this.depthBuffer,
             0
         )
     }
@@ -705,7 +751,30 @@ export class Render {
             "sceneColors",
             "depthBuffer",
         ])
+
+        Render.sunFogShader = compileShader(passthroughVert, sunFogFrag, {}, ["depthBuffer"])
+
         Render.passthroughShader = compileShader(passthroughVert, passthroughFrag, {}, ["tex"])
+
+        Render.glareShader = compileShader(
+            glareVert,
+            glareFrag,
+            {
+                settings: SETTINGS_INDEX,
+            },
+            ["glare", "checkerboard"]
+        )
+
+        Render.blankShader = compileShader(
+            blankVert,
+            blankFrag,
+            {
+                settings: SETTINGS_INDEX,
+            },
+            ["tex"]
+        )
+
+        this.blankQuery = gl.createQuery()!
     }
 
     private static setupWebGL(): void {
@@ -807,11 +876,36 @@ export class Render {
             (65 * Math.PI) / 180,
             gl.canvas.width / gl.canvas.height,
             15,
-            undefined!
+            353840
         )
     }
 
-    static render(): void {
+    private static applyCameraRotationToModelMatrix(model: mat4): void {
+        const q = quat.create()
+        mat4.getRotation(q, this.viewMatrix)
+
+        const objQ = quat.create()
+        mat4.getRotation(objQ, model)
+
+        quat.mul(q, q, objQ)
+        quat.invert(q, q)
+
+        const p = vec3.fromValues(0, 1, 0)
+        vec3.transformQuat(p, p, q)
+
+        const a = Math.atan2(p[1], p[0])
+
+        mat4.rotateZ(model, model, a)
+    }
+
+    private static rotateModelUpfront(model: mat4): void {
+        mat4.rotateX(model, model, Math.PI)
+        mat4.rotateZ(model, model, -Math.PI / 2)
+    }
+
+    static render(dt: number): void {
+        gl.depthFunc(gl.LESS)
+
         gl.enable(gl.CULL_FACE)
         gl.cullFace(gl.BACK)
 
@@ -887,44 +981,22 @@ export class Render {
 
         // sun
 
-        gl.disable(gl.BLEND)
+        const sunYAngle = Math.PI * 1.55
+        const sunPosition = vec3.fromValues(20.6666469573975, 77.4717559814453, 341.035034179687)
+
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE)
 
         mat4.identity(Render.vp)
         mat4.multiply(Render.vp, Render.vp, Render.projectionMatrix)
         mat4.multiply(Render.vp, Render.vp, viewMatrixWithoutTranslation)
 
-        const yAngle = Math.PI * 1.5
+        const sunModel = mat4.create()
+        mat4.rotateY(sunModel, sunModel, sunYAngle)
+        mat4.translate(sunModel, sunModel, sunPosition)
+        Render.applyCameraRotationToModelMatrix(sunModel)
+        Render.rotateModelUpfront(sunModel)
 
-        const model = mat4.create()
-        mat4.rotateY(model, model, yAngle)
-        // mat4.rotateY(model, model, 0.1)
-        // const sunPos = vec3.fromValues(20.6666469573975, 77.4717559814453, 341.035034179687)
-
-        const q = quat.create()
-        mat4.getRotation(q, this.viewMatrix)
-
-        const objQ = quat.create()
-        mat4.getRotation(objQ, model)
-
-        quat.mul(q, q, objQ)
-        quat.invert(q, q)
-
-        const p = vec3.fromValues(0, 1, 0)
-        vec3.transformQuat(p, p, q)
-
-        const a = Math.atan2(p[1], p[0])
-
-        console.log("angle: ", (a / Math.PI) * 180)
-
-        mat4.translate(model, model, vec3.fromValues(0, 0, 350))
-
-        mat4.rotateZ(model, model, a)
-
-        mat4.rotateX(model, model, Math.PI)
-        mat4.rotateZ(model, model, -Math.PI / 2)
-
-        mat4.multiply(Render.vp, Render.vp, model)
+        mat4.multiply(Render.vp, Render.vp, sunModel)
 
         gl.bindBuffer(gl.UNIFORM_BUFFER, Render.settings)
         gl.bufferSubData(gl.UNIFORM_BUFFER, 0, Render.settingsBuffer)
@@ -940,9 +1012,9 @@ export class Render {
         gl.drawElements(gl.TRIANGLES, this.sun.mesh.indices.length, gl.UNSIGNED_SHORT, 0)
 
         // fog
-        gl.bindFramebuffer(gl.FRAMEBUFFER, this.fogPass)
 
         gl.disable(gl.DEPTH_TEST)
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.fogPass)
 
         gl.colorMask(true, true, true, true)
 
@@ -956,6 +1028,147 @@ export class Render {
         gl.bindTexture(gl.TEXTURE_2D, Render.mainPassTexture)
 
         gl.activeTexture(gl.TEXTURE1)
+        gl.bindTexture(gl.TEXTURE_2D, Render.depthBuffer)
+
+        gl.bindVertexArray(this.fullscreenPlain.vao)
+
+        gl.drawElements(
+            gl.TRIANGLES,
+            this.fullscreenPlain.mesh.indices.length,
+            gl.UNSIGNED_SHORT,
+            0
+        )
+
+        // glare
+
+        const haveResult =
+            this.blankQueryUsed && gl.getQueryParameter(this.blankQuery, gl.QUERY_RESULT_AVAILABLE)
+        if (haveResult) {
+            const result = gl.getQueryParameter(this.blankQuery, gl.QUERY_RESULT)
+            this.blankSamplesCount = result ? 30000 : 0
+        }
+
+        const MIN_SAMPLES = 750
+        const MAX_SAMPLES = 1500
+
+        const MIN_GLARE_SCALE = 0.25
+        const MAX_GLARE_SCALE = 1
+
+        let glareTargetScale: number
+        if (this.blankSamplesCount > MIN_SAMPLES) {
+            const t = Math.min(
+                (this.blankSamplesCount - MIN_SAMPLES) / (MAX_SAMPLES - MIN_SAMPLES),
+                1
+            )
+            glareTargetScale = MIN_GLARE_SCALE + t * (MAX_GLARE_SCALE - MIN_GLARE_SCALE)
+        } else {
+            glareTargetScale = 0
+        }
+
+        const GLARE_SPEED = 1 / 0.075
+
+        if (glareTargetScale - this.glareScale) {
+            const direction = Math.sign(glareTargetScale - this.glareScale)
+
+            this.glareScale += GLARE_SPEED * direction * dt
+
+            this.glareScale =
+                Math.min(glareTargetScale * direction, this.glareScale * direction) * direction
+        }
+
+        // this.glareScale = MAX_GLARE_SCALE
+
+        if (this.glareScale > 10e-6) {
+            gl.disable(gl.DEPTH_TEST)
+
+            gl.blendFunc(gl.SRC_ALPHA, gl.ONE)
+
+            mat4.identity(Render.vp)
+            mat4.multiply(Render.vp, Render.vp, Render.projectionMatrix)
+            mat4.multiply(Render.vp, Render.vp, viewMatrixWithoutTranslation)
+
+            const glareModel = mat4.create()
+            mat4.rotateY(glareModel, glareModel, sunYAngle)
+            mat4.translate(glareModel, glareModel, sunPosition)
+            Render.applyCameraRotationToModelMatrix(glareModel)
+            Render.rotateModelUpfront(glareModel)
+            mat4.scale(
+                glareModel,
+                glareModel,
+                vec3.fromValues(this.glareScale, this.glareScale, this.glareScale)
+            )
+
+            mat4.multiply(Render.vp, Render.vp, glareModel)
+
+            gl.bindBuffer(gl.UNIFORM_BUFFER, Render.settings)
+            gl.bufferSubData(gl.UNIFORM_BUFFER, 0, Render.settingsBuffer)
+
+            gl.useProgram(this.glareShader)
+            gl.uniform1i(this.glareShader.glare, 0)
+            gl.uniform1i(this.glareShader.checkerboard, 1)
+
+            gl.activeTexture(gl.TEXTURE0)
+            gl.bindTexture(gl.TEXTURE_2D, Render.glareTexture)
+            gl.activeTexture(gl.TEXTURE1)
+            gl.bindTexture(gl.TEXTURE_2D, Render.checkerboard)
+
+            gl.bindVertexArray(this.glare.vao)
+
+            gl.drawElements(gl.TRIANGLES, this.glare.mesh.indices.length, gl.UNSIGNED_SHORT, 0)
+        }
+
+        // blank to measure size of glare
+
+        if (!this.blankQueryUsed || haveResult) {
+            gl.depthFunc(gl.LEQUAL)
+            gl.enable(gl.DEPTH_TEST)
+            gl.bindFramebuffer(gl.FRAMEBUFFER, this.glarePass)
+
+            gl.blendFunc(gl.SRC_ALPHA, gl.ONE)
+
+            mat4.identity(Render.vp)
+            mat4.multiply(Render.vp, Render.vp, Render.projectionMatrix)
+            mat4.multiply(Render.vp, Render.vp, viewMatrixWithoutTranslation)
+
+            const blankModel = mat4.create()
+            mat4.rotateY(blankModel, blankModel, sunYAngle)
+            mat4.translate(blankModel, blankModel, sunPosition)
+            Render.applyCameraRotationToModelMatrix(blankModel)
+            Render.rotateModelUpfront(blankModel)
+            mat4.scale(blankModel, blankModel, vec3.fromValues(0.04, 0.04, 0.04))
+
+            mat4.multiply(Render.vp, Render.vp, blankModel)
+
+            gl.bindBuffer(gl.UNIFORM_BUFFER, Render.settings)
+            gl.bufferSubData(gl.UNIFORM_BUFFER, 0, Render.settingsBuffer)
+
+            gl.useProgram(this.blankShader)
+
+            gl.activeTexture(gl.TEXTURE0)
+            gl.bindTexture(gl.TEXTURE_2D, null)
+            gl.activeTexture(gl.TEXTURE1)
+            gl.bindTexture(gl.TEXTURE_2D, null)
+
+            gl.bindVertexArray(this.blank.vao)
+            gl.beginQuery(gl.ANY_SAMPLES_PASSED, this.blankQuery)
+            gl.drawElements(gl.TRIANGLES, this.blank.mesh.indices.length, gl.UNSIGNED_SHORT, 0)
+            gl.endQuery(gl.ANY_SAMPLES_PASSED)
+            Render.blankQueryUsed = true
+        }
+
+        // sun fog
+
+        gl.disable(gl.DEPTH_TEST)
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.fogPass)
+
+        gl.colorMask(true, true, true, true)
+
+        gl.blendFunc(gl.ONE, gl.ONE)
+
+        gl.useProgram(this.sunFogShader)
+        gl.uniform1i(this.sunFogShader.depthBuffer, 0)
+
+        gl.activeTexture(gl.TEXTURE0)
         gl.bindTexture(gl.TEXTURE_2D, Render.depthBuffer)
 
         gl.bindVertexArray(this.fullscreenPlain.vao)
