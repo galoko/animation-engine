@@ -3,7 +3,8 @@
 precision highp float;
 
 in highp vec3 fragNormal;
-in vec2 fragUV;
+in highp vec2 fragUV;
+in highp float fragAtlasNum;
 
 out vec4 outputColor;
 
@@ -35,9 +36,39 @@ void main(void) {
     vec2 minUV = vec2(0.0, 0.0) / ATLAS_SIZE + mipMapPadding;
     vec2 maxUV = vec2(128.0, 128.0) / ATLAS_SIZE - mipMapPadding;
 
-    // TODO use atlasNum somehow
     // vec4 objectColor = textureLod(textures[1], clamp(fragUV, minUV, maxUV), mipLevel);
-    vec4 objectColor = textureLod(textures[1], fragUV, mipLevel);
+    vec4 objectColor;
+    if (fragAtlasNum < 0.5) {
+        objectColor = textureLod(textures[1], fragUV, mipLevel);
+    } else if (fragAtlasNum < 1.5) {
+        objectColor = textureLod(textures[2], fragUV, mipLevel);
+    } else if (fragAtlasNum < 2.5) {
+        objectColor = textureLod(textures[3], fragUV, mipLevel);
+    } else if (fragAtlasNum < 3.5) {
+        objectColor = textureLod(textures[4], fragUV, mipLevel);
+    } else if (fragAtlasNum < 4.5) {
+        objectColor = textureLod(textures[5], fragUV, mipLevel);
+    } else if (fragAtlasNum < 5.5) {
+        objectColor = textureLod(textures[6], fragUV, mipLevel);
+    } else if (fragAtlasNum < 6.5) {
+        objectColor = textureLod(textures[7], fragUV, mipLevel);
+    } else if (fragAtlasNum < 7.5) {
+        objectColor = textureLod(textures[8], fragUV, mipLevel);
+    } else if (fragAtlasNum < 8.5) {
+        objectColor = textureLod(textures[9], fragUV, mipLevel);
+    } else if (fragAtlasNum < 9.5) {
+        objectColor = textureLod(textures[10], fragUV, mipLevel);
+    } else if (fragAtlasNum < 10.5) {
+        objectColor = textureLod(textures[11], fragUV, mipLevel);
+    } else if (fragAtlasNum < 11.5) {
+        objectColor = textureLod(textures[12], fragUV, mipLevel);
+    } else if (fragAtlasNum < 12.5) {
+        objectColor = textureLod(textures[13], fragUV, mipLevel);
+    } else if (fragAtlasNum < 13.5) {
+        objectColor = textureLod(textures[14], fragUV, mipLevel);
+    } else if (fragAtlasNum < 14.5) {
+        objectColor = textureLod(textures[15], fragUV, mipLevel);
+    }
 
     outputColor = vec4(min(ambient + diffuse, 1.0) * objectColor.rgb, objectColor.a);
 }

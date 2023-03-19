@@ -362,39 +362,6 @@ function createFloatTexture(width: number, height: number): WebGLTexture {
     return texture
 }
 
-function clampValue(value: number, min: number, max: number): number {
-    if (value < min) value = min
-    else if (value > max) value = max
-    return value
-}
-
-function angleBetweenVectors(objectDirection: vec3, right: vec3, cameraDirection: vec3): number {
-    const UP = vec3.fromValues(0, 0, 1)
-    const objAngle = Math.acos(vec3.dot(objectDirection, UP))
-    const objAxis = vec3.create()
-    vec3.cross(objAxis, objectDirection, UP)
-
-    const objQ = quat.create()
-    quat.setAxisAngle(objQ, objAxis, objAngle)
-    quat.invert(objQ, objQ)
-
-    const FORWARD = vec3.fromValues(1, 0, 0)
-    const cameraAngle = Math.acos(vec3.dot(cameraDirection, FORWARD))
-    const cameraAxis = vec3.create()
-    vec3.cross(cameraAxis, cameraDirection, FORWARD)
-
-    const cameraQ = quat.create()
-    quat.setAxisAngle(cameraQ, cameraAxis, cameraAngle)
-
-    const q = quat.create()
-    quat.mul(q, cameraQ, objQ)
-
-    const siny_cosp = 2 * (q[3] * q[2] + q[0] * q[1])
-    const cosy_cosp = 1 - 2 * (q[1] * q[1] + q[2] * q[2])
-
-    return Math.atan2(siny_cosp, cosy_cosp)
-}
-
 export class Render {
     private static viewMatrix: mat4
     private static projectionMatrix: mat4
@@ -673,6 +640,10 @@ export class Render {
             return
         }
 
+        if (renderable.atlasNum === undefined) {
+            throw "Object doesn't have an atlas"
+        }
+
         ramPerObjectDataBuffer.set([
             // pixel 0
             renderable.rotation[0],
@@ -683,7 +654,7 @@ export class Render {
             renderable.position[0],
             renderable.position[1],
             renderable.position[2],
-            0, // TODO flags
+            renderable.atlasNum!,
             // pixel 2
             0,
             0,

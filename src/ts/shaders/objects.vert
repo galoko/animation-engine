@@ -13,6 +13,7 @@ layout(std140) uniform settings {
 
 out highp vec3 fragNormal;
 out highp vec2 fragUV;
+out highp float fragAtlasNum;
 
 const int PARAM_TEXTURE_SIZE = 1024;
 
@@ -26,19 +27,20 @@ void main(void) {
     int y = iParamIndex / PARAM_TEXTURE_SIZE;
 
     vec4 quat = texelFetch(textures[0], ivec2(x, y), 0);
-    vec4 translation_flags = texelFetch(textures[0], ivec2(x + 1, y), 0);
+    vec4 translation_atlasNum = texelFetch(textures[0], ivec2(x + 1, y), 0);
 
     vec3 scale = vec3(quat.w);
 
     float s = length(quat.xyz);
     quat.w = sqrt(1.0 - s * s);
 
-    vec3 translation = translation_flags.xyz;
-    float flags = translation_flags.w;
+    vec3 translation = translation_atlasNum.xyz;
+    float atlasNum = translation_atlasNum.w;
 
     fragNormal = quat_transform(quat, inputNormal);
 
     gl_Position = vp * vec4(quat_transform(quat, inputPosition) * scale + translation, 1.0);
 
     fragUV = inputUV;
+    fragAtlasNum = atlasNum;
 }

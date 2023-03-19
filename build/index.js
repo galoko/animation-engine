@@ -1,5 +1,5 @@
 
-(function(l, r) { if (!l || l.getElementById('livereloadscript')) return; r = l.createElement('script'); r.async = 1; r.src = '//' + (self.location.host || 'localhost').split(':')[0] + ':35729/livereload.js?snipver=1'; r.id = 'livereloadscript'; r.crossOrigin='anonymous'; l.getElementsByTagName('head')[0].appendChild(r) })(self.document);
+(function(l, r) { if (!l || l.getElementById('livereloadscript')) return; r = l.createElement('script'); r.async = 1; r.src = '//' + (self.location.host || 'localhost').split(':')[0] + ':35730/livereload.js?snipver=1'; r.id = 'livereloadscript'; r.crossOrigin='anonymous'; l.getElementsByTagName('head')[0].appendChild(r) })(self.document);
 'use strict';
 
 let lastTickTime = undefined;
@@ -7854,9 +7854,9 @@ var vec2 = /*#__PURE__*/Object.freeze({
     forEach: forEach
 });
 
-var objectsVert = "#version 300 es\r\n\r\nlayout(location = 0) in vec3 inputPosition;\r\nlayout(location = 1) in vec3 inputNormal;\r\nlayout(location = 2) in vec2 inputUV;\r\nlayout(location = 3) in float paramsIndex;\r\n\r\nuniform sampler2D textures[16];\r\n\r\nlayout(std140) uniform settings {\r\n    mat4 vp;\r\n};\r\n\r\nout highp vec3 fragNormal;\r\nout highp vec2 fragUV;\r\n\r\nconst int PARAM_TEXTURE_SIZE = 1024;\r\n\r\nvec3 quat_transform(vec4 q, vec3 v) {\r\n    return v + 2. * cross(q.xyz, cross(q.xyz, v) + q.w * v);\r\n}\r\n\r\nvoid main(void) {\r\n    int iParamIndex = int(paramsIndex);\r\n    int x = iParamIndex % PARAM_TEXTURE_SIZE;\r\n    int y = iParamIndex / PARAM_TEXTURE_SIZE;\r\n\r\n    vec4 quat = texelFetch(textures[0], ivec2(x, y), 0);\r\n    vec4 translation_flags = texelFetch(textures[0], ivec2(x + 1, y), 0);\r\n\r\n    vec3 scale = vec3(quat.w);\r\n\r\n    float s = length(quat.xyz);\r\n    quat.w = sqrt(1.0 - s * s);\r\n\r\n    vec3 translation = translation_flags.xyz;\r\n    float flags = translation_flags.w;\r\n\r\n    fragNormal = quat_transform(quat, inputNormal);\r\n\r\n    gl_Position = vp * vec4(quat_transform(quat, inputPosition) * scale + translation, 1.0);\r\n\r\n    fragUV = inputUV;\r\n}";
+var objectsVert = "#version 300 es\r\n\r\nlayout(location = 0) in vec3 inputPosition;\r\nlayout(location = 1) in vec3 inputNormal;\r\nlayout(location = 2) in vec2 inputUV;\r\nlayout(location = 3) in float paramsIndex;\r\n\r\nuniform sampler2D textures[16];\r\n\r\nlayout(std140) uniform settings {\r\n    mat4 vp;\r\n};\r\n\r\nout highp vec3 fragNormal;\r\nout highp vec2 fragUV;\r\nout highp float fragAtlasNum;\r\n\r\nconst int PARAM_TEXTURE_SIZE = 1024;\r\n\r\nvec3 quat_transform(vec4 q, vec3 v) {\r\n    return v + 2. * cross(q.xyz, cross(q.xyz, v) + q.w * v);\r\n}\r\n\r\nvoid main(void) {\r\n    int iParamIndex = int(paramsIndex);\r\n    int x = iParamIndex % PARAM_TEXTURE_SIZE;\r\n    int y = iParamIndex / PARAM_TEXTURE_SIZE;\r\n\r\n    vec4 quat = texelFetch(textures[0], ivec2(x, y), 0);\r\n    vec4 translation_atlasNum = texelFetch(textures[0], ivec2(x + 1, y), 0);\r\n\r\n    vec3 scale = vec3(quat.w);\r\n\r\n    float s = length(quat.xyz);\r\n    quat.w = sqrt(1.0 - s * s);\r\n\r\n    vec3 translation = translation_atlasNum.xyz;\r\n    float atlasNum = translation_atlasNum.w;\r\n\r\n    fragNormal = quat_transform(quat, inputNormal);\r\n\r\n    gl_Position = vp * vec4(quat_transform(quat, inputPosition) * scale + translation, 1.0);\r\n\r\n    fragUV = inputUV;\r\n    fragAtlasNum = atlasNum;\r\n}";
 
-var objectsFrag = "#version 300 es\r\n\r\nprecision highp float;\r\n\r\nin highp vec3 fragNormal;\r\nin vec2 fragUV;\r\n\r\nout vec4 outputColor;\r\n\r\nuniform sampler2D textures[16];\r\n\r\nfloat GetMipLevel(vec2 UV)\r\n{\r\n\tvec2 dx = dFdx(UV);\r\n\tvec2 dy = dFdy(UV);\r\n\tfloat d = max(dot(dx, dx), dot(dy, dy));\r\n\treturn clamp(0.5 * log2(d), 0.0, 5.0); // 5 mipmap level is max level, which is 32x32 texture \r\n}\r\n\r\nconst float ATLAS_SIZE = 2048.0;\r\n\r\nvoid main(void) {\r\n    vec3 lightDir = normalize(vec3(0.656, 0.3, 0.14));\r\n    vec3 lightColor = vec3(1.);\r\n\r\n    float diff = max(dot(fragNormal, lightDir), 0.0);\r\n    vec3 diffuse = diff * lightColor;\r\n\r\n    float ambient = 0.5;\r\n    float mipLevel = GetMipLevel(fragUV * ATLAS_SIZE);\r\n    float mipMul = pow(2., mipLevel);\r\n    vec2 mipMapPadding = vec2(0.5 / ATLAS_SIZE * mipMul);\r\n\r\n    // we need \r\n    vec2 minUV = vec2(0.0, 0.0) / ATLAS_SIZE + mipMapPadding;\r\n    vec2 maxUV = vec2(128.0, 128.0) / ATLAS_SIZE - mipMapPadding;\r\n\r\n    // TODO use atlasNum somehow\r\n    // vec4 objectColor = textureLod(textures[1], clamp(fragUV, minUV, maxUV), mipLevel);\r\n    vec4 objectColor = textureLod(textures[1], fragUV, mipLevel);\r\n\r\n    outputColor = vec4(min(ambient + diffuse, 1.0) * objectColor.rgb, objectColor.a);\r\n}";
+var objectsFrag = "#version 300 es\r\n\r\nprecision highp float;\r\n\r\nin highp vec3 fragNormal;\r\nin highp vec2 fragUV;\r\nin highp float fragAtlasNum;\r\n\r\nout vec4 outputColor;\r\n\r\nuniform sampler2D textures[16];\r\n\r\nfloat GetMipLevel(vec2 UV)\r\n{\r\n\tvec2 dx = dFdx(UV);\r\n\tvec2 dy = dFdy(UV);\r\n\tfloat d = max(dot(dx, dx), dot(dy, dy));\r\n\treturn clamp(0.5 * log2(d), 0.0, 5.0); // 5 mipmap level is max level, which is 32x32 texture \r\n}\r\n\r\nconst float ATLAS_SIZE = 2048.0;\r\n\r\nvoid main(void) {\r\n    vec3 lightDir = normalize(vec3(0.656, 0.3, 0.14));\r\n    vec3 lightColor = vec3(1.);\r\n\r\n    float diff = max(dot(fragNormal, lightDir), 0.0);\r\n    vec3 diffuse = diff * lightColor;\r\n\r\n    float ambient = 0.5;\r\n    float mipLevel = GetMipLevel(fragUV * ATLAS_SIZE);\r\n    float mipMul = pow(2., mipLevel);\r\n    vec2 mipMapPadding = vec2(0.5 / ATLAS_SIZE * mipMul);\r\n\r\n    // we need \r\n    vec2 minUV = vec2(0.0, 0.0) / ATLAS_SIZE + mipMapPadding;\r\n    vec2 maxUV = vec2(128.0, 128.0) / ATLAS_SIZE - mipMapPadding;\r\n\r\n    // vec4 objectColor = textureLod(textures[1], clamp(fragUV, minUV, maxUV), mipLevel);\r\n    vec4 objectColor;\r\n    if (fragAtlasNum < 0.5) {\r\n        objectColor = textureLod(textures[1], fragUV, mipLevel);\r\n    } else if (fragAtlasNum < 1.5) {\r\n        objectColor = textureLod(textures[2], fragUV, mipLevel);\r\n    } else if (fragAtlasNum < 2.5) {\r\n        objectColor = textureLod(textures[3], fragUV, mipLevel);\r\n    } else if (fragAtlasNum < 3.5) {\r\n        objectColor = textureLod(textures[4], fragUV, mipLevel);\r\n    } else if (fragAtlasNum < 4.5) {\r\n        objectColor = textureLod(textures[5], fragUV, mipLevel);\r\n    } else if (fragAtlasNum < 5.5) {\r\n        objectColor = textureLod(textures[6], fragUV, mipLevel);\r\n    } else if (fragAtlasNum < 6.5) {\r\n        objectColor = textureLod(textures[7], fragUV, mipLevel);\r\n    } else if (fragAtlasNum < 7.5) {\r\n        objectColor = textureLod(textures[8], fragUV, mipLevel);\r\n    } else if (fragAtlasNum < 8.5) {\r\n        objectColor = textureLod(textures[9], fragUV, mipLevel);\r\n    } else if (fragAtlasNum < 9.5) {\r\n        objectColor = textureLod(textures[10], fragUV, mipLevel);\r\n    } else if (fragAtlasNum < 10.5) {\r\n        objectColor = textureLod(textures[11], fragUV, mipLevel);\r\n    } else if (fragAtlasNum < 11.5) {\r\n        objectColor = textureLod(textures[12], fragUV, mipLevel);\r\n    } else if (fragAtlasNum < 12.5) {\r\n        objectColor = textureLod(textures[13], fragUV, mipLevel);\r\n    } else if (fragAtlasNum < 13.5) {\r\n        objectColor = textureLod(textures[14], fragUV, mipLevel);\r\n    } else if (fragAtlasNum < 14.5) {\r\n        objectColor = textureLod(textures[15], fragUV, mipLevel);\r\n    }\r\n\r\n    outputColor = vec4(min(ambient + diffuse, 1.0) * objectColor.rgb, objectColor.a);\r\n}";
 
 var skydomeVert = "#version 300 es\r\n\r\nlayout(location = 0) in vec3 inputPosition;\r\nlayout(location = 1) in vec4 inputColor;\r\n\r\nlayout(std140) uniform settings {\r\n    mat4 vp;\r\n};\r\n\r\nout highp vec4 vertColor;\r\n\r\nvoid main(void) {\r\n    vec4 pos = vp * vec4(inputPosition, 1.0);\r\n    pos.z = pos.w;\r\n    // max in depth\r\n    gl_Position = pos;\r\n\r\n    vec3 rWeight = vec3(0.391360133886337, 0.386311918497086, 0.389162868261337);\r\n    vec3 gWeight = vec3(0.398082792758942, 0.398599475622177, 0.403697550296783);\r\n    vec3 bWeight = vec3(0.140491753816605, 0.252542823553085, 0.296034902334213);\r\n    float alpha = 0.833333313465118;\r\n\r\n    vec3 tintedColor = rWeight * inputColor.r + gWeight * inputColor.g + bWeight * inputColor.b;\r\n\r\n    vertColor = vec4(tintedColor * alpha, inputColor.a);\r\n}";
 
@@ -8708,33 +8708,6 @@ function createFloatTexture(width, height) {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     return texture;
 }
-function clampValue(value, min, max) {
-    if (value < min)
-        value = min;
-    else if (value > max)
-        value = max;
-    return value;
-}
-function angleBetweenVectors(objectDirection, right, cameraDirection) {
-    const UP = fromValues$4(0, 0, 1);
-    const objAngle = Math.acos(dot$4(objectDirection, UP));
-    const objAxis = create$4();
-    cross$2(objAxis, objectDirection, UP);
-    const objQ = create$2();
-    setAxisAngle(objQ, objAxis, objAngle);
-    invert$1(objQ, objQ);
-    const FORWARD = fromValues$4(1, 0, 0);
-    const cameraAngle = Math.acos(dot$4(cameraDirection, FORWARD));
-    const cameraAxis = create$4();
-    cross$2(cameraAxis, cameraDirection, FORWARD);
-    const cameraQ = create$2();
-    setAxisAngle(cameraQ, cameraAxis, cameraAngle);
-    const q = create$2();
-    mul$2(q, cameraQ, objQ);
-    const siny_cosp = 2 * (q[3] * q[2] + q[0] * q[1]);
-    const cosy_cosp = 1 - 2 * (q[1] * q[1] + q[2] * q[2]);
-    return Math.atan2(siny_cosp, cosy_cosp);
-}
 class Render {
     static viewMatrix;
     static projectionMatrix;
@@ -8908,6 +8881,9 @@ class Render {
         if (renderable.perObjectDataIndex === undefined) {
             return;
         }
+        if (renderable.atlasNum === undefined) {
+            throw "Object doesn't have an atlas";
+        }
         ramPerObjectDataBuffer.set([
             // pixel 0
             renderable.rotation[0],
@@ -8918,7 +8894,7 @@ class Render {
             renderable.position[0],
             renderable.position[1],
             renderable.position[2],
-            0,
+            renderable.atlasNum,
             // pixel 2
             0,
             0,
