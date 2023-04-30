@@ -24,19 +24,20 @@ export class Mesh extends RefCountingResource {
 }
 
 export class ColoredMesh extends RefCountingResource {
-    constructor(readonly vertices: Uint8Array, readonly indices: Uint16Array) {
+    constructor(readonly vertices: Float32Array, readonly indices: Uint16Array) {
         super()
     }
 }
 
 export class ColoredTexturedMesh extends RefCountingResource {
-    constructor(readonly vertices: Uint8Array, readonly indices: Uint16Array) {
+    constructor(readonly vertices: Float32Array, readonly indices: Uint16Array) {
         super()
     }
 }
 
 export class Texture extends RefCountingResource {
     constructor(
+        readonly id: string,
         readonly pixels: Uint8ClampedArray,
         readonly width: number,
         readonly height: number

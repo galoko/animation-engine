@@ -1,5 +1,5 @@
 
-(function(l, r) { if (!l || l.getElementById('livereloadscript')) return; r = l.createElement('script'); r.async = 1; r.src = '//' + (self.location.host || 'localhost').split(':')[0] + ':35730/livereload.js?snipver=1'; r.id = 'livereloadscript'; r.crossOrigin='anonymous'; l.getElementsByTagName('head')[0].appendChild(r) })(self.document);
+(function(l, r) { if (!l || l.getElementById('livereloadscript')) return; r = l.createElement('script'); r.async = 1; r.src = '//' + (self.location.host || 'localhost').split(':')[0] + ':35729/livereload.js?snipver=1'; r.id = 'livereloadscript'; r.crossOrigin='anonymous'; l.getElementsByTagName('head')[0].appendChild(r) })(self.document);
 'use strict';
 
 let lastTickTime = undefined;
@@ -7854,160 +7854,56 @@ var vec2 = /*#__PURE__*/Object.freeze({
     forEach: forEach
 });
 
-var objectsVert = "#version 300 es\r\n\r\nlayout(location = 0) in vec3 inputPosition;\r\nlayout(location = 1) in vec3 inputNormal;\r\nlayout(location = 2) in vec2 inputUV;\r\nlayout(location = 3) in float paramsIndex;\r\n\r\nuniform sampler2D textures[16];\r\n\r\nlayout(std140) uniform settings {\r\n    mat4 vp;\r\n};\r\n\r\nout highp vec3 fragNormal;\r\nout highp vec2 fragUV;\r\nout highp float fragAtlasNum;\r\n\r\nconst int PARAM_TEXTURE_SIZE = 1024;\r\n\r\nvec3 quat_transform(vec4 q, vec3 v) {\r\n    return v + 2. * cross(q.xyz, cross(q.xyz, v) + q.w * v);\r\n}\r\n\r\nvoid main(void) {\r\n    int iParamIndex = int(paramsIndex);\r\n    int x = iParamIndex % PARAM_TEXTURE_SIZE;\r\n    int y = iParamIndex / PARAM_TEXTURE_SIZE;\r\n\r\n    vec4 quat = texelFetch(textures[0], ivec2(x, y), 0);\r\n    vec4 translation_atlasNum = texelFetch(textures[0], ivec2(x + 1, y), 0);\r\n\r\n    vec3 scale = vec3(quat.w);\r\n\r\n    float s = length(quat.xyz);\r\n    quat.w = sqrt(1.0 - s * s);\r\n\r\n    vec3 translation = translation_atlasNum.xyz;\r\n    float atlasNum = translation_atlasNum.w;\r\n\r\n    fragNormal = quat_transform(quat, inputNormal);\r\n\r\n    gl_Position = vp * vec4(quat_transform(quat, inputPosition) * scale + translation, 1.0);\r\n\r\n    fragUV = inputUV;\r\n    fragAtlasNum = atlasNum;\r\n}";
+var objectsVert = "struct Settings {\r\n    viewProjection: mat4x4<f32>,\r\n    viewProjection_inplace: mat4x4<f32>,\r\n    viewProjection_sun: mat4x4<f32>,\r\n}\r\n\r\nstruct PerObjectDataEntry {\r\n    quat_scale: vec4<f32>,\r\n    translation_atlasNum: vec4<f32>,\r\n}\r\n\r\nstruct PerObjectData {\r\n    entries: array<PerObjectDataEntry>,\r\n}\r\n\r\nstruct VertexOutput {\r\n    @builtin(position) fragPosition: vec4<f32>,\r\n    @location(0) fragNormal: vec3<f32>,\r\n    @location(1) fragUV: vec2<f32>,\r\n    @location(2) @interpolate(flat) fragAtlasNum: u32,\r\n}\r\n\r\n@group(0) @binding(0) var<uniform> settings: Settings;\r\n@group(0) @binding(1) var<storage, read> perObjectData : PerObjectData;\r\n\r\nfn quat_transform(q: vec4<f32>, v: vec3<f32>) -> vec3<f32> {\r\n    return v + 2 * cross(q.xyz, cross(q.xyz, v) + q.w * v);\r\n}\r\n\r\n@vertex\r\nfn main(\r\n    @location(0) inputPosition: vec3<f32>,\r\n    @location(1) inputNormal: vec3<f32>,\r\n    @location(2) inputUV: vec2<f32>,\r\n    @location(3) paramsIndex: f32,\r\n) -> VertexOutput {\r\n    var index = u32(paramsIndex);\r\n\r\n    var quat_scale = perObjectData.entries[index].quat_scale;\r\n    var translation_atlasNum = perObjectData.entries[index].translation_atlasNum;\r\n\r\n    var scale = quat_scale.w;\r\n\r\n    var translation = translation_atlasNum.xyz;\r\n    var atlasNum = translation_atlasNum.w;\r\n\r\n    var quat_xyz = quat_scale.xyz;\r\n    var s = length(quat_xyz);\r\n    var quat = vec4(quat_xyz, sqrt(1.0 - s * s));\r\n\r\n    var output: VertexOutput;\r\n    output.fragPosition = settings.viewProjection * vec4(quat_transform(quat, inputPosition) * scale + translation, 1.0);\r\n    output.fragNormal = quat_transform(quat, inputNormal);\r\n    output.fragUV = inputUV;\r\n    output.fragAtlasNum = u32(atlasNum);\r\n\r\n    return output;\r\n}";
 
-var objectsFrag = "#version 300 es\r\n\r\nprecision highp float;\r\n\r\nin highp vec3 fragNormal;\r\nin highp vec2 fragUV;\r\nin highp float fragAtlasNum;\r\n\r\nout vec4 outputColor;\r\n\r\nuniform sampler2D textures[16];\r\n\r\nfloat GetMipLevel(vec2 UV)\r\n{\r\n\tvec2 dx = dFdx(UV);\r\n\tvec2 dy = dFdy(UV);\r\n\tfloat d = max(dot(dx, dx), dot(dy, dy));\r\n\treturn clamp(0.5 * log2(d), 0.0, 5.0); // 5 mipmap level is max level, which is 32x32 texture \r\n}\r\n\r\nconst float ATLAS_SIZE = 2048.0;\r\n\r\nvoid main(void) {\r\n    vec3 lightDir = normalize(vec3(0.656, 0.3, 0.14));\r\n    vec3 lightColor = vec3(1.);\r\n\r\n    float diff = max(dot(fragNormal, lightDir), 0.0);\r\n    vec3 diffuse = diff * lightColor;\r\n\r\n    float ambient = 0.5;\r\n    float mipLevel = GetMipLevel(fragUV * ATLAS_SIZE);\r\n    float mipMul = pow(2., mipLevel);\r\n    vec2 mipMapPadding = vec2(0.5 / ATLAS_SIZE * mipMul);\r\n\r\n    // we need \r\n    vec2 minUV = vec2(0.0, 0.0) / ATLAS_SIZE + mipMapPadding;\r\n    vec2 maxUV = vec2(128.0, 128.0) / ATLAS_SIZE - mipMapPadding;\r\n\r\n    // vec4 objectColor = textureLod(textures[1], clamp(fragUV, minUV, maxUV), mipLevel);\r\n    vec4 objectColor;\r\n    if (fragAtlasNum < 0.5) {\r\n        objectColor = textureLod(textures[1], fragUV, mipLevel);\r\n    } else if (fragAtlasNum < 1.5) {\r\n        objectColor = textureLod(textures[2], fragUV, mipLevel);\r\n    } else if (fragAtlasNum < 2.5) {\r\n        objectColor = textureLod(textures[3], fragUV, mipLevel);\r\n    } else if (fragAtlasNum < 3.5) {\r\n        objectColor = textureLod(textures[4], fragUV, mipLevel);\r\n    } else if (fragAtlasNum < 4.5) {\r\n        objectColor = textureLod(textures[5], fragUV, mipLevel);\r\n    } else if (fragAtlasNum < 5.5) {\r\n        objectColor = textureLod(textures[6], fragUV, mipLevel);\r\n    } else if (fragAtlasNum < 6.5) {\r\n        objectColor = textureLod(textures[7], fragUV, mipLevel);\r\n    } else if (fragAtlasNum < 7.5) {\r\n        objectColor = textureLod(textures[8], fragUV, mipLevel);\r\n    } else if (fragAtlasNum < 8.5) {\r\n        objectColor = textureLod(textures[9], fragUV, mipLevel);\r\n    } else if (fragAtlasNum < 9.5) {\r\n        objectColor = textureLod(textures[10], fragUV, mipLevel);\r\n    } else if (fragAtlasNum < 10.5) {\r\n        objectColor = textureLod(textures[11], fragUV, mipLevel);\r\n    } else if (fragAtlasNum < 11.5) {\r\n        objectColor = textureLod(textures[12], fragUV, mipLevel);\r\n    } else if (fragAtlasNum < 12.5) {\r\n        objectColor = textureLod(textures[13], fragUV, mipLevel);\r\n    } else if (fragAtlasNum < 13.5) {\r\n        objectColor = textureLod(textures[14], fragUV, mipLevel);\r\n    } else if (fragAtlasNum < 14.5) {\r\n        objectColor = textureLod(textures[15], fragUV, mipLevel);\r\n    }\r\n\r\n    outputColor = vec4(min(ambient + diffuse, 1.0) * objectColor.rgb, objectColor.a);\r\n}";
+var objectsFrag = "@group(0) @binding(2) var atlasSampler: sampler;\r\n@group(0) @binding(3) var atlases: texture_2d_array<f32>;\r\n\r\n@fragment\r\nfn main(\r\n    @location(0) fragNormal: vec3<f32>,\r\n    @location(1) fragUV: vec2<f32>,\r\n    @location(2) @interpolate(flat) fragAtlasNum: u32,\r\n) -> @location(0) vec4<f32> {\r\n    var lightDir = normalize(vec3(0.656, 0.3, 0.14));\r\n    var lightColor = vec3(1.);\r\n\r\n    var diff = max(dot(fragNormal, lightDir), 0.0);\r\n    var diffuse = diff * lightColor;\r\n\r\n    var ambient = 0.5;\r\n\r\n    var objectColor = textureSample(atlases, atlasSampler, fragUV, fragAtlasNum);\r\n\r\n    var outputColor = vec4(min(ambient + diffuse, vec3(1)) * objectColor.rgb, objectColor.a);\r\n\r\n    return outputColor;\r\n}";
 
-var skydomeVert = "#version 300 es\r\n\r\nlayout(location = 0) in vec3 inputPosition;\r\nlayout(location = 1) in vec4 inputColor;\r\n\r\nlayout(std140) uniform settings {\r\n    mat4 vp;\r\n};\r\n\r\nout highp vec4 vertColor;\r\n\r\nvoid main(void) {\r\n    vec4 pos = vp * vec4(inputPosition, 1.0);\r\n    pos.z = pos.w;\r\n    // max in depth\r\n    gl_Position = pos;\r\n\r\n    vec3 rWeight = vec3(0.391360133886337, 0.386311918497086, 0.389162868261337);\r\n    vec3 gWeight = vec3(0.398082792758942, 0.398599475622177, 0.403697550296783);\r\n    vec3 bWeight = vec3(0.140491753816605, 0.252542823553085, 0.296034902334213);\r\n    float alpha = 0.833333313465118;\r\n\r\n    vec3 tintedColor = rWeight * inputColor.r + gWeight * inputColor.g + bWeight * inputColor.b;\r\n\r\n    vertColor = vec4(tintedColor * alpha, inputColor.a);\r\n}";
+var skydomeVert = "struct Settings {\r\n    viewProjection: mat4x4<f32>,\r\n    viewProjection_inplace: mat4x4<f32>,\r\n    viewProjection_sun: mat4x4<f32>,\r\n}\r\n\r\nstruct VertexOutput {\r\n    @builtin(position) fragPosition: vec4<f32>,\r\n    @location(0) fragColor: vec4<f32>,\r\n}\r\n\r\n@group(0) @binding(0) var<uniform> settings: Settings;\r\n\r\n@vertex\r\nfn main(\r\n    @location(0) inputPosition: vec3<f32>,\r\n    @location(1) inputColor: vec4<f32>,\r\n) -> VertexOutput {\r\n    var output: VertexOutput;\r\n\r\n    var pos = settings.viewProjection_inplace * vec4(inputPosition, 1.0);\r\n    pos.z = pos.w;\r\n    // max in depth\r\n    output.fragPosition = pos;\r\n\r\n    var rWeight = vec3(0.391360133886337, 0.386311918497086, 0.389162868261337);\r\n    var gWeight = vec3(0.398082792758942, 0.398599475622177, 0.403697550296783);\r\n    var bWeight = vec3(0.140491753816605, 0.252542823553085, 0.296034902334213);\r\n    var alpha = 0.833333313465118;\r\n\r\n    var tintedColor = rWeight * inputColor.r + gWeight * inputColor.g + bWeight * inputColor.b;\r\n\r\n    output.fragColor = vec4(tintedColor * alpha, inputColor.a);\r\n\r\n    return output;\r\n}";
 
-var skydomeFrag = "#version 300 es\r\n\r\nprecision highp float;\r\n\r\nin highp vec4 vertColor;\r\nout vec4 outputColor;\r\n\r\nuniform sampler2D checkerboard;\r\n\r\nvoid main(void) {\r\n\tvec2 UV = gl_FragCoord.xy / 8.0;\r\n\tfloat checkerboardValue = texture(checkerboard, UV).r * 0.03125 - 0.0078125;\r\n\r\n    float colorOffset = 0.0107804285362363;\r\n\tvec3 offsettedColor = colorOffset + vertColor.rgb;\r\n\toutputColor = vec4(offsettedColor + checkerboardValue, vertColor.a);\r\n}";
+var skydomeFrag = "@group(0) @binding(1) var linearSampler: sampler;\r\n@group(0) @binding(2) var checkerboard: texture_2d<f32>;\r\n\r\n@fragment\r\nfn main(\r\n    @builtin(position) gl_FragCoord: vec4<f32>,\r\n    @location(0) fragColor: vec4<f32>\r\n) -> @location(0) vec4<f32> {\r\n\tvar UV = gl_FragCoord.xy / 8.0;\r\n\tvar checkerboardValue = textureSample(checkerboard, linearSampler, UV).r * 0.03125 - 0.0078125;\r\n\r\n    var colorOffset = 0.0107804285362363;\r\n\tvar offsettedColor = colorOffset + fragColor.rgb;\r\n\tvar outputColor = vec4(offsettedColor + checkerboardValue, fragColor.a);\r\n\r\n    return outputColor;\r\n}";
 
-var sunVert = "#version 300 es\r\n\r\nprecision highp float;\r\n\r\nlayout(location = 0) in vec3 inputPosition;\r\nlayout(location = 1) in vec4 inputColor;\r\nlayout(location = 2) in vec2 inputUV;\r\n\r\nlayout(std140) uniform settings {\r\n    mat4 vp;\r\n};\r\n\r\nout highp vec4 vertColor;\r\nout highp vec2 vertUV;\r\n\r\nvoid main(void) {\r\n    vec4 pos = vp * vec4(inputPosition, 1.0);\r\n    pos.z = pos.w;\r\n    // max in depth\r\n    gl_Position = pos;\r\n\r\n    vertUV = inputUV;\r\n\r\n    vec3 rWeight = vec3(0.327245563268662, 0.148633718490601, 0.0669654905796051);\r\n    vec3 gWeight = vec3(0, 0, 0);\r\n    vec3 bWeight = vec3(0, 0, 0);\r\n    float alpha = 0.833333313465118;\r\n\r\n    vec3 tintedColor = rWeight * inputColor.r + gWeight * inputColor.g + bWeight * inputColor.b;\r\n\r\n    vertColor = vec4(tintedColor * alpha, inputColor.a);\r\n}";
+var sunVert = "struct Settings {\r\n    viewProjection: mat4x4<f32>,\r\n    viewProjection_inplace: mat4x4<f32>,\r\n    viewProjection_sun: mat4x4<f32>,\r\n}\r\n\r\nstruct VertexOutput {\r\n    @builtin(position) fragPosition: vec4<f32>,\r\n    @location(0) fragColor: vec4<f32>,\r\n    @location(1) fragUV: vec2<f32>,\r\n}\r\n\r\n@group(0) @binding(0) var<uniform> settings: Settings;\r\n\r\n@vertex\r\nfn main(\r\n    @location(0) inputPosition: vec3<f32>,\r\n    @location(1) inputColor: vec4<f32>,\r\n    @location(2) inputUV: vec2<f32>,\r\n) -> VertexOutput {\r\n    var output: VertexOutput;\r\n\r\n    var pos = settings.viewProjection_sun * vec4(inputPosition, 1.0);\r\n    pos.z = pos.w;\r\n    // max in depth\r\n    output.fragPosition = pos;\r\n\r\n    output.fragUV = inputUV;\r\n\r\n    var rWeight = vec3(0.327245563268662, 0.148633718490601, 0.0669654905796051);\r\n    var gWeight = vec3(0.0, 0.0, 0.0);\r\n    var bWeight = vec3(0.0, 0.0, 0.0);\r\n    var alpha = 0.833333313465118;\r\n\r\n    var tintedColor: vec3<f32> = rWeight * inputColor.r + gWeight * inputColor.g + bWeight * inputColor.b;\r\n\r\n    output.fragColor = vec4(tintedColor * alpha, inputColor.a);\r\n    \r\n    return output;\r\n}";
 
-var sunFrag = "#version 300 es\r\n\r\nprecision highp float;\r\n\r\nin highp vec4 vertColor;\r\nin highp vec2 vertUV;\r\nout vec4 outputColor;\r\n\r\nuniform sampler2D tex;\r\n\r\nvoid main(void) {\r\n    vec4 color = texture(tex, vertUV);\r\n\r\n\toutputColor = vertColor * color;\r\n\r\n    // outputColor = vec4(1.0, 0, 1.0, 1.0);\r\n}";
+var sunFrag = "@group(0) @binding(1) var linearSampler: sampler;\r\n@group(0) @binding(2) var tex: texture_2d<f32>;\r\n\r\n@fragment\r\nfn main(\r\n    @location(0) fragColor: vec4<f32>,\r\n    @location(1) fragUV: vec2<f32>,\r\n) -> @location(0) vec4<f32> {\r\n    var color = textureSample(tex, linearSampler, fragUV);\r\n\r\n\treturn fragColor * color;\r\n}";
 
-var passthroughVert = "#version 300 es\r\n\r\nlayout(location = 0) in vec3 inputPosition;\r\nlayout(location = 1) in vec3 inputNormal;\r\nlayout(location = 2) in vec2 inputUV;\r\n\r\nout highp vec3 fragNormal;\r\nout highp vec2 fragUV;\r\n\r\nvoid main(void) {\r\n    gl_Position = vec4(inputPosition, 1.0);\r\n    fragNormal = inputNormal;\r\n    fragUV = inputUV;\r\n}";
+var passthroughVert = "struct VertexOutput {\r\n    @builtin(position) fragPosition: vec4<f32>,\r\n    @location(0) fragNormal: vec3<f32>,\r\n    @location(1) fragUV: vec2<f32>,\r\n}\r\n\r\n@vertex\r\nfn main(\r\n    @location(0) inputPosition: vec3<f32>,\r\n    @location(1) inputNormal: vec3<f32>,\r\n    @location(2) inputUV: vec2<f32>,\r\n) -> VertexOutput {\r\n    var output: VertexOutput;\r\n\r\n    output.fragPosition = vec4(inputPosition, 1.0);\r\n    output.fragNormal = inputNormal;\r\n    output.fragUV = inputUV;\r\n\r\n    return output;\r\n}";
 
-var passthroughFrag = "#version 300 es\r\n\r\nprecision highp float;\r\n\r\nin highp vec3 fragNormal;\r\nin vec2 fragUV;\r\n\r\nout vec4 outputColor;\r\n\r\nuniform sampler2D tex;\r\n\r\nvoid main(void) {\r\n    outputColor = texture(tex, fragUV);\r\n}";
+var passthroughFrag = "@group(0) @binding(0) var linearSampler: sampler;\r\n@group(0) @binding(1) var tex: texture_2d<f32>;\r\n\r\n@fragment\r\nfn main(\r\n    @location(1) fragUV: vec2<f32>\r\n) -> @location(0) vec4<f32> {\r\n    return textureSample(tex, linearSampler, fragUV);\r\n}";
 
-var blankVert = "#version 300 es\r\n\r\nprecision highp float;\r\n\r\nlayout(location = 0) in vec3 inputPosition;\r\nlayout(location = 1) in vec4 inputColor;\r\nlayout(location = 2) in vec2 inputUV;\r\n\r\nlayout(std140) uniform settings {\r\n    mat4 vp;\r\n};\r\n\r\nvoid main(void) {\r\n    vec4 pos = vp * vec4(inputPosition, 1.0);\r\n    pos.z = pos.w * (1.0 - 10e-7);\r\n    // max in depth\r\n    gl_Position = pos;\r\n}";
+var fogFrag = "@group(0) @binding(0) var linearSampler: sampler;\r\n@group(0) @binding(1) var sceneColors: texture_2d<f32>;\r\n@group(0) @binding(2) var depthBuffer: texture_depth_2d;\r\n\r\n@fragment\r\nfn main(\r\n    @location(0) fragNormal: vec3<f32>,\r\n    @location(1) fragUV: vec2<f32>,\r\n) -> @location(0) vec4<f32> {\r\n\tvar depthOffset = 0.0;\r\n\tvar depthMul = 1.0 / 67870.;\r\n\tvar depthLogMul = 0.4;\r\n\tvar minDepthValue = 0.85;\r\n\r\n\tvar fogBaseColorRGBA = vec4(0.125627145171165, 0.256408363580704, 0.279881805181503, 0.833333313465118);\r\n\tvar maxFogColorRGBA = vec4(0.315368860960007, 0.388478130102158, 0.441431760787964, 0.833333313465118);\r\n\r\n    var depthMin = 15.0;\r\n\tvar depthMax = 353840.0;\r\n\r\n    var sceneColor = textureSample(sceneColors, linearSampler, fragUV).rgb;\r\n\r\n    var depthValue = textureSample(depthBuffer, linearSampler, fragUV);\r\n\tvar stretchedDepthValue = (depthValue * 1.01 - 0.01) * 2.0 - 1.0;\r\n\r\n\tvar someBullshit = depthMin * depthMax * 2.0;\r\n\r\n    var depthDistanceFromZero = depthMax + depthMin;\r\n    var depthLength = depthMax - depthMin;\r\n\r\n    var depthValueInRangeFromOtherSide = depthDistanceFromZero - stretchedDepthValue * depthLength;\r\n\r\n    var depthPower = someBullshit / depthValueInRangeFromOtherSide;\r\n\r\n\tvar depthMulClamped = min(minDepthValue, exp2(depthLogMul * log2(clamp(depthPower * depthMul - depthOffset, 0.0, 1.0))));\r\n\r\n\tvar fogBaseColor = fogBaseColorRGBA.rgb;\r\n\tvar maxFogColor = maxFogColorRGBA.rgb;\r\n\r\n    var fogColorRange = maxFogColor - fogBaseColor;\r\n    var fogColor = fogBaseColor + vec3(depthMulClamped, depthMulClamped, depthMulClamped) * fogColorRange;\r\n\r\n    var sceneAfterFog = (sceneColor + vec3(depthMulClamped, depthMulClamped, depthMulClamped) * (fogColor - sceneColor)) * fogBaseColorRGBA.a;\r\n\r\n    if (depthValue < 1.0 - 10e-8) {\r\n        sceneColor = sceneAfterFog;\r\n    } else {\r\n        sceneColor = sceneColor;\r\n    }\r\n\r\n    return vec4(saturate(sceneColor), 1.0);\r\n}";
 
-var blankFrag = "#version 300 es\r\n\r\nprecision highp float;\r\n\r\nout vec4 outputColor;\r\n\r\nvoid main(void) {\r\n\toutputColor = vec4(0.0, 0.0, 0.0, 1.0);\r\n}";
+var glareVert = "struct Settings {\r\n    viewProjection: mat4x4<f32>,\r\n    viewProjection_inplace: mat4x4<f32>,\r\n    viewProjection_sun: mat4x4<f32>,\r\n    viewProjection_glare: mat4x4<f32>,\r\n}\r\n\r\nstruct VertexOutput {\r\n    @builtin(position) fragPosition: vec4<f32>,\r\n    @location(0) fragColor: vec4<f32>,\r\n    @location(1) fragUV: vec2<f32>,\r\n}\r\n\r\n@group(0) @binding(0) var<uniform> settings: Settings;\r\n\r\n@vertex\r\nfn main(\r\n    @location(0) inputPosition: vec3<f32>,\r\n    @location(1) inputColor: vec4<f32>,\r\n    @location(2) inputUV: vec2<f32>,\r\n) -> VertexOutput {\r\n    var output: VertexOutput;\r\n\r\n    var pos = settings.viewProjection_glare * vec4(inputPosition, 1.0);\r\n    pos.z = pos.w;\r\n    // max in depth\r\n    output.fragPosition = pos;\r\n\r\n    output.fragUV = inputUV;\r\n\r\n    var rWeight = vec3(0.565203845500946, 0.228658571839333, 0.0142048010602593);\r\n    var alpha = 0.833333313465118;\r\n\r\n    var tintedColor = rWeight * inputColor.r;\r\n\r\n    output.fragColor = vec4(tintedColor * alpha, inputColor.a);\r\n\r\n    return output;\r\n}";
 
-var glareVert = "#version 300 es\r\n\r\nlayout(location = 0) in vec3 inputPosition;\r\nlayout(location = 1) in vec4 inputColor;\r\nlayout(location = 2) in vec2 inputUV;\r\n\r\nlayout(std140) uniform settings {\r\n    mat4 vp;\r\n};\r\n\r\nout highp vec4 vertColor;\r\nout highp vec2 vertUV;\r\n\r\nvoid main(void) {\r\n    vec4 pos = vp * vec4(inputPosition, 1.0);\r\n    pos.z = pos.w;\r\n    // max in depth\r\n    gl_Position = pos;\r\n\r\n    vec3 rWeight = vec3(0.565203845500946, 0.228658571839333, 0.0142048010602593);\r\n    float alpha = 0.833333313465118;\r\n\r\n    vec3 tintedColor = rWeight * inputColor.r;\r\n\r\n    vertColor = vec4(tintedColor * alpha, inputColor.a);\r\n\r\n    vertUV = inputUV;\r\n}";
+var glareFrag = "@group(0) @binding(1) var linearSampler: sampler;\r\n@group(0) @binding(2) var glare: texture_2d<f32>;\r\n@group(0) @binding(3) var checkerboard: texture_2d<f32>;\r\n\r\n@fragment\r\nfn main(\r\n    @builtin(position) gl_FragCoord: vec4<f32>,\r\n    @location(0) fragColor: vec4<f32>,\r\n    @location(1) fragUV: vec2<f32>,\r\n) -> @location(0) vec4<f32> {\r\n\tvar UV = gl_FragCoord.xy / 8.0;\r\n\tvar checkerboardValue = textureSample(checkerboard, linearSampler, UV).r * 0.03125 - 0.0078125;\r\n\r\n\tvar colorValue = textureSample(glare, linearSampler, fragUV);\r\n\tvar finalColor = fragColor.rgb * colorValue.rgb;\r\n\r\n\treturn vec4(finalColor + checkerboardValue, colorValue.a * fragColor.a);\r\n}";
 
-var glareFrag = "#version 300 es\r\n\r\nprecision highp float;\r\n\r\nin highp vec4 vertColor;\r\nin highp vec2 vertUV;\r\n\r\nout vec4 outputColor;\r\n\r\nuniform sampler2D glare;\r\nuniform sampler2D checkerboard;\r\n\r\nvoid main(void) {\r\n\tvec2 UV = gl_FragCoord.xy / 8.0;\r\n\tfloat checkerboardValue = texture(checkerboard, UV).r * 0.03125 - 0.0078125;\r\n\r\n\tvec4 colorValue = texture(glare, vertUV);\r\n\tvec3 finalColor = vertColor.rgb * colorValue.rgb;\r\n\r\n\toutputColor = vec4(finalColor + checkerboardValue, colorValue.a * vertColor.a);\r\n}";
+var blankVert = "struct Settings {\r\n    viewProjection: mat4x4<f32>,\r\n    viewProjection_inplace: mat4x4<f32>,\r\n    viewProjection_sun: mat4x4<f32>,\r\n}\r\n\r\n@group(0) @binding(0) var<uniform> settings: Settings;\r\n\r\n@vertex\r\nfn main(@location(0) inputPosition: vec3<f32>) -> @builtin(position) vec4<f32> {\r\n    // max in depth\r\n    var pos = settings.viewProjection_sun * vec4(inputPosition * 0.04, 1.0);\r\n    pos.z = pos.w * (1.0 - 10e-7);\r\n    \r\n    return pos;\r\n}";
 
-var fogFrag = "#version 300 es\r\n\r\nprecision highp float;\r\n\r\nin highp vec3 fragNormal;\r\nin vec2 fragUV;\r\n\r\nout vec4 outputColor;\r\n\r\nuniform sampler2D sceneColors;\r\nuniform sampler2D depthBuffer;\r\n\r\nvoid main(void) {\r\n\tfloat depthOffset = 0.0;\r\n\tfloat depthMul = 1.0 / 67870.;\r\n\tfloat depthLogMul = 0.4;\r\n\tfloat minDepthValue = 0.85;\r\n\r\n\tvec4 fogBaseColorRGBA = vec4(0.125627145171165, 0.256408363580704, 0.279881805181503, 0.833333313465118);\r\n\tvec4 maxFogColorRGBA = vec4(0.315368860960007, 0.388478130102158, 0.441431760787964, 0.833333313465118);\r\n\r\n    float depthMin = 15.0;\r\n\tfloat depthMax = 353840.0;\r\n\r\n    vec3 sceneColor = texture(sceneColors, fragUV).rgb;\r\n\r\n    float depthValue = texture(depthBuffer, fragUV).r;\r\n\tfloat stretchedDepthValue = (depthValue * 1.01 - 0.01) * 2.0 - 1.0;\r\n\r\n\tfloat someBullshit = depthMin * depthMax * 2.0;\r\n\r\n    float depthDistanceFromZero = depthMax + depthMin;\r\n    float depthLength = depthMax - depthMin;\r\n\r\n    float depthValueInRangeFromOtherSide = depthDistanceFromZero - stretchedDepthValue * depthLength;\r\n\r\n    float depthPower = someBullshit / depthValueInRangeFromOtherSide;\r\n\r\n\tfloat depthMulClamped = min(minDepthValue, exp2(depthLogMul * log2(clamp(depthPower * depthMul - depthOffset, 0.0, 1.0))));\r\n\r\n\tvec3 fogBaseColor = fogBaseColorRGBA.rgb;\r\n\tvec3 maxFogColor = maxFogColorRGBA.rgb;\r\n\r\n    vec3 fogColorRange = maxFogColor - fogBaseColor;\r\n    vec3 fogColor = fogBaseColor + vec3(depthMulClamped, depthMulClamped, depthMulClamped) * fogColorRange;\r\n\r\n    vec3 sceneAfterFog = (sceneColor + vec3(depthMulClamped, depthMulClamped, depthMulClamped) * (fogColor - sceneColor)) * fogBaseColorRGBA.a;\r\n\r\n    sceneColor = (depthValue < 1.0 - 10e-8) ? sceneAfterFog : sceneColor;\r\n\r\n    outputColor = vec4(clamp(sceneColor, 0.0, 1.0), 1.0);\r\n}";
-
-var sunFogFrag = "#version 300 es\r\n\r\nprecision highp float;\r\n\r\nin highp vec3 fragNormal;\r\nin vec2 fragUV;\r\n\r\nout vec4 outputColor;\r\n\r\nuniform sampler2D depthBuffer;\r\n\r\nvoid main(void) {\r\n\tvec3 sunFogColor = vec3(0.739284157752991, 0.570270836353302, 0.490357995033264);\r\n    float depthValue = texture(depthBuffer, fragUV).r;\r\n\r\n    outputColor = vec4(sunFogColor * depthValue, 1.0);\r\n}";
+var blankFrag = "@fragment\r\nfn main() -> @location(0) vec4<f32> {\r\n    return vec4(0.0, 0.0, 0.0, 1.0);\r\n}";
 
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-const canvasWebGL = document.createElement("canvas");
+const canvasWebGPU = document.createElement("canvas");
 const canvas2D = document.createElement("canvas");
-const gl = create3DContextWithWrapperThatThrowsOnGLError(canvasWebGL.getContext("webgl2", {
-    antialias: false,
-    alpha: false,
-    powerPreference: "high-performance",
-}));
-const anisotropic = gl.getExtension("EXT_texture_filter_anisotropic");
+const wg = canvasWebGPU.getContext("webgpu");
+let wd;
 const ctx$1 = canvas2D.getContext("2d");
-canvasWebGL.style.position = "fixed";
+async function initWebGPU() {
+    const adapter = await navigator.gpu.requestAdapter();
+    if (!adapter) {
+        return;
+    }
+    wd = await adapter.requestDevice();
+    const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+    wg.configure({
+        device: wd,
+        format: presentationFormat,
+        alphaMode: "opaque",
+    });
+}
+canvasWebGPU.style.position = "fixed";
 document.body.insertBefore(canvas2D, null);
 canvas2D.style.pointerEvents = "none";
 canvas2D.style.position = "fixed";
-document.body.insertBefore(canvasWebGL, null);
-
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
-function compileShader(vertText, fragText, uboMap, unifroms) {
-    const vertexShader = gl.createShader(gl.VERTEX_SHADER);
-    const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
-    if (!vertexShader || !fragmentShader) {
-        throw new Error("Cannot create shaders.");
-    }
-    gl.shaderSource(vertexShader, vertText);
-    gl.shaderSource(fragmentShader, fragText);
-    gl.compileShader(vertexShader);
-    if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
-        throw new Error(`ERROR compiling vertex shader for ${name}! ${gl.getShaderInfoLog(vertexShader)}`);
-    }
-    gl.compileShader(fragmentShader);
-    if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
-        throw new Error(`ERROR compiling fragment shader for ${name}! ${gl.getShaderInfoLog(fragmentShader)}`);
-    }
-    const program = gl.createProgram();
-    if (!program) {
-        throw new Error("Cannot create program");
-    }
-    gl.attachShader(program, vertexShader);
-    gl.attachShader(program, fragmentShader);
-    gl.linkProgram(program);
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        throw new Error(`ERROR linking program! ${gl.getProgramInfoLog(program)}`);
-    }
-    gl.validateProgram(program);
-    if (!gl.getProgramParameter(program, gl.VALIDATE_STATUS)) {
-        throw new Error(`ERROR validating program! ${gl.getProgramInfoLog(program)}`);
-    }
-    for (const [name, index] of Object.entries(uboMap)) {
-        const uboIndex = gl.getUniformBlockIndex(program, name);
-        gl.uniformBlockBinding(program, uboIndex, index);
-    }
-    for (const uniform of unifroms) {
-        const uniformLocation = gl.getUniformLocation(program, uniform);
-        if (uniformLocation) {
-            program[uniform] = uniformLocation;
-        }
-    }
-    return program;
-}
-function glEnumToString(gl, value) {
-    // Optimization for the most common enum:
-    if (value === gl.NO_ERROR) {
-        return "NO_ERROR";
-    }
-    for (const p in gl) {
-        if (gl[p] === value) {
-            return p;
-        }
-    }
-    return "0x" + value.toString(16);
-}
-function createGLErrorWrapper(context, fname) {
-    return (...args) => {
-        const ctx = context;
-        const f = ctx[fname];
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        const rv = f.apply(ctx, args);
-        const err = context.getError();
-        if (err !== context.NO_ERROR)
-            throw "GL error " + glEnumToString(ctx, err) + " in " + fname;
-        return rv;
-    };
-}
-function create3DContextWithWrapperThatThrowsOnGLError(gl) {
-    const context = gl;
-    const wrap = {
-        getError: function () {
-            return context.getError();
-        },
-    };
-    for (const i in context) {
-        if (typeof context[i] === "function") {
-            wrap[i] = createGLErrorWrapper(context, i);
-        }
-        else {
-            wrap[i] = context[i];
-        }
-    }
-    return wrap;
-}
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-;
-window.saveTexture = (texture) => {
-    const w = 2048;
-    const h = 2048;
-    const canvas = document.createElement("canvas");
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext("2d");
-    const data = ctx.createImageData(w, h);
-    // make a framebuffer
-    const fb = gl.createFramebuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
-    gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, data.data);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    ctx.putImageData(data, 0, 0);
-    const url = canvas.toDataURL("image/png");
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "tex.png";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-};
+document.body.insertBefore(canvasWebGPU, null);
 
 const COLORED_VERTEX_SIZE = 3 + 4;
 // pos, normal, uv, pos in per object data
@@ -8030,6 +7926,7 @@ class Renderable {
 }
 
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+const MAX_ATLASES_COUNT = 16;
 const ATLAS_SIZE = 2048;
 class AtlasRow {
     y;
@@ -8042,32 +7939,12 @@ class AtlasRow {
 }
 class Atlas {
     num;
-    hasChanges = false;
-    texture;
+    atlasTexture;
     nextY = 0;
     rows = [];
-    constructor(num) {
+    constructor(num, atlasTexture) {
         this.num = num;
-        this.texture = gl.createTexture();
-        gl.activeTexture(gl.TEXTURE1 + this.num);
-        gl.bindTexture(gl.TEXTURE_2D, this.texture);
-        const debugData = new Uint8Array(ATLAS_SIZE * ATLAS_SIZE * 4);
-        for (let i = 0; i < debugData.length; i += 4) {
-            debugData[i + 0] = 255;
-            debugData[i + 1] = 0;
-            debugData[i + 2] = 255;
-            debugData[i + 3] = 255;
-        }
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, ATLAS_SIZE, ATLAS_SIZE, 0, gl.RGBA, gl.UNSIGNED_BYTE, debugData);
-        if (anisotropic) {
-            const max = gl.getParameter(anisotropic.MAX_TEXTURE_MAX_ANISOTROPY_EXT);
-            gl.texParameterf(gl.TEXTURE_2D, anisotropic.TEXTURE_MAX_ANISOTROPY_EXT, max);
-        }
-        gl.generateMipmap(gl.TEXTURE_2D);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+        this.atlasTexture = atlasTexture;
     }
     findRowForTexture(texture) {
         let smallestRowToFit = undefined;
@@ -8100,22 +7977,22 @@ class Atlas {
         if (!row) {
             return undefined;
         }
-        gl.activeTexture(gl.TEXTURE1 + this.num);
-        gl.bindTexture(gl.TEXTURE_2D, this.texture);
         const x = row.nextX;
         const y = row.y;
-        gl.texSubImage2D(gl.TEXTURE_2D, 0, x, y, texture.width, texture.height, gl.RGBA, gl.UNSIGNED_BYTE, texture.pixels);
-        this.hasChanges = true;
+        // TODO generate mipmaps somehow
+        wd.queue.writeTexture({
+            texture: this.atlasTexture,
+            origin: [x, y, this.num],
+        }, texture.pixels, {
+            offset: 0,
+            bytesPerRow: texture.width * 4,
+            rowsPerImage: texture.height,
+        }, {
+            width: texture.width,
+            height: texture.height,
+        });
         row.nextX += texture.width;
         return [x / ATLAS_SIZE, y / ATLAS_SIZE];
-    }
-    update() {
-        if (this.hasChanges) {
-            this.hasChanges = false;
-            gl.activeTexture(gl.TEXTURE1 + this.num);
-            gl.bindTexture(gl.TEXTURE_2D, this.texture);
-            gl.generateMipmap(gl.TEXTURE_2D);
-        }
     }
 }
 
@@ -8161,11 +8038,13 @@ class ColoredTexturedMesh extends RefCountingResource {
     }
 }
 class Texture extends RefCountingResource {
+    id;
     pixels;
     width;
     height;
-    constructor(pixels, width, height) {
+    constructor(id, pixels, width, height) {
         super();
+        this.id = id;
         this.pixels = pixels;
         this.width = width;
         this.height = height;
@@ -8358,7 +8237,7 @@ function loadColoredMesh(data) {
     const header = new Uint32Array(data, 0, 2);
     const [vertexCount, indexCount] = header;
     const indices = new Uint16Array(data, 2 * 4, indexCount);
-    const verticesAndColors = new Uint8Array(data, 2 * 4 + indexCount * 2, COLORED_MESH_SIZE * vertexCount * 4);
+    const verticesAndColors = new Float32Array(data, 2 * 4 + indexCount * 2, COLORED_MESH_SIZE * vertexCount);
     const model = new ColoredMesh(verticesAndColors, indices);
     return model;
 }
@@ -8367,7 +8246,7 @@ function loadColoredTexturedMesh(data) {
     const header = new Uint32Array(data, 0, 2);
     const [vertexCount, indexCount] = header;
     const indices = new Uint16Array(data, 2 * 4, indexCount);
-    const verticesAndColors = new Uint8Array(data, 2 * 4 + indexCount * 2, COLORED_TEXTURED_MESH_SIZE * vertexCount * 4);
+    const verticesAndColors = new Float32Array(data, 2 * 4 + indexCount * 2, COLORED_TEXTURED_MESH_SIZE * vertexCount);
     const model = new ColoredTexturedMesh(verticesAndColors, indices);
     return model;
 }
@@ -8427,7 +8306,7 @@ async function loadTexture(url) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(image, 0, 0);
             const data = ctx.getImageData(0, 0, image.width, image.height);
-            resolve(new Texture(data.data, data.width, data.height));
+            resolve(new Texture(url, data.data, data.width, data.height));
         };
         image.src = url;
     });
@@ -8499,76 +8378,113 @@ class ResourceManager {
 }
 
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
-const POSITION_INDEX = 0;
-const COLOR_INDEX = 1;
-const NORMAL_INDEX = 1;
-const UV_INDEX = 2;
-const PARAMS_INDEX = 3;
-class ColoredMeshBuffer {
-    mesh;
-    vao;
+const POSITION_LOC = 0;
+const COLOR_LOC = 1;
+const NORMAL_LOC = 1;
+const UV_LOC = 2;
+const PARAMS_LOC = 3;
+class GenericMesh {
     vertices;
     indices;
-    constructor(mesh) {
-        this.mesh = mesh;
-        this.vao = gl.createVertexArray();
-        this.vertices = gl.createBuffer();
-        this.indices = gl.createBuffer();
-        gl.bindVertexArray(this.vao);
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertices);
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indices);
-        gl.bufferData(gl.ARRAY_BUFFER, mesh.vertices, gl.STATIC_DRAW);
-        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.indices, gl.STATIC_DRAW);
-        gl.enableVertexAttribArray(POSITION_INDEX);
-        gl.enableVertexAttribArray(COLOR_INDEX);
-        gl.vertexAttribPointer(POSITION_INDEX, 3, gl.FLOAT, false, COLORED_MESH_SIZE * 4, 0);
-        gl.vertexAttribPointer(COLOR_INDEX, 4, gl.UNSIGNED_BYTE, true, COLORED_MESH_SIZE * 4, 3 * 4);
+    indexCount;
+    constructor(verticesData, indicesData) {
+        this.vertices = wd.createBuffer({
+            size: verticesData.byteLength,
+            usage: GPUBufferUsage.VERTEX,
+            mappedAtCreation: true,
+        });
+        this.indices = wd.createBuffer({
+            size: indicesData.byteLength,
+            usage: GPUBufferUsage.INDEX,
+            mappedAtCreation: true,
+        });
+        new Float32Array(this.vertices.getMappedRange()).set(verticesData);
+        this.vertices.unmap();
+        new Uint16Array(this.indices.getMappedRange()).set(indicesData);
+        this.indices.unmap();
+        this.indexCount = indicesData.length;
     }
 }
-class MeshBuffer {
+class ColoredMeshBuffer extends GenericMesh {
     mesh;
-    vao;
-    vertices;
-    indices;
+    static buffers = [
+        {
+            arrayStride: COLORED_MESH_SIZE * 4,
+            attributes: [
+                {
+                    shaderLocation: POSITION_LOC,
+                    offset: 0,
+                    format: "float32x3",
+                },
+                {
+                    shaderLocation: COLOR_LOC,
+                    offset: 3 * 4,
+                    format: "unorm8x4",
+                },
+            ],
+        },
+    ];
     constructor(mesh) {
+        super(mesh.vertices, mesh.indices);
         this.mesh = mesh;
-        this.vao = gl.createVertexArray();
-        this.vertices = gl.createBuffer();
-        this.indices = gl.createBuffer();
-        gl.bindVertexArray(this.vao);
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertices);
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indices);
-        gl.bufferData(gl.ARRAY_BUFFER, mesh.vertices, gl.STATIC_DRAW);
-        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.indices, gl.STATIC_DRAW);
-        gl.enableVertexAttribArray(POSITION_INDEX);
-        gl.enableVertexAttribArray(NORMAL_INDEX);
-        gl.enableVertexAttribArray(UV_INDEX);
-        gl.vertexAttribPointer(POSITION_INDEX, 3, gl.FLOAT, false, MESH_VERTEX_SIZE * 4, 0);
-        gl.vertexAttribPointer(NORMAL_INDEX, 3, gl.FLOAT, false, COLORED_MESH_SIZE * 4, 3 * 4);
-        gl.vertexAttribPointer(UV_INDEX, 2, gl.FLOAT, false, MESH_VERTEX_SIZE * 4, 6 * 4);
     }
 }
-class ColoredTexturedMeshBuffer {
+class MeshBuffer extends GenericMesh {
     mesh;
-    vao;
-    vertices;
-    indices;
+    static buffers = [
+        {
+            arrayStride: MESH_VERTEX_SIZE * 4,
+            attributes: [
+                {
+                    shaderLocation: POSITION_LOC,
+                    offset: 0,
+                    format: "float32x3",
+                },
+                {
+                    shaderLocation: NORMAL_LOC,
+                    offset: 3 * 4,
+                    format: "float32x3",
+                },
+                {
+                    shaderLocation: UV_LOC,
+                    offset: 6 * 4,
+                    format: "float32x2",
+                },
+            ],
+        },
+    ];
     constructor(mesh) {
+        super(mesh.vertices, mesh.indices);
         this.mesh = mesh;
-        this.vao = gl.createVertexArray();
-        this.vertices = gl.createBuffer();
-        this.indices = gl.createBuffer();
-        gl.bindVertexArray(this.vao);
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertices);
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indices);
-        gl.bufferData(gl.ARRAY_BUFFER, mesh.vertices, gl.STATIC_DRAW);
-        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.indices, gl.STATIC_DRAW);
-        gl.enableVertexAttribArray(POSITION_INDEX);
-        gl.enableVertexAttribArray(COLOR_INDEX);
-        gl.enableVertexAttribArray(UV_INDEX);
-        gl.vertexAttribPointer(POSITION_INDEX, 3, gl.FLOAT, false, COLORED_TEXTURED_MESH_SIZE * 4, 0);
-        gl.vertexAttribPointer(UV_INDEX, 2, gl.FLOAT, false, COLORED_TEXTURED_MESH_SIZE * 4, 3 * 4);
-        gl.vertexAttribPointer(COLOR_INDEX, 4, gl.UNSIGNED_BYTE, true, COLORED_TEXTURED_MESH_SIZE * 4, (3 + 2) * 4);
+    }
+}
+class ColoredTexturedMeshBuffer extends GenericMesh {
+    mesh;
+    static buffers = [
+        {
+            arrayStride: COLORED_TEXTURED_MESH_SIZE * 4,
+            attributes: [
+                {
+                    shaderLocation: POSITION_LOC,
+                    offset: 0,
+                    format: "float32x3",
+                },
+                {
+                    shaderLocation: UV_LOC,
+                    offset: 3 * 4,
+                    format: "float32x2",
+                },
+                {
+                    shaderLocation: COLOR_LOC,
+                    offset: (3 + 2) * 4,
+                    format: "unorm8x4",
+                },
+            ],
+        },
+    ];
+    constructor(mesh) {
+        super(mesh.vertices, mesh.indices);
+        this.mesh = mesh;
     }
 }
 // in vertex count
@@ -8577,53 +8493,46 @@ const INDEX_BUFFER_SIZE = VERTEX_BUFFER_SIZE; // in index count
 const ramVertexBuffer = new Float32Array(VERTEX_BUFFER_SIZE * CHUNK_MESH_VERTEX_SIZE);
 const ramIndexBuffer = new Uint32Array(INDEX_BUFFER_SIZE);
 class BufferChunk {
-    vao;
+    static buffers = [
+        {
+            arrayStride: CHUNK_MESH_VERTEX_SIZE * 4,
+            attributes: [
+                {
+                    shaderLocation: POSITION_LOC,
+                    offset: 0,
+                    format: "float32x3",
+                },
+                {
+                    shaderLocation: NORMAL_LOC,
+                    offset: 3 * 4,
+                    format: "float32x3",
+                },
+                {
+                    shaderLocation: UV_LOC,
+                    offset: (3 + 3) * 4,
+                    format: "float32x2",
+                },
+                {
+                    shaderLocation: PARAMS_LOC,
+                    offset: (3 + 3 + 2) * 4,
+                    format: "float32",
+                },
+            ],
+        },
+    ];
     vertices;
     indices;
     vertexPos = 0;
     indexPos = 0;
-    atlases = [];
     constructor() {
-        this.vao = gl.createVertexArray();
-        this.vertices = gl.createBuffer();
-        this.indices = gl.createBuffer();
-        gl.bindVertexArray(this.vao);
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertices);
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indices);
-        gl.bufferData(gl.ARRAY_BUFFER, VERTEX_BUFFER_SIZE * CHUNK_MESH_VERTEX_SIZE * 4, gl.STREAM_DRAW);
-        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, INDEX_BUFFER_SIZE * 4, gl.STREAM_DRAW);
-        gl.enableVertexAttribArray(POSITION_INDEX);
-        gl.enableVertexAttribArray(NORMAL_INDEX);
-        gl.enableVertexAttribArray(UV_INDEX);
-        gl.enableVertexAttribArray(PARAMS_INDEX);
-        const attributes = [POSITION_INDEX, NORMAL_INDEX, UV_INDEX, PARAMS_INDEX];
-        const sizes = [3, 3, 2, 1];
-        let offset = 0;
-        for (let i = 0; i < attributes.length; i++) {
-            const index = attributes[i];
-            const size = sizes[i];
-            gl.vertexAttribPointer(index, size, gl.FLOAT, false, CHUNK_MESH_VERTEX_SIZE * 4, offset);
-            offset += size * 4;
-        }
-    }
-    allocateNewAtlas() {
-        const atlas = new Atlas(this.atlases.length);
-        this.atlases.push(atlas);
-        return atlas;
-    }
-    allocateAndCopyTextureToAtlas(texture) {
-        for (const atlas of this.atlases) {
-            const res = atlas.tryAddTexture(texture);
-            if (res) {
-                return [...res, atlas.num];
-            }
-        }
-        const atlas = this.allocateNewAtlas();
-        const res = atlas.tryAddTexture(texture);
-        if (!res) {
-            throw new Error("Can't put texture in empty Atlas.");
-        }
-        return [...res, atlas.num];
+        this.vertices = wd.createBuffer({
+            size: VERTEX_BUFFER_SIZE * CHUNK_MESH_VERTEX_SIZE * 4,
+            usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+        });
+        this.indices = wd.createBuffer({
+            size: INDEX_BUFFER_SIZE * 4,
+            usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
+        });
     }
     tryAddRenderable(renderable) {
         const { mesh, texture } = renderable;
@@ -8635,10 +8544,7 @@ class BufferChunk {
         }
         const uScale = texture.width / ATLAS_SIZE;
         const vScale = texture.height / ATLAS_SIZE;
-        const [uOffset, vOffset, atlasNum] = this.allocateAndCopyTextureToAtlas(texture);
-        gl.bindVertexArray(this.vao);
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertices);
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indices);
+        const [uOffset, vOffset, atlasNum] = Render.getAtlasSlotForTexture(texture);
         // we can add this object to this chunk
         const perObjectDataIndex = Render.allocatePerObjectInfoIndex();
         // setup vertices
@@ -8659,13 +8565,13 @@ class BufferChunk {
                 perObjectDataIndex;
         }
         // pass vertices to GPU
-        gl.bufferSubData(gl.ARRAY_BUFFER, this.vertexPos * CHUNK_MESH_VERTEX_SIZE * 4, ramVertexBuffer, 0, vertexCount * CHUNK_MESH_VERTEX_SIZE);
+        wd.queue.writeBuffer(this.vertices, this.vertexPos * CHUNK_MESH_VERTEX_SIZE * 4, ramVertexBuffer, 0, vertexCount * CHUNK_MESH_VERTEX_SIZE);
         // setup indices
         for (let indexIndex = 0; indexIndex < indexCount; indexIndex++) {
             ramIndexBuffer[indexIndex] = this.vertexPos + mesh.indices[indexIndex];
         }
         // pass indices to GPU
-        gl.bufferSubData(gl.ELEMENT_ARRAY_BUFFER, this.indexPos * 4, ramIndexBuffer, 0, indexCount);
+        wd.queue.writeBuffer(this.indices, this.indexPos * 4, ramIndexBuffer, 0, indexCount);
         // seek the chunk
         this.vertexPos += vertexCount;
         this.indexPos += indexCount;
@@ -8675,54 +8581,75 @@ class BufferChunk {
         return true;
     }
 }
-const SETTINGS_INDEX = 0;
-const SETTINGS_SIZE = 4 * 4;
-const PER_OBJECT_DATA_TEXTURE_SIZE = 1024;
-// compressed quat + scale + position + flags + specific data(4)
-const PER_OBJECT_DATA_ENTRY_SIZE = 3 + 1 + 3 + 1 + 4; // 12 floats, which is 3 pixels
-const PER_OBJECT_DATA_ENTRY_SIZE_IN_PIXELS = Math.ceil(PER_OBJECT_DATA_ENTRY_SIZE / 4);
-const ramPerObjectDataBuffer = new Float32Array(PER_OBJECT_DATA_ENTRY_SIZE_IN_PIXELS * 4);
+const MAT4_FLOAT_SIZE = 4 * 4;
+const MAT4_BYTE_SIZE = MAT4_FLOAT_SIZE * 4;
+const SETTINGS_SIZE = 4 * MAT4_FLOAT_SIZE;
+const PER_OBJECT_DATA_BUFFER_SIZE = 1024 * 1024;
+// compressed quat + scale + position + flags
+const PER_OBJECT_DATA_ENTRY_SIZE = 3 + 1 + 3 + 1;
+const ramPerObjectDataBuffer = new Float32Array(PER_OBJECT_DATA_ENTRY_SIZE);
 function createTexture(tex) {
-    const texture = gl.createTexture();
-    gl.activeTexture(gl.TEXTURE1);
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, tex.width, tex.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, tex.pixels);
-    if (anisotropic) {
-        const max = gl.getParameter(anisotropic.MAX_TEXTURE_MAX_ANISOTROPY_EXT);
-        gl.texParameterf(gl.TEXTURE_2D, anisotropic.TEXTURE_MAX_ANISOTROPY_EXT, max);
-    }
-    gl.generateMipmap(gl.TEXTURE_2D);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+    const texture = wd.createTexture({
+        size: [tex.width, tex.height, 1],
+        format: "rgba8unorm",
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+    });
+    wd.queue.writeTexture({ texture }, tex.pixels, { bytesPerRow: tex.width * 4, rowsPerImage: tex.height }, { width: tex.width, height: tex.height });
     return texture;
 }
 function createFloatTexture(width, height) {
-    const texture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, gl.FLOAT, null);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    const texture = wd.createTexture({
+        size: [width, height, 1],
+        format: "rgb10a2unorm",
+        usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
+    });
     return texture;
 }
+var BlankQueryState;
+(function (BlankQueryState) {
+    BlankQueryState[BlankQueryState["None"] = 0] = "None";
+    BlankQueryState[BlankQueryState["Requested"] = 1] = "Requested";
+    BlankQueryState[BlankQueryState["Pending"] = 2] = "Pending";
+})(BlankQueryState || (BlankQueryState = {}));
+const QUERY_BUFFER_SIZE = 8;
 class Render {
     static viewMatrix;
+    static viewMatrix_inplace;
     static projectionMatrix;
     static vp;
+    static vp_inplace;
+    static vp_sun;
+    static vp_glare;
     static settingsBuffer;
-    static texturesBuffer = new Int32Array([
-        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
-    ]);
+    static settings;
+    static objectsPipeline;
+    static objectsBind;
+    static skydomePipeline;
+    static skydomeBind;
+    static sunPipeline;
+    static sunBind;
+    static blankPipeline;
+    static blankBind;
+    static fogPipeline;
+    static fogBind;
+    static screenPipeline;
+    static screenBind;
+    static glarePipeline;
+    static glareBind;
+    // atlases
+    static atlasesTexture;
+    static atlases;
+    static atlasCache;
     // render targets
-    static mainPass;
-    static fogPass;
-    static glarePass;
-    static depthBuffer;
     static mainPassTexture;
+    static mainPassTextureView;
+    static depthBuffer;
+    static depthBufferView;
+    static mainPassDesc;
     static fogPassTexture;
+    static fogPassTextureView;
+    static fogPassDesc;
+    static screenPassDesc;
     static skydome;
     static checkerboard;
     static sun;
@@ -8733,44 +8660,37 @@ class Render {
     static fullscreenPlain;
     static perObjectData;
     // TODO keep list of free entries
-    static nextPerObjectX = 0;
-    static nextPerObjectY = 0;
-    static settings;
-    static objectsShader;
-    static skydomeShader;
-    static sunShader;
-    static fogShader;
-    static glareShader;
-    static passthroughShader;
-    static blankShader;
+    static nextPerObjectIndex = 0;
+    // shaders
     static blankQuery;
-    static blankQueryUsed = false;
+    static blankQueryResult;
+    static blankQueryResultAsync;
+    static blankQueryState = BlankQueryState.None;
     static blankSamplesCount = 0;
-    static sunFogShader;
     static glareScale = 0;
     static scene = [];
-    static init() {
-        gl.getExtension("OES_texture_float");
-        gl.getExtension("OES_texture_float_linear");
-        gl.getExtension("EXT_color_buffer_float");
+    static async init() {
         Render.projectionMatrix = create$5();
         Render.viewMatrix = create$5();
-        Render.vp = create$5();
+        Render.viewMatrix_inplace = create$5();
         Render.handleResize();
+        Render.initAtlases();
         Render.setupFrameBuffers();
         Render.createPerObjectData();
-        Render.createUBOs();
         Render.compilerShaders();
-        Render.setupWebGL();
+        await Render.loadResources();
+        Render.createUBOs();
+    }
+    static async loadResources() {
+        Render.skydome = new ColoredMeshBuffer(await loadColoredMeshFromURL("/build/skydome.cml"));
+        Render.checkerboard = createTexture(await loadTexture("/build/checkerboard.png"));
+        Render.sun = new ColoredTexturedMeshBuffer(await loadColoredTexturedMeshFromURL("/build/sun.ctml"));
+        Render.sunTexture = createTexture(await loadTexture("/build/sun.png"));
+        Render.blank = new ColoredTexturedMeshBuffer(await loadColoredTexturedMeshFromURL("/build/blank.ctml"));
+        Render.glare = new ColoredTexturedMeshBuffer(await loadColoredTexturedMeshFromURL("/build/glare.ctml"));
+        Render.glareTexture = createTexture(await loadTexture("/build/glare.png"));
     }
     static async setupTest() {
-        this.skydome = new ColoredMeshBuffer(await loadColoredMeshFromURL("/build/skydome.cml"));
-        this.checkerboard = createTexture(await loadTexture("/build/checkerboard.png"));
-        this.sun = new ColoredTexturedMeshBuffer(await loadColoredTexturedMeshFromURL("/build/sun.ctml"));
-        this.sunTexture = createTexture(await loadTexture("/build/sun.png"));
-        this.blank = new ColoredTexturedMeshBuffer(await loadColoredTexturedMeshFromURL("/build/blank.ctml"));
-        this.glare = new ColoredTexturedMeshBuffer(await loadColoredTexturedMeshFromURL("/build/glare.ctml"));
-        this.glareTexture = createTexture(await loadTexture("/build/glare.png"));
         const coordinates = [
             //
             8, -101515.1328125, -38915.29296875, -1551.75769042969,
@@ -8812,69 +8732,150 @@ class Render {
         for (let i = 0; i < 18; i++) {
             const mountains = new Renderable(await ResourceManager.requestMesh(`mountains_${i}`), await ResourceManager.requestTexture("mountains.png"));
             Render.setTransform(mountains, new Float32Array([
+                // rotation
                 0,
                 0,
                 0,
                 1,
                 // scale
                 coordinates[i * 4 + 0],
-                // xyz
+                // position
                 coordinates[i * 4 + 1],
                 coordinates[i * 4 + 2],
                 coordinates[i * 4 + 3],
             ]));
             Render.addRenderable(mountains);
         }
-        this.fullscreenPlain = new MeshBuffer(await ResourceManager.requestMesh("fullscreen_plane"));
+        Render.fullscreenPlain = new MeshBuffer(await ResourceManager.requestMesh("fullscreen_plane"));
+    }
+    static initAtlases() {
+        Render.atlasesTexture = wd.createTexture({
+            size: [ATLAS_SIZE, ATLAS_SIZE, MAX_ATLASES_COUNT],
+            dimension: "2d",
+            format: "rgba8unorm",
+            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+        });
+        Render.atlases = [];
+        Render.atlasCache = new Map();
+    }
+    static allocateNewAtlas() {
+        const atlasNum = Render.atlases.length;
+        const atlas = new Atlas(atlasNum, Render.atlasesTexture);
+        Render.atlases.push(atlas);
+        return atlas;
+    }
+    static getAtlasSlotForTexture(texture) {
+        const slot = Render.atlasCache.get(texture.id);
+        if (slot) {
+            return slot;
+        }
+        const newSlot = Render.allocateAndCopyTextureToAtlas(texture);
+        Render.atlasCache.set(texture.id, newSlot);
+        return newSlot;
+    }
+    static allocateAndCopyTextureToAtlas(texture) {
+        for (const atlas of Render.atlases) {
+            const res = atlas.tryAddTexture(texture);
+            if (res) {
+                return [...res, atlas.num];
+            }
+        }
+        const atlas = Render.allocateNewAtlas();
+        const res = atlas.tryAddTexture(texture);
+        if (!res) {
+            throw new Error("Can't put texture in empty Atlas.");
+        }
+        return [...res, atlas.num];
     }
     static setupFrameBuffers() {
-        this.mainPass = gl.createFramebuffer();
-        gl.bindFramebuffer(gl.FRAMEBUFFER, this.mainPass);
-        this.mainPassTexture = createFloatTexture(gl.canvas.width, gl.canvas.height);
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.mainPassTexture, 0);
-        // create a depth texture
-        this.depthBuffer = gl.createTexture();
-        gl.bindTexture(gl.TEXTURE_2D, this.depthBuffer);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT24, gl.canvas.width, gl.canvas.height, 0, gl.DEPTH_COMPONENT, gl.UNSIGNED_INT, null);
-        // set the filtering so we don't need mips
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        // attach the depth texture to the framebuffer
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, this.depthBuffer, 0);
-        this.fogPass = gl.createFramebuffer();
-        gl.bindFramebuffer(gl.FRAMEBUFFER, this.fogPass);
-        this.fogPassTexture = createFloatTexture(gl.canvas.width, gl.canvas.height);
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.fogPassTexture, 0);
-        this.glarePass = gl.createFramebuffer();
-        gl.bindFramebuffer(gl.FRAMEBUFFER, this.glarePass);
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.fogPassTexture, 0);
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, this.depthBuffer, 0);
+        Render.mainPassTexture = createFloatTexture(canvasWebGPU.width, canvasWebGPU.height);
+        Render.mainPassTextureView = Render.mainPassTexture.createView();
+        Render.depthBuffer = wd.createTexture({
+            size: [canvasWebGPU.width, canvasWebGPU.height],
+            format: "depth24plus",
+            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
+        });
+        Render.depthBufferView = Render.depthBuffer.createView();
+        Render.blankQuery = wd.createQuerySet({
+            type: "occlusion",
+            count: 1,
+        });
+        Render.blankQueryResult = wd.createBuffer({
+            size: QUERY_BUFFER_SIZE,
+            usage: GPUBufferUsage.QUERY_RESOLVE | GPUBufferUsage.COPY_SRC,
+        });
+        Render.blankQueryResultAsync = wd.createBuffer({
+            size: QUERY_BUFFER_SIZE,
+            usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+        });
+        Render.mainPassDesc = {
+            colorAttachments: [
+                {
+                    view: Render.mainPassTextureView,
+                    clearValue: {
+                        r: 0.284532,
+                        g: 0.365823,
+                        b: 0.423077,
+                        a: 1.0,
+                    },
+                    loadOp: "clear",
+                    storeOp: "store",
+                },
+            ],
+            depthStencilAttachment: {
+                view: Render.depthBufferView,
+                depthClearValue: 1.0,
+                depthLoadOp: "clear",
+                depthStoreOp: "store",
+            },
+            occlusionQuerySet: Render.blankQuery,
+        };
+        // fog pass
+        Render.fogPassTexture = createFloatTexture(canvasWebGPU.width, canvasWebGPU.height);
+        Render.fogPassTextureView = Render.fogPassTexture.createView();
+        Render.fogPassDesc = {
+            colorAttachments: [
+                {
+                    view: Render.fogPassTextureView,
+                    clearValue: {
+                        r: 0,
+                        g: 0,
+                        b: 0,
+                        a: 1,
+                    },
+                    loadOp: "clear",
+                    storeOp: "store",
+                },
+            ],
+        };
+        Render.screenPassDesc = {
+            colorAttachments: [
+                {
+                    view: null,
+                    clearValue: {
+                        r: 0,
+                        g: 0,
+                        b: 0,
+                        a: 1,
+                    },
+                    loadOp: "clear",
+                    storeOp: "store",
+                },
+            ],
+        };
     }
     static createPerObjectData() {
-        const pixels = new Float32Array(PER_OBJECT_DATA_TEXTURE_SIZE * PER_OBJECT_DATA_TEXTURE_SIZE * 4);
-        for (let i = 0; i < pixels.length; i++) {
-            pixels[i] = 0.1;
-        }
-        this.perObjectData = gl.createTexture();
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, this.perObjectData);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, PER_OBJECT_DATA_TEXTURE_SIZE, PER_OBJECT_DATA_TEXTURE_SIZE, 0, gl.RGBA, gl.FLOAT, pixels);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        Render.perObjectData = wd.createBuffer({
+            size: PER_OBJECT_DATA_BUFFER_SIZE * PER_OBJECT_DATA_ENTRY_SIZE * 4,
+            usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+        });
     }
     static allocatePerObjectInfoIndex() {
-        if (this.nextPerObjectX + PER_OBJECT_DATA_ENTRY_SIZE_IN_PIXELS >
-            PER_OBJECT_DATA_TEXTURE_SIZE) {
-            this.nextPerObjectX = 0;
-            this.nextPerObjectY++;
-        }
-        if (this.nextPerObjectY > PER_OBJECT_DATA_TEXTURE_SIZE) {
+        if (Render.nextPerObjectIndex + 1 > PER_OBJECT_DATA_BUFFER_SIZE) {
             throw new Error("Out of space in PerObjectData.");
         }
-        const result = this.nextPerObjectY * PER_OBJECT_DATA_TEXTURE_SIZE + this.nextPerObjectX;
-        this.nextPerObjectX += PER_OBJECT_DATA_ENTRY_SIZE_IN_PIXELS;
+        const result = Render.nextPerObjectIndex;
+        Render.nextPerObjectIndex += 1;
         return result;
     }
     static updatePerObjectData(renderable) {
@@ -8895,58 +8896,392 @@ class Render {
             renderable.position[1],
             renderable.position[2],
             renderable.atlasNum,
-            // pixel 2
-            0,
-            0,
-            0,
-            0,
         ]);
-        const x = renderable.perObjectDataIndex % PER_OBJECT_DATA_TEXTURE_SIZE;
-        const y = Math.trunc(renderable.perObjectDataIndex / PER_OBJECT_DATA_TEXTURE_SIZE);
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, Render.perObjectData);
-        gl.texSubImage2D(gl.TEXTURE_2D, 0, x, y, PER_OBJECT_DATA_ENTRY_SIZE_IN_PIXELS, 1, gl.RGBA, gl.FLOAT, ramPerObjectDataBuffer);
+        const i = renderable.perObjectDataIndex;
+        const byteOffset = i * PER_OBJECT_DATA_ENTRY_SIZE * 4;
+        wd.queue.writeBuffer(Render.perObjectData, byteOffset, ramPerObjectDataBuffer, 0, PER_OBJECT_DATA_ENTRY_SIZE);
     }
     static createUBOs() {
+        const linearSampler = wd.createSampler({
+            magFilter: "linear",
+            minFilter: "linear",
+            mipmapFilter: "linear",
+            maxAnisotropy: 16,
+            addressModeU: "repeat",
+            addressModeV: "repeat",
+        });
         Render.settingsBuffer = new Float32Array(SETTINGS_SIZE);
-        Render.vp = new Float32Array(Render.settingsBuffer.buffer, 0, 4 * 4);
+        Render.vp = new Float32Array(Render.settingsBuffer.buffer, 0 * MAT4_BYTE_SIZE, MAT4_FLOAT_SIZE);
+        Render.vp_inplace = new Float32Array(Render.settingsBuffer.buffer, 1 * MAT4_BYTE_SIZE, MAT4_FLOAT_SIZE);
+        Render.vp_sun = new Float32Array(Render.settingsBuffer.buffer, 2 * MAT4_BYTE_SIZE, MAT4_FLOAT_SIZE);
+        Render.vp_glare = new Float32Array(Render.settingsBuffer.buffer, 3 * MAT4_BYTE_SIZE, MAT4_FLOAT_SIZE);
         // settings for objects
-        Render.settings = gl.createBuffer();
-        gl.bindBuffer(gl.UNIFORM_BUFFER, Render.settings);
-        gl.bufferData(gl.UNIFORM_BUFFER, SETTINGS_SIZE * 4, gl.DYNAMIC_DRAW);
-        gl.bindBufferBase(gl.UNIFORM_BUFFER, SETTINGS_INDEX, Render.settings);
+        Render.settings = wd.createBuffer({
+            size: SETTINGS_SIZE * 4,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        });
+        Render.objectsBind = wd.createBindGroup({
+            layout: Render.objectsPipeline.getBindGroupLayout(0),
+            entries: [
+                {
+                    binding: 0,
+                    resource: {
+                        buffer: Render.settings,
+                    },
+                },
+                {
+                    binding: 1,
+                    resource: {
+                        buffer: Render.perObjectData,
+                    },
+                },
+                {
+                    binding: 2,
+                    resource: linearSampler,
+                },
+                {
+                    binding: 3,
+                    resource: Render.atlasesTexture.createView(),
+                },
+            ],
+        });
+        const checkerboardView = Render.checkerboard.createView();
+        Render.skydomeBind = wd.createBindGroup({
+            layout: Render.skydomePipeline.getBindGroupLayout(0),
+            entries: [
+                {
+                    binding: 0,
+                    resource: {
+                        buffer: Render.settings,
+                    },
+                },
+                {
+                    binding: 1,
+                    resource: linearSampler,
+                },
+                {
+                    binding: 2,
+                    resource: checkerboardView,
+                },
+            ],
+        });
+        Render.sunBind = wd.createBindGroup({
+            layout: Render.sunPipeline.getBindGroupLayout(0),
+            entries: [
+                {
+                    binding: 0,
+                    resource: {
+                        buffer: Render.settings,
+                    },
+                },
+                {
+                    binding: 1,
+                    resource: linearSampler,
+                },
+                {
+                    binding: 2,
+                    resource: Render.sunTexture.createView(),
+                },
+            ],
+        });
+        Render.blankBind = wd.createBindGroup({
+            layout: Render.blankPipeline.getBindGroupLayout(0),
+            entries: [
+                {
+                    binding: 0,
+                    resource: {
+                        buffer: Render.settings,
+                    },
+                },
+            ],
+        });
+        Render.fogBind = wd.createBindGroup({
+            layout: Render.fogPipeline.getBindGroupLayout(0),
+            entries: [
+                {
+                    binding: 0,
+                    resource: linearSampler,
+                },
+                {
+                    binding: 1,
+                    resource: Render.mainPassTextureView,
+                },
+                {
+                    binding: 2,
+                    resource: Render.depthBufferView,
+                },
+            ],
+        });
+        Render.screenBind = wd.createBindGroup({
+            layout: Render.screenPipeline.getBindGroupLayout(0),
+            entries: [
+                {
+                    binding: 0,
+                    resource: linearSampler,
+                },
+                {
+                    binding: 1,
+                    resource: Render.fogPassTextureView,
+                },
+            ],
+        });
+        Render.glareBind = wd.createBindGroup({
+            layout: Render.glarePipeline.getBindGroupLayout(0),
+            entries: [
+                {
+                    binding: 0,
+                    resource: {
+                        buffer: Render.settings,
+                    },
+                },
+                {
+                    binding: 1,
+                    resource: linearSampler,
+                },
+                {
+                    binding: 2,
+                    resource: Render.glareTexture.createView(),
+                },
+                {
+                    binding: 3,
+                    resource: checkerboardView,
+                },
+            ],
+        });
     }
     static compilerShaders() {
-        Render.objectsShader = compileShader(objectsVert, objectsFrag, {
-            settings: SETTINGS_INDEX,
-        }, ["textures"]);
-        Render.skydomeShader = compileShader(skydomeVert, skydomeFrag, {
-            settings: SETTINGS_INDEX,
-        }, ["checkerboard"]);
-        Render.sunShader = compileShader(sunVert, sunFrag, {
-            settings: SETTINGS_INDEX,
-        }, ["tex"]);
-        Render.fogShader = compileShader(passthroughVert, fogFrag, {}, [
-            "sceneColors",
-            "depthBuffer",
-        ]);
-        Render.sunFogShader = compileShader(passthroughVert, sunFogFrag, {}, ["depthBuffer"]);
-        Render.passthroughShader = compileShader(passthroughVert, passthroughFrag, {}, ["tex"]);
-        Render.glareShader = compileShader(glareVert, glareFrag, {
-            settings: SETTINGS_INDEX,
-        }, ["glare", "checkerboard"]);
-        Render.blankShader = compileShader(blankVert, blankFrag, {
-            settings: SETTINGS_INDEX,
-        }, ["tex"]);
-        this.blankQuery = gl.createQuery();
-    }
-    static setupWebGL() {
-        gl.clearColor(0.284532, 0.365823, 0.423077, 1);
-        gl.disable(gl.CULL_FACE);
-        gl.enable(gl.DEPTH_TEST);
-        gl.enable(gl.BLEND);
-        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-        gl.hint(gl.FRAGMENT_SHADER_DERIVATIVE_HINT, gl.FASTEST);
+        const screenFormat = navigator.gpu.getPreferredCanvasFormat();
+        const primitive = {
+            topology: "triangle-list",
+            cullMode: "back",
+        };
+        // objects
+        const objectsShaderVert = wd.createShaderModule({ code: objectsVert });
+        const objectsShaderFrag = wd.createShaderModule({ code: objectsFrag });
+        Render.objectsPipeline = wd.createRenderPipeline({
+            layout: "auto",
+            vertex: {
+                module: objectsShaderVert,
+                entryPoint: "main",
+                buffers: BufferChunk.buffers,
+            },
+            fragment: {
+                module: objectsShaderFrag,
+                entryPoint: "main",
+                targets: [
+                    {
+                        format: "rgb10a2unorm",
+                        writeMask: GPUColorWrite.RED | GPUColorWrite.GREEN | GPUColorWrite.BLUE,
+                    },
+                ],
+            },
+            depthStencil: {
+                depthWriteEnabled: true,
+                depthCompare: "less",
+                format: "depth24plus",
+            },
+            primitive,
+        });
+        const skydomeShaderVert = wd.createShaderModule({ code: skydomeVert });
+        const skydomeShaderFrag = wd.createShaderModule({ code: skydomeFrag });
+        Render.skydomePipeline = wd.createRenderPipeline({
+            layout: "auto",
+            vertex: {
+                module: skydomeShaderVert,
+                entryPoint: "main",
+                buffers: ColoredMeshBuffer.buffers,
+            },
+            fragment: {
+                module: skydomeShaderFrag,
+                entryPoint: "main",
+                targets: [
+                    {
+                        format: "rgb10a2unorm",
+                        blend: {
+                            color: {
+                                operation: "add",
+                                srcFactor: "src-alpha",
+                                dstFactor: "one-minus-src-alpha",
+                            },
+                            alpha: {
+                                operation: "add",
+                                srcFactor: "src-alpha",
+                                dstFactor: "one-minus-src-alpha",
+                            },
+                        },
+                        writeMask: GPUColorWrite.RED | GPUColorWrite.GREEN | GPUColorWrite.BLUE,
+                    },
+                ],
+            },
+            depthStencil: {
+                depthWriteEnabled: true,
+                depthCompare: "less-equal",
+                format: "depth24plus",
+            },
+            primitive,
+        });
+        const sunShaderVert = wd.createShaderModule({ code: sunVert });
+        const sunShaderFrag = wd.createShaderModule({ code: sunFrag });
+        Render.sunPipeline = wd.createRenderPipeline({
+            layout: "auto",
+            vertex: {
+                module: sunShaderVert,
+                entryPoint: "main",
+                buffers: ColoredTexturedMeshBuffer.buffers,
+            },
+            fragment: {
+                module: sunShaderFrag,
+                entryPoint: "main",
+                targets: [
+                    {
+                        format: "rgb10a2unorm",
+                        blend: {
+                            color: {
+                                operation: "add",
+                                srcFactor: "src-alpha",
+                                dstFactor: "one",
+                            },
+                            alpha: {
+                                operation: "add",
+                                srcFactor: "src-alpha",
+                                dstFactor: "one",
+                            },
+                        },
+                        writeMask: GPUColorWrite.RED | GPUColorWrite.GREEN | GPUColorWrite.BLUE,
+                    },
+                ],
+            },
+            depthStencil: {
+                depthWriteEnabled: true,
+                depthCompare: "less-equal",
+                format: "depth24plus",
+            },
+            primitive,
+        });
+        const blankShaderVert = wd.createShaderModule({ code: blankVert });
+        const blankShaderFrag = wd.createShaderModule({ code: blankFrag });
+        Render.blankPipeline = wd.createRenderPipeline({
+            layout: "auto",
+            vertex: {
+                module: blankShaderVert,
+                entryPoint: "main",
+                buffers: ColoredTexturedMeshBuffer.buffers,
+            },
+            fragment: {
+                module: blankShaderFrag,
+                entryPoint: "main",
+                targets: [
+                    {
+                        format: "rgb10a2unorm",
+                        blend: {
+                            color: {
+                                operation: "add",
+                                srcFactor: "src-alpha",
+                                dstFactor: "one",
+                            },
+                            alpha: {
+                                operation: "add",
+                                srcFactor: "src-alpha",
+                                dstFactor: "one",
+                            },
+                        },
+                        writeMask: GPUColorWrite.RED | GPUColorWrite.GREEN | GPUColorWrite.BLUE,
+                    },
+                ],
+            },
+            depthStencil: {
+                depthWriteEnabled: false,
+                depthCompare: "less-equal",
+                format: "depth24plus",
+            },
+            primitive,
+        });
+        const passthroughShaderVert = wd.createShaderModule({ code: passthroughVert });
+        const passthroughShaderFrag = wd.createShaderModule({ code: passthroughFrag });
+        const fogShaderFrag = wd.createShaderModule({ code: fogFrag });
+        Render.fogPipeline = wd.createRenderPipeline({
+            layout: "auto",
+            vertex: {
+                module: passthroughShaderVert,
+                entryPoint: "main",
+                buffers: MeshBuffer.buffers,
+            },
+            fragment: {
+                module: fogShaderFrag,
+                entryPoint: "main",
+                targets: [
+                    {
+                        format: "rgb10a2unorm",
+                        blend: {
+                            color: {
+                                operation: "add",
+                                srcFactor: "one",
+                                dstFactor: "zero",
+                            },
+                            alpha: {
+                                operation: "add",
+                                srcFactor: "one",
+                                dstFactor: "zero",
+                            },
+                        },
+                        writeMask: GPUColorWrite.ALL,
+                    },
+                ],
+            },
+            primitive,
+        });
+        const glareShaderVert = wd.createShaderModule({ code: glareVert });
+        const glareShaderFrag = wd.createShaderModule({ code: glareFrag });
+        Render.glarePipeline = wd.createRenderPipeline({
+            layout: "auto",
+            vertex: {
+                module: glareShaderVert,
+                entryPoint: "main",
+                buffers: ColoredTexturedMeshBuffer.buffers,
+            },
+            fragment: {
+                module: glareShaderFrag,
+                entryPoint: "main",
+                targets: [
+                    {
+                        format: "rgb10a2unorm",
+                        blend: {
+                            color: {
+                                operation: "add",
+                                srcFactor: "src-alpha",
+                                dstFactor: "one",
+                            },
+                            alpha: {
+                                operation: "add",
+                                srcFactor: "src-alpha",
+                                dstFactor: "one",
+                            },
+                        },
+                        writeMask: GPUColorWrite.ALL,
+                    },
+                ],
+            },
+            primitive,
+        });
+        Render.screenPipeline = wd.createRenderPipeline({
+            layout: "auto",
+            vertex: {
+                module: passthroughShaderVert,
+                entryPoint: "main",
+                buffers: MeshBuffer.buffers,
+            },
+            fragment: {
+                module: passthroughShaderFrag,
+                entryPoint: "main",
+                targets: [
+                    {
+                        format: screenFormat,
+                        writeMask: GPUColorWrite.ALL,
+                    },
+                ],
+            },
+            primitive,
+        });
     }
     // entities
     static allocateNewBufferChunk() {
@@ -8977,42 +9312,44 @@ class Render {
     }
     // camera
     static UP = fromValues$4(0, 0, 1);
-    static cameraPos = create$4();
-    static cameraDirection = create$4();
     static setCamera(pos, lookAt) {
         lookAt$1(Render.viewMatrix, pos, lookAt, Render.UP);
+        copy$5(Render.viewMatrix_inplace, Render.viewMatrix);
+        // clear translation
+        Render.viewMatrix_inplace[12] = 0;
+        Render.viewMatrix_inplace[13] = 0;
+        Render.viewMatrix_inplace[14] = 0;
+        Render.viewMatrix_inplace[15] = 0;
         identity$2(Render.vp);
         multiply$5(Render.vp, Render.vp, Render.projectionMatrix);
+        copy$5(Render.vp_inplace, Render.vp);
         multiply$5(Render.vp, Render.vp, Render.viewMatrix);
-        copy$4(this.cameraPos, pos);
-        sub$2(this.cameraDirection, lookAt, this.cameraPos);
-        normalize$4(this.cameraDirection, this.cameraDirection);
+        multiply$5(Render.vp_inplace, Render.vp_inplace, Render.viewMatrix_inplace);
     }
     // utils
     static handleResize() {
         const dpr = devicePixelRatio;
         const newWidth = Math.floor(document.body.clientWidth * dpr);
         const newHeight = Math.floor(document.body.clientHeight * dpr);
-        if (gl.canvas.width === newWidth && gl.canvas.height === newHeight) {
+        if (canvasWebGPU.width === newWidth && canvasWebGPU.height === newHeight) {
             return;
         }
         ctx$1.canvas.style.width = newWidth / dpr + "px";
         ctx$1.canvas.style.height = newHeight / dpr + "px";
         ctx$1.canvas.width = newWidth;
         ctx$1.canvas.height = newHeight;
-        const glCanvas = gl.canvas;
+        const glCanvas = canvasWebGPU;
         glCanvas.style.width = newWidth / dpr + "px";
         glCanvas.style.height = newHeight / dpr + "px";
-        gl.canvas.width = newWidth;
-        gl.canvas.height = newHeight;
+        canvasWebGPU.width = newWidth;
+        canvasWebGPU.height = newHeight;
         ctx$1.resetTransform();
         ctx$1.scale(dpr, dpr);
-        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-        perspective(Render.projectionMatrix, (65 * Math.PI) / 180, gl.canvas.width / gl.canvas.height, 15, 353840);
+        perspectiveZO(Render.projectionMatrix, (65 * Math.PI) / 180, canvasWebGPU.width / canvasWebGPU.height, 15, 353840);
     }
     static applyCameraRotationToModelMatrix(model) {
         const q = create$2();
-        getRotation(q, this.viewMatrix);
+        getRotation(q, Render.viewMatrix);
         const objQ = create$2();
         getRotation(objQ, model);
         mul$2(q, q, objQ);
@@ -9026,195 +9363,126 @@ class Render {
         rotateX$3(model, model, Math.PI);
         rotateZ$3(model, model, -Math.PI / 2);
     }
-    static render(dt) {
-        gl.depthFunc(gl.LESS);
-        gl.enable(gl.CULL_FACE);
-        gl.cullFace(gl.BACK);
-        gl.bindFramebuffer(gl.FRAMEBUFFER, this.mainPass);
-        gl.colorMask(true, true, true, false);
-        Render.handleResize();
-        const { objectsShader, skydomeShader } = Render;
-        gl.disable(gl.BLEND);
-        gl.enable(gl.DEPTH_TEST);
-        identity$2(Render.vp);
-        multiply$5(Render.vp, Render.vp, Render.projectionMatrix);
-        multiply$5(Render.vp, Render.vp, Render.viewMatrix);
-        gl.bindBuffer(gl.UNIFORM_BUFFER, Render.settings);
-        gl.bufferSubData(gl.UNIFORM_BUFFER, 0, Render.settingsBuffer);
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-        gl.useProgram(objectsShader);
-        gl.uniform1iv(objectsShader.textures, Render.texturesBuffer);
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, Render.perObjectData);
-        for (const chunk of Render.scene) {
-            gl.bindVertexArray(chunk.vao);
-            for (let i = 0; i < chunk.atlases.length; i++) {
-                const atlas = chunk.atlases[i];
-                atlas.update();
-                gl.activeTexture(gl.TEXTURE1 + i);
-                gl.bindTexture(gl.TEXTURE_2D, atlas.texture);
-            }
-            gl.drawElements(gl.TRIANGLES, chunk.indexPos, gl.UNSIGNED_INT, 0);
-        }
-        // shader for sky
-        gl.depthFunc(gl.LEQUAL);
-        gl.enable(gl.BLEND);
-        const viewMatrixWithoutTranslation = clone$5(Render.viewMatrix);
-        viewMatrixWithoutTranslation[12] = 0;
-        viewMatrixWithoutTranslation[13] = 0;
-        viewMatrixWithoutTranslation[14] = 0;
-        viewMatrixWithoutTranslation[15] = 0;
-        // sky dome
-        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-        identity$2(Render.vp);
-        multiply$5(Render.vp, Render.vp, Render.projectionMatrix);
-        multiply$5(Render.vp, Render.vp, viewMatrixWithoutTranslation);
-        gl.bindBuffer(gl.UNIFORM_BUFFER, Render.settings);
-        gl.bufferSubData(gl.UNIFORM_BUFFER, 0, Render.settingsBuffer);
-        gl.useProgram(skydomeShader);
-        gl.uniform1i(skydomeShader.checkerboard, 0);
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, Render.checkerboard);
-        gl.bindVertexArray(this.skydome.vao);
-        gl.drawElements(gl.TRIANGLES, this.skydome.mesh.indices.length, gl.UNSIGNED_SHORT, 0);
-        // sun
-        const sunYAngle = Math.PI * 1.55;
-        const sunPosition = fromValues$4(20.6666469573975, 77.4717559814453, 341.035034179687);
-        gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-        identity$2(Render.vp);
-        multiply$5(Render.vp, Render.vp, Render.projectionMatrix);
-        multiply$5(Render.vp, Render.vp, viewMatrixWithoutTranslation);
-        const sunModel = create$5();
-        rotateY$3(sunModel, sunModel, sunYAngle);
-        translate$1(sunModel, sunModel, sunPosition);
-        Render.applyCameraRotationToModelMatrix(sunModel);
-        Render.rotateModelUpfront(sunModel);
-        multiply$5(Render.vp, Render.vp, sunModel);
-        gl.bindBuffer(gl.UNIFORM_BUFFER, Render.settings);
-        gl.bufferSubData(gl.UNIFORM_BUFFER, 0, Render.settingsBuffer);
-        gl.useProgram(this.sunShader);
-        gl.uniform1i(this.sunShader.tex, 0);
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, Render.sunTexture);
-        gl.bindVertexArray(this.sun.vao);
-        gl.drawElements(gl.TRIANGLES, this.sun.mesh.indices.length, gl.UNSIGNED_SHORT, 0);
-        // fog
-        gl.disable(gl.DEPTH_TEST);
-        gl.bindFramebuffer(gl.FRAMEBUFFER, this.fogPass);
-        gl.colorMask(true, true, true, true);
-        gl.blendFunc(gl.ONE, gl.ZERO);
-        gl.useProgram(this.fogShader);
-        gl.uniform1i(this.fogShader.sceneColors, 0);
-        gl.uniform1i(this.fogShader.depthBuffer, 1);
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, Render.mainPassTexture);
-        gl.activeTexture(gl.TEXTURE1);
-        gl.bindTexture(gl.TEXTURE_2D, Render.depthBuffer);
-        gl.bindVertexArray(this.fullscreenPlain.vao);
-        gl.drawElements(gl.TRIANGLES, this.fullscreenPlain.mesh.indices.length, gl.UNSIGNED_SHORT, 0);
-        // glare
-        const haveResult = this.blankQueryUsed && gl.getQueryParameter(this.blankQuery, gl.QUERY_RESULT_AVAILABLE);
-        if (haveResult) {
-            const result = gl.getQueryParameter(this.blankQuery, gl.QUERY_RESULT);
-            this.blankSamplesCount = result ? 30000 : 0;
-        }
+    static calcGlareScale(dt) {
         const MIN_SAMPLES = 750;
         const MAX_SAMPLES = 1500;
         const MIN_GLARE_SCALE = 0.25;
         const MAX_GLARE_SCALE = 1;
         let glareTargetScale;
-        if (this.blankSamplesCount > MIN_SAMPLES) {
-            const t = Math.min((this.blankSamplesCount - MIN_SAMPLES) / (MAX_SAMPLES - MIN_SAMPLES), 1);
+        if (Render.blankSamplesCount > MIN_SAMPLES) {
+            const t = Math.min((Render.blankSamplesCount - MIN_SAMPLES) / (MAX_SAMPLES - MIN_SAMPLES), 1);
             glareTargetScale = MIN_GLARE_SCALE + t * (MAX_GLARE_SCALE - MIN_GLARE_SCALE);
         }
         else {
             glareTargetScale = 0;
         }
         const GLARE_SPEED = 1 / 0.075;
-        if (glareTargetScale - this.glareScale) {
-            const direction = Math.sign(glareTargetScale - this.glareScale);
-            this.glareScale += GLARE_SPEED * direction * dt;
-            this.glareScale =
-                Math.min(glareTargetScale * direction, this.glareScale * direction) * direction;
+        if (glareTargetScale - Render.glareScale) {
+            const direction = Math.sign(glareTargetScale - Render.glareScale);
+            Render.glareScale += GLARE_SPEED * direction * dt;
+            Render.glareScale =
+                Math.min(glareTargetScale * direction, Render.glareScale * direction) * direction;
         }
-        // this.glareScale = MAX_GLARE_SCALE
-        if (this.glareScale > 10e-6) {
-            gl.disable(gl.DEPTH_TEST);
-            gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-            identity$2(Render.vp);
-            multiply$5(Render.vp, Render.vp, Render.projectionMatrix);
-            multiply$5(Render.vp, Render.vp, viewMatrixWithoutTranslation);
-            const glareModel = create$5();
-            rotateY$3(glareModel, glareModel, sunYAngle);
-            translate$1(glareModel, glareModel, sunPosition);
-            Render.applyCameraRotationToModelMatrix(glareModel);
-            Render.rotateModelUpfront(glareModel);
-            scale$5(glareModel, glareModel, fromValues$4(this.glareScale, this.glareScale, this.glareScale));
-            multiply$5(Render.vp, Render.vp, glareModel);
-            gl.bindBuffer(gl.UNIFORM_BUFFER, Render.settings);
-            gl.bufferSubData(gl.UNIFORM_BUFFER, 0, Render.settingsBuffer);
-            gl.useProgram(this.glareShader);
-            gl.uniform1i(this.glareShader.glare, 0);
-            gl.uniform1i(this.glareShader.checkerboard, 1);
-            gl.activeTexture(gl.TEXTURE0);
-            gl.bindTexture(gl.TEXTURE_2D, Render.glareTexture);
-            gl.activeTexture(gl.TEXTURE1);
-            gl.bindTexture(gl.TEXTURE_2D, Render.checkerboard);
-            gl.bindVertexArray(this.glare.vao);
-            gl.drawElements(gl.TRIANGLES, this.glare.mesh.indices.length, gl.UNSIGNED_SHORT, 0);
+    }
+    static calcSunTransform() {
+        const sunYAngle = Math.PI * 1.55;
+        const sunPosition = fromValues$4(20.6666469573975, 77.4717559814453, 341.035034179687);
+        const sunModel = create$5();
+        rotateY$3(sunModel, sunModel, sunYAngle);
+        translate$1(sunModel, sunModel, sunPosition);
+        Render.applyCameraRotationToModelMatrix(sunModel);
+        Render.rotateModelUpfront(sunModel);
+        const glareScale = Render.glareScale;
+        const glareScale3 = fromValues$4(glareScale, glareScale, glareScale);
+        const glareModel = clone$5(sunModel);
+        scale$5(glareModel, glareModel, glareScale3);
+        copy$5(Render.vp_sun, Render.vp_inplace);
+        multiply$5(Render.vp_sun, Render.vp_sun, sunModel);
+        copy$5(Render.vp_glare, Render.vp_inplace);
+        multiply$5(Render.vp_glare, Render.vp_glare, glareModel);
+    }
+    static render(dt) {
+        Render.handleResize();
+        // objects color pass
+        Render.calcGlareScale(dt);
+        Render.calcSunTransform();
+        wd.queue.writeBuffer(Render.settings, 0, Render.settingsBuffer);
+        const commandEncoder = wd.createCommandEncoder();
+        {
+            const passEncoder = commandEncoder.beginRenderPass(Render.mainPassDesc);
+            passEncoder.setBindGroup(0, Render.objectsBind);
+            passEncoder.setPipeline(Render.objectsPipeline);
+            for (const chunk of Render.scene) {
+                passEncoder.setVertexBuffer(0, chunk.vertices);
+                passEncoder.setIndexBuffer(chunk.indices, "uint32");
+                passEncoder.drawIndexed(chunk.indexPos);
+            }
+            passEncoder.setBindGroup(0, Render.skydomeBind);
+            passEncoder.setPipeline(Render.skydomePipeline);
+            passEncoder.setVertexBuffer(0, Render.skydome.vertices);
+            passEncoder.setIndexBuffer(Render.skydome.indices, "uint16");
+            passEncoder.drawIndexed(Render.skydome.indexCount);
+            passEncoder.setBindGroup(0, Render.sunBind);
+            passEncoder.setPipeline(Render.sunPipeline);
+            passEncoder.setVertexBuffer(0, Render.sun.vertices);
+            passEncoder.setIndexBuffer(Render.sun.indices, "uint16");
+            passEncoder.drawIndexed(Render.sun.indexCount);
+            if (Render.blankQueryState === BlankQueryState.None) {
+                passEncoder.setBindGroup(0, Render.blankBind);
+                passEncoder.setPipeline(Render.blankPipeline);
+                passEncoder.setVertexBuffer(0, Render.blank.vertices);
+                passEncoder.setIndexBuffer(Render.blank.indices, "uint16");
+                passEncoder.beginOcclusionQuery(0);
+                passEncoder.drawIndexed(Render.blank.indexCount);
+                passEncoder.endOcclusionQuery();
+                Render.blankQueryState = BlankQueryState.Requested;
+            }
+            passEncoder.end();
         }
-        // blank to measure size of glare
-        if (!this.blankQueryUsed || haveResult) {
-            gl.depthFunc(gl.LEQUAL);
-            gl.enable(gl.DEPTH_TEST);
-            gl.bindFramebuffer(gl.FRAMEBUFFER, this.glarePass);
-            gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-            identity$2(Render.vp);
-            multiply$5(Render.vp, Render.vp, Render.projectionMatrix);
-            multiply$5(Render.vp, Render.vp, viewMatrixWithoutTranslation);
-            const blankModel = create$5();
-            rotateY$3(blankModel, blankModel, sunYAngle);
-            translate$1(blankModel, blankModel, sunPosition);
-            Render.applyCameraRotationToModelMatrix(blankModel);
-            Render.rotateModelUpfront(blankModel);
-            scale$5(blankModel, blankModel, fromValues$4(0.04, 0.04, 0.04));
-            multiply$5(Render.vp, Render.vp, blankModel);
-            gl.bindBuffer(gl.UNIFORM_BUFFER, Render.settings);
-            gl.bufferSubData(gl.UNIFORM_BUFFER, 0, Render.settingsBuffer);
-            gl.useProgram(this.blankShader);
-            gl.activeTexture(gl.TEXTURE0);
-            gl.bindTexture(gl.TEXTURE_2D, null);
-            gl.activeTexture(gl.TEXTURE1);
-            gl.bindTexture(gl.TEXTURE_2D, null);
-            gl.bindVertexArray(this.blank.vao);
-            gl.beginQuery(gl.ANY_SAMPLES_PASSED, this.blankQuery);
-            gl.drawElements(gl.TRIANGLES, this.blank.mesh.indices.length, gl.UNSIGNED_SHORT, 0);
-            gl.endQuery(gl.ANY_SAMPLES_PASSED);
-            Render.blankQueryUsed = true;
+        if (Render.blankQueryState === BlankQueryState.Requested) {
+            commandEncoder.resolveQuerySet(Render.blankQuery, 0, 1, Render.blankQueryResult, 0);
+            commandEncoder.copyBufferToBuffer(Render.blankQueryResult, 0, Render.blankQueryResultAsync, 0, QUERY_BUFFER_SIZE);
         }
-        // sun fog
-        gl.disable(gl.DEPTH_TEST);
-        gl.bindFramebuffer(gl.FRAMEBUFFER, this.fogPass);
-        gl.colorMask(true, true, true, true);
-        gl.blendFunc(gl.ONE, gl.ONE);
-        gl.useProgram(this.sunFogShader);
-        gl.uniform1i(this.sunFogShader.depthBuffer, 0);
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, Render.depthBuffer);
-        gl.bindVertexArray(this.fullscreenPlain.vao);
-        gl.drawElements(gl.TRIANGLES, this.fullscreenPlain.mesh.indices.length, gl.UNSIGNED_SHORT, 0);
-        // render to canvas
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        gl.disable(gl.DEPTH_TEST);
-        gl.disable(gl.BLEND);
-        gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-        gl.colorMask(true, true, true, true);
-        gl.useProgram(this.passthroughShader);
-        gl.uniform1i(this.passthroughShader.tex, 0);
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, Render.fogPassTexture);
-        gl.bindVertexArray(this.fullscreenPlain.vao);
-        gl.drawElements(gl.TRIANGLES, this.fullscreenPlain.mesh.indices.length, gl.UNSIGNED_SHORT, 0);
+        {
+            const passEncoder = commandEncoder.beginRenderPass(Render.fogPassDesc);
+            passEncoder.setBindGroup(0, Render.fogBind);
+            passEncoder.setPipeline(Render.fogPipeline);
+            passEncoder.setVertexBuffer(0, Render.fullscreenPlain.vertices);
+            passEncoder.setIndexBuffer(Render.fullscreenPlain.indices, "uint16");
+            passEncoder.drawIndexed(Render.fullscreenPlain.indexCount);
+            if (Render.glareScale > 10e-6) {
+                passEncoder.setBindGroup(0, Render.glareBind);
+                passEncoder.setPipeline(Render.glarePipeline);
+                passEncoder.setVertexBuffer(0, Render.glare.vertices);
+                passEncoder.setIndexBuffer(Render.glare.indices, "uint16");
+                passEncoder.drawIndexed(Render.glare.indexCount);
+            }
+            passEncoder.end();
+        }
+        // @ts-expect-error here we need to render to frame that is currently assign to next frame
+        // we need Render because WebGPU may use frame buffering to smooth out FPS
+        // so each frame may have different texture assigned
+        Render.screenPassDesc.colorAttachments[0].view = wg.getCurrentTexture().createView();
+        {
+            const passEncoder = commandEncoder.beginRenderPass(Render.screenPassDesc);
+            passEncoder.setBindGroup(0, Render.screenBind);
+            passEncoder.setPipeline(Render.screenPipeline);
+            passEncoder.setVertexBuffer(0, Render.fullscreenPlain.vertices);
+            passEncoder.setIndexBuffer(Render.fullscreenPlain.indices, "uint16");
+            passEncoder.drawIndexed(Render.fullscreenPlain.indexCount);
+            passEncoder.end();
+        }
+        wd.queue.submit([commandEncoder.finish()]);
+        if (Render.blankQueryState === BlankQueryState.Requested) {
+            Render.blankQueryState = BlankQueryState.Pending;
+            Render.blankQueryResultAsync.mapAsync(GPUMapMode.READ).then(function () {
+                const data = new Uint32Array(Render.blankQueryResultAsync.getMappedRange(0, QUERY_BUFFER_SIZE));
+                const result = data[0] !== 0 || data[1] !== 0;
+                Render.blankSamplesCount = result ? 30000 : 0;
+                Render.blankQueryResultAsync.unmap();
+                Render.blankQueryState = BlankQueryState.None;
+            });
+        }
     }
     static finalize() {
         //
@@ -9582,15 +9850,15 @@ class InputManager {
         //
     }
     static attachEvents() {
-        gl.canvas.addEventListener("click", InputManager.clickHandler);
-        gl.canvas.addEventListener("mousemove", InputManager.mouseHandler, { passive: true });
-        gl.canvas.addEventListener("mouseup", InputManager.mouseHandler, { passive: true });
-        gl.canvas.addEventListener("mousedown", InputManager.mouseHandler, { passive: true });
+        canvasWebGPU.addEventListener("click", InputManager.clickHandler);
+        canvasWebGPU.addEventListener("mousemove", InputManager.mouseHandler, { passive: true });
+        canvasWebGPU.addEventListener("mouseup", InputManager.mouseHandler, { passive: true });
+        canvasWebGPU.addEventListener("mousedown", InputManager.mouseHandler, { passive: true });
         window.addEventListener("keyup", InputManager.keyHandler);
         window.addEventListener("keydown", InputManager.keyHandler);
     }
     static clickHandler() {
-        gl.canvas.requestPointerLock();
+        canvasWebGPU.requestPointerLock();
     }
     static mouseHandler(e) {
         const button = CODE_TO_BUTTON[e.button];
@@ -9602,7 +9870,7 @@ class InputManager {
         const y = e.clientY * devicePixelRatio;
         const dx = e.movementX * devicePixelRatio;
         const dy = e.movementY * devicePixelRatio;
-        const isCaptured = document.pointerLockElement === gl.canvas;
+        const isCaptured = document.pointerLockElement === canvasWebGPU;
         const id = {
             mousedown: InputMessageId.MOUSE_DOWN,
             mousemove: InputMessageId.MOUSE_MOVE,
@@ -9631,9 +9899,10 @@ class InputManager {
 class Services {
     static async init() {
         await loadEngine();
+        await initWebGPU();
         Queues.init();
         ResourceManager.init();
-        Render.init();
+        await Render.init();
         InputManager.init();
         GameLoop.init(Services.process);
         Engine._init();

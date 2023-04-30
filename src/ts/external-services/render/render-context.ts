@@ -1,24 +1,31 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 
-import { create3DContextWithWrapperThatThrowsOnGLError } from "./render-utils"
+export const canvasWebGPU = document.createElement("canvas")
+export const canvas2D = document.createElement("canvas")
 
-const canvasWebGL = document.createElement("canvas")
-const canvas2D = document.createElement("canvas")
-
-export const gl = create3DContextWithWrapperThatThrowsOnGLError(
-    canvasWebGL.getContext("webgl2", {
-        antialias: false,
-        alpha: false,
-        powerPreference: "high-performance",
-    })!
-)
-
-export const anisotropic = gl.getExtension("EXT_texture_filter_anisotropic")
+export const wg = canvasWebGPU.getContext("webgpu") as GPUCanvasContext
+export let wd: GPUDevice
 export const ctx = canvas2D.getContext("2d")!
 
-canvasWebGL.style.position = "fixed"
+export async function initWebGPU() {
+    const adapter = await navigator.gpu.requestAdapter()
+    if (!adapter) {
+        return
+    }
+    wd = await adapter.requestDevice()
+
+    const presentationFormat = navigator.gpu.getPreferredCanvasFormat()
+
+    wg.configure({
+        device: wd,
+        format: presentationFormat,
+        alphaMode: "opaque",
+    })
+}
+
+canvasWebGPU.style.position = "fixed"
 document.body.insertBefore(canvas2D, null)
 
 canvas2D.style.pointerEvents = "none"
 canvas2D.style.position = "fixed"
-document.body.insertBefore(canvasWebGL, null)
+document.body.insertBefore(canvasWebGPU, null)

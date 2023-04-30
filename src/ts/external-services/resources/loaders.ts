@@ -32,10 +32,10 @@ export function loadColoredMesh(data: ArrayBuffer): ColoredMesh {
     const [vertexCount, indexCount] = header
 
     const indices = new Uint16Array(data, 2 * 4, indexCount)
-    const verticesAndColors = new Uint8Array(
+    const verticesAndColors = new Float32Array(
         data,
         2 * 4 + indexCount * 2,
-        COLORED_MESH_SIZE * vertexCount * 4
+        COLORED_MESH_SIZE * vertexCount
     )
 
     const model = new ColoredMesh(verticesAndColors, indices)
@@ -45,15 +45,15 @@ export function loadColoredMesh(data: ArrayBuffer): ColoredMesh {
 
 export const COLORED_TEXTURED_MESH_SIZE = 3 + 2 + 1
 
-export function loadColoredTexturedMesh(data: ArrayBuffer): ColoredMesh {
+export function loadColoredTexturedMesh(data: ArrayBuffer): ColoredTexturedMesh {
     const header = new Uint32Array(data, 0, 2)
     const [vertexCount, indexCount] = header
 
     const indices = new Uint16Array(data, 2 * 4, indexCount)
-    const verticesAndColors = new Uint8Array(
+    const verticesAndColors = new Float32Array(
         data,
         2 * 4 + indexCount * 2,
-        COLORED_TEXTURED_MESH_SIZE * vertexCount * 4
+        COLORED_TEXTURED_MESH_SIZE * vertexCount
     )
 
     const model = new ColoredTexturedMesh(verticesAndColors, indices)
@@ -154,7 +154,7 @@ export async function loadTexture(url: string): Promise<Texture> {
 
             const data = ctx.getImageData(0, 0, image.width, image.height)
 
-            resolve(new Texture(data.data, data.width, data.height))
+            resolve(new Texture(url, data.data, data.width, data.height))
         }
         image.src = url
     })
@@ -172,7 +172,7 @@ export async function loadColoredMeshFromURL(url: string): Promise<ColoredMesh> 
     return loadColoredMesh(data)
 }
 
-export async function loadColoredTexturedMeshFromURL(url: string): Promise<ColoredMesh> {
+export async function loadColoredTexturedMeshFromURL(url: string): Promise<ColoredTexturedMesh> {
     const data = await (await fetch(url)).arrayBuffer()
     return loadColoredTexturedMesh(data)
 }

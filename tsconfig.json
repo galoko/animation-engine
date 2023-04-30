@@ -4,6 +4,10 @@
         "sourceMap": true,
         "target": "esnext",
         "module": "esnext",
+        "typeRoots": [
+            "./node_modules/@webgpu/types",
+            "./node_modules/@types"
+        ],
         "strictNullChecks": true,
         "moduleResolution": "node",
         "experimentalDecorators": true,

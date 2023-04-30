@@ -23,8 +23,7 @@ export default {
             inlineSources: true,
         }),
         string({
-            // Required to be specified
-            include: ["**/*.frag", "**/*.vert"],
+            include: ["**/*.wgsl"],
         }),
         nodeResolve({
             jsnext: true,

@@ -6,7 +6,7 @@ import {
 } from "../engine-bridge/messages/input-messages"
 import { InputMessageId } from "../engine-bridge/queue-messages"
 import { Queues } from "../engine-bridge/queues"
-import { gl } from "./render/render-context"
+import { canvasWebGPU } from "./render/render-context"
 
 export class InputManager {
     static init(): void {
@@ -18,18 +18,18 @@ export class InputManager {
     }
 
     private static attachEvents() {
-        gl.canvas.addEventListener("click", InputManager.clickHandler)
+        canvasWebGPU.addEventListener("click", InputManager.clickHandler)
 
-        gl.canvas.addEventListener("mousemove", InputManager.mouseHandler, { passive: true })
-        gl.canvas.addEventListener("mouseup", InputManager.mouseHandler, { passive: true })
-        gl.canvas.addEventListener("mousedown", InputManager.mouseHandler, { passive: true })
+        canvasWebGPU.addEventListener("mousemove", InputManager.mouseHandler, { passive: true })
+        canvasWebGPU.addEventListener("mouseup", InputManager.mouseHandler, { passive: true })
+        canvasWebGPU.addEventListener("mousedown", InputManager.mouseHandler, { passive: true })
 
         window.addEventListener("keyup", InputManager.keyHandler)
         window.addEventListener("keydown", InputManager.keyHandler)
     }
 
     private static clickHandler(): void {
-        gl.canvas.requestPointerLock()
+        canvasWebGPU.requestPointerLock()
     }
 
     private static mouseHandler(e: MouseEvent): void {
@@ -45,7 +45,7 @@ export class InputManager {
         const dx = e.movementX * devicePixelRatio
         const dy = e.movementY * devicePixelRatio
 
-        const isCaptured = document.pointerLockElement === gl.canvas
+        const isCaptured = document.pointerLockElement === canvasWebGPU
 
         const id = {
             mousedown: InputMessageId.MOUSE_DOWN,
