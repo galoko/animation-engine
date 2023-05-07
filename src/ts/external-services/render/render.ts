@@ -1,5 +1,8 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 
+import objectsShadowNearVert from "../../shaders/objects-shadow-near.vert.wgsl"
+import objectsShadowFarVert from "../../shaders/objects-shadow-far.vert.wgsl"
+
 import objectsVert from "../../shaders/objects.vert.wgsl"
 import objectsFrag from "../../shaders/objects.frag.wgsl"
 
@@ -282,7 +285,7 @@ class BufferChunk {
 const MAT4_FLOAT_SIZE = 4 * 4
 const MAT4_BYTE_SIZE = MAT4_FLOAT_SIZE * 4
 
-const SETTINGS_SIZE = 4 * MAT4_FLOAT_SIZE
+const SETTINGS_SIZE = 6 * MAT4_FLOAT_SIZE
 
 const PER_OBJECT_DATA_BUFFER_SIZE = 1024 * 1024
 // compressed quat + scale + position + flags
@@ -327,6 +330,8 @@ enum BlankQueryState {
 
 const QUERY_BUFFER_SIZE = 8
 
+const SHADOW_RESOLUTION = 4096
+
 export class Render {
     private static viewMatrix: mat4
     private static viewMatrix_inplace: mat4
@@ -336,9 +341,16 @@ export class Render {
     private static vp_inplace: mat4
     private static vp_sun: mat4
     private static vp_glare: mat4
+    private static vp_shadow_near: mat4
+    private static vp_shadow_far: mat4
 
     private static settingsBuffer: Float32Array
     private static settings: GPUBuffer
+
+    private static shadowNearPipeline: GPURenderPipeline
+    private static shadowNearBind: GPUBindGroup
+    private static shadowFarPipeline: GPURenderPipeline
+    private static shadowFarBind: GPUBindGroup
 
     private static objectsPipeline: GPURenderPipeline
     private static objectsBind: GPUBindGroup
@@ -365,6 +377,14 @@ export class Render {
     private static atlasesTexture: GPUTexture
     private static atlases: Atlas[]
     private static atlasCache: Map<string, AtlasSlot>
+
+    // shadow cascade depth buffers
+    private static shadowDepthBuffers: GPUTexture
+    private static shadowDepthBuffersView: GPUTextureView
+    private static shadowDepthBufferNearView: GPUTextureView
+    private static shadowDepthBufferFarView: GPUTextureView
+    private static shadowNearPassDesc: GPURenderPassDescriptor
+    private static shadowFarPassDesc: GPURenderPassDescriptor
 
     // render targets
     private static mainPassTexture: GPUTexture
@@ -438,6 +458,7 @@ export class Render {
     }
 
     static async setupTest(): Promise<void> {
+        /*
         const coordinates = [
             //
             8, -101515.1328125, -38915.29296875, -1551.75769042969,
@@ -501,6 +522,7 @@ export class Render {
 
             Render.addRenderable(mountains)
         }
+        */
 
         Render.fullscreenPlain = new MeshBuffer(
             await ResourceManager.requestMesh("fullscreen_plane")
@@ -567,6 +589,21 @@ export class Render {
         })
         Render.depthBufferView = Render.depthBuffer.createView()
 
+        Render.shadowDepthBuffers = wd.createTexture({
+            size: [SHADOW_RESOLUTION, SHADOW_RESOLUTION, 2],
+            format: "depth24plus",
+            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
+        })
+        Render.shadowDepthBuffersView = Render.shadowDepthBuffers.createView()
+        Render.shadowDepthBufferNearView = Render.shadowDepthBuffers.createView({
+            baseArrayLayer: 0,
+            arrayLayerCount: 1,
+        })
+        Render.shadowDepthBufferFarView = Render.shadowDepthBuffers.createView({
+            baseArrayLayer: 1,
+            arrayLayerCount: 1,
+        })
+
         Render.blankQuery = wd.createQuerySet({
             type: "occlusion",
             count: 1,
@@ -579,6 +616,28 @@ export class Render {
             size: QUERY_BUFFER_SIZE,
             usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
         })
+
+        Render.shadowNearPassDesc = {
+            colorAttachments: [],
+            depthStencilAttachment: {
+                view: Render.shadowDepthBufferNearView,
+
+                depthClearValue: 1.0,
+                depthLoadOp: "clear",
+                depthStoreOp: "store",
+            },
+        }
+
+        Render.shadowFarPassDesc = {
+            colorAttachments: [],
+            depthStencilAttachment: {
+                view: Render.shadowDepthBufferFarView,
+
+                depthClearValue: 1.0,
+                depthLoadOp: "clear",
+                depthStoreOp: "store",
+            },
+        }
 
         Render.mainPassDesc = {
             colorAttachments: [
@@ -730,11 +789,57 @@ export class Render {
             3 * MAT4_BYTE_SIZE,
             MAT4_FLOAT_SIZE
         )
+        Render.vp_shadow_near = new Float32Array(
+            Render.settingsBuffer.buffer,
+            4 * MAT4_BYTE_SIZE,
+            MAT4_FLOAT_SIZE
+        )
+        Render.vp_shadow_far = new Float32Array(
+            Render.settingsBuffer.buffer,
+            5 * MAT4_BYTE_SIZE,
+            MAT4_FLOAT_SIZE
+        )
 
         // settings for objects
         Render.settings = wd.createBuffer({
             size: SETTINGS_SIZE * 4,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        })
+
+        Render.shadowNearBind = wd.createBindGroup({
+            layout: Render.shadowNearPipeline.getBindGroupLayout(0),
+            entries: [
+                {
+                    binding: 0,
+                    resource: {
+                        buffer: Render.settings,
+                    },
+                },
+                {
+                    binding: 1,
+                    resource: {
+                        buffer: Render.perObjectData,
+                    },
+                },
+            ],
+        })
+
+        Render.shadowFarBind = wd.createBindGroup({
+            layout: Render.shadowFarPipeline.getBindGroupLayout(0),
+            entries: [
+                {
+                    binding: 0,
+                    resource: {
+                        buffer: Render.settings,
+                    },
+                },
+                {
+                    binding: 1,
+                    resource: {
+                        buffer: Render.perObjectData,
+                    },
+                },
+            ],
         })
 
         Render.objectsBind = wd.createBindGroup({
@@ -883,6 +988,38 @@ export class Render {
         }
 
         // objects
+
+        const objectsShadowNearShaderVert = wd.createShaderModule({ code: objectsShadowNearVert })
+        Render.shadowNearPipeline = wd.createRenderPipeline({
+            layout: "auto",
+            vertex: {
+                module: objectsShadowNearShaderVert,
+                entryPoint: "main",
+                buffers: BufferChunk.buffers,
+            },
+            depthStencil: {
+                depthWriteEnabled: true,
+                depthCompare: "less",
+                format: "depth24plus",
+            },
+            primitive,
+        })
+
+        const objectsShadowFarShaderVert = wd.createShaderModule({ code: objectsShadowFarVert })
+        Render.shadowFarPipeline = wd.createRenderPipeline({
+            layout: "auto",
+            vertex: {
+                module: objectsShadowFarShaderVert,
+                entryPoint: "main",
+                buffers: BufferChunk.buffers,
+            },
+            depthStencil: {
+                depthWriteEnabled: true,
+                depthCompare: "less",
+                format: "depth24plus",
+            },
+            primitive,
+        })
 
         const objectsShaderVert = wd.createShaderModule({ code: objectsVert })
         const objectsShaderFrag = wd.createShaderModule({ code: objectsFrag })
@@ -1290,6 +1427,8 @@ export class Render {
 
         mat4.copy(Render.vp_glare, Render.vp_inplace)
         mat4.multiply(Render.vp_glare, Render.vp_glare, glareModel)
+
+        // TODO calc near/far shadow frustums
     }
 
     static render(dt: number): void {
@@ -1305,11 +1444,37 @@ export class Render {
         const commandEncoder = wd.createCommandEncoder()
         {
             // shadow near pass
+            const passEncoder = commandEncoder.beginRenderPass(Render.shadowNearPassDesc)
 
+            passEncoder.setBindGroup(0, Render.shadowNearBind)
+            passEncoder.setPipeline(Render.shadowNearPipeline)
+            for (const chunk of Render.scene) {
+                passEncoder.setVertexBuffer(0, chunk.vertices)
+                passEncoder.setIndexBuffer(chunk.indices, "uint32")
+                passEncoder.drawIndexed(chunk.indexPos)
+            }
+            passEncoder.end()
+        }
+
+        {
             // shadow far pass
+            const passEncoder = commandEncoder.beginRenderPass(Render.shadowFarPassDesc)
 
-            // screen space shadows reconstruction pass
+            passEncoder.setBindGroup(0, Render.shadowFarBind)
+            passEncoder.setPipeline(Render.shadowFarPipeline)
+            for (const chunk of Render.scene) {
+                passEncoder.setVertexBuffer(0, chunk.vertices)
+                passEncoder.setIndexBuffer(chunk.indices, "uint32")
+                passEncoder.drawIndexed(chunk.indexPos)
+            }
+            passEncoder.end()
+        }
 
+        {
+            // screen space shadow reconstruction pass
+        }
+
+        {
             const passEncoder = commandEncoder.beginRenderPass(Render.mainPassDesc)
 
             passEncoder.setBindGroup(0, Render.objectsBind)

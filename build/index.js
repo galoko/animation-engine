@@ -7854,6 +7854,10 @@ var vec2 = /*#__PURE__*/Object.freeze({
     forEach: forEach
 });
 
+var objectsShadowNearVert = "struct Settings {\r\n    viewProjection: mat4x4<f32>,\r\n    viewProjection_inplace: mat4x4<f32>,\r\n    viewProjection_sun: mat4x4<f32>,\r\n    viewProjection_shadow_near: mat4x4<f32>,\r\n    viewProjection_shadow_far: mat4x4<f32>,\r\n}\r\n\r\nstruct PerObjectDataEntry {\r\n    quat_scale: vec4<f32>,\r\n    translation_atlasNum: vec4<f32>,\r\n}\r\n\r\nstruct PerObjectData {\r\n    entries: array<PerObjectDataEntry>,\r\n}\r\n\r\n@group(0) @binding(0) var<uniform> settings: Settings;\r\n@group(0) @binding(1) var<storage, read> perObjectData : PerObjectData;\r\n\r\nfn quat_transform(q: vec4<f32>, v: vec3<f32>) -> vec3<f32> {\r\n    return v + 2 * cross(q.xyz, cross(q.xyz, v) + q.w * v);\r\n}\r\n\r\n@vertex\r\nfn main(@location(0) inputPosition: vec3<f32>, @location(3) paramsIndex: f32) -> @builtin(position) vec4<f32> {\r\n    var index = u32(paramsIndex);\r\n\r\n    var quat_scale = perObjectData.entries[index].quat_scale;\r\n    var translation_atlasNum = perObjectData.entries[index].translation_atlasNum;\r\n\r\n    var scale = quat_scale.w;\r\n\r\n    var translation = translation_atlasNum.xyz;\r\n    var atlasNum = translation_atlasNum.w;\r\n\r\n    var quat_xyz = quat_scale.xyz;\r\n    var s = length(quat_xyz);\r\n    var quat = vec4(quat_xyz, sqrt(1.0 - s * s));\r\n\r\n    var fragPosition = settings.viewProjection_shadow_near * vec4(quat_transform(quat, inputPosition) * scale + translation, 1.0);\r\n\r\n    return fragPosition;\r\n}";
+
+var objectsShadowFarVert = "struct Settings {\r\n    viewProjection: mat4x4<f32>,\r\n    viewProjection_inplace: mat4x4<f32>,\r\n    viewProjection_sun: mat4x4<f32>,\r\n    viewProjection_shadow_near: mat4x4<f32>,\r\n    viewProjection_shadow_far: mat4x4<f32>,\r\n}\r\n\r\nstruct PerObjectDataEntry {\r\n    quat_scale: vec4<f32>,\r\n    translation_atlasNum: vec4<f32>,\r\n}\r\n\r\nstruct PerObjectData {\r\n    entries: array<PerObjectDataEntry>,\r\n}\r\n\r\n@group(0) @binding(0) var<uniform> settings: Settings;\r\n@group(0) @binding(1) var<storage, read> perObjectData : PerObjectData;\r\n\r\nfn quat_transform(q: vec4<f32>, v: vec3<f32>) -> vec3<f32> {\r\n    return v + 2 * cross(q.xyz, cross(q.xyz, v) + q.w * v);\r\n}\r\n\r\n@vertex\r\nfn main(@location(0) inputPosition: vec3<f32>, @location(3) paramsIndex: f32) -> @builtin(position) vec4<f32> {\r\n    var index = u32(paramsIndex);\r\n\r\n    var quat_scale = perObjectData.entries[index].quat_scale;\r\n    var translation_atlasNum = perObjectData.entries[index].translation_atlasNum;\r\n\r\n    var scale = quat_scale.w;\r\n\r\n    var translation = translation_atlasNum.xyz;\r\n    var atlasNum = translation_atlasNum.w;\r\n\r\n    var quat_xyz = quat_scale.xyz;\r\n    var s = length(quat_xyz);\r\n    var quat = vec4(quat_xyz, sqrt(1.0 - s * s));\r\n\r\n    var fragPosition = settings.viewProjection_shadow_far * vec4(quat_transform(quat, inputPosition) * scale + translation, 1.0);\r\n\r\n    return fragPosition;\r\n}";
+
 var objectsVert = "struct Settings {\r\n    viewProjection: mat4x4<f32>,\r\n    viewProjection_inplace: mat4x4<f32>,\r\n    viewProjection_sun: mat4x4<f32>,\r\n}\r\n\r\nstruct PerObjectDataEntry {\r\n    quat_scale: vec4<f32>,\r\n    translation_atlasNum: vec4<f32>,\r\n}\r\n\r\nstruct PerObjectData {\r\n    entries: array<PerObjectDataEntry>,\r\n}\r\n\r\nstruct VertexOutput {\r\n    @builtin(position) fragPosition: vec4<f32>,\r\n    @location(0) fragNormal: vec3<f32>,\r\n    @location(1) fragUV: vec2<f32>,\r\n    @location(2) @interpolate(flat) fragAtlasNum: u32,\r\n}\r\n\r\n@group(0) @binding(0) var<uniform> settings: Settings;\r\n@group(0) @binding(1) var<storage, read> perObjectData : PerObjectData;\r\n\r\nfn quat_transform(q: vec4<f32>, v: vec3<f32>) -> vec3<f32> {\r\n    return v + 2 * cross(q.xyz, cross(q.xyz, v) + q.w * v);\r\n}\r\n\r\n@vertex\r\nfn main(\r\n    @location(0) inputPosition: vec3<f32>,\r\n    @location(1) inputNormal: vec3<f32>,\r\n    @location(2) inputUV: vec2<f32>,\r\n    @location(3) paramsIndex: f32,\r\n) -> VertexOutput {\r\n    var index = u32(paramsIndex);\r\n\r\n    var quat_scale = perObjectData.entries[index].quat_scale;\r\n    var translation_atlasNum = perObjectData.entries[index].translation_atlasNum;\r\n\r\n    var scale = quat_scale.w;\r\n\r\n    var translation = translation_atlasNum.xyz;\r\n    var atlasNum = translation_atlasNum.w;\r\n\r\n    var quat_xyz = quat_scale.xyz;\r\n    var s = length(quat_xyz);\r\n    var quat = vec4(quat_xyz, sqrt(1.0 - s * s));\r\n\r\n    var output: VertexOutput;\r\n    output.fragPosition = settings.viewProjection * vec4(quat_transform(quat, inputPosition) * scale + translation, 1.0);\r\n    output.fragNormal = quat_transform(quat, inputNormal);\r\n    output.fragUV = inputUV;\r\n    output.fragAtlasNum = u32(atlasNum);\r\n\r\n    return output;\r\n}";
 
 var objectsFrag = "@group(0) @binding(2) var atlasSampler: sampler;\r\n@group(0) @binding(3) var atlases: texture_2d_array<f32>;\r\n\r\n@fragment\r\nfn main(\r\n    @location(0) fragNormal: vec3<f32>,\r\n    @location(1) fragUV: vec2<f32>,\r\n    @location(2) @interpolate(flat) fragAtlasNum: u32,\r\n) -> @location(0) vec4<f32> {\r\n    var lightDir = normalize(vec3(0.656, 0.3, 0.14));\r\n    var lightColor = vec3(1.);\r\n\r\n    var diff = max(dot(fragNormal, lightDir), 0.0);\r\n    var diffuse = diff * lightColor;\r\n\r\n    var ambient = 0.5;\r\n\r\n    var objectColor = textureSample(atlases, atlasSampler, fragUV, fragAtlasNum);\r\n\r\n    var outputColor = vec4(min(ambient + diffuse, vec3(1)) * objectColor.rgb, objectColor.a);\r\n\r\n    return outputColor;\r\n}";
@@ -8583,7 +8587,7 @@ class BufferChunk {
 }
 const MAT4_FLOAT_SIZE = 4 * 4;
 const MAT4_BYTE_SIZE = MAT4_FLOAT_SIZE * 4;
-const SETTINGS_SIZE = 4 * MAT4_FLOAT_SIZE;
+const SETTINGS_SIZE = 6 * MAT4_FLOAT_SIZE;
 const PER_OBJECT_DATA_BUFFER_SIZE = 1024 * 1024;
 // compressed quat + scale + position + flags
 const PER_OBJECT_DATA_ENTRY_SIZE = 3 + 1 + 3 + 1;
@@ -8612,6 +8616,7 @@ var BlankQueryState;
     BlankQueryState[BlankQueryState["Pending"] = 2] = "Pending";
 })(BlankQueryState || (BlankQueryState = {}));
 const QUERY_BUFFER_SIZE = 8;
+const SHADOW_RESOLUTION = 4096;
 class Render {
     static viewMatrix;
     static viewMatrix_inplace;
@@ -8620,8 +8625,14 @@ class Render {
     static vp_inplace;
     static vp_sun;
     static vp_glare;
+    static vp_shadow_near;
+    static vp_shadow_far;
     static settingsBuffer;
     static settings;
+    static shadowNearPipeline;
+    static shadowNearBind;
+    static shadowFarPipeline;
+    static shadowFarBind;
     static objectsPipeline;
     static objectsBind;
     static skydomePipeline;
@@ -8640,6 +8651,13 @@ class Render {
     static atlasesTexture;
     static atlases;
     static atlasCache;
+    // shadow cascade depth buffers
+    static shadowDepthBuffers;
+    static shadowDepthBuffersView;
+    static shadowDepthBufferNearView;
+    static shadowDepthBufferFarView;
+    static shadowNearPassDesc;
+    static shadowFarPassDesc;
     // render targets
     static mainPassTexture;
     static mainPassTextureView;
@@ -8691,6 +8709,7 @@ class Render {
         Render.glareTexture = createTexture(await loadTexture("build/glare.png"));
     }
     static async setupTest() {
+        /*
         const coordinates = [
             //
             8, -101515.1328125, -38915.29296875, -1551.75769042969,
@@ -8728,24 +8747,33 @@ class Render {
             16, -199819.125, -6147.29296875, -1551.75769042969,
             //
             16, -265355.125, -6147.29296875, -1551.75769042969,
-        ];
+        ]
+
         for (let i = 0; i < 18; i++) {
-            const mountains = new Renderable(await ResourceManager.requestMesh(`mountains_${i}`), await ResourceManager.requestTexture("mountains.png"));
-            Render.setTransform(mountains, new Float32Array([
-                // rotation
-                0,
-                0,
-                0,
-                1,
-                // scale
-                coordinates[i * 4 + 0],
-                // position
-                coordinates[i * 4 + 1],
-                coordinates[i * 4 + 2],
-                coordinates[i * 4 + 3],
-            ]));
-            Render.addRenderable(mountains);
+            const mountains = new Renderable(
+                await ResourceManager.requestMesh(`mountains_${i}`),
+                await ResourceManager.requestTexture("mountains.png")
+            )
+            Render.setTransform(
+                mountains,
+                new Float32Array([
+                    // rotation
+                    0,
+                    0,
+                    0,
+                    1,
+                    // scale
+                    coordinates[i * 4 + 0],
+                    // position
+                    coordinates[i * 4 + 1],
+                    coordinates[i * 4 + 2],
+                    coordinates[i * 4 + 3],
+                ])
+            )
+
+            Render.addRenderable(mountains)
         }
+        */
         Render.fullscreenPlain = new MeshBuffer(await ResourceManager.requestMesh("fullscreen_plane"));
     }
     static initAtlases() {
@@ -8796,6 +8824,20 @@ class Render {
             usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
         });
         Render.depthBufferView = Render.depthBuffer.createView();
+        Render.shadowDepthBuffers = wd.createTexture({
+            size: [SHADOW_RESOLUTION, SHADOW_RESOLUTION, 2],
+            format: "depth24plus",
+            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
+        });
+        Render.shadowDepthBuffersView = Render.shadowDepthBuffers.createView();
+        Render.shadowDepthBufferNearView = Render.shadowDepthBuffers.createView({
+            baseArrayLayer: 0,
+            arrayLayerCount: 1,
+        });
+        Render.shadowDepthBufferFarView = Render.shadowDepthBuffers.createView({
+            baseArrayLayer: 1,
+            arrayLayerCount: 1,
+        });
         Render.blankQuery = wd.createQuerySet({
             type: "occlusion",
             count: 1,
@@ -8808,6 +8850,24 @@ class Render {
             size: QUERY_BUFFER_SIZE,
             usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
         });
+        Render.shadowNearPassDesc = {
+            colorAttachments: [],
+            depthStencilAttachment: {
+                view: Render.shadowDepthBufferNearView,
+                depthClearValue: 1.0,
+                depthLoadOp: "clear",
+                depthStoreOp: "store",
+            },
+        };
+        Render.shadowFarPassDesc = {
+            colorAttachments: [],
+            depthStencilAttachment: {
+                view: Render.shadowDepthBufferFarView,
+                depthClearValue: 1.0,
+                depthLoadOp: "clear",
+                depthStoreOp: "store",
+            },
+        };
         Render.mainPassDesc = {
             colorAttachments: [
                 {
@@ -8915,10 +8975,46 @@ class Render {
         Render.vp_inplace = new Float32Array(Render.settingsBuffer.buffer, 1 * MAT4_BYTE_SIZE, MAT4_FLOAT_SIZE);
         Render.vp_sun = new Float32Array(Render.settingsBuffer.buffer, 2 * MAT4_BYTE_SIZE, MAT4_FLOAT_SIZE);
         Render.vp_glare = new Float32Array(Render.settingsBuffer.buffer, 3 * MAT4_BYTE_SIZE, MAT4_FLOAT_SIZE);
+        Render.vp_shadow_near = new Float32Array(Render.settingsBuffer.buffer, 4 * MAT4_BYTE_SIZE, MAT4_FLOAT_SIZE);
+        Render.vp_shadow_far = new Float32Array(Render.settingsBuffer.buffer, 5 * MAT4_BYTE_SIZE, MAT4_FLOAT_SIZE);
         // settings for objects
         Render.settings = wd.createBuffer({
             size: SETTINGS_SIZE * 4,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        });
+        Render.shadowNearBind = wd.createBindGroup({
+            layout: Render.shadowNearPipeline.getBindGroupLayout(0),
+            entries: [
+                {
+                    binding: 0,
+                    resource: {
+                        buffer: Render.settings,
+                    },
+                },
+                {
+                    binding: 1,
+                    resource: {
+                        buffer: Render.perObjectData,
+                    },
+                },
+            ],
+        });
+        Render.shadowFarBind = wd.createBindGroup({
+            layout: Render.shadowFarPipeline.getBindGroupLayout(0),
+            entries: [
+                {
+                    binding: 0,
+                    resource: {
+                        buffer: Render.settings,
+                    },
+                },
+                {
+                    binding: 1,
+                    resource: {
+                        buffer: Render.perObjectData,
+                    },
+                },
+            ],
         });
         Render.objectsBind = wd.createBindGroup({
             layout: Render.objectsPipeline.getBindGroupLayout(0),
@@ -9056,6 +9152,36 @@ class Render {
             cullMode: "back",
         };
         // objects
+        const objectsShadowNearShaderVert = wd.createShaderModule({ code: objectsShadowNearVert });
+        Render.shadowNearPipeline = wd.createRenderPipeline({
+            layout: "auto",
+            vertex: {
+                module: objectsShadowNearShaderVert,
+                entryPoint: "main",
+                buffers: BufferChunk.buffers,
+            },
+            depthStencil: {
+                depthWriteEnabled: true,
+                depthCompare: "less",
+                format: "depth24plus",
+            },
+            primitive,
+        });
+        const objectsShadowFarShaderVert = wd.createShaderModule({ code: objectsShadowFarVert });
+        Render.shadowFarPipeline = wd.createRenderPipeline({
+            layout: "auto",
+            vertex: {
+                module: objectsShadowFarShaderVert,
+                entryPoint: "main",
+                buffers: BufferChunk.buffers,
+            },
+            depthStencil: {
+                depthWriteEnabled: true,
+                depthCompare: "less",
+                format: "depth24plus",
+            },
+            primitive,
+        });
         const objectsShaderVert = wd.createShaderModule({ code: objectsVert });
         const objectsShaderFrag = wd.createShaderModule({ code: objectsFrag });
         Render.objectsPipeline = wd.createRenderPipeline({
@@ -9400,6 +9526,7 @@ class Render {
         multiply$5(Render.vp_sun, Render.vp_sun, sunModel);
         copy$5(Render.vp_glare, Render.vp_inplace);
         multiply$5(Render.vp_glare, Render.vp_glare, glareModel);
+        // TODO calc near/far shadow frustums
     }
     static render(dt) {
         Render.handleResize();
@@ -9410,8 +9537,32 @@ class Render {
         const commandEncoder = wd.createCommandEncoder();
         {
             // shadow near pass
+            const passEncoder = commandEncoder.beginRenderPass(Render.shadowNearPassDesc);
+            passEncoder.setBindGroup(0, Render.shadowNearBind);
+            passEncoder.setPipeline(Render.shadowNearPipeline);
+            for (const chunk of Render.scene) {
+                passEncoder.setVertexBuffer(0, chunk.vertices);
+                passEncoder.setIndexBuffer(chunk.indices, "uint32");
+                passEncoder.drawIndexed(chunk.indexPos);
+            }
+            passEncoder.end();
+        }
+        {
             // shadow far pass
-            // screen space shadows reconstruction pass
+            const passEncoder = commandEncoder.beginRenderPass(Render.shadowFarPassDesc);
+            passEncoder.setBindGroup(0, Render.shadowFarBind);
+            passEncoder.setPipeline(Render.shadowFarPipeline);
+            for (const chunk of Render.scene) {
+                passEncoder.setVertexBuffer(0, chunk.vertices);
+                passEncoder.setIndexBuffer(chunk.indices, "uint32");
+                passEncoder.drawIndexed(chunk.indexPos);
+            }
+            passEncoder.end();
+        }
+        {
+            // screen space shadow reconstruction pass
+        }
+        {
             const passEncoder = commandEncoder.beginRenderPass(Render.mainPassDesc);
             passEncoder.setBindGroup(0, Render.objectsBind);
             passEncoder.setPipeline(Render.objectsPipeline);
