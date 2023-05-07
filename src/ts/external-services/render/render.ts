@@ -419,22 +419,22 @@ export class Render {
     }
 
     static async loadResources(): Promise<void> {
-        Render.skydome = new ColoredMeshBuffer(await loadColoredMeshFromURL("/build/skydome.cml"))
-        Render.checkerboard = createTexture(await loadTexture("/build/checkerboard.png"))
+        Render.skydome = new ColoredMeshBuffer(await loadColoredMeshFromURL("build/skydome.cml"))
+        Render.checkerboard = createTexture(await loadTexture("build/checkerboard.png"))
 
         Render.sun = new ColoredTexturedMeshBuffer(
-            await loadColoredTexturedMeshFromURL("/build/sun.ctml")
+            await loadColoredTexturedMeshFromURL("build/sun.ctml")
         )
-        Render.sunTexture = createTexture(await loadTexture("/build/sun.png"))
+        Render.sunTexture = createTexture(await loadTexture("build/sun.png"))
 
         Render.blank = new ColoredTexturedMeshBuffer(
-            await loadColoredTexturedMeshFromURL("/build/blank.ctml")
+            await loadColoredTexturedMeshFromURL("build/blank.ctml")
         )
 
         Render.glare = new ColoredTexturedMeshBuffer(
-            await loadColoredTexturedMeshFromURL("/build/glare.ctml")
+            await loadColoredTexturedMeshFromURL("build/glare.ctml")
         )
-        Render.glareTexture = createTexture(await loadTexture("/build/glare.png"))
+        Render.glareTexture = createTexture(await loadTexture("build/glare.png"))
     }
 
     static async setupTest(): Promise<void> {

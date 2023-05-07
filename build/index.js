@@ -59,8 +59,8 @@ async function loadEngine() {
     Engine = await Module({
         wasmBinary: EngineWasm,
         print: console.log.bind(console),
-        locateFile: (path) => `/build/wasm/${path}`,
-        mainScriptUrlOrBlob: "/build/wasm/engine.js",
+        locateFile: (path) => `build/wasm/${path}`,
+        mainScriptUrlOrBlob: "build/wasm/engine.js",
     });
     return;
 }
@@ -8341,14 +8341,14 @@ class ResourceManager {
     }
     // mesh
     static async requestMesh(meshName) {
-        return ResourceManager.request(meshName, this.meshes, (name) => loadMeshFromURL(`/build/${name}.mdl`));
+        return ResourceManager.request(meshName, this.meshes, (name) => loadMeshFromURL(`build/${name}.mdl`));
     }
     static freeMesh(meshName) {
         ResourceManager.free(meshName, this.meshes);
     }
     // texture
     static async requestTexture(textureName) {
-        return ResourceManager.request(textureName, this.textures, (name) => loadTexture(`/build/${name}`));
+        return ResourceManager.request(textureName, this.textures, (name) => loadTexture(`build/${name}`));
     }
     static freeTexture(textureName) {
         ResourceManager.free(textureName, this.textures);
@@ -8682,13 +8682,13 @@ class Render {
         Render.createUBOs();
     }
     static async loadResources() {
-        Render.skydome = new ColoredMeshBuffer(await loadColoredMeshFromURL("/build/skydome.cml"));
-        Render.checkerboard = createTexture(await loadTexture("/build/checkerboard.png"));
-        Render.sun = new ColoredTexturedMeshBuffer(await loadColoredTexturedMeshFromURL("/build/sun.ctml"));
-        Render.sunTexture = createTexture(await loadTexture("/build/sun.png"));
-        Render.blank = new ColoredTexturedMeshBuffer(await loadColoredTexturedMeshFromURL("/build/blank.ctml"));
-        Render.glare = new ColoredTexturedMeshBuffer(await loadColoredTexturedMeshFromURL("/build/glare.ctml"));
-        Render.glareTexture = createTexture(await loadTexture("/build/glare.png"));
+        Render.skydome = new ColoredMeshBuffer(await loadColoredMeshFromURL("build/skydome.cml"));
+        Render.checkerboard = createTexture(await loadTexture("build/checkerboard.png"));
+        Render.sun = new ColoredTexturedMeshBuffer(await loadColoredTexturedMeshFromURL("build/sun.ctml"));
+        Render.sunTexture = createTexture(await loadTexture("build/sun.png"));
+        Render.blank = new ColoredTexturedMeshBuffer(await loadColoredTexturedMeshFromURL("build/blank.ctml"));
+        Render.glare = new ColoredTexturedMeshBuffer(await loadColoredTexturedMeshFromURL("build/glare.ctml"));
+        Render.glareTexture = createTexture(await loadTexture("build/glare.png"));
     }
     static async setupTest() {
         const coordinates = [

@@ -7,8 +7,8 @@ export async function loadEngine(): Promise<void> {
     Engine = await EngineStartup({
         wasmBinary: EngineWasm,
         print: console.log.bind(console),
-        locateFile: (path: string) => `/build/wasm/${path}`,
-        mainScriptUrlOrBlob: "/build/wasm/engine.js",
+        locateFile: (path: string) => `build/wasm/${path}`,
+        mainScriptUrlOrBlob: "build/wasm/engine.js",
     })
 
     return
