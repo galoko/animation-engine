@@ -22,7 +22,7 @@ shared_ptr<Entity> WorldManager::createCharacter() {
 
     RenderHandle cubeHandle = Render::createRenderable(cubeModel, rockTexture);
 
-    Transformation transform = Transformation(0, 0, 0.5, 1 * 100);
+    Transformation transform = Transformation(0, 0, 0, 1 * 100);
     shared_ptr<Graphics> cube = make_shared<Graphics>(cubeHandle, transform);
     graphicsComponent.add(cube);
 
@@ -41,6 +41,8 @@ void WorldManager::init() {
     Services->playerInputManager.setManagedEntity(player);
 
     this->addGround();
+
+    this->addPillars();
 }
 
 void WorldManager::tick(double dt) {
@@ -57,8 +59,27 @@ void WorldManager::addGround() {
 
     RenderHandle ground = Render::createRenderable(planeModel, grassTexture);
 
-    Transformation transform = Transformation(0, 0, 0, 1 * 100);
+    Transformation transform = Transformation(0, 0, -0.5 * 100, 40 * 100);
     Render::setTransform(ground, transform);
 
     Render::addRenderable(ground);
+}
+
+void WorldManager::addPillars() {
+    RenderHandle pillarModel = Render::requestMesh("pillar");
+    RenderHandle marbleTexture = Render::requestTexture("marble.png");
+
+    float PILLARS_COUNT = 10;
+    float DISTANCE = 20;
+    float STEP = DISTANCE / PILLARS_COUNT;
+    for (int i = 0; i < PILLARS_COUNT; i++) {
+        float x = -10.0;
+        float y = -DISTANCE / 2 + (float)i * STEP + 0.5;
+
+        RenderHandle pillar = Render::createRenderable(pillarModel, marbleTexture);
+        Transformation transform = Transformation(x * 100, y * 100, -0.5 * 100, 0.5 * 100);
+        Render::setTransform(pillar, transform);
+
+        Render::addRenderable(pillar);
+    }
 }

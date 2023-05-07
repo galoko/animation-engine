@@ -1304,6 +1304,12 @@ export class Render {
 
         const commandEncoder = wd.createCommandEncoder()
         {
+            // shadow near pass
+
+            // shadow far pass
+
+            // screen space shadows reconstruction pass
+
             const passEncoder = commandEncoder.beginRenderPass(Render.mainPassDesc)
 
             passEncoder.setBindGroup(0, Render.objectsBind)

@@ -11,6 +11,7 @@ private:
     shared_ptr<Entity> createCharacter();
 
     void addGround();
+    void addPillars();
 
     static constexpr double PI = 3.141592653589793238463;
     static constexpr double DEG_TO_RAD = PI / 180.0;
