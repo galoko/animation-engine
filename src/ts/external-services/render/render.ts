@@ -14,6 +14,7 @@ import sunFrag from "../../shaders/sun.frag.wgsl"
 
 import passthroughVert from "../../shaders/passthrough.vert.wgsl"
 import passthroughFrag from "../../shaders/passthrough.frag.wgsl"
+import passthroughDepthFrag from "../../shaders/passthrough-depth.frag.wgsl"
 
 import fogFrag from "../../shaders/fog.frag.wgsl"
 
@@ -23,7 +24,10 @@ import glareFrag from "../../shaders/glare.frag.wgsl"
 import blankVert from "../../shaders/blank.vert.wgsl"
 import blankFrag from "../../shaders/blank.frag.wgsl"
 
-import { mat4, quat, vec3 } from "gl-matrix"
+import debugFrustumVert from "../../shaders/debug-frustum.vert.wgsl"
+import debugFrustumFrag from "../../shaders/debug-frustum.frag.wgsl"
+
+import { mat4, quat, vec3, vec4 } from "gl-matrix"
 import { wg, ctx, wd, canvasWebGPU } from "./render-context"
 import { CHUNK_MESH_VERTEX_SIZE, Renderable } from "./renderable"
 import { Atlas, ATLAS_SIZE, MAX_ATLASES_COUNT } from "./atlas"
@@ -338,6 +342,7 @@ export class Render {
     private static projectionMatrix: mat4
 
     private static vp: mat4
+    private static vp_inv: mat4
     private static vp_inplace: mat4
     private static vp_sun: mat4
     private static vp_glare: mat4
@@ -408,6 +413,15 @@ export class Render {
     private static glareTexture: GPUTexture
     private static fullscreenPlain: MeshBuffer
 
+    private static debugTextureView: GPUTextureView
+    private static debugTexturePlane: MeshBuffer
+    private static debugTextureBind: GPUBindGroup
+    private static debugDepthPipeline: GPURenderPipeline
+
+    private static debugFrustumMesh: MeshBuffer
+    private static debugFrustumBind: GPUBindGroup
+    private static debugFrustumPipeline: GPURenderPipeline
+
     private static perObjectData: GPUBuffer
     // TODO keep list of free entries
     private static nextPerObjectIndex = 0
@@ -421,12 +435,18 @@ export class Render {
 
     private static glareScale = 0
 
+    // camera
+
+    private static cameraPosition: vec3
+
     private static scene: BufferChunk[] = []
 
     static async init(): Promise<void> {
         Render.projectionMatrix = mat4.create()
         Render.viewMatrix = mat4.create()
         Render.viewMatrix_inplace = mat4.create()
+        Render.cameraPosition = vec3.create()
+        Render.vp_inv = mat4.create()
 
         Render.handleResize()
 
@@ -527,6 +547,8 @@ export class Render {
         Render.fullscreenPlain = new MeshBuffer(
             await ResourceManager.requestMesh("fullscreen_plane")
         )
+
+        Render.debugTexturePlane = new MeshBuffer(ResourceManager.generatePlane(50, 50, 400, 400))
     }
 
     private static initAtlases() {
@@ -598,11 +620,15 @@ export class Render {
         Render.shadowDepthBufferNearView = Render.shadowDepthBuffers.createView({
             baseArrayLayer: 0,
             arrayLayerCount: 1,
+            dimension: "2d",
         })
         Render.shadowDepthBufferFarView = Render.shadowDepthBuffers.createView({
             baseArrayLayer: 1,
             arrayLayerCount: 1,
+            dimension: "2d",
         })
+
+        Render.debugTextureView = Render.shadowDepthBufferNearView
 
         Render.blankQuery = wd.createQuerySet({
             type: "occlusion",
@@ -977,6 +1003,32 @@ export class Render {
                 },
             ],
         })
+
+        Render.debugTextureBind = wd.createBindGroup({
+            layout: Render.debugDepthPipeline.getBindGroupLayout(0),
+            entries: [
+                {
+                    binding: 0,
+                    resource: linearSampler,
+                },
+                {
+                    binding: 1,
+                    resource: Render.debugTextureView,
+                },
+            ],
+        })
+
+        Render.debugFrustumBind = wd.createBindGroup({
+            layout: Render.debugFrustumPipeline.getBindGroupLayout(0),
+            entries: [
+                {
+                    binding: 0,
+                    resource: {
+                        buffer: Render.settings,
+                    },
+                },
+            ],
+        })
     }
 
     private static compilerShaders() {
@@ -984,7 +1036,7 @@ export class Render {
 
         const primitive: GPUPrimitiveState = {
             topology: "triangle-list",
-            cullMode: "back",
+            cullMode: "none",
         }
 
         // objects
@@ -1260,6 +1312,67 @@ export class Render {
             },
             primitive,
         })
+
+        const passthroughDepthShaderFrag = wd.createShaderModule({ code: passthroughDepthFrag })
+        Render.debugDepthPipeline = wd.createRenderPipeline({
+            layout: "auto",
+            vertex: {
+                module: passthroughShaderVert,
+                entryPoint: "main",
+                buffers: MeshBuffer.buffers,
+            },
+            fragment: {
+                module: passthroughDepthShaderFrag,
+                entryPoint: "main",
+                targets: [
+                    {
+                        format: screenFormat,
+                        writeMask: GPUColorWrite.ALL,
+                    },
+                ],
+            },
+            primitive,
+        })
+
+        const debugFrustumShaderVert = wd.createShaderModule({ code: debugFrustumVert })
+        const debugFrustumShaderFrag = wd.createShaderModule({ code: debugFrustumFrag })
+
+        Render.debugFrustumPipeline = wd.createRenderPipeline({
+            layout: "auto",
+            vertex: {
+                module: debugFrustumShaderVert,
+                entryPoint: "main",
+                buffers: MeshBuffer.buffers,
+            },
+            fragment: {
+                module: debugFrustumShaderFrag,
+                entryPoint: "main",
+                targets: [
+                    {
+                        format: "rgb10a2unorm",
+                        blend: {
+                            color: {
+                                operation: "add",
+                                srcFactor: "src-alpha",
+                                dstFactor: "one",
+                            },
+                            alpha: {
+                                operation: "add",
+                                srcFactor: "src-alpha",
+                                dstFactor: "one",
+                            },
+                        },
+                        writeMask: GPUColorWrite.ALL,
+                    },
+                ],
+            },
+            depthStencil: {
+                depthWriteEnabled: false,
+                depthCompare: "less-equal",
+                format: "depth24plus",
+            },
+            primitive,
+        })
     }
 
     // entities
@@ -1317,6 +1430,10 @@ export class Render {
 
         mat4.multiply(Render.vp, Render.vp, Render.viewMatrix)
         mat4.multiply(Render.vp_inplace, Render.vp_inplace, Render.viewMatrix_inplace)
+
+        vec3.copy(Render.cameraPosition, pos)
+
+        mat4.invert(Render.vp_inv, Render.vp)
     }
 
     // utils
@@ -1414,6 +1531,7 @@ export class Render {
         const sunModel = mat4.create()
         mat4.rotateY(sunModel, sunModel, sunYAngle)
         mat4.translate(sunModel, sunModel, sunPosition)
+
         Render.applyCameraRotationToModelMatrix(sunModel)
         Render.rotateModelUpfront(sunModel)
 
@@ -1429,6 +1547,108 @@ export class Render {
         mat4.multiply(Render.vp_glare, Render.vp_glare, glareModel)
 
         // TODO calc near/far shadow frustums
+
+        const UP_SHADOW = vec3.fromValues(0, 0, 1)
+
+        const sunDirection = vec3.fromValues(0, 0, 0)
+        vec3.transformMat4(sunDirection, sunDirection, sunModel)
+        vec3.normalize(sunDirection, sunDirection)
+
+        const SHADOW_CAMERA_DISTANCE = 15000
+
+        const shadowCameraPos = vec3.clone(Render.cameraPosition)
+        const temp = vec3.clone(sunDirection)
+        vec3.scale(temp, temp, SHADOW_CAMERA_DISTANCE)
+        vec3.add(shadowCameraPos, shadowCameraPos, temp)
+
+        const shadowView = mat4.create()
+        mat4.lookAt(shadowView, shadowCameraPos, Render.cameraPosition, UP_SHADOW)
+
+        const points = [-1, 1, 1, 1, -1, -1, 1, -1]
+
+        const min = vec3.fromValues(Infinity, Infinity, Infinity)
+        const max = vec3.fromValues(-Infinity, -Infinity, -Infinity)
+
+        const MIN_NEAR = 0
+        const MAX_NEAR = 0.986808896064758
+
+        const v = vec4.create()
+        for (const z of [MIN_NEAR, MAX_NEAR]) {
+            for (let i = 0; i < points.length; i += 2) {
+                // setup frustum point
+                vec4.set(v, points[i], points[i + 1], z, 1)
+                vec4.transformMat4(v, v, Render.vp_inv)
+                vec4.scale(v, v, 1 / v[3])
+
+                vec4.transformMat4(v, v, shadowView)
+                vec4.scale(v, v, 1 / v[3])
+
+                for (let j = 0; j < 3; j++) {
+                    min[j] = Math.min(min[j], v[j])
+                    max[j] = Math.max(max[j], v[j])
+                }
+            }
+        }
+
+        const shadowNearProjection = mat4.create()
+        mat4.orthoZO(shadowNearProjection, min[0], max[0], min[1], max[1], -max[2], -min[2])
+
+        mat4.identity(Render.vp_shadow_near)
+        mat4.multiply(Render.vp_shadow_near, Render.vp_shadow_near, shadowNearProjection)
+        mat4.multiply(Render.vp_shadow_near, Render.vp_shadow_near, shadowView)
+
+        const vp_shadow_near_inv = mat4.create()
+        mat4.invert(vp_shadow_near_inv, Render.vp_shadow_near)
+
+        function get(x: number, y: number, z: number): vec4 {
+            const v = vec4.fromValues(x, y, z, 1)
+            vec4.transformMat4(v, v, vp_shadow_near_inv)
+            vec4.scale(v, v, 1 / v[3])
+            return v
+        }
+
+        // console.log(get(0, 0, 0))
+        // console.log(get(0, 0, 1))
+        // debugger
+
+        // mat4.copy(Render.vp, Render.vp_shadow_near)
+
+        /*
+        if (!Render.debugFrustumMesh) {
+            const vertices = [
+                1, -1, 1, -1, -1, -1, 1, -1, -1, -1, -1, 1, -1, 1, -1, -1, -1, -1, -1, 1, 1, 1, 1,
+                -1, -1, 1, -1, 1, 1, 1, 1, -1, -1, 1, 1, -1, -1, 1, -1, 1, -1, -1, -1, -1, -1, -1,
+                -1, 1, 1, 1, 1, -1, 1, 1, -1, -1, 1, -1, 1, 1, 1, 1, 1, 1, -1, 1, 1, 1, -1, 1, -1,
+                1,
+            ]
+            const transformedVertices = []
+
+            const v = vec4.create()
+            for (let i = 0; i < vertices.length; i += 3) {
+                const x = vertices[i + 0]
+                const y = vertices[i + 1]
+                const z = vertices[i + 2] * 0.5 + 0.5
+
+                vec4.set(v, x, y, z, 1)
+
+                vec4.transformMat4(v, v, vp_shadow_near_inv)
+                vec4.scale(v, v, 1 / v[3])
+
+                transformedVertices.push(v[0])
+                transformedVertices.push(v[1])
+                transformedVertices.push(v[2])
+                transformedVertices.push(0)
+                transformedVertices.push(0)
+                transformedVertices.push(0)
+                transformedVertices.push(0)
+                transformedVertices.push(0)
+            }
+
+            Render.debugFrustumMesh = new MeshBuffer(
+                ResourceManager.generateCube(new Float32Array(transformedVertices))
+            )
+        }
+        */
     }
 
     static render(dt: number): void {
@@ -1508,6 +1728,14 @@ export class Render {
                 Render.blankQueryState = BlankQueryState.Requested
             }
 
+            if (Render.debugFrustumMesh) {
+                passEncoder.setBindGroup(0, Render.debugFrustumBind)
+                passEncoder.setPipeline(Render.debugFrustumPipeline)
+                passEncoder.setVertexBuffer(0, Render.debugFrustumMesh.vertices)
+                passEncoder.setIndexBuffer(Render.debugFrustumMesh.indices, "uint16")
+                passEncoder.drawIndexed(Render.debugFrustumMesh.indexCount)
+            }
+
             passEncoder.end()
         }
 
@@ -1554,6 +1782,13 @@ export class Render {
             passEncoder.setVertexBuffer(0, Render.fullscreenPlain.vertices)
             passEncoder.setIndexBuffer(Render.fullscreenPlain.indices, "uint16")
             passEncoder.drawIndexed(Render.fullscreenPlain.indexCount)
+
+            // DEBUG
+            passEncoder.setBindGroup(0, Render.debugTextureBind)
+            passEncoder.setPipeline(Render.debugDepthPipeline)
+            passEncoder.setVertexBuffer(0, Render.debugTexturePlane.vertices)
+            passEncoder.setIndexBuffer(Render.debugTexturePlane.indices, "uint16")
+            passEncoder.drawIndexed(Render.debugTexturePlane.indexCount)
 
             passEncoder.end()
         }

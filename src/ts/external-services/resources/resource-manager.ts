@@ -1,3 +1,4 @@
+import { wg } from "../render/render-context"
 import { Mesh, RefCountingResource, Texture } from "../render/render-data"
 import { loadMeshFromURL, loadTexture } from "./loaders"
 
@@ -67,5 +68,65 @@ export class ResourceManager {
 
     static finalize(): void {
         //
+    }
+
+    static generatePlane(x: number, y: number, width: number, height: number): Mesh {
+        const left = (x / wg.canvas.width) * 2 - 1
+        const right = ((x + width - 1) / wg.canvas.width) * 2 - 1
+        const top = (y / wg.canvas.height) * 2 - 1
+        const bottom = ((y + height - 1) / wg.canvas.height) * 2 - 1
+
+        const indices = new Uint16Array([0, 2, 1, 1, 2, 3])
+        const vertices = new Float32Array([
+            left,
+            -top,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+
+            right,
+            -top,
+            0,
+            0,
+            0,
+            1,
+            1,
+            0,
+
+            left,
+            -bottom,
+            0,
+            0,
+            0,
+            1,
+            0,
+            1,
+
+            right,
+            -bottom,
+            0,
+            0,
+            0,
+            1,
+            1,
+            1,
+        ])
+
+        const model = new Mesh(vertices, indices)
+
+        return model
+    }
+
+    static generateCube(vertices: Float32Array): Mesh {
+        const indices = new Uint16Array([
+            0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 0, 18, 1, 3, 19, 4, 6, 20,
+            7, 9, 21, 10, 12, 22, 13, 15, 23, 16,
+        ])
+        const model = new Mesh(vertices, indices)
+
+        return model
     }
 }

@@ -2,6 +2,9 @@ struct Settings {
     viewProjection: mat4x4<f32>,
     viewProjection_inplace: mat4x4<f32>,
     viewProjection_sun: mat4x4<f32>,
+    viewProjection_glare: mat4x4<f32>,
+    viewProjection_shadow_near: mat4x4<f32>,
+    viewProjection_shadow_far: mat4x4<f32>,
 }
 
 struct VertexOutput {

@@ -73,7 +73,7 @@ void WorldManager::addPillars() {
     float DISTANCE = 20;
     float STEP = DISTANCE / PILLARS_COUNT;
     for (int i = 0; i < PILLARS_COUNT; i++) {
-        float x = -10.0;
+        float x = -5.0;
         float y = -DISTANCE / 2 + (float)i * STEP + 0.5;
 
         RenderHandle pillar = Render::createRenderable(pillarModel, marbleTexture);
