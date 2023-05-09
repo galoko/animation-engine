@@ -2,6 +2,7 @@
 
 import objectsShadowNearVert from "../../shaders/objects-shadow-near.vert.wgsl"
 import objectsShadowFarVert from "../../shaders/objects-shadow-far.vert.wgsl"
+import contactShadowsFrag from "../../shaders/contact-shadows.frag.wgsl"
 
 import objectsVert from "../../shaders/objects.vert.wgsl"
 import objectsFrag from "../../shaders/objects.frag.wgsl"
@@ -357,6 +358,9 @@ export class Render {
     private static shadowFarPipeline: GPURenderPipeline
     private static shadowFarBind: GPUBindGroup
 
+    private static contactShadowsPipeline: GPURenderPipeline
+    private static contactShadowsBind: GPUBindGroup
+
     private static objectsPipeline: GPURenderPipeline
     private static objectsBind: GPUBindGroup
 
@@ -390,6 +394,10 @@ export class Render {
     private static shadowDepthBufferFarView: GPUTextureView
     private static shadowNearPassDesc: GPURenderPassDescriptor
     private static shadowFarPassDesc: GPURenderPassDescriptor
+
+    private static contactShadowsTexture: GPUTexture
+    private static contactShadowsTextureView: GPUTextureView
+    private static contactShadowsPassDesc: GPURenderPassDescriptor
 
     // render targets
     private static mainPassTexture: GPUTexture
@@ -603,6 +611,13 @@ export class Render {
     }
 
     private static setupFrameBuffers() {
+        Render.contactShadowsTexture = wd.createTexture({
+            size: [canvasWebGPU.width, canvasWebGPU.height],
+            format: "r32float",
+            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
+        })
+        Render.contactShadowsTextureView = Render.contactShadowsTexture.createView()
+
         Render.mainPassTexture = createFloatTexture(canvasWebGPU.width, canvasWebGPU.height)
         Render.mainPassTextureView = Render.mainPassTexture.createView()
 
@@ -665,6 +680,23 @@ export class Render {
                 depthLoadOp: "clear",
                 depthStoreOp: "store",
             },
+        }
+
+        Render.contactShadowsPassDesc = {
+            colorAttachments: [
+                {
+                    view: Render.contactShadowsTextureView,
+
+                    clearValue: {
+                        r: 1,
+                        g: 1,
+                        b: 1,
+                        a: 1,
+                    },
+                    loadOp: "clear",
+                    storeOp: "store",
+                },
+            ],
         }
 
         Render.mainPassDesc = {
@@ -1041,6 +1073,9 @@ export class Render {
             cullMode: "back",
         }
 
+        const passthroughShaderVert = wd.createShaderModule({ code: passthroughVert })
+        const passthroughShaderFrag = wd.createShaderModule({ code: passthroughFrag })
+
         // objects
 
         const objectsShadowNearShaderVert = wd.createShaderModule({ code: objectsShadowNearVert })
@@ -1071,6 +1106,27 @@ export class Render {
                 depthWriteEnabled: true,
                 depthCompare: "less",
                 format: "depth24plus",
+            },
+            primitive,
+        })
+
+        const contactShadowsShaderFrag = wd.createShaderModule({ code: contactShadowsFrag })
+        Render.contactShadowsPipeline = wd.createRenderPipeline({
+            layout: "auto",
+            vertex: {
+                module: passthroughShaderVert,
+                entryPoint: "main",
+                buffers: MeshBuffer.buffers,
+            },
+            fragment: {
+                module: contactShadowsShaderFrag,
+                entryPoint: "main",
+                targets: [
+                    {
+                        format: "r32float",
+                        writeMask: GPUColorWrite.ALL,
+                    },
+                ],
             },
             primitive,
         })
@@ -1223,9 +1279,6 @@ export class Render {
             primitive,
         })
 
-        const passthroughShaderVert = wd.createShaderModule({ code: passthroughVert })
-        const passthroughShaderFrag = wd.createShaderModule({ code: passthroughFrag })
-
         const fogShaderFrag = wd.createShaderModule({ code: fogFrag })
 
         Render.fogPipeline = wd.createRenderPipeline({
@@ -1241,18 +1294,6 @@ export class Render {
                 targets: [
                     {
                         format: "rgb10a2unorm",
-                        blend: {
-                            color: {
-                                operation: "add",
-                                srcFactor: "one",
-                                dstFactor: "zero",
-                            },
-                            alpha: {
-                                operation: "add",
-                                srcFactor: "one",
-                                dstFactor: "zero",
-                            },
-                        },
                         writeMask: GPUColorWrite.ALL,
                     },
                 ],
@@ -1440,6 +1481,9 @@ export class Render {
 
     // utils
 
+    static readonly NEAR = 15
+    static readonly FAR = 353840
+
     static handleResize(): void {
         const dpr = devicePixelRatio
 
@@ -1468,8 +1512,8 @@ export class Render {
             Render.projectionMatrix,
             (65 * Math.PI) / 180,
             canvasWebGPU.width / canvasWebGPU.height,
-            15,
-            353840
+            Render.NEAR,
+            Render.FAR
         )
     }
 
@@ -1526,6 +1570,40 @@ export class Render {
         }
     }
 
+    private static getQuasiLogDepth(linearDepth: number): number {
+        return (1 / linearDepth - 1 / Render.NEAR) / (1 / Render.FAR - 1 / Render.NEAR)
+    }
+
+    private static getShadowProjection(shadowView: mat4, near: number, far: number): mat4 {
+        const points = [-1, 1, 1, 1, -1, -1, 1, -1]
+
+        const min = vec3.fromValues(Infinity, Infinity, Infinity)
+        const max = vec3.fromValues(-Infinity, -Infinity, -Infinity)
+
+        const v = vec4.create()
+        for (const z of [near, far]) {
+            for (let i = 0; i < points.length; i += 2) {
+                // setup frustum point
+                vec4.set(v, points[i], points[i + 1], z, 1)
+                vec4.transformMat4(v, v, Render.vp_inv)
+                vec4.scale(v, v, 1 / v[3])
+
+                vec4.transformMat4(v, v, shadowView)
+                vec4.scale(v, v, 1 / v[3])
+
+                for (let j = 0; j < 3; j++) {
+                    min[j] = Math.min(min[j], v[j])
+                    max[j] = Math.max(max[j], v[j])
+                }
+            }
+        }
+
+        const projection = mat4.create()
+        mat4.orthoZO(projection, min[0], max[0], min[1], max[1], -max[2], -min[2])
+
+        return projection
+    }
+
     static calcSunTransform(): void {
         const sunYAngle = Math.PI * 1.55
         const sunPosition = vec3.fromValues(20.6666469573975, 77.4717559814453, 341.035034179687)
@@ -1551,12 +1629,11 @@ export class Render {
         // TODO calc near/far shadow frustums
 
         const UP_SHADOW = vec3.fromValues(0, 0, 1)
+        const SHADOW_CAMERA_DISTANCE = 15000
 
         const sunDirection = vec3.fromValues(0, 0, 0)
         vec3.transformMat4(sunDirection, sunDirection, sunModel)
         vec3.normalize(sunDirection, sunDirection)
-
-        const SHADOW_CAMERA_DISTANCE = 15000
 
         const shadowCameraPos = vec3.clone(Render.cameraPosition)
         const temp = vec3.clone(sunDirection)
@@ -1566,58 +1643,31 @@ export class Render {
         const shadowView = mat4.create()
         mat4.lookAt(shadowView, shadowCameraPos, Render.cameraPosition, UP_SHADOW)
 
-        const points = [-1, 1, 1, 1, -1, -1, 1, -1]
+        const CASCADE_DISTANCES = [
+            0,
+            Render.getQuasiLogDepth(1133.5),
+            Render.getQuasiLogDepth(10100),
+        ]
 
-        const min = vec3.fromValues(Infinity, Infinity, Infinity)
-        const max = vec3.fromValues(-Infinity, -Infinity, -Infinity)
-
-        const MIN_NEAR = 0
-        const MAX_NEAR = 0.986808896064758
-
-        const v = vec4.create()
-        for (const z of [MIN_NEAR, MAX_NEAR]) {
-            for (let i = 0; i < points.length; i += 2) {
-                // setup frustum point
-                vec4.set(v, points[i], points[i + 1], z, 1)
-                vec4.transformMat4(v, v, Render.vp_inv)
-                vec4.scale(v, v, 1 / v[3])
-
-                vec4.transformMat4(v, v, shadowView)
-                vec4.scale(v, v, 1 / v[3])
-
-                for (let j = 0; j < 3; j++) {
-                    min[j] = Math.min(min[j], v[j])
-                    max[j] = Math.max(max[j], v[j])
-                }
-            }
-        }
-
-        const shadowNearProjection = mat4.create()
-        mat4.orthoZO(shadowNearProjection, min[0], max[0], min[1], max[1], -max[2], -min[2])
+        const shadowNearProjection = Render.getShadowProjection(
+            shadowView,
+            CASCADE_DISTANCES[0],
+            CASCADE_DISTANCES[1]
+        )
 
         mat4.identity(Render.vp_shadow_near)
         mat4.multiply(Render.vp_shadow_near, Render.vp_shadow_near, shadowNearProjection)
         mat4.multiply(Render.vp_shadow_near, Render.vp_shadow_near, shadowView)
 
-        /*
-        if (Render.debugFrustumMeshes.length < 1) {
-            const vp_shadow_near_inv = mat4.create()
-            mat4.invert(vp_shadow_near_inv, Render.vp_shadow_near)
-            
-            Render.debugFrustumMeshes.push(
-                new MeshBuffer(
-                    ResourceManager.generateCubeFromTransform(
-                        Render.vp_inv,
-                        0,
-                        1,
-                        MIN_NEAR,
-                        MAX_NEAR
-                    )
-                ),
-                new MeshBuffer(ResourceManager.generateCubeFromTransform(vp_shadow_near_inv, 1, 0))
-            )
-        }
-        */
+        const shadowFarProjection = Render.getShadowProjection(
+            shadowView,
+            CASCADE_DISTANCES[1],
+            CASCADE_DISTANCES[2]
+        )
+
+        mat4.identity(Render.vp_shadow_far)
+        mat4.multiply(Render.vp_shadow_far, Render.vp_shadow_far, shadowFarProjection)
+        mat4.multiply(Render.vp_shadow_far, Render.vp_shadow_far, shadowView)
     }
 
     static render(dt: number): void {

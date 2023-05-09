@@ -7858,6 +7858,8 @@ var objectsShadowNearVert = "struct Settings {\r\n    viewProjection: mat4x4<f32
 
 var objectsShadowFarVert = "struct Settings {\r\n    viewProjection: mat4x4<f32>,\r\n    viewProjection_inplace: mat4x4<f32>,\r\n    viewProjection_sun: mat4x4<f32>,\r\n    viewProjection_glare: mat4x4<f32>,\r\n    viewProjection_shadow_near: mat4x4<f32>,\r\n    viewProjection_shadow_far: mat4x4<f32>,\r\n}\r\n\r\nstruct PerObjectDataEntry {\r\n    quat_scale: vec4<f32>,\r\n    translation_atlasNum: vec4<f32>,\r\n}\r\n\r\nstruct PerObjectData {\r\n    entries: array<PerObjectDataEntry>,\r\n}\r\n\r\n@group(0) @binding(0) var<uniform> settings: Settings;\r\n@group(0) @binding(1) var<storage, read> perObjectData : PerObjectData;\r\n\r\nfn quat_transform(q: vec4<f32>, v: vec3<f32>) -> vec3<f32> {\r\n    return v + 2 * cross(q.xyz, cross(q.xyz, v) + q.w * v);\r\n}\r\n\r\n@vertex\r\nfn main(@location(0) inputPosition: vec3<f32>, @location(3) paramsIndex: f32) -> @builtin(position) vec4<f32> {\r\n    var index = u32(paramsIndex);\r\n\r\n    var quat_scale = perObjectData.entries[index].quat_scale;\r\n    var translation_atlasNum = perObjectData.entries[index].translation_atlasNum;\r\n\r\n    var scale = quat_scale.w;\r\n\r\n    var translation = translation_atlasNum.xyz;\r\n    var atlasNum = translation_atlasNum.w;\r\n\r\n    var quat_xyz = quat_scale.xyz;\r\n    var s = length(quat_xyz);\r\n    var quat = vec4(quat_xyz, sqrt(1.0 - s * s));\r\n\r\n    var fragPosition = settings.viewProjection_shadow_far * vec4(quat_transform(quat, inputPosition) * scale + translation, 1.0);\r\n\r\n    return fragPosition;\r\n}";
 
+var contactShadowsFrag = "@group(0) @binding(0) var linearSampler: sampler;\r\n@group(0) @binding(1) var depthBufferScreenSpace: texture_2d<f32>;\r\n@group(0) @binding(2) var depthBuffersLightSource: texture_depth_2d_array;\r\n\r\n@fragment\r\nfn main(\r\n    @location(0) fragNormal: vec3<f32>,\r\n    @location(1) fragUV: vec2<f32>,\r\n) -> @location(0) vec4<f32> {\r\n\r\n    return vec4(1, 1, 1, 1);\r\n}";
+
 var objectsVert = "struct Settings {\r\n    viewProjection: mat4x4<f32>,\r\n    viewProjection_inplace: mat4x4<f32>,\r\n    viewProjection_sun: mat4x4<f32>,\r\n    viewProjection_glare: mat4x4<f32>,\r\n    viewProjection_shadow_near: mat4x4<f32>,\r\n    viewProjection_shadow_far: mat4x4<f32>,\r\n}\r\n\r\nstruct PerObjectDataEntry {\r\n    quat_scale: vec4<f32>,\r\n    translation_atlasNum: vec4<f32>,\r\n}\r\n\r\nstruct PerObjectData {\r\n    entries: array<PerObjectDataEntry>,\r\n}\r\n\r\nstruct VertexOutput {\r\n    @builtin(position) fragPosition: vec4<f32>,\r\n    @location(0) fragNormal: vec3<f32>,\r\n    @location(1) fragUV: vec2<f32>,\r\n    @location(2) @interpolate(flat) fragAtlasNum: u32,\r\n}\r\n\r\n@group(0) @binding(0) var<uniform> settings: Settings;\r\n@group(0) @binding(1) var<storage, read> perObjectData : PerObjectData;\r\n\r\nfn quat_transform(q: vec4<f32>, v: vec3<f32>) -> vec3<f32> {\r\n    return v + 2 * cross(q.xyz, cross(q.xyz, v) + q.w * v);\r\n}\r\n\r\n@vertex\r\nfn main(\r\n    @location(0) inputPosition: vec3<f32>,\r\n    @location(1) inputNormal: vec3<f32>,\r\n    @location(2) inputUV: vec2<f32>,\r\n    @location(3) paramsIndex: f32,\r\n) -> VertexOutput {\r\n    var index = u32(paramsIndex);\r\n\r\n    var quat_scale = perObjectData.entries[index].quat_scale;\r\n    var translation_atlasNum = perObjectData.entries[index].translation_atlasNum;\r\n\r\n    var scale = quat_scale.w;\r\n\r\n    var translation = translation_atlasNum.xyz;\r\n    var atlasNum = translation_atlasNum.w;\r\n\r\n    var quat_xyz = quat_scale.xyz;\r\n    var s = length(quat_xyz);\r\n    var quat = vec4(quat_xyz, sqrt(1.0 - s * s));\r\n\r\n    var output: VertexOutput;\r\n    output.fragPosition = settings.viewProjection * vec4(quat_transform(quat, inputPosition) * scale + translation, 1.0);\r\n    output.fragNormal = quat_transform(quat, inputNormal);\r\n    output.fragUV = inputUV;\r\n    output.fragAtlasNum = u32(atlasNum);\r\n\r\n    return output;\r\n}";
 
 var objectsFrag = "@group(0) @binding(2) var atlasSampler: sampler;\r\n@group(0) @binding(3) var atlases: texture_2d_array<f32>;\r\n\r\n@fragment\r\nfn main(\r\n    @location(0) fragNormal: vec3<f32>,\r\n    @location(1) fragUV: vec2<f32>,\r\n    @location(2) @interpolate(flat) fragAtlasNum: u32,\r\n) -> @location(0) vec4<f32> {\r\n    var lightDir = normalize(vec3(0.656, 0.3, 0.14));\r\n    var lightColor = vec3(1.);\r\n\r\n    var diff = max(dot(fragNormal, lightDir), 0.0);\r\n    var diffuse = diff * lightColor;\r\n\r\n    var ambient = 0.5;\r\n\r\n    var objectColor = textureSample(atlases, atlasSampler, fragUV, fragAtlasNum);\r\n\r\n    var outputColor = vec4(min(ambient + diffuse, vec3(1)) * objectColor.rgb, objectColor.a);\r\n\r\n    return outputColor;\r\n}";
@@ -8730,6 +8732,8 @@ class Render {
     static shadowNearBind;
     static shadowFarPipeline;
     static shadowFarBind;
+    static contactShadowsPipeline;
+    static contactShadowsBind;
     static objectsPipeline;
     static objectsBind;
     static skydomePipeline;
@@ -8755,6 +8759,9 @@ class Render {
     static shadowDepthBufferFarView;
     static shadowNearPassDesc;
     static shadowFarPassDesc;
+    static contactShadowsTexture;
+    static contactShadowsTextureView;
+    static contactShadowsPassDesc;
     // render targets
     static mainPassTexture;
     static mainPassTextureView;
@@ -8926,6 +8933,12 @@ class Render {
         return [...res, atlas.num];
     }
     static setupFrameBuffers() {
+        Render.contactShadowsTexture = wd.createTexture({
+            size: [canvasWebGPU.width, canvasWebGPU.height],
+            format: "r32float",
+            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
+        });
+        Render.contactShadowsTextureView = Render.contactShadowsTexture.createView();
         Render.mainPassTexture = createFloatTexture(canvasWebGPU.width, canvasWebGPU.height);
         Render.mainPassTextureView = Render.mainPassTexture.createView();
         Render.depthBuffer = wd.createTexture({
@@ -8980,6 +8993,21 @@ class Render {
                 depthLoadOp: "clear",
                 depthStoreOp: "store",
             },
+        };
+        Render.contactShadowsPassDesc = {
+            colorAttachments: [
+                {
+                    view: Render.contactShadowsTextureView,
+                    clearValue: {
+                        r: 1,
+                        g: 1,
+                        b: 1,
+                        a: 1,
+                    },
+                    loadOp: "clear",
+                    storeOp: "store",
+                },
+            ],
         };
         Render.mainPassDesc = {
             colorAttachments: [
@@ -9288,6 +9316,8 @@ class Render {
             topology: "triangle-list",
             cullMode: "back",
         };
+        const passthroughShaderVert = wd.createShaderModule({ code: passthroughVert });
+        const passthroughShaderFrag = wd.createShaderModule({ code: passthroughFrag });
         // objects
         const objectsShadowNearShaderVert = wd.createShaderModule({ code: objectsShadowNearVert });
         Render.shadowNearPipeline = wd.createRenderPipeline({
@@ -9316,6 +9346,26 @@ class Render {
                 depthWriteEnabled: true,
                 depthCompare: "less",
                 format: "depth24plus",
+            },
+            primitive,
+        });
+        const contactShadowsShaderFrag = wd.createShaderModule({ code: contactShadowsFrag });
+        Render.contactShadowsPipeline = wd.createRenderPipeline({
+            layout: "auto",
+            vertex: {
+                module: passthroughShaderVert,
+                entryPoint: "main",
+                buffers: MeshBuffer.buffers,
+            },
+            fragment: {
+                module: contactShadowsShaderFrag,
+                entryPoint: "main",
+                targets: [
+                    {
+                        format: "r32float",
+                        writeMask: GPUColorWrite.ALL,
+                    },
+                ],
             },
             primitive,
         });
@@ -9459,8 +9509,6 @@ class Render {
             },
             primitive,
         });
-        const passthroughShaderVert = wd.createShaderModule({ code: passthroughVert });
-        const passthroughShaderFrag = wd.createShaderModule({ code: passthroughFrag });
         const fogShaderFrag = wd.createShaderModule({ code: fogFrag });
         Render.fogPipeline = wd.createRenderPipeline({
             layout: "auto",
@@ -9475,18 +9523,6 @@ class Render {
                 targets: [
                     {
                         format: "rgb10a2unorm",
-                        blend: {
-                            color: {
-                                operation: "add",
-                                srcFactor: "one",
-                                dstFactor: "zero",
-                            },
-                            alpha: {
-                                operation: "add",
-                                srcFactor: "one",
-                                dstFactor: "zero",
-                            },
-                        },
                         writeMask: GPUColorWrite.ALL,
                     },
                 ],
@@ -9650,6 +9686,8 @@ class Render {
         invert$2(Render.vp_inv, Render.vp);
     }
     // utils
+    static NEAR = 15;
+    static FAR = 353840;
     static handleResize() {
         const dpr = devicePixelRatio;
         const newWidth = Math.floor(document.body.clientWidth * dpr);
@@ -9668,7 +9706,7 @@ class Render {
         canvasWebGPU.height = newHeight;
         ctx$1.resetTransform();
         ctx$1.scale(dpr, dpr);
-        perspectiveZO(Render.projectionMatrix, (65 * Math.PI) / 180, canvasWebGPU.width / canvasWebGPU.height, 15, 353840);
+        perspectiveZO(Render.projectionMatrix, (65 * Math.PI) / 180, canvasWebGPU.width / canvasWebGPU.height, Render.NEAR, Render.FAR);
     }
     static applyCameraRotationToModelMatrix(model) {
         const q = create$2();
@@ -9707,6 +9745,32 @@ class Render {
                 Math.min(glareTargetScale * direction, Render.glareScale * direction) * direction;
         }
     }
+    static getQuasiLogDepth(linearDepth) {
+        return (1 / linearDepth - 1 / Render.NEAR) / (1 / Render.FAR - 1 / Render.NEAR);
+    }
+    static getShadowProjection(shadowView, near, far) {
+        const points = [-1, 1, 1, 1, -1, -1, 1, -1];
+        const min = fromValues$4(Infinity, Infinity, Infinity);
+        const max = fromValues$4(-Infinity, -Infinity, -Infinity);
+        const v = create$3();
+        for (const z of [near, far]) {
+            for (let i = 0; i < points.length; i += 2) {
+                // setup frustum point
+                set$3(v, points[i], points[i + 1], z, 1);
+                transformMat4$1(v, v, Render.vp_inv);
+                scale$3(v, v, 1 / v[3]);
+                transformMat4$1(v, v, shadowView);
+                scale$3(v, v, 1 / v[3]);
+                for (let j = 0; j < 3; j++) {
+                    min[j] = Math.min(min[j], v[j]);
+                    max[j] = Math.max(max[j], v[j]);
+                }
+            }
+        }
+        const projection = create$5();
+        orthoZO(projection, min[0], max[0], min[1], max[1], -max[2], -min[2]);
+        return projection;
+    }
     static calcSunTransform() {
         const sunYAngle = Math.PI * 1.55;
         const sunPosition = fromValues$4(20.6666469573975, 77.4717559814453, 341.035034179687);
@@ -9725,60 +9789,29 @@ class Render {
         multiply$5(Render.vp_glare, Render.vp_glare, glareModel);
         // TODO calc near/far shadow frustums
         const UP_SHADOW = fromValues$4(0, 0, 1);
+        const SHADOW_CAMERA_DISTANCE = 15000;
         const sunDirection = fromValues$4(0, 0, 0);
         transformMat4$2(sunDirection, sunDirection, sunModel);
         normalize$4(sunDirection, sunDirection);
-        const SHADOW_CAMERA_DISTANCE = 15000;
         const shadowCameraPos = clone$4(Render.cameraPosition);
         const temp = clone$4(sunDirection);
         scale$4(temp, temp, SHADOW_CAMERA_DISTANCE);
         add$4(shadowCameraPos, shadowCameraPos, temp);
         const shadowView = create$5();
         lookAt$1(shadowView, shadowCameraPos, Render.cameraPosition, UP_SHADOW);
-        const points = [-1, 1, 1, 1, -1, -1, 1, -1];
-        const min = fromValues$4(Infinity, Infinity, Infinity);
-        const max = fromValues$4(-Infinity, -Infinity, -Infinity);
-        const MIN_NEAR = 0;
-        const MAX_NEAR = 0.986808896064758;
-        const v = create$3();
-        for (const z of [MIN_NEAR, MAX_NEAR]) {
-            for (let i = 0; i < points.length; i += 2) {
-                // setup frustum point
-                set$3(v, points[i], points[i + 1], z, 1);
-                transformMat4$1(v, v, Render.vp_inv);
-                scale$3(v, v, 1 / v[3]);
-                transformMat4$1(v, v, shadowView);
-                scale$3(v, v, 1 / v[3]);
-                for (let j = 0; j < 3; j++) {
-                    min[j] = Math.min(min[j], v[j]);
-                    max[j] = Math.max(max[j], v[j]);
-                }
-            }
-        }
-        const shadowNearProjection = create$5();
-        orthoZO(shadowNearProjection, min[0], max[0], min[1], max[1], -max[2], -min[2]);
+        const CASCADE_DISTANCES = [
+            0,
+            Render.getQuasiLogDepth(1133.5),
+            Render.getQuasiLogDepth(10100),
+        ];
+        const shadowNearProjection = Render.getShadowProjection(shadowView, CASCADE_DISTANCES[0], CASCADE_DISTANCES[1]);
         identity$2(Render.vp_shadow_near);
         multiply$5(Render.vp_shadow_near, Render.vp_shadow_near, shadowNearProjection);
         multiply$5(Render.vp_shadow_near, Render.vp_shadow_near, shadowView);
-        /*
-        if (Render.debugFrustumMeshes.length < 1) {
-            const vp_shadow_near_inv = mat4.create()
-            mat4.invert(vp_shadow_near_inv, Render.vp_shadow_near)
-            
-            Render.debugFrustumMeshes.push(
-                new MeshBuffer(
-                    ResourceManager.generateCubeFromTransform(
-                        Render.vp_inv,
-                        0,
-                        1,
-                        MIN_NEAR,
-                        MAX_NEAR
-                    )
-                ),
-                new MeshBuffer(ResourceManager.generateCubeFromTransform(vp_shadow_near_inv, 1, 0))
-            )
-        }
-        */
+        const shadowFarProjection = Render.getShadowProjection(shadowView, CASCADE_DISTANCES[1], CASCADE_DISTANCES[2]);
+        identity$2(Render.vp_shadow_far);
+        multiply$5(Render.vp_shadow_far, Render.vp_shadow_far, shadowFarProjection);
+        multiply$5(Render.vp_shadow_far, Render.vp_shadow_far, shadowView);
     }
     static render(dt) {
         Render.handleResize();
