@@ -7886,9 +7886,9 @@ var blankVert = "struct Settings {\r\n    viewProjection: mat4x4<f32>,\r\n    vi
 
 var blankFrag = "@fragment\r\nfn main() -> @location(0) vec4<f32> {\r\n    return vec4(0.0, 0.0, 0.0, 1.0);\r\n}";
 
-var debugFrustumVert = "struct Settings {\r\n    viewProjection: mat4x4<f32>,\r\n    viewProjection_inplace: mat4x4<f32>,\r\n    viewProjection_sun: mat4x4<f32>,\r\n    viewProjection_glare: mat4x4<f32>,\r\n    viewProjection_shadow_near: mat4x4<f32>,\r\n    viewProjection_shadow_far: mat4x4<f32>,\r\n}\r\n\r\nstruct VertexOutput {\r\n    @builtin(position) fragPosition: vec4<f32>,\r\n    @location(0) fragNormal: vec3<f32>,\r\n}\r\n\r\n@group(0) @binding(0) var<uniform> settings: Settings;\r\n\r\n@vertex\r\nfn main(\r\n    @location(0) inputPosition: vec3<f32>,\r\n    @location(1) inputNormal: vec3<f32>,\r\n    @location(2) inputUV: vec2<f32>,\r\n) -> VertexOutput {\r\n    var output: VertexOutput;\r\n    output.fragPosition = settings.viewProjection * vec4(inputPosition, 1);\r\n    output.fragNormal = inputNormal;\r\n\r\n    return output;\r\n}";
+var debugFrustumVert = "struct Settings {\r\n    viewProjection: mat4x4<f32>,\r\n    viewProjection_inplace: mat4x4<f32>,\r\n    viewProjection_sun: mat4x4<f32>,\r\n    viewProjection_glare: mat4x4<f32>,\r\n    viewProjection_shadow_near: mat4x4<f32>,\r\n    viewProjection_shadow_far: mat4x4<f32>,\r\n}\r\n\r\nstruct VertexOutput {\r\n    @builtin(position) fragPosition: vec4<f32>,\r\n    @location(0) fragNormal: vec3<f32>,\r\n    @location(1) fragUV: vec2<f32>,\r\n}\r\n\r\n@group(0) @binding(0) var<uniform> settings: Settings;\r\n\r\n@vertex\r\nfn main(\r\n    @location(0) inputPosition: vec3<f32>,\r\n    @location(1) inputNormal: vec3<f32>,\r\n    @location(2) inputUV: vec2<f32>,\r\n) -> VertexOutput {\r\n    var output: VertexOutput;\r\n    output.fragPosition = settings.viewProjection * vec4(inputPosition, 1);\r\n    output.fragNormal = inputNormal;\r\n    output.fragUV = inputUV;\r\n\r\n    return output;\r\n}";
 
-var debugFrustumFrag = "@fragment\r\nfn main(\r\n    @location(0) fragNormal: vec3<f32>,\r\n) -> @location(0) vec4<f32> {\r\n    var lightDir = normalize(vec3(0.656, 0.3, 0.14));\r\n    var lightColor = vec3(1.);\r\n\r\n    var diff = max(dot(fragNormal, lightDir), 0.0);\r\n    var diffuse = diff * lightColor;\r\n\r\n    var ambient = 0.5;\r\n\r\n    var objectColor = vec4(1.0, 0.0, 0.0, 0.5);\r\n\r\n    var outputColor = vec4(min(ambient + diffuse, vec3(1)) * objectColor.rgb, objectColor.a);\r\n\r\n    return outputColor;\r\n}";
+var debugFrustumFrag = "@fragment\r\nfn main(\r\n    @location(0) fragNormal: vec3<f32>,\r\n    @location(1) fragUV: vec2<f32>,\r\n) -> @location(0) vec4<f32> {\r\n    var lightDir = normalize(vec3(0.656, 0.3, 0.14));\r\n    var lightColor = vec3(1.);\r\n\r\n    var diff = max(dot(fragNormal, lightDir), 0.0);\r\n    var diffuse = diff * lightColor;\r\n\r\n    var ambient = 0.5;\r\n\r\n    var objectColor = vec4(fragUV.x, 0.0, fragUV.y, 0.25);\r\n\r\n    var outputColor = vec4(min(ambient + diffuse, vec3(1)) * objectColor.rgb, objectColor.a);\r\n\r\n    return outputColor;\r\n}";
 
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 const canvasWebGPU = document.createElement("canvas");
@@ -8428,12 +8428,51 @@ class ResourceManager {
         const model = new Mesh(vertices, indices);
         return model;
     }
-    static generateCube(vertices) {
+    static generateCubeFromTransform(transform, r, b, min_z = 0, max_z = 1) {
+        const templateVertices = [
+            1, -1, 1, 0, 1, -1, -1, 0, 1, 0, 1, -1, 0, 0, 0, -1, -1, 1, 0, 1, -1, 1, 0, 1, 0, -1,
+            -1, 0, 0, 0, -1, 1, 1, 1, 1, 1, 1, 0, 0, 0, -1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, -1, 0, 0,
+            0, 1, 1, 0, 1, 0, -1, 1, 0, 1, 1, 1, -1, 0, 0, 0, -1, -1, 0, 0, 1, -1, -1, 1, 0, 1, 1,
+            1, 1, 1, 0, -1, 1, 1, 1, 1, -1, -1, 1, 1, 1, -1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, -1, 1, 0,
+            1, 1, 1, 0, 1, 0, 1, -1, 1, 0, 0,
+        ];
+        const vertices = [];
+        const vec = create$3();
+        for (let i = 0; i < templateVertices.length; i += 5) {
+            const x = templateVertices[i + 0];
+            const y = templateVertices[i + 1];
+            const z = min_z + templateVertices[i + 2] * (max_z - min_z);
+            set$3(vec, -x, -y, max_z - z, 1);
+            transformMat4$1(vec, vec, transform);
+            scale$3(vec, vec, 1 / vec[3]);
+            vertices.push(vec[0], vec[1], vec[2], 0, 0, 0, r, b);
+        }
         const indices = new Uint16Array([
             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 0, 18, 1, 3, 19, 4, 6, 20,
             7, 9, 21, 10, 12, 22, 13, 15, 23, 16,
         ]);
-        const model = new Mesh(vertices, indices);
+        const getPoint = (i) => fromValues$4(vertices[i * 8 + 0], vertices[i * 8 + 1], vertices[i * 8 + 2]);
+        const setNormal = (i, n) => {
+            vertices[i * 8 + 3] = n[0];
+            vertices[i * 8 + 4] = n[1];
+            vertices[i * 8 + 5] = n[2];
+        };
+        // calc normals
+        for (let faceIndex = 0; faceIndex < indices.length; faceIndex += 3) {
+            const p1 = getPoint(indices[faceIndex + 0]);
+            const p2 = getPoint(indices[faceIndex + 1]);
+            const p3 = getPoint(indices[faceIndex + 2]);
+            const u = sub$2(create$4(), p2, p1);
+            const v = sub$2(create$4(), p3, p1);
+            const n = create$4();
+            n[0] = u[1] * v[2] - u[2] * v[1];
+            n[1] = u[2] * v[0] - u[0] * v[2];
+            n[2] = u[0] * v[1] - u[1] * v[0];
+            setNormal(indices[faceIndex + 0], n);
+            setNormal(indices[faceIndex + 1], n);
+            setNormal(indices[faceIndex + 2], n);
+        }
+        const model = new Mesh(new Float32Array(vertices), indices);
         return model;
     }
 }
@@ -8738,7 +8777,7 @@ class Render {
     static debugTexturePlane;
     static debugTextureBind;
     static debugDepthPipeline;
-    static debugFrustumMesh;
+    static debugFrustumMeshes;
     static debugFrustumBind;
     static debugFrustumPipeline;
     static perObjectData;
@@ -8760,6 +8799,7 @@ class Render {
         Render.viewMatrix_inplace = create$5();
         Render.cameraPosition = create$4();
         Render.vp_inv = create$5();
+        Render.debugFrustumMeshes = [];
         Render.handleResize();
         Render.initAtlases();
         Render.setupFrameBuffers();
@@ -9246,7 +9286,7 @@ class Render {
         const screenFormat = navigator.gpu.getPreferredCanvasFormat();
         const primitive = {
             topology: "triangle-list",
-            cullMode: "none",
+            cullMode: "back",
         };
         // objects
         const objectsShadowNearShaderVert = wd.createShaderModule({ code: objectsShadowNearVert });
@@ -9720,51 +9760,22 @@ class Render {
         identity$2(Render.vp_shadow_near);
         multiply$5(Render.vp_shadow_near, Render.vp_shadow_near, shadowNearProjection);
         multiply$5(Render.vp_shadow_near, Render.vp_shadow_near, shadowView);
-        const vp_shadow_near_inv = create$5();
-        invert$2(vp_shadow_near_inv, Render.vp_shadow_near);
-        function get(x, y, z) {
-            const v = fromValues$3(x, y, z, 1);
-            transformMat4$1(v, v, vp_shadow_near_inv);
-            scale$3(v, v, 1 / v[3]);
-            return v;
-        }
-        // console.log(get(0, 0, 0))
-        // console.log(get(0, 0, 1))
-        // debugger
-        // mat4.copy(Render.vp, Render.vp_shadow_near)
         /*
-        if (!Render.debugFrustumMesh) {
-            const vertices = [
-                1, -1, 1, -1, -1, -1, 1, -1, -1, -1, -1, 1, -1, 1, -1, -1, -1, -1, -1, 1, 1, 1, 1,
-                -1, -1, 1, -1, 1, 1, 1, 1, -1, -1, 1, 1, -1, -1, 1, -1, 1, -1, -1, -1, -1, -1, -1,
-                -1, 1, 1, 1, 1, -1, 1, 1, -1, -1, 1, -1, 1, 1, 1, 1, 1, 1, -1, 1, 1, 1, -1, 1, -1,
-                1,
-            ]
-            const transformedVertices = []
-
-            const v = vec4.create()
-            for (let i = 0; i < vertices.length; i += 3) {
-                const x = vertices[i + 0]
-                const y = vertices[i + 1]
-                const z = vertices[i + 2] * 0.5 + 0.5
-
-                vec4.set(v, x, y, z, 1)
-
-                vec4.transformMat4(v, v, vp_shadow_near_inv)
-                vec4.scale(v, v, 1 / v[3])
-
-                transformedVertices.push(v[0])
-                transformedVertices.push(v[1])
-                transformedVertices.push(v[2])
-                transformedVertices.push(0)
-                transformedVertices.push(0)
-                transformedVertices.push(0)
-                transformedVertices.push(0)
-                transformedVertices.push(0)
-            }
-
-            Render.debugFrustumMesh = new MeshBuffer(
-                ResourceManager.generateCube(new Float32Array(transformedVertices))
+        if (Render.debugFrustumMeshes.length < 1) {
+            const vp_shadow_near_inv = mat4.create()
+            mat4.invert(vp_shadow_near_inv, Render.vp_shadow_near)
+            
+            Render.debugFrustumMeshes.push(
+                new MeshBuffer(
+                    ResourceManager.generateCubeFromTransform(
+                        Render.vp_inv,
+                        0,
+                        1,
+                        MIN_NEAR,
+                        MAX_NEAR
+                    )
+                ),
+                new MeshBuffer(ResourceManager.generateCubeFromTransform(vp_shadow_near_inv, 1, 0))
             )
         }
         */
@@ -9832,12 +9843,14 @@ class Render {
                 passEncoder.endOcclusionQuery();
                 Render.blankQueryState = BlankQueryState.Requested;
             }
-            if (Render.debugFrustumMesh) {
+            if (Render.debugFrustumMeshes.length > 0) {
                 passEncoder.setBindGroup(0, Render.debugFrustumBind);
                 passEncoder.setPipeline(Render.debugFrustumPipeline);
-                passEncoder.setVertexBuffer(0, Render.debugFrustumMesh.vertices);
-                passEncoder.setIndexBuffer(Render.debugFrustumMesh.indices, "uint16");
-                passEncoder.drawIndexed(Render.debugFrustumMesh.indexCount);
+                for (const debugFrustumMesh of Render.debugFrustumMeshes) {
+                    passEncoder.setVertexBuffer(0, debugFrustumMesh.vertices);
+                    passEncoder.setIndexBuffer(debugFrustumMesh.indices, "uint16");
+                    passEncoder.drawIndexed(debugFrustumMesh.indexCount);
+                }
             }
             passEncoder.end();
         }

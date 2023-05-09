@@ -10,6 +10,7 @@ struct Settings {
 struct VertexOutput {
     @builtin(position) fragPosition: vec4<f32>,
     @location(0) fragNormal: vec3<f32>,
+    @location(1) fragUV: vec2<f32>,
 }
 
 @group(0) @binding(0) var<uniform> settings: Settings;
@@ -23,6 +24,7 @@ fn main(
     var output: VertexOutput;
     output.fragPosition = settings.viewProjection * vec4(inputPosition, 1);
     output.fragNormal = inputNormal;
+    output.fragUV = inputUV;
 
     return output;
 }

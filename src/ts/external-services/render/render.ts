@@ -418,7 +418,7 @@ export class Render {
     private static debugTextureBind: GPUBindGroup
     private static debugDepthPipeline: GPURenderPipeline
 
-    private static debugFrustumMesh: MeshBuffer
+    private static debugFrustumMeshes: MeshBuffer[]
     private static debugFrustumBind: GPUBindGroup
     private static debugFrustumPipeline: GPURenderPipeline
 
@@ -447,6 +447,8 @@ export class Render {
         Render.viewMatrix_inplace = mat4.create()
         Render.cameraPosition = vec3.create()
         Render.vp_inv = mat4.create()
+
+        Render.debugFrustumMeshes = []
 
         Render.handleResize()
 
@@ -1036,7 +1038,7 @@ export class Render {
 
         const primitive: GPUPrimitiveState = {
             topology: "triangle-list",
-            cullMode: "none",
+            cullMode: "back",
         }
 
         // objects
@@ -1597,55 +1599,22 @@ export class Render {
         mat4.multiply(Render.vp_shadow_near, Render.vp_shadow_near, shadowNearProjection)
         mat4.multiply(Render.vp_shadow_near, Render.vp_shadow_near, shadowView)
 
-        const vp_shadow_near_inv = mat4.create()
-        mat4.invert(vp_shadow_near_inv, Render.vp_shadow_near)
-
-        function get(x: number, y: number, z: number): vec4 {
-            const v = vec4.fromValues(x, y, z, 1)
-            vec4.transformMat4(v, v, vp_shadow_near_inv)
-            vec4.scale(v, v, 1 / v[3])
-            return v
-        }
-
-        // console.log(get(0, 0, 0))
-        // console.log(get(0, 0, 1))
-        // debugger
-
-        // mat4.copy(Render.vp, Render.vp_shadow_near)
-
         /*
-        if (!Render.debugFrustumMesh) {
-            const vertices = [
-                1, -1, 1, -1, -1, -1, 1, -1, -1, -1, -1, 1, -1, 1, -1, -1, -1, -1, -1, 1, 1, 1, 1,
-                -1, -1, 1, -1, 1, 1, 1, 1, -1, -1, 1, 1, -1, -1, 1, -1, 1, -1, -1, -1, -1, -1, -1,
-                -1, 1, 1, 1, 1, -1, 1, 1, -1, -1, 1, -1, 1, 1, 1, 1, 1, 1, -1, 1, 1, 1, -1, 1, -1,
-                1,
-            ]
-            const transformedVertices = []
-
-            const v = vec4.create()
-            for (let i = 0; i < vertices.length; i += 3) {
-                const x = vertices[i + 0]
-                const y = vertices[i + 1]
-                const z = vertices[i + 2] * 0.5 + 0.5
-
-                vec4.set(v, x, y, z, 1)
-
-                vec4.transformMat4(v, v, vp_shadow_near_inv)
-                vec4.scale(v, v, 1 / v[3])
-
-                transformedVertices.push(v[0])
-                transformedVertices.push(v[1])
-                transformedVertices.push(v[2])
-                transformedVertices.push(0)
-                transformedVertices.push(0)
-                transformedVertices.push(0)
-                transformedVertices.push(0)
-                transformedVertices.push(0)
-            }
-
-            Render.debugFrustumMesh = new MeshBuffer(
-                ResourceManager.generateCube(new Float32Array(transformedVertices))
+        if (Render.debugFrustumMeshes.length < 1) {
+            const vp_shadow_near_inv = mat4.create()
+            mat4.invert(vp_shadow_near_inv, Render.vp_shadow_near)
+            
+            Render.debugFrustumMeshes.push(
+                new MeshBuffer(
+                    ResourceManager.generateCubeFromTransform(
+                        Render.vp_inv,
+                        0,
+                        1,
+                        MIN_NEAR,
+                        MAX_NEAR
+                    )
+                ),
+                new MeshBuffer(ResourceManager.generateCubeFromTransform(vp_shadow_near_inv, 1, 0))
             )
         }
         */
@@ -1728,12 +1697,14 @@ export class Render {
                 Render.blankQueryState = BlankQueryState.Requested
             }
 
-            if (Render.debugFrustumMesh) {
+            if (Render.debugFrustumMeshes.length > 0) {
                 passEncoder.setBindGroup(0, Render.debugFrustumBind)
                 passEncoder.setPipeline(Render.debugFrustumPipeline)
-                passEncoder.setVertexBuffer(0, Render.debugFrustumMesh.vertices)
-                passEncoder.setIndexBuffer(Render.debugFrustumMesh.indices, "uint16")
-                passEncoder.drawIndexed(Render.debugFrustumMesh.indexCount)
+                for (const debugFrustumMesh of Render.debugFrustumMeshes) {
+                    passEncoder.setVertexBuffer(0, debugFrustumMesh.vertices)
+                    passEncoder.setIndexBuffer(debugFrustumMesh.indices, "uint16")
+                    passEncoder.drawIndexed(debugFrustumMesh.indexCount)
+                }
             }
 
             passEncoder.end()
