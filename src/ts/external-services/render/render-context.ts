@@ -12,7 +12,9 @@ export async function initWebGPU() {
     if (!adapter) {
         return
     }
-    wd = await adapter.requestDevice()
+    wd = await adapter.requestDevice({
+        requiredFeatures: ["depth-clip-control"],
+    })
 
     const presentationFormat = navigator.gpu.getPreferredCanvasFormat()
 

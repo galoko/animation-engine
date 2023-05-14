@@ -1,5 +1,5 @@
 import { mat4, vec3, vec4 } from "gl-matrix"
-import { wg } from "../render/render-context"
+import { canvasWebGPU } from "../render/render-context"
 import { Mesh, RefCountingResource, Texture } from "../render/render-data"
 import { loadMeshFromURL, loadTexture } from "./loaders"
 
@@ -72,10 +72,10 @@ export class ResourceManager {
     }
 
     static generatePlane(x: number, y: number, width: number, height: number): Mesh {
-        const left = (x / wg.canvas.width) * 2 - 1
-        const right = ((x + width - 1) / wg.canvas.width) * 2 - 1
-        const top = (y / wg.canvas.height) * 2 - 1
-        const bottom = ((y + height - 1) / wg.canvas.height) * 2 - 1
+        const left = (x / canvasWebGPU.width) * 2 - 1
+        const right = ((x + width - 1) / canvasWebGPU.width) * 2 - 1
+        const top = (y / canvasWebGPU.height) * 2 - 1
+        const bottom = ((y + height - 1) / canvasWebGPU.height) * 2 - 1
 
         const indices = new Uint16Array([0, 2, 1, 1, 2, 3])
         const vertices = new Float32Array([
@@ -143,7 +143,7 @@ export class ResourceManager {
             const y = templateVertices[i + 1]
             const z = min_z + templateVertices[i + 2] * (max_z - min_z)
 
-            vec4.set(vec, -x, -y, max_z - z, 1)
+            vec4.set(vec, -x, -y, z, 1)
 
             vec4.transformMat4(vec, vec, transform)
             vec4.scale(vec, vec, 1 / vec[3])

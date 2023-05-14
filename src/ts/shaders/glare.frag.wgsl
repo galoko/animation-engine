@@ -4,11 +4,11 @@
 
 @fragment
 fn main(
-    @builtin(position) gl_FragCoord: vec4<f32>,
+    @builtin(position) screenPosInPixels: vec4<f32>,
     @location(0) fragColor: vec4<f32>,
     @location(1) fragUV: vec2<f32>,
 ) -> @location(0) vec4<f32> {
-	var UV = gl_FragCoord.xy / 8.0;
+	var UV = screenPosInPixels.xy / 8.0;
 	var checkerboardValue = textureSample(checkerboard, linearSampler, UV).r * 0.03125 - 0.0078125;
 
 	var colorValue = textureSample(glare, linearSampler, fragUV);

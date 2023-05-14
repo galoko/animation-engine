@@ -42,7 +42,7 @@ fn main(@location(0) inputPosition: vec3<f32>, @location(3) paramsIndex: f32) ->
     var s = length(quat_xyz);
     var quat = vec4(quat_xyz, sqrt(1.0 - s * s));
 
-    var fragPosition = settings.viewProjection_shadow_far * vec4(quat_transform(quat, inputPosition) * scale + translation, 1.0);
+    var fragPosition = settings.viewProjection * vec4(quat_transform(quat, inputPosition) * scale + translation, 1.0);
 
     return fragPosition;
 }

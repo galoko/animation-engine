@@ -67,7 +67,7 @@ void WorldManager::addGround() {
 
 void WorldManager::addPillars() {
     RenderHandle pillarModel = Render::requestMesh("pillar");
-    RenderHandle marbleTexture = Render::requestTexture("marble.png");
+    RenderHandle marbleTexture = Render::requestTexture("marble.jpg");
 
     float PILLARS_COUNT = 10;
     float DISTANCE = 20;
@@ -77,7 +77,7 @@ void WorldManager::addPillars() {
         float y = -DISTANCE / 2 + (float)i * STEP + 0.5;
 
         RenderHandle pillar = Render::createRenderable(pillarModel, marbleTexture);
-        Transformation transform = Transformation(x * 100, y * 100, -0.5 * 100, 0.5 * 100);
+        Transformation transform = Transformation(x * 100, y * 100, -4.5 * 100, 0.5 * 100);
         Render::setTransform(pillar, transform);
 
         Render::addRenderable(pillar);
