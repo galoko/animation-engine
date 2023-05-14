@@ -575,7 +575,9 @@ export class Render {
             await ResourceManager.requestMesh("fullscreen_plane")
         )
 
-        Render.debugTexturePlane = new MeshBuffer(ResourceManager.generatePlane(50, 50, 600, 600))
+        Render.debugTexturePlane = new MeshBuffer(
+            ResourceManager.generatePlane(50, 50, canvasWebGPU.width / 4, canvasWebGPU.height / 4)
+        )
     }
 
     private static initAtlases() {
@@ -662,9 +664,9 @@ export class Render {
             dimension: "2d",
         })
 
-        Render.debugTextureView = Render.contactShadowsTextureView
-        Render.debugTextureView = Render.shadowDepthBufferNearView
-        Render.debugIsDepth = true
+        // Render.debugTextureView = Render.contactShadowsTextureView
+        // Render.debugTextureView = Render.shadowDepthBufferNearView
+        // Render.debugIsDepth = true
 
         Render.blankQuery = wd.createQuerySet({
             type: "occlusion",
@@ -1153,29 +1155,31 @@ export class Render {
             ],
         })
 
-        Render.debugTextureBind = wd.createBindGroup({
-            layout: Render.debugTexturePipeline.getBindGroupLayout(0),
-            entries: [
-                {
-                    binding: 0,
-                    resource: Render.debugTextureView,
-                },
-            ],
-        })
+        if (Render.debugTextureView) {
+            Render.debugTextureBind = wd.createBindGroup({
+                layout: Render.debugTexturePipeline.getBindGroupLayout(0),
+                entries: [
+                    {
+                        binding: 0,
+                        resource: Render.debugTextureView,
+                    },
+                ],
+            })
 
-        Render.debugDepthBind = wd.createBindGroup({
-            layout: Render.debugDepthPipeline.getBindGroupLayout(0),
-            entries: [
-                {
-                    binding: 0,
-                    resource: linearSamplerRepeat,
-                },
-                {
-                    binding: 1,
-                    resource: Render.debugTextureView,
-                },
-            ],
-        })
+            Render.debugDepthBind = wd.createBindGroup({
+                layout: Render.debugDepthPipeline.getBindGroupLayout(0),
+                entries: [
+                    {
+                        binding: 0,
+                        resource: linearSamplerRepeat,
+                    },
+                    {
+                        binding: 1,
+                        resource: Render.debugTextureView,
+                    },
+                ],
+            })
+        }
 
         Render.debugFrustumBind = wd.createBindGroup({
             layout: Render.debugFrustumPipeline.getBindGroupLayout(0),
@@ -1337,8 +1341,8 @@ export class Render {
                 ],
             },
             depthStencil: {
-                depthWriteEnabled: true,
-                depthCompare: "less-equal",
+                depthWriteEnabled: false,
+                depthCompare: "always",
                 format: "depth24plus",
             },
             primitive,
@@ -1377,8 +1381,8 @@ export class Render {
                 ],
             },
             depthStencil: {
-                depthWriteEnabled: true,
-                depthCompare: "less-equal",
+                depthWriteEnabled: false,
+                depthCompare: "always",
                 format: "depth24plus",
             },
             primitive,
@@ -1956,14 +1960,6 @@ export class Render {
         {
             const passEncoder = commandEncoder.beginRenderPass(Render.mainPassDesc)
 
-            passEncoder.setBindGroup(0, Render.objectsBind)
-            passEncoder.setPipeline(Render.objectsPipeline)
-            for (const chunk of Render.scene) {
-                passEncoder.setVertexBuffer(0, chunk.vertices)
-                passEncoder.setIndexBuffer(chunk.indices, "uint32")
-                passEncoder.drawIndexed(chunk.indexPos)
-            }
-
             passEncoder.setBindGroup(0, Render.skydomeBind)
             passEncoder.setPipeline(Render.skydomePipeline)
             passEncoder.setVertexBuffer(0, Render.skydome.vertices)
@@ -1975,6 +1971,14 @@ export class Render {
             passEncoder.setVertexBuffer(0, Render.sun.vertices)
             passEncoder.setIndexBuffer(Render.sun.indices, "uint16")
             passEncoder.drawIndexed(Render.sun.indexCount)
+
+            passEncoder.setBindGroup(0, Render.objectsBind)
+            passEncoder.setPipeline(Render.objectsPipeline)
+            for (const chunk of Render.scene) {
+                passEncoder.setVertexBuffer(0, chunk.vertices)
+                passEncoder.setIndexBuffer(chunk.indices, "uint32")
+                passEncoder.drawIndexed(chunk.indexPos)
+            }
 
             if (Render.blankQueryState === BlankQueryState.None) {
                 passEncoder.setBindGroup(0, Render.blankBind)
@@ -2045,16 +2049,18 @@ export class Render {
             passEncoder.drawIndexed(Render.fullscreenPlain.indexCount)
 
             // DEBUG
-            if (Render.debugIsDepth) {
-                passEncoder.setBindGroup(0, Render.debugDepthBind)
-                passEncoder.setPipeline(Render.debugDepthPipeline)
-            } else {
-                passEncoder.setBindGroup(0, Render.debugTextureBind)
-                passEncoder.setPipeline(Render.debugTexturePipeline)
+            if (Render.debugTextureView) {
+                if (Render.debugIsDepth) {
+                    passEncoder.setBindGroup(0, Render.debugDepthBind)
+                    passEncoder.setPipeline(Render.debugDepthPipeline)
+                } else {
+                    passEncoder.setBindGroup(0, Render.debugTextureBind)
+                    passEncoder.setPipeline(Render.debugTexturePipeline)
+                }
+                passEncoder.setVertexBuffer(0, Render.debugTexturePlane.vertices)
+                passEncoder.setIndexBuffer(Render.debugTexturePlane.indices, "uint16")
+                passEncoder.drawIndexed(Render.debugTexturePlane.indexCount)
             }
-            passEncoder.setVertexBuffer(0, Render.debugTexturePlane.vertices)
-            passEncoder.setIndexBuffer(Render.debugTexturePlane.indices, "uint16")
-            passEncoder.drawIndexed(Render.debugTexturePlane.indexCount)
 
             passEncoder.end()
         }

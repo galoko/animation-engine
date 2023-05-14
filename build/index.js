@@ -7878,7 +7878,7 @@ var passthroughVert = "struct VertexOutput {\r\n    @builtin(position) fragPosit
 
 var passthroughFrag = "@group(0) @binding(0) var linearSampler: sampler;\r\n@group(0) @binding(1) var tex: texture_2d<f32>;\r\n\r\n@fragment\r\nfn main(\r\n    @location(1) fragUV: vec2<f32>\r\n) -> @location(0) vec4<f32> {\r\n    return textureSample(tex, linearSampler, fragUV);\r\n}";
 
-var passthroughTexFrag = "@group(0) @binding(0) var tex: texture_2d<f32>;\r\n\r\n@fragment\r\nfn main(\r\n    @location(1) fragUV: vec2<f32>\r\n) -> @location(0) vec4<f32> {\r\n    var depth = pow(textureLoad(tex, vec2<i32>(floor(fragUV * vec2(3840.0, 2118.0))), 0).r, 1);\r\n    \r\n    if (depth < 1) {\r\n        depth = 0;\r\n    } else {\r\n        depth = 1;\r\n    }\r\n\r\n    return vec4(depth, depth, depth, 1);\r\n}";
+var passthroughTexFrag = "@group(0) @binding(0) var tex: texture_2d<f32>;\r\n\r\n@fragment\r\nfn main(\r\n    @location(1) fragUV: vec2<f32>\r\n) -> @location(0) vec4<f32> {\r\n    var depth = saturate(textureLoad(tex, vec2<i32>(floor(fragUV * vec2(3840.0, 2118.0))), 0).r);\r\n\r\n    return vec4(depth, depth, depth, 1);\r\n}";
 
 var passthroughDepthFrag = "@group(0) @binding(0) var linearSampler: sampler;\r\n@group(0) @binding(1) var tex: texture_depth_2d;\r\n\r\n@fragment\r\nfn main(\r\n    @location(1) fragUV: vec2<f32>\r\n) -> @location(0) vec4<f32> {\r\n    var depth = textureSample(tex, linearSampler, fragUV);\r\n    return vec4(depth, depth, depth, 1);\r\n}";
 
@@ -8911,7 +8911,7 @@ class Render {
         }
         */
         Render.fullscreenPlain = new MeshBuffer(await ResourceManager.requestMesh("fullscreen_plane"));
-        Render.debugTexturePlane = new MeshBuffer(ResourceManager.generatePlane(50, 50, 600, 600));
+        Render.debugTexturePlane = new MeshBuffer(ResourceManager.generatePlane(50, 50, canvasWebGPU.width / 4, canvasWebGPU.height / 4));
     }
     static initAtlases() {
         Render.atlasesTexture = wd.createTexture({
@@ -8983,9 +8983,9 @@ class Render {
             arrayLayerCount: 1,
             dimension: "2d",
         });
-        Render.debugTextureView = Render.contactShadowsTextureView;
-        Render.debugTextureView = Render.shadowDepthBufferNearView;
-        Render.debugIsDepth = true;
+        // Render.debugTextureView = Render.contactShadowsTextureView
+        // Render.debugTextureView = Render.shadowDepthBufferNearView
+        // Render.debugIsDepth = true
         Render.blankQuery = wd.createQuerySet({
             type: "occlusion",
             count: 1,
@@ -9398,28 +9398,30 @@ class Render {
                 },
             ],
         });
-        Render.debugTextureBind = wd.createBindGroup({
-            layout: Render.debugTexturePipeline.getBindGroupLayout(0),
-            entries: [
-                {
-                    binding: 0,
-                    resource: Render.debugTextureView,
-                },
-            ],
-        });
-        Render.debugDepthBind = wd.createBindGroup({
-            layout: Render.debugDepthPipeline.getBindGroupLayout(0),
-            entries: [
-                {
-                    binding: 0,
-                    resource: linearSamplerRepeat,
-                },
-                {
-                    binding: 1,
-                    resource: Render.debugTextureView,
-                },
-            ],
-        });
+        if (Render.debugTextureView) {
+            Render.debugTextureBind = wd.createBindGroup({
+                layout: Render.debugTexturePipeline.getBindGroupLayout(0),
+                entries: [
+                    {
+                        binding: 0,
+                        resource: Render.debugTextureView,
+                    },
+                ],
+            });
+            Render.debugDepthBind = wd.createBindGroup({
+                layout: Render.debugDepthPipeline.getBindGroupLayout(0),
+                entries: [
+                    {
+                        binding: 0,
+                        resource: linearSamplerRepeat,
+                    },
+                    {
+                        binding: 1,
+                        resource: Render.debugTextureView,
+                    },
+                ],
+            });
+        }
         Render.debugFrustumBind = wd.createBindGroup({
             layout: Render.debugFrustumPipeline.getBindGroupLayout(0),
             entries: [
@@ -9568,8 +9570,8 @@ class Render {
                 ],
             },
             depthStencil: {
-                depthWriteEnabled: true,
-                depthCompare: "less-equal",
+                depthWriteEnabled: false,
+                depthCompare: "always",
                 format: "depth24plus",
             },
             primitive,
@@ -9606,8 +9608,8 @@ class Render {
                 ],
             },
             depthStencil: {
-                depthWriteEnabled: true,
-                depthCompare: "less-equal",
+                depthWriteEnabled: false,
+                depthCompare: "always",
                 format: "depth24plus",
             },
             primitive,
@@ -10080,13 +10082,6 @@ class Render {
         }
         {
             const passEncoder = commandEncoder.beginRenderPass(Render.mainPassDesc);
-            passEncoder.setBindGroup(0, Render.objectsBind);
-            passEncoder.setPipeline(Render.objectsPipeline);
-            for (const chunk of Render.scene) {
-                passEncoder.setVertexBuffer(0, chunk.vertices);
-                passEncoder.setIndexBuffer(chunk.indices, "uint32");
-                passEncoder.drawIndexed(chunk.indexPos);
-            }
             passEncoder.setBindGroup(0, Render.skydomeBind);
             passEncoder.setPipeline(Render.skydomePipeline);
             passEncoder.setVertexBuffer(0, Render.skydome.vertices);
@@ -10097,6 +10092,13 @@ class Render {
             passEncoder.setVertexBuffer(0, Render.sun.vertices);
             passEncoder.setIndexBuffer(Render.sun.indices, "uint16");
             passEncoder.drawIndexed(Render.sun.indexCount);
+            passEncoder.setBindGroup(0, Render.objectsBind);
+            passEncoder.setPipeline(Render.objectsPipeline);
+            for (const chunk of Render.scene) {
+                passEncoder.setVertexBuffer(0, chunk.vertices);
+                passEncoder.setIndexBuffer(chunk.indices, "uint32");
+                passEncoder.drawIndexed(chunk.indexPos);
+            }
             if (Render.blankQueryState === BlankQueryState.None) {
                 passEncoder.setBindGroup(0, Render.blankBind);
                 passEncoder.setPipeline(Render.blankPipeline);
@@ -10150,17 +10152,19 @@ class Render {
             passEncoder.setIndexBuffer(Render.fullscreenPlain.indices, "uint16");
             passEncoder.drawIndexed(Render.fullscreenPlain.indexCount);
             // DEBUG
-            if (Render.debugIsDepth) {
-                passEncoder.setBindGroup(0, Render.debugDepthBind);
-                passEncoder.setPipeline(Render.debugDepthPipeline);
+            if (Render.debugTextureView) {
+                if (Render.debugIsDepth) {
+                    passEncoder.setBindGroup(0, Render.debugDepthBind);
+                    passEncoder.setPipeline(Render.debugDepthPipeline);
+                }
+                else {
+                    passEncoder.setBindGroup(0, Render.debugTextureBind);
+                    passEncoder.setPipeline(Render.debugTexturePipeline);
+                }
+                passEncoder.setVertexBuffer(0, Render.debugTexturePlane.vertices);
+                passEncoder.setIndexBuffer(Render.debugTexturePlane.indices, "uint16");
+                passEncoder.drawIndexed(Render.debugTexturePlane.indexCount);
             }
-            else {
-                passEncoder.setBindGroup(0, Render.debugTextureBind);
-                passEncoder.setPipeline(Render.debugTexturePipeline);
-            }
-            passEncoder.setVertexBuffer(0, Render.debugTexturePlane.vertices);
-            passEncoder.setIndexBuffer(Render.debugTexturePlane.indices, "uint16");
-            passEncoder.drawIndexed(Render.debugTexturePlane.indexCount);
             passEncoder.end();
         }
         wd.queue.submit([commandEncoder.finish()]);
