@@ -1,5 +1,6 @@
 #include "world-manager.hpp"
 
+#include <glm.hpp>
 #include <gtc/quaternion.hpp>
 #include <gtx/transform.hpp>
 #include <vec3.hpp>
@@ -76,8 +77,13 @@ void WorldManager::addPillars() {
         float x = -5.0;
         float y = -DISTANCE / 2 + (float)i * STEP + 0.5;
 
+        float t = (float)i / (float)(PILLARS_COUNT - 1);
+        t = t * 2 - 1;
+
         RenderHandle pillar = Render::createRenderable(pillarModel, marbleTexture);
         Transformation transform = Transformation(x * 100, y * 100, -4.5 * 100, 0.5 * 100);
+        quat rotation(vec3(0, -0.6 * t, 0.6 * t));
+        transform.rotation = rotation;
         Render::setTransform(pillar, transform);
 
         Render::addRenderable(pillar);

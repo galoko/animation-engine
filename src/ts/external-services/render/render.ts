@@ -1774,12 +1774,15 @@ export class Render {
         return projection
     }
 
-    static calcSunTransform(): void {
-        const sunYAngle = Math.PI * 1.55
+    static sunYAngle = Math.PI * 1.55
+
+    static calcSunTransform(dt: number): void {
+        // Render.sunYAngle += dt * 0.5
+
         const sunPosition = vec3.fromValues(20.6666469573975, 77.4717559814453, 341.035034179687)
 
         const sunModel = mat4.create()
-        mat4.rotateY(sunModel, sunModel, sunYAngle)
+        mat4.rotateY(sunModel, sunModel, Render.sunYAngle)
         mat4.translate(sunModel, sunModel, sunPosition)
 
         Render.applyCameraRotationToModelMatrix(sunModel)
@@ -1896,7 +1899,7 @@ export class Render {
         // objects color pass
 
         Render.calcGlareScale(dt)
-        Render.calcSunTransform()
+        Render.calcSunTransform(dt)
 
         wd.queue.writeBuffer(Render.settings, 0, Render.settingsBuffer)
 

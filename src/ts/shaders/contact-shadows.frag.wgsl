@@ -44,7 +44,7 @@ fn main(@builtin(position) screenPosInPixels: vec4<f32>,
     const NEAR_BIAS = 0.0045;
     const FAR_BIAS = 0.005;
 
-    const MAX_DEPTH_SQ = 10000 * 10000;
+    const MAX_DEPTH_SQ = 10000.0 * 10000.0;
 
     const randomVectorLength = 1.0 / 1024.0;
 
@@ -143,10 +143,10 @@ fn main(@builtin(position) screenPosInPixels: vec4<f32>,
     }
     
     if (levelToUse < 1 && screenPosition.z >= nearFarBorderZ) {
-        someAccumulatedValue1 /= 16;
+        someAccumulatedValue1 /= 16.0;
 
         // how much shadow is from border to farDepth limit
-        var t = saturate((screenPosition.z - nearFarBorderZ) / (nearDepthBufferLimitZ - nearFarBorderZ));
+        var t: f32 = saturate((screenPosition.z - nearFarBorderZ) / (nearDepthBufferLimitZ - nearFarBorderZ));
         t = 3 * t * t - 2 * t * t * t;
 
         someAccumulatedValue0 += (someAccumulatedValue1 - someAccumulatedValue0) * t;
