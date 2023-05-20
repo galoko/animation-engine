@@ -344,7 +344,7 @@ enum BlankQueryState {
 
 const QUERY_BUFFER_SIZE = 8
 
-const SHADOW_RESOLUTION = 4096
+const SHADOW_RESOLUTION = 512
 
 export class Render {
     private static viewMatrix: mat4

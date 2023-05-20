@@ -8726,7 +8726,7 @@ var BlankQueryState;
     BlankQueryState[BlankQueryState["Pending"] = 2] = "Pending";
 })(BlankQueryState || (BlankQueryState = {}));
 const QUERY_BUFFER_SIZE = 8;
-const SHADOW_RESOLUTION = 4096;
+const SHADOW_RESOLUTION = 512;
 class Render {
     static viewMatrix;
     static viewMatrix_inplace;
