@@ -8834,6 +8834,34 @@ class Render {
         Render.compilerShaders();
         await Render.loadResources();
         Render.createUBOs();
+        await Render.setupShadowsTest();
+    }
+    static async setupShadowsTest() {
+        // add bucket
+        const bucket = new Renderable(await ResourceManager.requestMesh("bucket"), await ResourceManager.requestTexture("rock.jpg"));
+        Render.setTransform(bucket, new Float32Array([
+            // rotation
+            -0.000004685526619141456, -0.000009808394679566845, 0.9487481117248535,
+            0.316033273935318,
+            // scale
+            10,
+            // position
+            -796.7786865234375, -241.33251953125, -86.42948150634766,
+        ]));
+        Render.addRenderable(bucket);
+        // add ground
+        const ground = new Renderable(await ResourceManager.requestMesh("ground"), await ResourceManager.requestTexture("grass.jpg"));
+        Render.setTransform(ground, new Float32Array([
+            // rotation
+            0, 0, 0, 1,
+            // scale
+            1,
+            // position
+            -654.9658203125, -588.56103515625, -85.90818786621094,
+        ]));
+        Render.addRenderable(ground);
+        // setup camera
+        Render.setCamera(fromValues$4(0, 0, 0), fromValues$4(-0.7991405129432678, -0.5913922190666199, -0.11954037100076675));
     }
     static async loadResources() {
         Render.skydome = new ColoredMeshBuffer(await loadColoredMeshFromURL("build/skydome.cml"));
@@ -9853,8 +9881,10 @@ class Render {
     static FAR = 353840;
     static handleResize() {
         const dpr = devicePixelRatio;
-        const newWidth = Math.floor(document.body.clientWidth * dpr);
-        const newHeight = Math.floor(document.body.clientHeight * dpr);
+        let newWidth = Math.floor(document.body.clientWidth * dpr);
+        let newHeight = Math.floor(document.body.clientHeight * dpr);
+        newWidth = 3840;
+        newHeight = 2160;
         if (canvasWebGPU.width === newWidth && canvasWebGPU.height === newHeight) {
             return;
         }
@@ -9869,7 +9899,7 @@ class Render {
         canvasWebGPU.height = newHeight;
         ctx$1.resetTransform();
         ctx$1.scale(dpr, dpr);
-        perspectiveZO(Render.projectionMatrix, (65 * Math.PI) / 180, canvasWebGPU.width / canvasWebGPU.height, Render.NEAR, Render.FAR);
+        perspectiveZO(Render.projectionMatrix, (50 * Math.PI) / 180, canvasWebGPU.width / canvasWebGPU.height, Render.NEAR, Render.FAR);
     }
     static applyCameraRotationToModelMatrix(model) {
         const q = create$2();
@@ -10601,13 +10631,13 @@ class Services {
         await Render.init();
         InputManager.init();
         GameLoop.init(Services.process);
-        Engine._init();
+        // Engine._init()
         await Render.setupTest();
     }
     static process(dt) {
         // console.log("TICK")
         // engine tick
-        Engine._tick(dt);
+        // Engine._tick(dt)
         // resolve output queue messages
         Queues.processOutputQueue();
         // render
