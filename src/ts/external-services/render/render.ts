@@ -344,7 +344,9 @@ enum BlankQueryState {
 
 const QUERY_BUFFER_SIZE = 8
 
-const SHADOW_RESOLUTION = 512
+const SHADOW_RESOLUTION = 4096
+// TODO for now this must be manually synced with contact shadows shader
+const SHADOW_RND_STEP = 4 / SHADOW_RESOLUTION
 
 export class Render {
     private static viewMatrix: mat4
@@ -484,7 +486,7 @@ export class Render {
         await Render.loadResources()
         Render.createUBOs()
 
-        await Render.setupShadowsTest()
+        // await Render.setupShadowsTest()
     }
 
     static async setupShadowsTest(): Promise<void> {
@@ -623,7 +625,7 @@ export class Render {
         )
 
         Render.debugTexturePlane = new MeshBuffer(
-            ResourceManager.generatePlane(50, 50, canvasWebGPU.width / 4, canvasWebGPU.height / 4)
+            ResourceManager.generatePlane(0, 0, canvasWebGPU.width, canvasWebGPU.height)
         )
     }
 
@@ -1682,7 +1684,7 @@ export class Render {
         Render.viewMatrix_inplace[12] = 0
         Render.viewMatrix_inplace[13] = 0
         Render.viewMatrix_inplace[14] = 0
-        Render.viewMatrix_inplace[15] = 0
+        Render.viewMatrix_inplace[15] = 1
 
         mat4.identity(Render.vp)
         mat4.multiply(Render.vp, Render.vp, Render.projectionMatrix)
@@ -1829,29 +1831,33 @@ export class Render {
     static calcSunTransform(dt: number): void {
         // Render.sunYAngle += dt * 0.5
 
+        /*
+        Render.sunYAngle = 0.0
+
+        const sunPosition = vec3.fromValues(
+            -0.76995176076889,
+            0.0843339264392853,
+            0.632504463195801
+        )
+        // TODO check out sun trajectory and sun scale, which appears to be dynamic
+        vec3.scale(sunPosition, sunPosition, 350)
+        */
+
         const sunPosition = vec3.fromValues(20.6666469573975, 77.4717559814453, 341.035034179687)
 
         const sunModel = mat4.create()
         mat4.rotateY(sunModel, sunModel, Render.sunYAngle)
         mat4.translate(sunModel, sunModel, sunPosition)
 
-        Render.applyCameraRotationToModelMatrix(sunModel)
-        Render.rotateModelUpfront(sunModel)
+        const transformedPos = vec4.fromValues(0, 0, 0, 1)
+        vec4.transformMat4(transformedPos, transformedPos, sunModel)
 
-        const glareScale = Render.glareScale
-        const glareScale3 = vec3.fromValues(glareScale, glareScale, glareScale)
-        const glareModel = mat4.clone(sunModel)
-        mat4.scale(glareModel, glareModel, glareScale3)
-
-        mat4.copy(Render.vp_sun, Render.vp_inplace)
-        mat4.multiply(Render.vp_sun, Render.vp_sun, sunModel)
-
-        mat4.copy(Render.vp_glare, Render.vp_inplace)
-        mat4.multiply(Render.vp_glare, Render.vp_glare, glareModel)
+        mat4.identity(sunModel)
+        mat4.translate(sunModel, sunModel, transformedPos as vec3)
 
         // calc near/far shadow frustums
 
-        const UP_SHADOW = vec3.fromValues(0, 0, 1)
+        const UP_SHADOW = vec3.fromValues(0, 1, 0)
         const SHADOW_CAMERA_DISTANCE = 15000
 
         const sunDirection = Render.sunDirection
@@ -1868,6 +1874,17 @@ export class Render {
 
         const shadowView = mat4.create()
         mat4.lookAt(shadowView, shadowCameraPos, Render.cameraPosition, UP_SHADOW)
+
+        const inv_shadowView = mat4.clone(shadowView)
+        inv_shadowView[12] = 0
+        inv_shadowView[13] = 0
+        inv_shadowView[14] = 0
+        inv_shadowView[15] = 1
+        mat4.invert(inv_shadowView, inv_shadowView)
+        mat4.mul(sunModel, sunModel, inv_shadowView)
+
+        Render.applyCameraRotationToModelMatrix(sunModel)
+        Render.rotateModelUpfront(sunModel)
 
         const CASCADE_DISTANCES = [
             0,
@@ -1941,6 +1958,19 @@ export class Render {
             )
         }
         */
+
+        //
+
+        const glareScale = Render.glareScale
+        const glareScale3 = vec3.fromValues(glareScale, glareScale, glareScale)
+        const glareModel = mat4.clone(sunModel)
+        mat4.scale(glareModel, glareModel, glareScale3)
+
+        mat4.copy(Render.vp_sun, Render.vp_inplace)
+        mat4.multiply(Render.vp_sun, Render.vp_sun, sunModel)
+
+        mat4.copy(Render.vp_glare, Render.vp_inplace)
+        mat4.multiply(Render.vp_glare, Render.vp_glare, glareModel)
     }
 
     static render(dt: number): void {

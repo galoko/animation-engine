@@ -46,7 +46,7 @@ fn main(@builtin(position) screenPosInPixels: vec4<f32>,
 
     const MAX_DEPTH_SQ = 10000.0 * 10000.0;
 
-    const randomVectorLength = 1.0 / 1024.0;
+    const randomVectorLength = 4.0 / 4096.0;
 
     const nearDepthBufferLimitZ = 0.986808896064758;
     const farDepthBufferLimitZ = 0.998557209968567;

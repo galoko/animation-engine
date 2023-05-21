@@ -16,7 +16,7 @@ void PlayerInputManager::tick(double dt) {
     if (Services->inputManager.isPressed(
             {KeyboardKey::KEY_W, KeyboardKey::KEY_S, KeyboardKey::KEY_A,
              KeyboardKey::KEY_D /*, KeyboardKey::KEY_LCONTROL, KeyboardKey::KEY_LSHIFT*/})) {
-        speed = 7.62 * 100 * 1;
+        speed = 5.2 * 100 * 1;
     }
 
     float desiredAngle = Services->cameraManager.getZAngle();
