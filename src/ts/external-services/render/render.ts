@@ -5,6 +5,9 @@ import objectsShadowNearVert from "../../shaders/objects-shadow-near.vert.wgsl"
 import objectsShadowFarVert from "../../shaders/objects-shadow-far.vert.wgsl"
 import contactShadowsFrag from "../../shaders/contact-shadows.frag.wgsl"
 
+import volumetricInitComp from "../../shaders/volumetric_init.comp.wgsl"
+import volumetricAddComp from "../../shaders/volumetric_add.comp.wgsl"
+
 import objectsVert from "../../shaders/objects.vert.wgsl"
 import objectsFrag from "../../shaders/objects.frag.wgsl"
 
@@ -18,6 +21,7 @@ import passthroughVert from "../../shaders/passthrough.vert.wgsl"
 import passthroughFrag from "../../shaders/passthrough.frag.wgsl"
 import passthroughTexFrag from "../../shaders/passthrough-tex.frag.wgsl"
 import passthroughDepthFrag from "../../shaders/passthrough-depth.frag.wgsl"
+import passthroughFrag_Debug from "../../shaders/passthrough_debug.frag.wgsl"
 
 import fogFrag from "../../shaders/fog.frag.wgsl"
 
@@ -50,6 +54,14 @@ const COLOR_LOC = 1
 const NORMAL_LOC = 1
 const UV_LOC = 2
 const PARAMS_LOC = 3
+
+const VOLUMETRIC_TEX_WIDTH = 320
+const VOLUMETRIC_TEX_HEIGHT = 192
+const VOLUMETRIC_TEX_DEPTH = 90
+
+const VOLUMETRIC_DISPATCH_X = VOLUMETRIC_TEX_WIDTH / 32
+const VOLUMETRIC_DISPATCH_Y = VOLUMETRIC_TEX_HEIGHT / 32
+const VOLUMETRIC_DISPATCH_Z = VOLUMETRIC_TEX_DEPTH / 1
 
 class GenericMesh {
     readonly vertices: GPUBuffer
@@ -377,6 +389,12 @@ export class Render {
     private static shadowFarPipeline: GPURenderPipeline
     private static shadowFarBind: GPUBindGroup
 
+    private static volumetricInitPipeline: GPUComputePipeline
+    private static volumetricInitBind: GPUBindGroup
+
+    private static volumetricAddPipeline: GPUComputePipeline
+    private static volumetricAddBinds: GPUBindGroup[]
+
     private static contactShadowsPipeline: GPURenderPipeline
     private static contactShadowsBind: GPUBindGroup
 
@@ -423,6 +441,12 @@ export class Render {
     private static contactShadowsTextureView: GPUTextureView
     private static contactShadowsPassDesc: GPURenderPassDescriptor
 
+    // volumetric lighting
+    private static volumetricLightingBuffer0: GPUTexture
+    private static volumetricLightingBuffer1: GPUTexture
+    private static volumetricLightingBufferView0: GPUTextureView
+    private static volumetricLightingBufferView1: GPUTextureView
+
     // render targets
     private static mainPassTexture: GPUTexture
     private static mainPassTextureView: GPUTextureView
@@ -435,13 +459,17 @@ export class Render {
     private static screenPassDesc: GPURenderPassDescriptor
 
     private static skydome: ColoredMeshBuffer
-    private static checkerboard: GPUTexture
+    private static dithering: GPUTexture
     private static sun: ColoredTexturedMeshBuffer
     private static sunTexture: GPUTexture
     private static blank: ColoredTexturedMeshBuffer
     private static glare: ColoredTexturedMeshBuffer
     private static glareTexture: GPUTexture
     private static fullscreenPlain: MeshBuffer
+
+    private static volumetricCurve: GPUTexture
+    private static volumetricRandomData: GPUTexture
+    private static debugTextureExample: GPUTexture
 
     private static debugIsDepth: boolean
     private static debugTextureView: GPUTextureView
@@ -536,7 +564,7 @@ export class Render {
 
     static async loadResources(): Promise<void> {
         Render.skydome = new ColoredMeshBuffer(await loadColoredMeshFromURL("build/skydome.cml"))
-        Render.checkerboard = createTexture(await loadTexture("build/checkerboard.png"))
+        Render.dithering = createTexture(await loadTexture("build/dithering.png"))
 
         Render.sun = new ColoredTexturedMeshBuffer(
             await loadColoredTexturedMeshFromURL("build/sun.ctml")
@@ -551,6 +579,52 @@ export class Render {
             await loadColoredTexturedMeshFromURL("build/glare.ctml")
         )
         Render.glareTexture = createTexture(await loadTexture("build/glare.png"))
+
+        const curveData = new Uint8Array(
+            await (await fetch("build/volumetric_curve_data_rgba.bin")).arrayBuffer()
+        )
+        const curveWidth = curveData.byteLength / 4
+        Render.volumetricCurve = wd.createTexture({
+            size: [curveWidth, 1],
+            format: "rgba8unorm",
+            dimension: "2d",
+            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+        })
+        wd.queue.writeTexture(
+            { texture: Render.volumetricCurve },
+            curveData,
+            { bytesPerRow: curveWidth * 4, rowsPerImage: 1 },
+            { width: curveWidth, height: 1 }
+        )
+
+        const randomData = new Uint8Array(
+            await (await fetch("build/volumetric_random_data_tighten.bin")).arrayBuffer()
+        )
+        Render.volumetricRandomData = wd.createTexture({
+            size: [32, 32, 32],
+            format: "r8unorm",
+            dimension: "3d",
+            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+        })
+        wd.queue.writeTexture(
+            { texture: Render.volumetricRandomData },
+            randomData,
+            { bytesPerRow: 32, rowsPerImage: 32 },
+            { width: 32, height: 32, depthOrArrayLayers: 32 }
+        )
+
+        Render.debugTextureExample = wd.createTexture({
+            size: [2, 2],
+            format: "rgba8unorm",
+            dimension: "2d",
+            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+        })
+        wd.queue.writeTexture(
+            { texture: Render.debugTextureExample },
+            new Uint8Array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 254, 254, 154, 0]),
+            { bytesPerRow: 2 * 4, rowsPerImage: 2 },
+            { width: 2, height: 2 }
+        )
     }
 
     static async setupTest(): Promise<void> {
@@ -685,6 +759,24 @@ export class Render {
             usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
         })
         Render.contactShadowsTextureView = Render.contactShadowsTexture.createView()
+
+        Render.volumetricLightingBuffer0 = wd.createTexture({
+            size: [VOLUMETRIC_TEX_WIDTH, VOLUMETRIC_TEX_HEIGHT, VOLUMETRIC_TEX_DEPTH],
+            // FIXME supposed to be r16float, memory usage x4
+            format: "rgba16float",
+            dimension: "3d",
+            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING,
+        })
+        Render.volumetricLightingBufferView0 = Render.volumetricLightingBuffer0.createView()
+
+        Render.volumetricLightingBuffer1 = wd.createTexture({
+            size: [VOLUMETRIC_TEX_WIDTH, VOLUMETRIC_TEX_HEIGHT, VOLUMETRIC_TEX_DEPTH],
+            // FIXME supposed to be r16float, memory usage x4
+            format: "rgba16float",
+            dimension: "3d",
+            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING,
+        })
+        Render.volumetricLightingBufferView1 = Render.volumetricLightingBuffer1.createView()
 
         Render.mainPassTexture = createFloatTexture(canvasWebGPU.width, canvasWebGPU.height)
         Render.mainPassTextureView = Render.mainPassTexture.createView()
@@ -899,7 +991,7 @@ export class Render {
     }
 
     private static createUBOs() {
-        const linearSamplerRepeat = wd.createSampler({
+        const linearRepeatSampler = wd.createSampler({
             magFilter: "linear",
             minFilter: "linear",
             mipmapFilter: "linear",
@@ -907,14 +999,34 @@ export class Render {
             addressModeU: "repeat",
             addressModeV: "repeat",
         })
-        const linearSamplerClamp = wd.createSampler({
+        const linearClampSampler = wd.createSampler({
             magFilter: "linear",
             minFilter: "linear",
             mipmapFilter: "linear",
             addressModeU: "clamp-to-edge",
             addressModeV: "clamp-to-edge",
         })
-
+        const linearMirrorSampler = wd.createSampler({
+            magFilter: "linear",
+            minFilter: "linear",
+            mipmapFilter: "linear",
+            addressModeU: "mirror-repeat",
+            addressModeV: "mirror-repeat",
+        })
+        const pointClampSampler = wd.createSampler({
+            magFilter: "nearest",
+            minFilter: "nearest",
+            mipmapFilter: "nearest",
+            addressModeU: "clamp-to-edge",
+            addressModeV: "clamp-to-edge",
+        })
+        const pointRepeatSampler = wd.createSampler({
+            magFilter: "nearest",
+            minFilter: "nearest",
+            mipmapFilter: "nearest",
+            addressModeU: "repeat",
+            addressModeV: "repeat",
+        })
         const comparisonSampler = wd.createSampler({
             magFilter: "linear",
             minFilter: "linear",
@@ -1018,6 +1130,96 @@ export class Render {
             ],
         })
 
+        Render.volumetricInitBind = wd.createBindGroup({
+            layout: Render.volumetricInitPipeline.getBindGroupLayout(0),
+            entries: [
+                {
+                    binding: 0,
+                    resource: {
+                        buffer: Render.settings,
+                    },
+                },
+                {
+                    binding: 1,
+                    resource: pointClampSampler,
+                },
+                {
+                    binding: 2,
+                    resource: linearClampSampler,
+                },
+                {
+                    binding: 3,
+                    resource: linearMirrorSampler,
+                },
+                {
+                    binding: 4,
+                    resource: Render.shadowDepthBuffersView,
+                },
+                {
+                    binding: 5,
+                    resource: Render.volumetricCurve.createView(),
+                },
+                {
+                    binding: 6,
+                    resource: Render.volumetricRandomData.createView(),
+                },
+                {
+                    binding: 7,
+                    resource: Render.volumetricLightingBufferView0,
+                },
+                {
+                    binding: 8,
+                    resource: Render.volumetricLightingBufferView1,
+                },
+            ],
+        })
+
+        Render.volumetricAddBinds = []
+        const swapChain = [
+            Render.volumetricLightingBufferView0,
+            Render.volumetricLightingBufferView1,
+        ]
+        for (let i = 0; i < VOLUMETRIC_TEX_DEPTH; i++) {
+            const input = swapChain[i % swapChain.length]
+            const output = swapChain[(i + 1) % swapChain.length]
+
+            const z = 1 + i
+            const zBuffer = wd.createBuffer({
+                size: 4,
+                usage: GPUBufferUsage.UNIFORM,
+                mappedAtCreation: true,
+            })
+            const zData = new Uint32Array(zBuffer.getMappedRange())
+            zData[0] = z
+            zBuffer.unmap()
+
+            const bind = wd.createBindGroup({
+                layout: Render.volumetricAddPipeline.getBindGroupLayout(0),
+                entries: [
+                    {
+                        binding: 0,
+                        resource: {
+                            buffer: zBuffer,
+                        },
+                    },
+                    {
+                        binding: 1,
+                        resource: pointClampSampler,
+                    },
+                    {
+                        binding: 2,
+                        resource: input,
+                    },
+                    {
+                        binding: 3,
+                        resource: output,
+                    },
+                ],
+            })
+
+            Render.volumetricAddBinds.push(bind)
+        }
+
         Render.contactShadowsBind = wd.createBindGroup({
             layout: Render.contactShadowsPipeline.getBindGroupLayout(0),
             entries: [
@@ -1037,10 +1239,6 @@ export class Render {
                 },
                 {
                     binding: 3,
-                    resource: linearSamplerClamp,
-                },
-                {
-                    binding: 4,
                     resource: comparisonSampler,
                 },
             ],
@@ -1081,7 +1279,7 @@ export class Render {
                 },
                 {
                     binding: 2,
-                    resource: linearSamplerRepeat,
+                    resource: linearRepeatSampler,
                 },
                 {
                     binding: 3,
@@ -1094,7 +1292,7 @@ export class Render {
             ],
         })
 
-        const checkerboardView = Render.checkerboard.createView()
+        const ditheringView = Render.dithering.createView()
 
         Render.skydomeBind = wd.createBindGroup({
             layout: Render.skydomePipeline.getBindGroupLayout(0),
@@ -1107,11 +1305,11 @@ export class Render {
                 },
                 {
                     binding: 1,
-                    resource: linearSamplerRepeat,
+                    resource: pointRepeatSampler,
                 },
                 {
                     binding: 2,
-                    resource: checkerboardView,
+                    resource: ditheringView,
                 },
             ],
         })
@@ -1127,7 +1325,7 @@ export class Render {
                 },
                 {
                     binding: 1,
-                    resource: linearSamplerRepeat,
+                    resource: linearRepeatSampler,
                 },
                 {
                     binding: 2,
@@ -1153,7 +1351,7 @@ export class Render {
             entries: [
                 {
                     binding: 0,
-                    resource: linearSamplerRepeat,
+                    resource: linearRepeatSampler,
                 },
                 {
                     binding: 1,
@@ -1171,10 +1369,11 @@ export class Render {
             entries: [
                 {
                     binding: 0,
-                    resource: linearSamplerRepeat,
+                    resource: linearClampSampler,
                 },
                 {
                     binding: 1,
+                    // resource: Render.debugTextureExample.createView(),
                     resource: Render.fogPassTextureView,
                 },
             ],
@@ -1191,15 +1390,19 @@ export class Render {
                 },
                 {
                     binding: 1,
-                    resource: linearSamplerRepeat,
+                    resource: linearRepeatSampler,
                 },
                 {
                     binding: 2,
-                    resource: Render.glareTexture.createView(),
+                    resource: pointRepeatSampler,
                 },
                 {
                     binding: 3,
-                    resource: checkerboardView,
+                    resource: Render.glareTexture.createView(),
+                },
+                {
+                    binding: 4,
+                    resource: ditheringView,
                 },
             ],
         })
@@ -1220,7 +1423,7 @@ export class Render {
                 entries: [
                     {
                         binding: 0,
-                        resource: linearSamplerRepeat,
+                        resource: linearRepeatSampler,
                     },
                     {
                         binding: 1,
@@ -1254,6 +1457,7 @@ export class Render {
 
         const passthroughShaderVert = wd.createShaderModule({ code: passthroughVert })
         const passthroughShaderFrag = wd.createShaderModule({ code: passthroughFrag })
+        const passthroughShaderFrag_Debug = wd.createShaderModule({ code: passthroughFrag_Debug })
 
         // objects
 
@@ -1290,6 +1494,28 @@ export class Render {
             },
             primitive,
         })
+
+        // volumetric lighting
+
+        const volumetricInitShaderComp = wd.createShaderModule({ code: volumetricInitComp })
+        Render.volumetricInitPipeline = wd.createComputePipeline({
+            layout: "auto",
+            compute: {
+                module: volumetricInitShaderComp,
+                entryPoint: "main",
+            },
+        })
+
+        const volumetricAddShaderComp = wd.createShaderModule({ code: volumetricAddComp })
+        Render.volumetricAddPipeline = wd.createComputePipeline({
+            layout: "auto",
+            compute: {
+                module: volumetricAddShaderComp,
+                entryPoint: "main",
+            },
+        })
+
+        // contact shadows
 
         const contactShadowsShaderFrag = wd.createShaderModule({ code: contactShadowsFrag })
         Render.contactShadowsPipeline = wd.createRenderPipeline({
@@ -1542,6 +1768,7 @@ export class Render {
                 buffers: MeshBuffer.buffers,
             },
             fragment: {
+                // module: passthroughShaderFrag_Debug,
                 module: passthroughShaderFrag,
                 entryPoint: "main",
                 targets: [
@@ -2024,6 +2251,26 @@ export class Render {
                 passEncoder.setIndexBuffer(chunk.indices, "uint32")
                 passEncoder.drawIndexed(chunk.indexPos)
             }
+            passEncoder.end()
+        }
+
+        {
+            const passEncoder = commandEncoder.beginComputePass()
+
+            passEncoder.setPipeline(Render.volumetricInitPipeline)
+            passEncoder.setBindGroup(0, Render.volumetricInitBind)
+            passEncoder.dispatchWorkgroups(
+                VOLUMETRIC_DISPATCH_X,
+                VOLUMETRIC_DISPATCH_Y,
+                VOLUMETRIC_DISPATCH_Z
+            )
+
+            passEncoder.setPipeline(Render.volumetricAddPipeline)
+            for (let i = 0; i < VOLUMETRIC_TEX_DEPTH; i++) {
+                passEncoder.setBindGroup(0, Render.volumetricAddBinds[i])
+                passEncoder.dispatchWorkgroups(VOLUMETRIC_DISPATCH_X, VOLUMETRIC_DISPATCH_Y, 1)
+            }
+
             passEncoder.end()
         }
 

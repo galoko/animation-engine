@@ -15,8 +15,7 @@ struct Settings {
 @group(0) @binding(0) var<uniform> settings: Settings;
 @group(0) @binding(1) var depthBufferScreenSpace: texture_depth_2d;
 @group(0) @binding(2) var depthBuffersLightSource: texture_depth_2d_array;
-@group(0) @binding(3) var linearSampler: sampler;
-@group(0) @binding(4) var comparisonSampler: sampler_comparison;
+@group(0) @binding(3) var comparisonSampler: sampler_comparison;
 
 @fragment
 fn main(@builtin(position) screenPosInPixels: vec4<f32>,
@@ -53,14 +52,13 @@ fn main(@builtin(position) screenPosInPixels: vec4<f32>,
     const depthBufferLimitZ = 0.998557209968567;
     const nearFarBorderZ = 0.983973801136017;
 
-    var uv = screenPosInPixels.xy * settings.invScreenResolution;
-
     var screenPosition: vec4<f32>;
-    screenPosition.z = textureSample(depthBufferScreenSpace, linearSampler, uv);
+    screenPosition.z = textureLoad(depthBufferScreenSpace, vec2<i32>(floor(screenPosInPixels.xy)), 0);
     if (screenPosition.z >= depthBufferLimitZ) {
         discard;
     }
 
+    var uv = screenPosInPixels.xy * settings.invScreenResolution;
     screenPosition.x = uv.x * 2 - 1;
     screenPosition.y = (1 - uv.y) * 2 - 1;
     screenPosition.w = 1;
