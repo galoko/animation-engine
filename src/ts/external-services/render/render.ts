@@ -1204,14 +1204,10 @@ export class Render {
                     },
                     {
                         binding: 1,
-                        resource: pointClampSampler,
-                    },
-                    {
-                        binding: 2,
                         resource: input,
                     },
                     {
-                        binding: 3,
+                        binding: 2,
                         resource: output,
                     },
                 ],
