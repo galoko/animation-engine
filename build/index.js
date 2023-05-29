@@ -7862,9 +7862,13 @@ var objectsShadowFarVert = "struct Settings {\r\n    viewProjection: mat4x4<f32>
 
 var contactShadowsFrag = "struct Settings {\r\n    viewProjection: mat4x4<f32>,\r\n    viewProjection_inplace: mat4x4<f32>,\r\n    viewProjection_sun: mat4x4<f32>,\r\n    viewProjection_glare: mat4x4<f32>,\r\n    viewProjection_shadow_near: mat4x4<f32>,\r\n    viewProjection_shadow_far: mat4x4<f32>,\r\n    viewProjection_shadow_near_uv: mat4x4<f32>,\r\n    viewProjection_shadow_far_uv: mat4x4<f32>,\r\n    viewProjection_inv: mat4x4<f32>,\r\n    invScreenResolution: vec2<f32>,\r\n    cameraPosition: vec3<f32>,\r\n}\r\n\r\n@group(0) @binding(0) var<uniform> settings: Settings;\r\n@group(0) @binding(1) var depthBufferScreenSpace: texture_depth_2d;\r\n@group(0) @binding(2) var depthBuffersLightSource: texture_depth_2d_array;\r\n@group(0) @binding(3) var comparisonSampler: sampler_comparison;\r\n\r\n@fragment\r\nfn main(@builtin(position) screenPosInPixels: vec4<f32>,\r\n    @location(0) fragNormal: vec3<f32>) -> @location(0) f32 {\r\n\r\n    const randomVectors = array(\r\n        vec2(0.493393, 0.394269),\r\n        vec2(0.798547, 0.885922),\r\n        vec2(0.247322, 0.926450),\r\n        vec2(0.0514542013, 0.140782),\r\n        vec2(0.831843, 0.00955228973),\r\n        vec2(0.428632, 0.0171514004),\r\n        vec2(0.015656, 0.749779),\r\n        vec2(0.758385, 0.496170),\r\n        vec2(0.223487, 0.562151),\r\n        vec2(0.0116275996, 0.406995),\r\n        vec2(0.241462, 0.304636),\r\n        vec2(0.430311, 0.727226),\r\n        vec2(0.981811, 0.278359),\r\n        vec2(0.407056, 0.500534),\r\n        vec2(0.123478, 0.463546),\r\n        vec2(0.809534, 0.682272),    \r\n    );\r\n\r\n    const NEAR_BIAS = 0.0045;\r\n    const FAR_BIAS = 0.005;\r\n\r\n    const MAX_DEPTH_SQ = 10000.0 * 10000.0;\r\n\r\n    const randomVectorLength = 4.0 / 4096.0;\r\n\r\n    const nearDepthBufferLimitZ = 0.986808896064758;\r\n    const farDepthBufferLimitZ = 0.998557209968567;\r\n    const depthBufferLimitZ = 0.998557209968567;\r\n    const nearFarBorderZ = 0.983973801136017;\r\n\r\n    var screenPosition: vec4<f32>;\r\n    screenPosition.z = textureLoad(depthBufferScreenSpace, vec2<i32>(floor(screenPosInPixels.xy)), 0);\r\n    if (screenPosition.z >= depthBufferLimitZ) {\r\n        discard;\r\n    }\r\n\r\n    var uv = screenPosInPixels.xy * settings.invScreenResolution;\r\n    screenPosition.x = uv.x * 2 - 1;\r\n    screenPosition.y = (1 - uv.y) * 2 - 1;\r\n    screenPosition.w = 1;\r\n\r\n    var worldPosition = settings.viewProjection_inv * screenPosition;\r\n    // do full matrix tranform\r\n    worldPosition.x /= worldPosition.w;\r\n    worldPosition.y /= worldPosition.w;\r\n    worldPosition.z /= worldPosition.w;\r\n    worldPosition.w = 1;\r\n\r\n    var positionFromCamera = worldPosition.xyz - settings.cameraPosition;\r\n\r\n    var distanceFromCameraSq = dot(positionFromCamera, positionFromCamera);\r\n    var normalizedDistanceFromCamera = saturate(distanceFromCameraSq / MAX_DEPTH_SQ);\r\n\r\n    normalizedDistanceFromCamera =\r\n        1 - (normalizedDistanceFromCamera * normalizedDistanceFromCamera * normalizedDistanceFromCamera *\r\n                normalizedDistanceFromCamera * normalizedDistanceFromCamera * normalizedDistanceFromCamera *\r\n                normalizedDistanceFromCamera * normalizedDistanceFromCamera); // ^8\r\n\r\n    var shouldUseFarDepthBuffer = screenPosition.z >= nearDepthBufferLimitZ;\r\n\r\n    var levelToUse: u32; \r\n    var bias: f32;\r\n    var depthBufferVP: mat4x4<f32>;\r\n    if (shouldUseFarDepthBuffer) {\r\n        depthBufferVP = settings.viewProjection_shadow_far;\r\n        bias = FAR_BIAS;\r\n        levelToUse = 1;\r\n    } else {\r\n        depthBufferVP = settings.viewProjection_shadow_near;\r\n        bias = NEAR_BIAS;\r\n        levelToUse = 0;\r\n    }\r\n    \r\n    var depthBufferPos = depthBufferVP * worldPosition;\r\n    var uvForDepthBuffer = depthBufferPos.xy * 0.5 + 0.5;\r\n    uvForDepthBuffer.y = 1 - uvForDepthBuffer.y;\r\n    var transformedDepthValue = depthBufferPos.z - bias;\r\n\r\n    var someAccumulatedValue0 = 0.0;\r\n    // sample 4x4 random places\r\n    for (var counter = 0; counter < 8; counter++) {\r\n        var vec0 = randomVectors[counter * 2] * 2 - 1;\r\n        var vec1 = randomVectors[counter * 2 + 1] * 2 - 1;\r\n\r\n        var uv0 = uvForDepthBuffer + vec0 * randomVectorLength;\r\n        var uv1 = uvForDepthBuffer + vec1 * randomVectorLength;\r\n\r\n        var depthCmpValue0 =\r\n            textureSampleCompare(depthBuffersLightSource, comparisonSampler, uv0, levelToUse, transformedDepthValue);\r\n        var depthCmpValue1 =\r\n            textureSampleCompare(depthBuffersLightSource, comparisonSampler, uv1, levelToUse, transformedDepthValue);\r\n\r\n        someAccumulatedValue0 += depthCmpValue0 + depthCmpValue1;\r\n    }\r\n    someAccumulatedValue0 /= 16.0;\r\n\r\n    var farDepthBufferPos = settings.viewProjection_shadow_far * worldPosition;\r\n\r\n    uvForDepthBuffer = farDepthBufferPos.xy * 0.5 + 0.5;\r\n    uvForDepthBuffer.y = 1 - uvForDepthBuffer.y;\r\n    transformedDepthValue = farDepthBufferPos.z - FAR_BIAS;\r\n\r\n    var someAccumulatedValue1 = 0.0;\r\n    for (var counter = 0; counter < 8; counter++) {\r\n        var vec0 = randomVectors[counter * 2] * 2 - 1;\r\n        var vec1 = randomVectors[counter * 2 + 1] * 2 - 1;\r\n\r\n        var uv0 = uvForDepthBuffer + vec0 * randomVectorLength;\r\n        var uv1 = uvForDepthBuffer + vec1 * randomVectorLength;\r\n\r\n        var depthCmpValue0 =\r\n            textureSampleCompare(depthBuffersLightSource, comparisonSampler, uv0, 1, transformedDepthValue);\r\n        var depthCmpValue1 =\r\n            textureSampleCompare(depthBuffersLightSource, comparisonSampler, uv1, 1, transformedDepthValue);\r\n\r\n        someAccumulatedValue1 += depthCmpValue0 + depthCmpValue1;\r\n    }\r\n    \r\n    if (levelToUse < 1 && screenPosition.z >= nearFarBorderZ) {\r\n        someAccumulatedValue1 /= 16.0;\r\n\r\n        // how much shadow is from border to farDepth limit\r\n        var t: f32 = saturate((screenPosition.z - nearFarBorderZ) / (nearDepthBufferLimitZ - nearFarBorderZ));\r\n        t = 3 * t * t - 2 * t * t * t;\r\n\r\n        someAccumulatedValue0 += (someAccumulatedValue1 - someAccumulatedValue0) * t;\r\n    }\r\n\r\n    var output = 1 + normalizedDistanceFromCamera * (someAccumulatedValue0 - 1);\r\n    if (output < 0) {\r\n        discard;\r\n    }\r\n    \r\n    return output;\r\n}";
 
-var volumetricInitComp = "struct Settings {\r\n    viewProjection: mat4x4<f32>,\r\n    viewProjection_inplace: mat4x4<f32>,\r\n    viewProjection_sun: mat4x4<f32>,\r\n    viewProjection_glare: mat4x4<f32>,\r\n    viewProjection_shadow_near: mat4x4<f32>,\r\n    viewProjection_shadow_far: mat4x4<f32>,\r\n    viewProjection_shadow_near_uv: mat4x4<f32>,\r\n    viewProjection_shadow_far_uv: mat4x4<f32>,\r\n    viewProjection_inv: mat4x4<f32>,\r\n    invScreenResolution: vec2<f32>,\r\n    cameraPosition: vec3<f32>,\r\n    sunDirection: vec3<f32>,\r\n}\r\n\r\n@group(0) @binding(0) var<uniform> settings: Settings;\r\n\r\n@group(0) @binding(1) var point_clamp_sampler: sampler;\r\n@group(0) @binding(2) var linear_clamp_sampler: sampler;\r\n@group(0) @binding(3) var linear_mirror_sampler: sampler;\r\n\r\n@group(0) @binding(4) var depthBuffersLightSource: texture_depth_2d_array;\r\n@group(0) @binding(5) var curve: texture_2d<f32>;\r\n@group(0) @binding(6) var randomData: texture_3d<f32>;\r\n\r\n@group(0) @binding(7) var swapChain0: texture_storage_3d<rgba16float, write>;\r\n@group(0) @binding(8) var swapChain1: texture_storage_3d<rgba16float, write>;\r\n\r\nfn unpack(v: vec4<f32>) -> f32 {\r\n    return dot(v, vec4(1.0, 1/255.0, 1/65025.0, 1/160581375.0));\r\n}\r\n\r\n@compute @workgroup_size(32, 32)\r\nfn main(@builtin(global_invocation_id) threadNum : vec3<u32>) {\r\n    const randomVectors: array<vec3<f32>, 8> = array(\r\n        vec3(0, 0, 0),\r\n        vec3(0, 0, 1),\r\n        vec3(0, 1, 0),\r\n        vec3(0, 1, 1),\r\n        vec3(1, 0, 0),\r\n        vec3(1, 0, 1),\r\n        vec3(1, 1, 0),\r\n        vec3(1, 1, 1),\r\n    );\r\n\r\n    const normalizer: vec3<f32> = vec3(320, 192, 90);\r\n\r\n    const randomVectorIndex = 3.0; // TODO randomize\r\n    const randomMul = 0.1;\r\n\r\n    const unknownMul0 = 0.85;\r\n    const unknownMul1 = 0.85;\r\n    const randomFinalMul = 0.3;\r\n\r\n    const nearDepthBufferLimitZ = 0.986808896064758;\r\n    const farDepthBufferLimitZ = 0.998557209968567;\r\n    const depthBufferLimitZ = 0.998557209968567;\r\n\r\n    var coordIn3DTexture = vec3<f32>(threadNum) / normalizer + randomVectors[u32(randomVectorIndex)] * 0.001;\r\n\r\n    var screenPosition = vec4(\r\n        coordIn3DTexture.x * 2 - 1,\r\n        (1 - coordIn3DTexture.y) * 2 - 1,\r\n        unpack(textureSampleLevel(curve, linear_clamp_sampler, vec2(coordIn3DTexture.z, 0), 0)), \r\n        1\r\n    );\r\n\r\n    var worldPosition = settings.viewProjection_inv * screenPosition;\r\n    worldPosition /= worldPosition.w;\r\n    \r\n    var screenSpaceZ = screenPosition.z;\r\n    if (screenSpaceZ < depthBufferLimitZ) {\r\n        var shouldUseFarDepthBuffer = screenSpaceZ >= nearDepthBufferLimitZ;\r\n\r\n        var levelToUse: u32; \r\n        var bias: f32;\r\n        var depthBufferVP: mat4x4<f32>;\r\n        if (shouldUseFarDepthBuffer) {\r\n            depthBufferVP = settings.viewProjection_shadow_far;\r\n            bias = 0;\r\n            levelToUse = 1;\r\n        } else {\r\n            depthBufferVP = settings.viewProjection_shadow_near;\r\n            bias = 0.01;\r\n            levelToUse = 0;\r\n        }\r\n\r\n        var temp = (depthBufferVP * worldPosition).xyz;\r\n        var depthBufferCoord = temp.xy * 0.5 + 0.5;\r\n        depthBufferCoord.y = 1 - depthBufferCoord.y;\r\n\r\n        var transformedDepthValue = temp.z - bias;\r\n\r\n        var lightSourceDepthValue = textureSampleLevel(depthBuffersLightSource, point_clamp_sampler, depthBufferCoord, levelToUse, 0);\r\n        if (lightSourceDepthValue < transformedDepthValue) {\r\n            textureStore(swapChain0, threadNum, vec4(0.0, 0.0, 0.0, 0.0));\r\n            textureStore(swapChain1, threadNum, vec4(0.0, 0.0, 0.0, 0.0));\r\n            return;\r\n        }\r\n    }\r\n\r\n    var relativeWorldPosition = worldPosition.xyz - settings.cameraPosition;\r\n\r\n    var coordInRandomData = worldPosition.xyz * randomMul / 80;\r\n    var randomValue = textureSampleLevel(randomData, linear_mirror_sampler, coordInRandomData, 0).x;\r\n\r\n    var clampedTransformedZ = saturate(relativeWorldPosition.z / 150.0);\r\n    var stretchedClampedTransformedZ = 3 - 2 * clampedTransformedZ;\r\n    clampedTransformedZ = 1 - 0.75 * stretchedClampedTransformedZ * clampedTransformedZ * clampedTransformedZ;\r\n\r\n    var randomComponent = randomFinalMul * (randomValue * clampedTransformedZ - 1) + 1;\r\n    \r\n    var directionToPosition = -normalize(relativeWorldPosition);\r\n    var someCos = dot(directionToPosition, settings.sunDirection);\r\n\r\n    var result =\r\n        randomComponent *\r\n        (unknownMul0 * ((-(unknownMul1 * unknownMul1) + 1) / \r\n        (12.56637 * (1 - unknownMul1 * someCos)) - 1) + 1);\r\n\r\n    textureStore(swapChain0, threadNum, vec4(result, 0.0, 0.0, 0.0));\r\n    textureStore(swapChain1, threadNum, vec4(result, 0.0, 0.0, 0.0));\r\n}";
+var volumetricInitComp = "struct Settings {\r\n    viewProjection: mat4x4<f32>,\r\n    viewProjection_inplace: mat4x4<f32>,\r\n    viewProjection_sun: mat4x4<f32>,\r\n    viewProjection_glare: mat4x4<f32>,\r\n    viewProjection_shadow_near: mat4x4<f32>,\r\n    viewProjection_shadow_far: mat4x4<f32>,\r\n    viewProjection_shadow_near_uv: mat4x4<f32>,\r\n    viewProjection_shadow_far_uv: mat4x4<f32>,\r\n    viewProjection_inv: mat4x4<f32>,\r\n    invScreenResolution: vec2<f32>,\r\n    cameraPosition: vec3<f32>,\r\n    sunDirection: vec3<f32>,\r\n}\r\n\r\n@group(0) @binding(0) var<uniform> settings: Settings;\r\n\r\n@group(0) @binding(1) var point_clamp_sampler: sampler;\r\n@group(0) @binding(2) var linear_clamp_sampler: sampler;\r\n@group(0) @binding(3) var linear_mirror_sampler: sampler;\r\n\r\n@group(0) @binding(4) var depthBuffersLightSource: texture_depth_2d_array;\r\n@group(0) @binding(5) var curve: texture_2d<f32>;\r\n@group(0) @binding(6) var randomData: texture_3d<f32>;\r\n\r\n@group(0) @binding(7) var swapChain0: texture_storage_3d<rgba16float, write>;\r\n@group(0) @binding(8) var swapChain1: texture_storage_3d<rgba16float, write>;\r\n\r\nfn unpack(v: vec4<f32>) -> f32 {\r\n    return dot(v, vec4(1.0, 1/255.0, 1/65025.0, 1/160581375.0));\r\n}\r\n\r\n@compute @workgroup_size(32, 32)\r\nfn main(@builtin(global_invocation_id) threadNum : vec3<u32>) {\r\n    const randomVectors: array<vec3<f32>, 8> = array(\r\n        vec3(0, 0, 0),\r\n        vec3(0, 0, 1),\r\n        vec3(0, 1, 0),\r\n        vec3(0, 1, 1),\r\n        vec3(1, 0, 0),\r\n        vec3(1, 0, 1),\r\n        vec3(1, 1, 0),\r\n        vec3(1, 1, 1),\r\n    );\r\n\r\n    const normalizer: vec3<f32> = vec3(320, 192, 90);\r\n\r\n    const randomVectorIndex = 3.0; // TODO randomize, changes each frame 0..7\r\n    const randomMul = 0.1;\r\n\r\n    const unknownMul0 = 0.85;\r\n    const unknownMul1 = 0.85;\r\n    const randomFinalMul = 0.3;\r\n\r\n    const nearDepthBufferLimitZ = 0.986808896064758;\r\n    const farDepthBufferLimitZ = 0.998557209968567;\r\n    const depthBufferLimitZ = 0.998557209968567;\r\n\r\n    var coordIn3DTexture = vec3<f32>(threadNum) / normalizer + randomVectors[u32(randomVectorIndex)] * 0.001;\r\n\r\n    var screenPosition = vec4(\r\n        coordIn3DTexture.x * 2 - 1,\r\n        (1 - coordIn3DTexture.y) * 2 - 1,\r\n        unpack(textureSampleLevel(curve, linear_clamp_sampler, vec2(coordIn3DTexture.z, 0), 0)), \r\n        1\r\n    );\r\n\r\n    var worldPosition = settings.viewProjection_inv * screenPosition;\r\n    worldPosition /= worldPosition.w;\r\n    \r\n    var screenSpaceZ = screenPosition.z;\r\n    if (screenSpaceZ < depthBufferLimitZ) {\r\n        var shouldUseFarDepthBuffer = screenSpaceZ >= nearDepthBufferLimitZ;\r\n\r\n        var levelToUse: u32; \r\n        var bias: f32;\r\n        var depthBufferVP: mat4x4<f32>;\r\n        if (shouldUseFarDepthBuffer) {\r\n            depthBufferVP = settings.viewProjection_shadow_far;\r\n            bias = 0;\r\n            levelToUse = 1;\r\n        } else {\r\n            depthBufferVP = settings.viewProjection_shadow_near;\r\n            bias = 0.01;\r\n            levelToUse = 0;\r\n        }\r\n\r\n        var temp = (depthBufferVP * worldPosition).xyz;\r\n        var depthBufferCoord = temp.xy * 0.5 + 0.5;\r\n        depthBufferCoord.y = 1 - depthBufferCoord.y;\r\n\r\n        var transformedDepthValue = temp.z - bias;\r\n\r\n        var lightSourceDepthValue = textureSampleLevel(depthBuffersLightSource, point_clamp_sampler, depthBufferCoord, levelToUse, 0);\r\n        if (lightSourceDepthValue < transformedDepthValue) {\r\n            textureStore(swapChain0, threadNum, vec4(0.0, 0.0, 0.0, 0.0));\r\n            textureStore(swapChain1, threadNum, vec4(0.0, 0.0, 0.0, 0.0));\r\n            return;\r\n        }\r\n    }\r\n\r\n    var relativeWorldPosition = worldPosition.xyz - settings.cameraPosition;\r\n\r\n    var coordInRandomData = worldPosition.xyz * randomMul / 80;\r\n    var randomValue = textureSampleLevel(randomData, linear_mirror_sampler, coordInRandomData, 0).x;\r\n\r\n    var clampedTransformedZ = saturate(relativeWorldPosition.z / 150.0);\r\n    var stretchedClampedTransformedZ = 3 - 2 * clampedTransformedZ;\r\n    clampedTransformedZ = 1 - 0.75 * stretchedClampedTransformedZ * clampedTransformedZ * clampedTransformedZ;\r\n\r\n    var randomComponent = randomFinalMul * (randomValue * clampedTransformedZ - 1) + 1;\r\n    \r\n    var directionToPosition = -normalize(relativeWorldPosition);\r\n    var someCos = dot(directionToPosition, settings.sunDirection);\r\n\r\n    var result =\r\n        randomComponent *\r\n        (unknownMul0 * ((-(unknownMul1 * unknownMul1) + 1) / \r\n        (12.56637 * (1 - unknownMul1 * someCos)) - 1) + 1);\r\n\r\n    textureStore(swapChain0, threadNum, vec4(result, 0.0, 0.0, 0.0));\r\n    textureStore(swapChain1, threadNum, vec4(result, 0.0, 0.0, 0.0));\r\n}";
 
 var volumetricAddComp = "@group(0) @binding(0) var<uniform> z: u32;\r\n@group(0) @binding(1) var input: texture_3d<f32>;\r\n@group(0) @binding(2) var output: texture_storage_3d<rgba16float, write>;\r\n\r\n@compute @workgroup_size(32, 32)\r\nfn main(@builtin(global_invocation_id) threadNum : vec3<u32>) {\r\n\tvar prevCoord = vec3(threadNum.xy, z - 1);\r\n\tvar currentCoord = vec3(threadNum.xy, z);\r\n\r\n\tvar prevValue = textureLoad(input, prevCoord, 0).x;\r\n\tvar currentValue = textureLoad(input, currentCoord, 0).x;\r\n\r\n\ttextureStore(output, prevCoord, vec4(prevValue, 0, 0, 0));\r\n    textureStore(output, currentCoord, vec4(currentValue + prevValue, 0, 0, 0));\r\n}";
+
+var volumetricComposeFrag = "@group(0) @binding(0) var point_clamp_sampler: sampler;\r\n@group(0) @binding(1) var linear_clamp_sampler: sampler;\r\n\r\n@group(0) @binding(2) var dithering: texture_2d<f32>;\r\n@group(0) @binding(3) var depthBuffer: texture_depth_2d;\r\n@group(0) @binding(4) var volumetricLightBuffer: texture_3d<f32>;\r\n@group(0) @binding(5) var curve: texture_2d<f32>;\r\n\r\nfn unpack(v: vec4<f32>) -> f32 {\r\n    return dot(v, vec4(1.0, 1/255.0, 1/65025.0, 1/160581375.0));\r\n}\r\n\r\n@fragment\r\nfn main(\r\n    @builtin(position) screenPos: vec4<f32>,\r\n    @location(0) fragNormal: vec3<f32>,\r\n    @location(1) fragUV: vec2<f32>,\r\n) -> @location(0) f32 {\r\n    const lightMul = 0.0401901230216026;\r\n    const reverseDepthMul = 0.75;\r\n\r\n    var screenDepth = textureLoad(depthBuffer, vec2<i32>(floor(screenPos.xy)), 0);\r\n    var curvedDepth = clamp(unpack(textureSampleLevel(curve, linear_clamp_sampler, vec2(screenDepth, 0), 0)), 0, 0.9999);\r\n    \r\n    var volumetricBufferCoord = vec3(fragUV, curvedDepth);\r\n    var lightValue = textureSampleLevel(volumetricLightBuffer, linear_clamp_sampler, volumetricBufferCoord, 0).x * lightMul;\r\n\r\n    var ditherValue = textureSample(dithering, point_clamp_sampler, 0.125 * screenPos.xy).x;\r\n    var ditheredLightValue = (ditherValue * 0.03125 + lightValue) - 0.0078125;\r\n\r\n    if (false && reverseDepthMul >= 0.001) {\r\n        // TODO\r\n        return 0;\r\n    } else {\r\n        return ditheredLightValue;\r\n    }\r\n}";
+
+var volumetricPostprocessFrag = "@group(0) @binding(0) var volumetricLightScreenBuffer: texture_2d<f32>;\r\n\r\n@fragment\r\nfn main(\r\n    @builtin(position) screenPos: vec4<f32>,\r\n    @location(0) fragNormal: vec3<f32>,\r\n) -> @location(0) vec4<f32> {\r\n    const volumetricLightColor = vec3(0.738756477832794, 0.557605266571045, 0.47399827837944);\r\n\r\n    var light = textureLoad(volumetricLightScreenBuffer, vec2<i32>(floor(screenPos.xy)), 0).x;\r\n\r\n    return vec4(volumetricLightColor * light, 0);\r\n}";
 
 var objectsVert = "struct Settings {\r\n    viewProjection: mat4x4<f32>,\r\n    viewProjection_inplace: mat4x4<f32>,\r\n    viewProjection_sun: mat4x4<f32>,\r\n    viewProjection_glare: mat4x4<f32>,\r\n    viewProjection_shadow_near: mat4x4<f32>,\r\n    viewProjection_shadow_far: mat4x4<f32>,\r\n    viewProjection_shadow_near_uv: mat4x4<f32>,\r\n    viewProjection_shadow_far_uv: mat4x4<f32>,\r\n    invScreenResolution: vec2<f32>,\r\n}\r\n\r\nstruct PerObjectDataEntry {\r\n    quat_scale: vec4<f32>,\r\n    translation_atlasNum: vec4<f32>,\r\n}\r\n\r\nstruct PerObjectData {\r\n    entries: array<PerObjectDataEntry>,\r\n}\r\n\r\nstruct VertexOutput {\r\n    @builtin(position) fragPosition: vec4<f32>,\r\n    @location(0) fragNormal: vec3<f32>,\r\n    @location(1) fragUV: vec2<f32>,\r\n    @location(2) @interpolate(flat) fragAtlasNum: u32,\r\n}\r\n\r\n@group(0) @binding(0) var<uniform> settings: Settings;\r\n@group(0) @binding(1) var<storage, read> perObjectData : PerObjectData;\r\n\r\nfn quat_transform(q: vec4<f32>, v: vec3<f32>) -> vec3<f32> {\r\n    return v + 2 * cross(q.xyz, cross(q.xyz, v) + q.w * v);\r\n}\r\n\r\n@vertex\r\nfn main(\r\n    @location(0) inputPosition: vec3<f32>,\r\n    @location(1) inputNormal: vec3<f32>,\r\n    @location(2) inputUV: vec2<f32>,\r\n    @location(3) paramsIndex: f32,\r\n) -> VertexOutput {\r\n    var index = u32(paramsIndex);\r\n\r\n    var quat_scale = perObjectData.entries[index].quat_scale;\r\n    var translation_atlasNum = perObjectData.entries[index].translation_atlasNum;\r\n\r\n    var scale = quat_scale.w;\r\n\r\n    var translation = translation_atlasNum.xyz;\r\n    var atlasNum = translation_atlasNum.w;\r\n\r\n    var quat_xyz = quat_scale.xyz;\r\n    var s = length(quat_xyz);\r\n    var quat = vec4(quat_xyz, sqrt(1.0 - s * s));\r\n\r\n    var output: VertexOutput;\r\n    output.fragPosition = settings.viewProjection * vec4(quat_transform(quat, inputPosition) * scale + translation, 1.0);\r\n    output.fragNormal = quat_transform(quat, inputNormal);\r\n    output.fragUV = inputUV;\r\n    output.fragAtlasNum = u32(atlasNum);\r\n\r\n    return output;\r\n}";
 
@@ -7888,7 +7892,7 @@ var passthroughDepthFrag = "@group(0) @binding(0) var linearSampler: sampler;\r\
 
 var passthroughFrag_Debug = "@group(0) @binding(0) var linearSampler: sampler;\r\n@group(0) @binding(1) var tex: texture_3d<f32>;\r\n\r\nfn unpack(v: vec4<f32>) -> f32 {\r\n    return dot(v, vec4(1.0, 1/255.0, 1/65025.0, 1/160581375.0));\r\n}\r\n\r\n@fragment\r\nfn main(\r\n    @location(1) fragUV: vec2<f32>\r\n) -> @location(0) vec4<f32> {\r\n    var coord = vec3(fragUV.xy, 76.5 / 90);\r\n    var f = textureSample(tex, linearSampler, coord).x;\r\n    return vec4(f, f, f, 1);\r\n}";
 
-var fogFrag = "@group(0) @binding(0) var linearSampler: sampler;\r\n@group(0) @binding(1) var sceneColors: texture_2d<f32>;\r\n@group(0) @binding(2) var depthBuffer: texture_depth_2d;\r\n\r\n@fragment\r\nfn main(\r\n    @location(0) fragNormal: vec3<f32>,\r\n    @location(1) fragUV: vec2<f32>,\r\n) -> @location(0) vec4<f32> {\r\n\tvar depthOffset = 0.0;\r\n\tvar depthMul = 1.0 / 67870.;\r\n\tvar depthLogMul = 0.4;\r\n\tvar minDepthValue = 0.85;\r\n\r\n\tvar fogBaseColorRGBA = vec4(0.125627145171165, 0.256408363580704, 0.279881805181503, 0.833333313465118);\r\n\tvar maxFogColorRGBA = vec4(0.315368860960007, 0.388478130102158, 0.441431760787964, 0.833333313465118);\r\n\r\n    var depthMin = 15.0;\r\n\tvar depthMax = 353840.0;\r\n\r\n    var sceneColor = textureSample(sceneColors, linearSampler, fragUV).rgb;\r\n\r\n    var depthValue = textureSample(depthBuffer, linearSampler, fragUV);\r\n\tvar stretchedDepthValue = (depthValue * 1.01 - 0.01) * 2.0 - 1.0;\r\n\r\n\tvar someBullshit = depthMin * depthMax * 2.0;\r\n\r\n    var depthDistanceFromZero = depthMax + depthMin;\r\n    var depthLength = depthMax - depthMin;\r\n\r\n    var depthValueInRangeFromOtherSide = depthDistanceFromZero - stretchedDepthValue * depthLength;\r\n\r\n    var depthPower = someBullshit / depthValueInRangeFromOtherSide;\r\n\r\n\tvar depthMulClamped = min(minDepthValue, exp2(depthLogMul * log2(clamp(depthPower * depthMul - depthOffset, 0.0, 1.0))));\r\n\r\n\tvar fogBaseColor = fogBaseColorRGBA.rgb;\r\n\tvar maxFogColor = maxFogColorRGBA.rgb;\r\n\r\n    var fogColorRange = maxFogColor - fogBaseColor;\r\n    var fogColor = fogBaseColor + vec3(depthMulClamped, depthMulClamped, depthMulClamped) * fogColorRange;\r\n\r\n    var sceneAfterFog = (sceneColor + vec3(depthMulClamped, depthMulClamped, depthMulClamped) * (fogColor - sceneColor)) * fogBaseColorRGBA.a;\r\n\r\n    if (depthValue < 1.0 - 10e-8) {\r\n        sceneColor = sceneAfterFog;\r\n    } else {\r\n        sceneColor = sceneColor;\r\n    }\r\n\r\n    return vec4(saturate(sceneColor), 1.0);\r\n}";
+var fogFrag = "@group(0) @binding(0) var sceneColors: texture_2d<f32>;\r\n@group(0) @binding(1) var depthBuffer: texture_depth_2d;\r\n\r\n@fragment\r\nfn main(\r\n    @builtin(position) screenPosInPixels: vec4<f32>,\r\n    @location(0) fragNormal: vec3<f32>,\r\n) -> @location(0) vec4<f32> {\r\n\tvar depthOffset = 0.0;\r\n\tvar depthMul = 1.0 / 67870.;\r\n\tvar depthLogMul = 0.4;\r\n\tvar minDepthValue = 0.85;\r\n\r\n\tvar fogBaseColorRGBA = vec4(0.125627145171165, 0.256408363580704, 0.279881805181503, 0.833333313465118);\r\n\tvar maxFogColorRGBA = vec4(0.315368860960007, 0.388478130102158, 0.441431760787964, 0.833333313465118);\r\n\r\n    var depthMin = 15.0;\r\n\tvar depthMax = 353840.0;\r\n\r\n    var sceneColor = textureLoad(sceneColors, vec2<i32>(floor(screenPosInPixels.xy)), 0).rgb;\r\n\r\n    var depthValue = textureLoad(depthBuffer, vec2<i32>(floor(screenPosInPixels.xy)), 0);\r\n\tvar stretchedDepthValue = (depthValue * 1.01 - 0.01) * 2.0 - 1.0;\r\n\r\n\tvar someBullshit = depthMin * depthMax * 2.0;\r\n\r\n    var depthDistanceFromZero = depthMax + depthMin;\r\n    var depthLength = depthMax - depthMin;\r\n\r\n    var depthValueInRangeFromOtherSide = depthDistanceFromZero - stretchedDepthValue * depthLength;\r\n\r\n    var depthPower = someBullshit / depthValueInRangeFromOtherSide;\r\n\r\n\tvar depthMulClamped = min(minDepthValue, exp2(depthLogMul * log2(clamp(depthPower * depthMul - depthOffset, 0.0, 1.0))));\r\n\r\n\tvar fogBaseColor = fogBaseColorRGBA.rgb;\r\n\tvar maxFogColor = maxFogColorRGBA.rgb;\r\n\r\n    var fogColorRange = maxFogColor - fogBaseColor;\r\n    var fogColor = fogBaseColor + vec3(depthMulClamped, depthMulClamped, depthMulClamped) * fogColorRange;\r\n\r\n    var sceneAfterFog = (sceneColor + vec3(depthMulClamped, depthMulClamped, depthMulClamped) * (fogColor - sceneColor)) * fogBaseColorRGBA.a;\r\n\r\n    if (depthValue < 1.0 - 10e-8) {\r\n        sceneColor = sceneAfterFog;\r\n    } else {\r\n        sceneColor = sceneColor;\r\n    }\r\n\r\n    return vec4(saturate(sceneColor), 1.0);\r\n}";
 
 var glareVert = "struct Settings {\r\n    viewProjection: mat4x4<f32>,\r\n    viewProjection_inplace: mat4x4<f32>,\r\n    viewProjection_sun: mat4x4<f32>,\r\n    viewProjection_glare: mat4x4<f32>,\r\n    viewProjection_shadow_near: mat4x4<f32>,\r\n    viewProjection_shadow_far: mat4x4<f32>,\r\n    viewProjection_shadow_near_uv: mat4x4<f32>,\r\n    viewProjection_shadow_far_uv: mat4x4<f32>,\r\n    invScreenResolution: vec2<f32>,\r\n}\r\n\r\nstruct VertexOutput {\r\n    @builtin(position) fragPosition: vec4<f32>,\r\n    @location(0) fragColor: vec4<f32>,\r\n    @location(1) fragUV: vec2<f32>,\r\n}\r\n\r\n@group(0) @binding(0) var<uniform> settings: Settings;\r\n\r\n@vertex\r\nfn main(\r\n    @location(0) inputPosition: vec3<f32>,\r\n    @location(1) inputColor: vec4<f32>,\r\n    @location(2) inputUV: vec2<f32>,\r\n) -> VertexOutput {\r\n    var output: VertexOutput;\r\n\r\n    var pos = settings.viewProjection_glare * vec4(inputPosition, 1.0);\r\n    pos.z = pos.w;\r\n    // max in depth\r\n    output.fragPosition = pos;\r\n\r\n    output.fragUV = inputUV;\r\n\r\n    var rWeight = vec3(0.565203845500946, 0.228658571839333, 0.0142048010602593);\r\n    var alpha = 0.833333313465118;\r\n\r\n    var tintedColor = rWeight * inputColor.r;\r\n\r\n    output.fragColor = vec4(tintedColor * alpha, inputColor.a);\r\n\r\n    return output;\r\n}";
 
@@ -8772,6 +8776,8 @@ class Render {
     static volumetricInitBind;
     static volumetricAddPipeline;
     static volumetricAddBinds;
+    static volumetricComposePipeline;
+    static volumetricComposeBind;
     static contactShadowsPipeline;
     static contactShadowsBind;
     static objectsPipeline;
@@ -8788,6 +8794,8 @@ class Render {
     static screenBind;
     static glarePipeline;
     static glareBind;
+    static volumetricPostprocessPipeline;
+    static volumetricPostprocessBind;
     // atlases
     static atlasesTexture;
     static atlases;
@@ -8806,6 +8814,9 @@ class Render {
     static contactShadowsTexture;
     static contactShadowsTextureView;
     static contactShadowsPassDesc;
+    static volumetricLightingTexture;
+    static volumetricLightingTextureView;
+    static volumetricLightingPassDesc;
     // volumetric lighting
     static volumetricLightingBuffer0;
     static volumetricLightingBuffer1;
@@ -9040,6 +9051,12 @@ class Render {
             usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
         });
         Render.contactShadowsTextureView = Render.contactShadowsTexture.createView();
+        Render.volumetricLightingTexture = wd.createTexture({
+            size: [canvasWebGPU.width, canvasWebGPU.height],
+            format: "r16float",
+            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
+        });
+        Render.volumetricLightingTextureView = Render.volumetricLightingTexture.createView();
         Render.volumetricLightingBuffer0 = wd.createTexture({
             size: [VOLUMETRIC_TEX_WIDTH, VOLUMETRIC_TEX_HEIGHT, VOLUMETRIC_TEX_DEPTH],
             // FIXME supposed to be r16float, memory usage x4
@@ -9080,6 +9097,7 @@ class Render {
             arrayLayerCount: 1,
             dimension: "2d",
         });
+        // Render.debugTextureView = Render.volumetricLightingTextureView
         // Render.debugTextureView = Render.contactShadowsTextureView
         // Render.debugTextureView = Render.shadowDepthBufferNearView
         // Render.debugIsDepth = true
@@ -9117,6 +9135,21 @@ class Render {
             colorAttachments: [
                 {
                     view: Render.contactShadowsTextureView,
+                    clearValue: {
+                        r: 1,
+                        g: 1,
+                        b: 1,
+                        a: 1,
+                    },
+                    loadOp: "clear",
+                    storeOp: "store",
+                },
+            ],
+        };
+        Render.volumetricLightingPassDesc = {
+            colorAttachments: [
+                {
+                    view: Render.volumetricLightingTextureView,
                     clearValue: {
                         r: 1,
                         g: 1,
@@ -9306,6 +9339,8 @@ class Render {
             size: SETTINGS_SIZE * 4,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         });
+        const ditheringView = Render.dithering.createView();
+        const volumetricCurveView = Render.volumetricCurve.createView();
         Render.shadowNearBind = wd.createBindGroup({
             layout: Render.shadowNearPipeline.getBindGroupLayout(0),
             entries: [
@@ -9367,7 +9402,7 @@ class Render {
                 },
                 {
                     binding: 5,
-                    resource: Render.volumetricCurve.createView(),
+                    resource: volumetricCurveView,
                 },
                 {
                     binding: 6,
@@ -9421,6 +9456,35 @@ class Render {
             });
             Render.volumetricAddBinds.push(bind);
         }
+        Render.volumetricComposeBind = wd.createBindGroup({
+            layout: Render.volumetricComposePipeline.getBindGroupLayout(0),
+            entries: [
+                {
+                    binding: 0,
+                    resource: pointClampSampler,
+                },
+                {
+                    binding: 1,
+                    resource: linearClampSampler,
+                },
+                {
+                    binding: 2,
+                    resource: ditheringView,
+                },
+                {
+                    binding: 3,
+                    resource: Render.depthBufferView,
+                },
+                {
+                    binding: 4,
+                    resource: Render.volumetricLightingBufferView0,
+                },
+                {
+                    binding: 5,
+                    resource: volumetricCurveView,
+                },
+            ],
+        });
         Render.contactShadowsBind = wd.createBindGroup({
             layout: Render.contactShadowsPipeline.getBindGroupLayout(0),
             entries: [
@@ -9490,7 +9554,6 @@ class Render {
                 },
             ],
         });
-        const ditheringView = Render.dithering.createView();
         Render.skydomeBind = wd.createBindGroup({
             layout: Render.skydomePipeline.getBindGroupLayout(0),
             entries: [
@@ -9545,15 +9608,20 @@ class Render {
             entries: [
                 {
                     binding: 0,
-                    resource: linearRepeatSampler,
-                },
-                {
-                    binding: 1,
                     resource: Render.mainPassTextureView,
                 },
                 {
-                    binding: 2,
+                    binding: 1,
                     resource: Render.depthBufferView,
+                },
+            ],
+        });
+        Render.volumetricPostprocessBind = wd.createBindGroup({
+            layout: Render.volumetricPostprocessPipeline.getBindGroupLayout(0),
+            entries: [
+                {
+                    binding: 0,
+                    resource: Render.volumetricLightingTextureView,
                 },
             ],
         });
@@ -9693,6 +9761,26 @@ class Render {
                 module: volumetricAddShaderComp,
                 entryPoint: "main",
             },
+        });
+        const volumetricComposeShaderFrag = wd.createShaderModule({ code: volumetricComposeFrag });
+        Render.volumetricComposePipeline = wd.createRenderPipeline({
+            layout: "auto",
+            vertex: {
+                module: passthroughShaderVert,
+                entryPoint: "main",
+                buffers: MeshBuffer.buffers,
+            },
+            fragment: {
+                module: volumetricComposeShaderFrag,
+                entryPoint: "main",
+                targets: [
+                    {
+                        format: "r16float",
+                        writeMask: GPUColorWrite.ALL,
+                    },
+                ],
+            },
+            primitive,
         });
         // contact shadows
         const contactShadowsShaderFrag = wd.createShaderModule({ code: contactShadowsFrag });
@@ -9915,6 +10003,40 @@ class Render {
                             alpha: {
                                 operation: "add",
                                 srcFactor: "src-alpha",
+                                dstFactor: "one",
+                            },
+                        },
+                        writeMask: GPUColorWrite.ALL,
+                    },
+                ],
+            },
+            primitive,
+        });
+        const volumetricPostprocessShaderFrag = wd.createShaderModule({
+            code: volumetricPostprocessFrag,
+        });
+        Render.volumetricPostprocessPipeline = wd.createRenderPipeline({
+            layout: "auto",
+            vertex: {
+                module: passthroughShaderVert,
+                entryPoint: "main",
+                buffers: MeshBuffer.buffers,
+            },
+            fragment: {
+                module: volumetricPostprocessShaderFrag,
+                entryPoint: "main",
+                targets: [
+                    {
+                        format: "rgb10a2unorm",
+                        blend: {
+                            color: {
+                                operation: "add",
+                                srcFactor: "one",
+                                dstFactor: "one",
+                            },
+                            alpha: {
+                                operation: "add",
+                                srcFactor: "one",
                                 dstFactor: "one",
                             },
                         },
@@ -10329,6 +10451,18 @@ class Render {
             passEncoder.end();
         }
         {
+            // screen space volumetric lighting pass
+            const passEncoder = commandEncoder.beginRenderPass(Render.volumetricLightingPassDesc);
+            passEncoder.setBindGroup(0, Render.volumetricComposeBind);
+            passEncoder.setPipeline(Render.volumetricComposePipeline);
+            passEncoder.setVertexBuffer(0, Render.fullscreenPlain.vertices);
+            passEncoder.setIndexBuffer(Render.fullscreenPlain.indices, "uint16");
+            passEncoder.drawIndexed(Render.fullscreenPlain.indexCount);
+            passEncoder.end();
+        }
+        // TODO
+        // volumetric lighting pass smoothing
+        {
             // screen space shadow reconstruction pass
             const passEncoder = commandEncoder.beginRenderPass(Render.contactShadowsPassDesc);
             passEncoder.setBindGroup(0, Render.contactShadowsBind);
@@ -10396,6 +10530,11 @@ class Render {
                 passEncoder.setIndexBuffer(Render.glare.indices, "uint16");
                 passEncoder.drawIndexed(Render.glare.indexCount);
             }
+            passEncoder.setBindGroup(0, Render.volumetricPostprocessBind);
+            passEncoder.setPipeline(Render.volumetricPostprocessPipeline);
+            passEncoder.setVertexBuffer(0, Render.fullscreenPlain.vertices);
+            passEncoder.setIndexBuffer(Render.fullscreenPlain.indices, "uint16");
+            passEncoder.drawIndexed(Render.fullscreenPlain.indexCount);
             passEncoder.end();
         }
         // @ts-expect-error here we need to render to frame that is currently assign to next frame

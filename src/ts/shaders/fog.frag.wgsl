@@ -1,11 +1,10 @@
-@group(0) @binding(0) var linearSampler: sampler;
-@group(0) @binding(1) var sceneColors: texture_2d<f32>;
-@group(0) @binding(2) var depthBuffer: texture_depth_2d;
+@group(0) @binding(0) var sceneColors: texture_2d<f32>;
+@group(0) @binding(1) var depthBuffer: texture_depth_2d;
 
 @fragment
 fn main(
+    @builtin(position) screenPosInPixels: vec4<f32>,
     @location(0) fragNormal: vec3<f32>,
-    @location(1) fragUV: vec2<f32>,
 ) -> @location(0) vec4<f32> {
 	var depthOffset = 0.0;
 	var depthMul = 1.0 / 67870.;
@@ -18,9 +17,9 @@ fn main(
     var depthMin = 15.0;
 	var depthMax = 353840.0;
 
-    var sceneColor = textureSample(sceneColors, linearSampler, fragUV).rgb;
+    var sceneColor = textureLoad(sceneColors, vec2<i32>(floor(screenPosInPixels.xy)), 0).rgb;
 
-    var depthValue = textureSample(depthBuffer, linearSampler, fragUV);
+    var depthValue = textureLoad(depthBuffer, vec2<i32>(floor(screenPosInPixels.xy)), 0);
 	var stretchedDepthValue = (depthValue * 1.01 - 0.01) * 2.0 - 1.0;
 
 	var someBullshit = depthMin * depthMax * 2.0;

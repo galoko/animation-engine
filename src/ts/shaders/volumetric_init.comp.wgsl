@@ -45,7 +45,7 @@ fn main(@builtin(global_invocation_id) threadNum : vec3<u32>) {
 
     const normalizer: vec3<f32> = vec3(320, 192, 90);
 
-    const randomVectorIndex = 3.0; // TODO randomize
+    const randomVectorIndex = 3.0; // TODO randomize, changes each frame 0..7
     const randomMul = 0.1;
 
     const unknownMul0 = 0.85;

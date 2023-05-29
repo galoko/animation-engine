@@ -7,6 +7,8 @@ import contactShadowsFrag from "../../shaders/contact-shadows.frag.wgsl"
 
 import volumetricInitComp from "../../shaders/volumetric_init.comp.wgsl"
 import volumetricAddComp from "../../shaders/volumetric_add.comp.wgsl"
+import volumetricComposeFrag from "../../shaders/volumetric_compose.frag.wgsl"
+import volumetricPostprocessFrag from "../../shaders/volumetric_postprocess.frag.wgsl"
 
 import objectsVert from "../../shaders/objects.vert.wgsl"
 import objectsFrag from "../../shaders/objects.frag.wgsl"
@@ -395,6 +397,9 @@ export class Render {
     private static volumetricAddPipeline: GPUComputePipeline
     private static volumetricAddBinds: GPUBindGroup[]
 
+    private static volumetricComposePipeline: GPURenderPipeline
+    private static volumetricComposeBind: GPUBindGroup
+
     private static contactShadowsPipeline: GPURenderPipeline
     private static contactShadowsBind: GPUBindGroup
 
@@ -419,6 +424,9 @@ export class Render {
     private static glarePipeline: GPURenderPipeline
     private static glareBind: GPUBindGroup
 
+    private static volumetricPostprocessPipeline: GPURenderPipeline
+    private static volumetricPostprocessBind: GPUBindGroup
+
     // atlases
     private static atlasesTexture: GPUTexture
     private static atlases: Atlas[]
@@ -440,6 +448,10 @@ export class Render {
     private static contactShadowsTexture: GPUTexture
     private static contactShadowsTextureView: GPUTextureView
     private static contactShadowsPassDesc: GPURenderPassDescriptor
+
+    private static volumetricLightingTexture: GPUTexture
+    private static volumetricLightingTextureView: GPUTextureView
+    private static volumetricLightingPassDesc: GPURenderPassDescriptor
 
     // volumetric lighting
     private static volumetricLightingBuffer0: GPUTexture
@@ -760,6 +772,13 @@ export class Render {
         })
         Render.contactShadowsTextureView = Render.contactShadowsTexture.createView()
 
+        Render.volumetricLightingTexture = wd.createTexture({
+            size: [canvasWebGPU.width, canvasWebGPU.height],
+            format: "r16float",
+            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
+        })
+        Render.volumetricLightingTextureView = Render.volumetricLightingTexture.createView()
+
         Render.volumetricLightingBuffer0 = wd.createTexture({
             size: [VOLUMETRIC_TEX_WIDTH, VOLUMETRIC_TEX_HEIGHT, VOLUMETRIC_TEX_DEPTH],
             // FIXME supposed to be r16float, memory usage x4
@@ -805,6 +824,7 @@ export class Render {
             dimension: "2d",
         })
 
+        // Render.debugTextureView = Render.volumetricLightingTextureView
         // Render.debugTextureView = Render.contactShadowsTextureView
         // Render.debugTextureView = Render.shadowDepthBufferNearView
         // Render.debugIsDepth = true
@@ -848,6 +868,23 @@ export class Render {
             colorAttachments: [
                 {
                     view: Render.contactShadowsTextureView,
+
+                    clearValue: {
+                        r: 1,
+                        g: 1,
+                        b: 1,
+                        a: 1,
+                    },
+                    loadOp: "clear",
+                    storeOp: "store",
+                },
+            ],
+        }
+
+        Render.volumetricLightingPassDesc = {
+            colorAttachments: [
+                {
+                    view: Render.volumetricLightingTextureView,
 
                     clearValue: {
                         r: 1,
@@ -1094,6 +1131,9 @@ export class Render {
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         })
 
+        const ditheringView = Render.dithering.createView()
+        const volumetricCurveView = Render.volumetricCurve.createView()
+
         Render.shadowNearBind = wd.createBindGroup({
             layout: Render.shadowNearPipeline.getBindGroupLayout(0),
             entries: [
@@ -1157,7 +1197,7 @@ export class Render {
                 },
                 {
                     binding: 5,
-                    resource: Render.volumetricCurve.createView(),
+                    resource: volumetricCurveView,
                 },
                 {
                     binding: 6,
@@ -1215,6 +1255,36 @@ export class Render {
 
             Render.volumetricAddBinds.push(bind)
         }
+
+        Render.volumetricComposeBind = wd.createBindGroup({
+            layout: Render.volumetricComposePipeline.getBindGroupLayout(0),
+            entries: [
+                {
+                    binding: 0,
+                    resource: pointClampSampler,
+                },
+                {
+                    binding: 1,
+                    resource: linearClampSampler,
+                },
+                {
+                    binding: 2,
+                    resource: ditheringView,
+                },
+                {
+                    binding: 3,
+                    resource: Render.depthBufferView,
+                },
+                {
+                    binding: 4,
+                    resource: Render.volumetricLightingBufferView0,
+                },
+                {
+                    binding: 5,
+                    resource: volumetricCurveView,
+                },
+            ],
+        })
 
         Render.contactShadowsBind = wd.createBindGroup({
             layout: Render.contactShadowsPipeline.getBindGroupLayout(0),
@@ -1288,8 +1358,6 @@ export class Render {
             ],
         })
 
-        const ditheringView = Render.dithering.createView()
-
         Render.skydomeBind = wd.createBindGroup({
             layout: Render.skydomePipeline.getBindGroupLayout(0),
             entries: [
@@ -1347,15 +1415,21 @@ export class Render {
             entries: [
                 {
                     binding: 0,
-                    resource: linearRepeatSampler,
-                },
-                {
-                    binding: 1,
                     resource: Render.mainPassTextureView,
                 },
                 {
-                    binding: 2,
+                    binding: 1,
                     resource: Render.depthBufferView,
+                },
+            ],
+        })
+
+        Render.volumetricPostprocessBind = wd.createBindGroup({
+            layout: Render.volumetricPostprocessPipeline.getBindGroupLayout(0),
+            entries: [
+                {
+                    binding: 0,
+                    resource: Render.volumetricLightingTextureView,
                 },
             ],
         })
@@ -1509,6 +1583,27 @@ export class Render {
                 module: volumetricAddShaderComp,
                 entryPoint: "main",
             },
+        })
+
+        const volumetricComposeShaderFrag = wd.createShaderModule({ code: volumetricComposeFrag })
+        Render.volumetricComposePipeline = wd.createRenderPipeline({
+            layout: "auto",
+            vertex: {
+                module: passthroughShaderVert,
+                entryPoint: "main",
+                buffers: MeshBuffer.buffers,
+            },
+            fragment: {
+                module: volumetricComposeShaderFrag,
+                entryPoint: "main",
+                targets: [
+                    {
+                        format: "r16float",
+                        writeMask: GPUColorWrite.ALL,
+                    },
+                ],
+            },
+            primitive,
         })
 
         // contact shadows
@@ -1746,6 +1841,42 @@ export class Render {
                             alpha: {
                                 operation: "add",
                                 srcFactor: "src-alpha",
+                                dstFactor: "one",
+                            },
+                        },
+                        writeMask: GPUColorWrite.ALL,
+                    },
+                ],
+            },
+            primitive,
+        })
+
+        const volumetricPostprocessShaderFrag = wd.createShaderModule({
+            code: volumetricPostprocessFrag,
+        })
+
+        Render.volumetricPostprocessPipeline = wd.createRenderPipeline({
+            layout: "auto",
+            vertex: {
+                module: passthroughShaderVert,
+                entryPoint: "main",
+                buffers: MeshBuffer.buffers,
+            },
+            fragment: {
+                module: volumetricPostprocessShaderFrag,
+                entryPoint: "main",
+                targets: [
+                    {
+                        format: "rgb10a2unorm",
+                        blend: {
+                            color: {
+                                operation: "add",
+                                srcFactor: "one",
+                                dstFactor: "one",
+                            },
+                            alpha: {
+                                operation: "add",
+                                srcFactor: "one",
                                 dstFactor: "one",
                             },
                         },
@@ -2271,6 +2402,22 @@ export class Render {
         }
 
         {
+            // screen space volumetric lighting pass
+            const passEncoder = commandEncoder.beginRenderPass(Render.volumetricLightingPassDesc)
+
+            passEncoder.setBindGroup(0, Render.volumetricComposeBind)
+            passEncoder.setPipeline(Render.volumetricComposePipeline)
+            passEncoder.setVertexBuffer(0, Render.fullscreenPlain.vertices)
+            passEncoder.setIndexBuffer(Render.fullscreenPlain.indices, "uint16")
+            passEncoder.drawIndexed(Render.fullscreenPlain.indexCount)
+
+            passEncoder.end()
+        }
+
+        // TODO
+        // volumetric lighting pass smoothing
+
+        {
             // screen space shadow reconstruction pass
             const passEncoder = commandEncoder.beginRenderPass(Render.contactShadowsPassDesc)
 
@@ -2357,6 +2504,12 @@ export class Render {
                 passEncoder.setIndexBuffer(Render.glare.indices, "uint16")
                 passEncoder.drawIndexed(Render.glare.indexCount)
             }
+
+            passEncoder.setBindGroup(0, Render.volumetricPostprocessBind)
+            passEncoder.setPipeline(Render.volumetricPostprocessPipeline)
+            passEncoder.setVertexBuffer(0, Render.fullscreenPlain.vertices)
+            passEncoder.setIndexBuffer(Render.fullscreenPlain.indices, "uint16")
+            passEncoder.drawIndexed(Render.fullscreenPlain.indexCount)
 
             passEncoder.end()
         }
