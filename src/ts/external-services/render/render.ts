@@ -341,7 +341,7 @@ function createTexture(tex: Texture): GPUTexture {
 function createFloatTexture(width: number, height: number): GPUTexture {
     const texture = wd.createTexture({
         size: [width, height, 1],
-        format: "rgb10a2unorm",
+        format: "rg11b10ufloat",
         usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
     })
 
@@ -1661,7 +1661,7 @@ export class Render {
                 entryPoint: "main",
                 targets: [
                     {
-                        format: "rgb10a2unorm",
+                        format: "rg11b10ufloat",
                         writeMask: GPUColorWrite.RED | GPUColorWrite.GREEN | GPUColorWrite.BLUE,
                     },
                 ],
@@ -1689,7 +1689,7 @@ export class Render {
                 entryPoint: "main",
                 targets: [
                     {
-                        format: "rgb10a2unorm",
+                        format: "rg11b10ufloat",
                         blend: {
                             color: {
                                 operation: "add",
@@ -1729,7 +1729,7 @@ export class Render {
                 entryPoint: "main",
                 targets: [
                     {
-                        format: "rgb10a2unorm",
+                        format: "rg11b10ufloat",
                         blend: {
                             color: {
                                 operation: "add",
@@ -1769,7 +1769,7 @@ export class Render {
                 entryPoint: "main",
                 targets: [
                     {
-                        format: "rgb10a2unorm",
+                        format: "rg11b10ufloat",
                         blend: {
                             color: {
                                 operation: "add",
@@ -1808,7 +1808,7 @@ export class Render {
                 entryPoint: "main",
                 targets: [
                     {
-                        format: "rgb10a2unorm",
+                        format: "rg11b10ufloat",
                         writeMask: GPUColorWrite.ALL,
                     },
                 ],
@@ -1831,7 +1831,7 @@ export class Render {
                 entryPoint: "main",
                 targets: [
                     {
-                        format: "rgb10a2unorm",
+                        format: "rg11b10ufloat",
                         blend: {
                             color: {
                                 operation: "add",
@@ -1867,7 +1867,7 @@ export class Render {
                 entryPoint: "main",
                 targets: [
                     {
-                        format: "rgb10a2unorm",
+                        format: "rg11b10ufloat",
                         blend: {
                             color: {
                                 operation: "add",
@@ -1965,7 +1965,7 @@ export class Render {
                 entryPoint: "main",
                 targets: [
                     {
-                        format: "rgb10a2unorm",
+                        format: "rg11b10ufloat",
                         blend: {
                             color: {
                                 operation: "add",

@@ -7918,7 +7918,7 @@ async function initWebGPU() {
         return;
     }
     wd = await adapter.requestDevice({
-        requiredFeatures: ["depth-clip-control"],
+        requiredFeatures: ["depth-clip-control", "rg11b10ufloat-renderable"],
         requiredLimits: {
             maxComputeInvocationsPerWorkgroup: 1024,
         },
@@ -8733,7 +8733,7 @@ function createTexture(tex) {
 function createFloatTexture(width, height) {
     const texture = wd.createTexture({
         size: [width, height, 1],
-        format: "rgb10a2unorm",
+        format: "rg11b10ufloat",
         usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
     });
     return texture;
@@ -9833,7 +9833,7 @@ class Render {
                 entryPoint: "main",
                 targets: [
                     {
-                        format: "rgb10a2unorm",
+                        format: "rg11b10ufloat",
                         writeMask: GPUColorWrite.RED | GPUColorWrite.GREEN | GPUColorWrite.BLUE,
                     },
                 ],
@@ -9859,7 +9859,7 @@ class Render {
                 entryPoint: "main",
                 targets: [
                     {
-                        format: "rgb10a2unorm",
+                        format: "rg11b10ufloat",
                         blend: {
                             color: {
                                 operation: "add",
@@ -9897,7 +9897,7 @@ class Render {
                 entryPoint: "main",
                 targets: [
                     {
-                        format: "rgb10a2unorm",
+                        format: "rg11b10ufloat",
                         blend: {
                             color: {
                                 operation: "add",
@@ -9935,7 +9935,7 @@ class Render {
                 entryPoint: "main",
                 targets: [
                     {
-                        format: "rgb10a2unorm",
+                        format: "rg11b10ufloat",
                         blend: {
                             color: {
                                 operation: "add",
@@ -9972,7 +9972,7 @@ class Render {
                 entryPoint: "main",
                 targets: [
                     {
-                        format: "rgb10a2unorm",
+                        format: "rg11b10ufloat",
                         writeMask: GPUColorWrite.ALL,
                     },
                 ],
@@ -9993,7 +9993,7 @@ class Render {
                 entryPoint: "main",
                 targets: [
                     {
-                        format: "rgb10a2unorm",
+                        format: "rg11b10ufloat",
                         blend: {
                             color: {
                                 operation: "add",
@@ -10027,7 +10027,7 @@ class Render {
                 entryPoint: "main",
                 targets: [
                     {
-                        format: "rgb10a2unorm",
+                        format: "rg11b10ufloat",
                         blend: {
                             color: {
                                 operation: "add",
@@ -10120,7 +10120,7 @@ class Render {
                 entryPoint: "main",
                 targets: [
                     {
-                        format: "rgb10a2unorm",
+                        format: "rg11b10ufloat",
                         blend: {
                             color: {
                                 operation: "add",

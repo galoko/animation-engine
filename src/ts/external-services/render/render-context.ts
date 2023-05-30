@@ -13,7 +13,7 @@ export async function initWebGPU() {
         return
     }
     wd = await adapter.requestDevice({
-        requiredFeatures: ["depth-clip-control"],
+        requiredFeatures: ["depth-clip-control", "rg11b10ufloat-renderable"],
         requiredLimits: {
             maxComputeInvocationsPerWorkgroup: 1024,
         },
