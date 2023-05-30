@@ -113,10 +113,7 @@ fn main(@builtin(global_invocation_id) threadNum : vec3<u32>) {
     var directionToPosition = -normalize(relativeWorldPosition);
     var someCos = dot(directionToPosition, settings.sunDirection);
 
-    var result =
-        randomComponent *
-        (unknownMul0 * ((-(unknownMul1 * unknownMul1) + 1) / 
-        (12.56637 * (1 - unknownMul1 * someCos)) - 1) + 1);
+    var result = randomComponent * (unknownMul0 * ((1 - unknownMul1 * unknownMul1) / (12.56637 * (1 - unknownMul1 * someCos)) - 1) + 1);
 
     textureStore(swapChain0, threadNum, vec4(result, 0.0, 0.0, 0.0));
     textureStore(swapChain1, threadNum, vec4(result, 0.0, 0.0, 0.0));

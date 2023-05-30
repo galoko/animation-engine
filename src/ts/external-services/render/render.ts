@@ -479,7 +479,8 @@ export class Render {
     private static glareTexture: GPUTexture
     private static fullscreenPlain: MeshBuffer
 
-    private static volumetricCurve: GPUTexture
+    private static volumetricCurveInit: GPUTexture
+    private static volumetricCurveCompose: GPUTexture
     private static volumetricRandomData: GPUTexture
     private static debugTextureExample: GPUTexture
 
@@ -592,22 +593,43 @@ export class Render {
         )
         Render.glareTexture = createTexture(await loadTexture("build/glare.png"))
 
-        const curveData = new Uint8Array(
-            await (await fetch("build/volumetric_curve_data_rgba.bin")).arrayBuffer()
-        )
-        const curveWidth = curveData.byteLength / 4
-        Render.volumetricCurve = wd.createTexture({
-            size: [curveWidth, 1],
-            format: "rgba8unorm",
-            dimension: "2d",
-            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
-        })
-        wd.queue.writeTexture(
-            { texture: Render.volumetricCurve },
-            curveData,
-            { bytesPerRow: curveWidth * 4, rowsPerImage: 1 },
-            { width: curveWidth, height: 1 }
-        )
+        {
+            const curveData = new Uint8Array(
+                await (await fetch("build/volumetric_curve_init_data_rgba.bin")).arrayBuffer()
+            )
+            const curveWidth = curveData.byteLength / 4
+            Render.volumetricCurveInit = wd.createTexture({
+                size: [curveWidth, 1],
+                format: "rgba8unorm",
+                dimension: "2d",
+                usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+            })
+            wd.queue.writeTexture(
+                { texture: Render.volumetricCurveInit },
+                curveData,
+                { bytesPerRow: curveWidth * 4, rowsPerImage: 1 },
+                { width: curveWidth, height: 1 }
+            )
+        }
+
+        {
+            const curveData = new Uint8Array(
+                await (await fetch("build/volumetric_curve_compose_data_rgba.bin")).arrayBuffer()
+            )
+            const curveWidth = curveData.byteLength / 4
+            Render.volumetricCurveCompose = wd.createTexture({
+                size: [curveWidth, 1],
+                format: "rgba8unorm",
+                dimension: "2d",
+                usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+            })
+            wd.queue.writeTexture(
+                { texture: Render.volumetricCurveCompose },
+                curveData,
+                { bytesPerRow: curveWidth * 4, rowsPerImage: 1 },
+                { width: curveWidth, height: 1 }
+            )
+        }
 
         const randomData = new Uint8Array(
             await (await fetch("build/volumetric_random_data_tighten.bin")).arrayBuffer()
@@ -1132,7 +1154,8 @@ export class Render {
         })
 
         const ditheringView = Render.dithering.createView()
-        const volumetricCurveView = Render.volumetricCurve.createView()
+        const volumetricCurveInitView = Render.volumetricCurveInit.createView()
+        const volumetricCurveComposeView = Render.volumetricCurveCompose.createView()
 
         Render.shadowNearBind = wd.createBindGroup({
             layout: Render.shadowNearPipeline.getBindGroupLayout(0),
@@ -1197,7 +1220,7 @@ export class Render {
                 },
                 {
                     binding: 5,
-                    resource: volumetricCurveView,
+                    resource: volumetricCurveInitView,
                 },
                 {
                     binding: 6,
@@ -1281,7 +1304,7 @@ export class Render {
                 },
                 {
                     binding: 5,
-                    resource: volumetricCurveView,
+                    resource: volumetricCurveComposeView,
                 },
             ],
         })
