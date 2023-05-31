@@ -527,7 +527,7 @@ export class Render {
         await Render.loadResources()
         Render.createUBOs()
 
-        // await Render.setupShadowsTest()
+        await Render.setupShadowsTest()
     }
 
     static async setupShadowsTest(): Promise<void> {
@@ -846,7 +846,7 @@ export class Render {
             dimension: "2d",
         })
 
-        // Render.debugTextureView = Render.volumetricLightingTextureView
+        Render.debugTextureView = Render.volumetricLightingTextureView
         // Render.debugTextureView = Render.contactShadowsTextureView
         // Render.debugTextureView = Render.shadowDepthBufferNearView
         // Render.debugIsDepth = true
@@ -2208,7 +2208,6 @@ export class Render {
     static calcSunTransform(dt: number): void {
         // Render.sunYAngle += dt * 0.5
 
-        /*
         Render.sunYAngle = 0.0
 
         const sunPosition = vec3.fromValues(
@@ -2218,9 +2217,8 @@ export class Render {
         )
         // TODO check out sun trajectory and sun scale, which appears to be dynamic
         vec3.scale(sunPosition, sunPosition, 350)
-        */
 
-        const sunPosition = vec3.fromValues(20.6666469573975, 77.4717559814453, 341.035034179687)
+        // const sunPosition = vec3.fromValues(20.6666469573975, 77.4717559814453, 341.035034179687)
 
         const sunModel = mat4.create()
         mat4.rotateY(sunModel, sunModel, Render.sunYAngle)

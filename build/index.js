@@ -8875,7 +8875,7 @@ class Render {
         Render.compilerShaders();
         await Render.loadResources();
         Render.createUBOs();
-        // await Render.setupShadowsTest()
+        await Render.setupShadowsTest();
     }
     static async setupShadowsTest() {
         // add bucket
@@ -9111,7 +9111,7 @@ class Render {
             arrayLayerCount: 1,
             dimension: "2d",
         });
-        // Render.debugTextureView = Render.volumetricLightingTextureView
+        Render.debugTextureView = Render.volumetricLightingTextureView;
         // Render.debugTextureView = Render.contactShadowsTextureView
         // Render.debugTextureView = Render.shadowDepthBufferNearView
         // Render.debugIsDepth = true
@@ -10296,18 +10296,11 @@ class Render {
     static sunYAngle = Math.PI * 1.55;
     static calcSunTransform(dt) {
         // Render.sunYAngle += dt * 0.5
-        /*
-        Render.sunYAngle = 0.0
-
-        const sunPosition = vec3.fromValues(
-            -0.76995176076889,
-            0.0843339264392853,
-            0.632504463195801
-        )
+        Render.sunYAngle = 0.0;
+        const sunPosition = fromValues$4(-0.76995176076889, 0.0843339264392853, 0.632504463195801);
         // TODO check out sun trajectory and sun scale, which appears to be dynamic
-        vec3.scale(sunPosition, sunPosition, 350)
-        */
-        const sunPosition = fromValues$4(20.6666469573975, 77.4717559814453, 341.035034179687);
+        scale$4(sunPosition, sunPosition, 350);
+        // const sunPosition = vec3.fromValues(20.6666469573975, 77.4717559814453, 341.035034179687)
         const sunModel = create$5();
         rotateY$3(sunModel, sunModel, Render.sunYAngle);
         translate$1(sunModel, sunModel, sunPosition);
@@ -11012,13 +11005,13 @@ class Services {
         await Render.init();
         InputManager.init();
         GameLoop.init(Services.process);
-        Engine._init();
+        // Engine._init()
         await Render.setupTest();
     }
     static process(dt) {
         // console.log("TICK")
         // engine tick
-        Engine._tick(dt);
+        // Engine._tick(dt)
         // resolve output queue messages
         Queues.processOutputQueue();
         // render
