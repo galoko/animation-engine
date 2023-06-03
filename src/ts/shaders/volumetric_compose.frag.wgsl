@@ -16,7 +16,7 @@ fn main(
     @location(0) fragNormal: vec3<f32>,
     @location(1) fragUV: vec2<f32>,
 ) -> @location(0) f32 {
-    const lightMul = 0.0401901230216026;
+    const lightMul = 0.0353660732507706;
     const reverseDepthMul = 0.75;
 
     var screenDepth = textureLoad(depthBuffer, vec2<i32>(floor(screenPos.xy)), 0);

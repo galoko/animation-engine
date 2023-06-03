@@ -50,6 +50,7 @@ import {
 } from "../resources/loaders"
 import { ColoredMesh, ColoredTexturedMesh, Mesh, Texture } from "./render-data"
 import { ResourceManager } from "../resources/resource-manager"
+import { Float16Array } from "@petamoriken/float16"
 
 const POSITION_LOC = 0
 const COLOR_LOC = 1
@@ -527,7 +528,7 @@ export class Render {
         await Render.loadResources()
         Render.createUBOs()
 
-        await Render.setupShadowsTest()
+        // await Render.setupShadowsTest()
     }
 
     static async setupShadowsTest(): Promise<void> {
@@ -540,16 +541,16 @@ export class Render {
             bucket,
             new Float32Array([
                 // rotation
-                -0.000004685526619141456, -0.000009808394679566845, 0.9487481117248535,
-                0.316033273935318,
+                -0.08335307240486145, 0.35976338386535645, 0.9053316712379456, 0.2097550332546234,
                 // scale
                 10,
                 // position
-                -796.7786865234375, -241.33251953125, -86.42948150634766,
+                -1160.062744140625, -373.4453125, 182.90625,
             ])
         )
         Render.addRenderable(bucket)
 
+        /*
         // add ground
         const ground = new Renderable(
             await ResourceManager.requestMesh("ground"),
@@ -567,11 +568,12 @@ export class Render {
             ])
         )
         Render.addRenderable(ground)
+        */
 
         // setup camera
         Render.setCamera(
             vec3.fromValues(0, 0, 0),
-            vec3.fromValues(-0.7991405129432678, -0.5913922190666199, -0.11954037100076675)
+            vec3.fromValues(-0.9772039651870728, 0.1179046481847763, 0.17655348777770996)
         )
     }
 
@@ -806,9 +808,71 @@ export class Render {
             // FIXME supposed to be r16float, memory usage x4
             format: "rgba16float",
             dimension: "3d",
-            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING,
+            usage:
+                GPUTextureUsage.TEXTURE_BINDING |
+                GPUTextureUsage.STORAGE_BINDING |
+                GPUTextureUsage.COPY_SRC,
         })
         Render.volumetricLightingBufferView0 = Render.volumetricLightingBuffer0.createView()
+
+        /*
+        setTimeout(async () => {
+            const byteSize =
+                VOLUMETRIC_TEX_WIDTH * VOLUMETRIC_TEX_HEIGHT * VOLUMETRIC_TEX_DEPTH * 4 * 2
+            const debugBuffer = wd.createBuffer({
+                size: byteSize,
+                usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+            })
+            const commandEncoder = wd.createCommandEncoder()
+            commandEncoder.copyTextureToBuffer(
+                { texture: Render.volumetricLightingBuffer0 },
+                {
+                    buffer: debugBuffer,
+                    bytesPerRow: VOLUMETRIC_TEX_WIDTH * 4 * 2,
+                    rowsPerImage: VOLUMETRIC_TEX_HEIGHT,
+                },
+                {
+                    width: VOLUMETRIC_TEX_WIDTH,
+                    height: VOLUMETRIC_TEX_HEIGHT,
+                    depthOrArrayLayers: VOLUMETRIC_TEX_DEPTH,
+                }
+            )
+            wd.queue.submit([commandEncoder.finish()])
+            await wd.queue.onSubmittedWorkDone()
+            await debugBuffer.mapAsync(GPUMapMode.READ)
+            const bytes = new Uint8Array(debugBuffer.getMappedRange())
+            const floats = new Float16Array(bytes.buffer)
+
+            const volumetric_data_bytes = new Uint8Array(
+                await (await fetch("build/volumetric_data.bin")).arrayBuffer()
+            )
+            const template_floats = new Float16Array(volumetric_data_bytes.buffer)
+
+            const getOurs = (x: number, y: number, z: number) => {
+                const f = floats
+
+                const w = 320
+                const h = 192
+
+                const i = z * (w * h) + y * w + x
+
+                return f[i * 4]
+            }
+
+            const getTemplate = (x: number, y: number, z: number) => {
+                const f = template_floats
+
+                const w = 320
+                const h = 192
+
+                const i = z * (w * h) + y * w + x
+
+                return f[i]
+            }
+
+            debugger
+        }, 3000)
+        */
 
         Render.volumetricLightingBuffer1 = wd.createTexture({
             size: [VOLUMETRIC_TEX_WIDTH, VOLUMETRIC_TEX_HEIGHT, VOLUMETRIC_TEX_DEPTH],
@@ -846,7 +910,7 @@ export class Render {
             dimension: "2d",
         })
 
-        Render.debugTextureView = Render.volumetricLightingTextureView
+        // Render.debugTextureView = Render.volumetricLightingTextureView
         // Render.debugTextureView = Render.contactShadowsTextureView
         // Render.debugTextureView = Render.shadowDepthBufferNearView
         // Render.debugIsDepth = true
@@ -2208,17 +2272,19 @@ export class Render {
     static calcSunTransform(dt: number): void {
         // Render.sunYAngle += dt * 0.5
 
+        /*
         Render.sunYAngle = 0.0
 
         const sunPosition = vec3.fromValues(
-            -0.76995176076889,
-            0.0843339264392853,
-            0.632504463195801
+            -0.732571005821228,
+            0.0899626091122627,
+            0.674719572067261
         )
         // TODO check out sun trajectory and sun scale, which appears to be dynamic
         vec3.scale(sunPosition, sunPosition, 350)
+        */
 
-        // const sunPosition = vec3.fromValues(20.6666469573975, 77.4717559814453, 341.035034179687)
+        const sunPosition = vec3.fromValues(20.6666469573975, 77.4717559814453, 341.035034179687)
 
         const sunModel = mat4.create()
         mat4.rotateY(sunModel, sunModel, Render.sunYAngle)

@@ -16,7 +16,7 @@ export class Services {
         await Render.init()
         InputManager.init()
         GameLoop.init(Services.process)
-        // Engine._init()
+        Engine._init()
 
         await Render.setupTest()
     }
@@ -24,7 +24,7 @@ export class Services {
     static process(dt: number): void {
         // console.log("TICK")
         // engine tick
-        // Engine._tick(dt)
+        Engine._tick(dt)
         // resolve output queue messages
         Queues.processOutputQueue()
         // render

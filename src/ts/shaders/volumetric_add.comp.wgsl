@@ -8,8 +8,11 @@ fn main(@builtin(global_invocation_id) threadNum : vec3<u32>) {
 	var currentCoord = vec3(threadNum.xy, z);
 
 	var prevValue = textureLoad(input, prevCoord, 0).x;
-	var currentValue = textureLoad(input, currentCoord, 0).x;
-
 	textureStore(output, prevCoord, vec4(prevValue, 0, 0, 0));
-    textureStore(output, currentCoord, vec4(currentValue + prevValue, 0, 0, 0));
+
+    // TODO use uniform
+    if (z < 90) {
+        var currentValue = textureLoad(input, currentCoord, 0).x;
+        textureStore(output, currentCoord, vec4(currentValue + prevValue, 0, 0, 0));
+    }
 }
