@@ -16,6 +16,8 @@ export async function initWebGPU() {
         requiredFeatures: ["depth-clip-control", "rg11b10ufloat-renderable"],
         requiredLimits: {
             maxComputeInvocationsPerWorkgroup: 1024,
+            maxComputeWorkgroupSizeX: 1024,
+            maxComputeWorkgroupSizeY: 1024,
         },
     })
 

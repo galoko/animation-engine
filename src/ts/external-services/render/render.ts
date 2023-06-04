@@ -8,6 +8,8 @@ import contactShadowsFrag from "../../shaders/contact-shadows.frag.wgsl"
 import volumetricInitComp from "../../shaders/volumetric_init.comp.wgsl"
 import volumetricAddComp from "../../shaders/volumetric_add.comp.wgsl"
 import volumetricComposeFrag from "../../shaders/volumetric_compose.frag.wgsl"
+import volumetricHSmoothComp from "../../shaders/volumetric_h_smooth.comp.wgsl"
+import volumetricVSmoothComp from "../../shaders/volumetric_v_smooth.comp.wgsl"
 import volumetricPostprocessFrag from "../../shaders/volumetric_postprocess.frag.wgsl"
 
 import objectsVert from "../../shaders/objects.vert.wgsl"
@@ -384,6 +386,9 @@ export class Render {
     private static settingsBuffer: Float32Array
     private static settings: GPUBuffer
 
+    private static resolutionBuffer: Int32Array
+    private static resolution: GPUBuffer
+
     private static depthBufferPipeline: GPURenderPipeline
     private static depthBufferBind: GPUBindGroup
 
@@ -397,6 +402,12 @@ export class Render {
 
     private static volumetricAddPipeline: GPUComputePipeline
     private static volumetricAddBinds: GPUBindGroup[]
+
+    private static volumetricHSmoothPipeline: GPUComputePipeline
+    private static volumetricHSmoothBind: GPUBindGroup
+
+    private static volumetricVSmoothPipeline: GPUComputePipeline
+    private static volumetricVSmoothBind: GPUBindGroup
 
     private static volumetricComposePipeline: GPURenderPipeline
     private static volumetricComposeBind: GPUBindGroup
@@ -453,6 +464,9 @@ export class Render {
     private static volumetricLightingTexture: GPUTexture
     private static volumetricLightingTextureView: GPUTextureView
     private static volumetricLightingPassDesc: GPURenderPassDescriptor
+
+    private static volumetricLightingTextureTemp: GPUTexture
+    private static volumetricLightingTextureTempView: GPUTextureView
 
     // volumetric lighting
     private static volumetricLightingBuffer0: GPUTexture
@@ -798,10 +812,20 @@ export class Render {
 
         Render.volumetricLightingTexture = wd.createTexture({
             size: [canvasWebGPU.width, canvasWebGPU.height],
-            format: "r16float",
-            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
+            format: "r32float",
+            usage:
+                GPUTextureUsage.TEXTURE_BINDING |
+                GPUTextureUsage.RENDER_ATTACHMENT |
+                GPUTextureUsage.STORAGE_BINDING,
         })
         Render.volumetricLightingTextureView = Render.volumetricLightingTexture.createView()
+
+        Render.volumetricLightingTextureTemp = wd.createTexture({
+            size: [canvasWebGPU.width, canvasWebGPU.height],
+            format: "r32float",
+            usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.STORAGE_BINDING,
+        })
+        Render.volumetricLightingTextureTempView = Render.volumetricLightingTextureTemp.createView()
 
         Render.volumetricLightingBuffer0 = wd.createTexture({
             size: [VOLUMETRIC_TEX_WIDTH, VOLUMETRIC_TEX_HEIGHT, VOLUMETRIC_TEX_DEPTH],
@@ -1160,6 +1184,7 @@ export class Render {
         })
 
         Render.settingsBuffer = new Float32Array(SETTINGS_SIZE)
+        Render.resolutionBuffer = new Int32Array(2)
 
         let pos = 0
 
@@ -1214,6 +1239,11 @@ export class Render {
         // settings for objects
         Render.settings = wd.createBuffer({
             size: SETTINGS_SIZE * 4,
+            usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+        })
+
+        Render.resolution = wd.createBuffer({
+            size: 2 * 4,
             usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
         })
 
@@ -1342,6 +1372,54 @@ export class Render {
 
             Render.volumetricAddBinds.push(bind)
         }
+
+        Render.volumetricHSmoothBind = wd.createBindGroup({
+            layout: Render.volumetricHSmoothPipeline.getBindGroupLayout(0),
+            entries: [
+                {
+                    binding: 0,
+                    resource: {
+                        buffer: Render.resolution,
+                    },
+                },
+                {
+                    binding: 1,
+                    resource: Render.volumetricLightingTextureView,
+                },
+                {
+                    binding: 2,
+                    resource: Render.depthBufferView,
+                },
+                {
+                    binding: 3,
+                    resource: Render.volumetricLightingTextureTempView,
+                },
+            ],
+        })
+
+        Render.volumetricVSmoothBind = wd.createBindGroup({
+            layout: Render.volumetricVSmoothPipeline.getBindGroupLayout(0),
+            entries: [
+                {
+                    binding: 0,
+                    resource: {
+                        buffer: Render.resolution,
+                    },
+                },
+                {
+                    binding: 1,
+                    resource: Render.volumetricLightingTextureTempView,
+                },
+                {
+                    binding: 2,
+                    resource: Render.depthBufferView,
+                },
+                {
+                    binding: 3,
+                    resource: Render.volumetricLightingTextureView,
+                },
+            ],
+        })
 
         Render.volumetricComposeBind = wd.createBindGroup({
             layout: Render.volumetricComposePipeline.getBindGroupLayout(0),
@@ -1685,12 +1763,34 @@ export class Render {
                 entryPoint: "main",
                 targets: [
                     {
-                        format: "r16float",
+                        format: "r32float",
                         writeMask: GPUColorWrite.ALL,
                     },
                 ],
             },
             primitive,
+        })
+
+        const volumetricHSmoothShaderComp = wd.createShaderModule({
+            code: volumetricHSmoothComp,
+        })
+        Render.volumetricHSmoothPipeline = wd.createComputePipeline({
+            layout: "auto",
+            compute: {
+                module: volumetricHSmoothShaderComp,
+                entryPoint: "main",
+            },
+        })
+
+        const volumetricVSmoothShaderComp = wd.createShaderModule({
+            code: volumetricVSmoothComp,
+        })
+        Render.volumetricVSmoothPipeline = wd.createComputePipeline({
+            layout: "auto",
+            compute: {
+                module: volumetricVSmoothShaderComp,
+                entryPoint: "main",
+            },
         })
 
         // contact shadows
@@ -2422,7 +2522,11 @@ export class Render {
         Render.calcGlareScale(dt)
         Render.calcSunTransform(dt)
 
+        Render.resolutionBuffer[0] = canvasWebGPU.width
+        Render.resolutionBuffer[1] = canvasWebGPU.height
+
         wd.queue.writeBuffer(Render.settings, 0, Render.settingsBuffer)
+        wd.queue.writeBuffer(Render.resolution, 0, Render.resolutionBuffer)
 
         const commandEncoder = wd.createCommandEncoder()
 
@@ -2488,8 +2592,8 @@ export class Render {
             passEncoder.end()
         }
 
+        // screen space volumetric lighting pass
         {
-            // screen space volumetric lighting pass
             const passEncoder = commandEncoder.beginRenderPass(Render.volumetricLightingPassDesc)
 
             passEncoder.setBindGroup(0, Render.volumetricComposeBind)
@@ -2497,6 +2601,29 @@ export class Render {
             passEncoder.setVertexBuffer(0, Render.fullscreenPlain.vertices)
             passEncoder.setIndexBuffer(Render.fullscreenPlain.indices, "uint16")
             passEncoder.drawIndexed(Render.fullscreenPlain.indexCount)
+
+            passEncoder.end()
+        }
+
+        // screen space volumetric lighting smoothing (both horizontal and vertical)
+        {
+            const passEncoder = commandEncoder.beginComputePass()
+
+            passEncoder.setPipeline(Render.volumetricHSmoothPipeline)
+            passEncoder.setBindGroup(0, Render.volumetricHSmoothBind)
+            passEncoder.dispatchWorkgroups(
+                Math.ceil(canvasWebGPU.width / 960),
+                canvasWebGPU.height,
+                1
+            )
+
+            passEncoder.setPipeline(Render.volumetricVSmoothPipeline)
+            passEncoder.setBindGroup(0, Render.volumetricVSmoothBind)
+            passEncoder.dispatchWorkgroups(
+                canvasWebGPU.width,
+                Math.ceil(canvasWebGPU.height / 540),
+                1
+            )
 
             passEncoder.end()
         }

@@ -60,15 +60,22 @@ void WorldManager::addGround() {
 
     RenderHandle ground = Render::createRenderable(planeModel, grassTexture);
 
-    Transformation transform = Transformation(0, 0, -0.5 * 100, 40 * 100);
+    Transformation transform = Transformation(0, 0, -0.5 * 100, 140 * 100);
     Render::setTransform(ground, transform);
 
     Render::addRenderable(ground);
 }
 
 void WorldManager::addPillars() {
-    RenderHandle pillarModel = Render::requestMesh("pillar");
+    RenderHandle wallModel = Render::requestMesh("wall");
     RenderHandle marbleTexture = Render::requestTexture("marble.jpg");
+
+    Transformation transform = Transformation(20 * 100, 0 * 100, -0.5 * 100, 1 * 100);
+    RenderHandle wall = Render::createRenderable(wallModel, marbleTexture);
+    Render::setTransform(wall, transform);
+    Render::addRenderable(wall);
+
+    RenderHandle pillarModel = Render::requestMesh("pillar");
 
     float PILLARS_COUNT = 10;
     float DISTANCE = 20;
