@@ -7890,13 +7890,23 @@ var passthroughVert = "struct VertexOutput {\r\n    @builtin(position) fragPosit
 
 var passthroughFrag = "@group(0) @binding(0) var linearSampler: sampler;\r\n@group(0) @binding(1) var tex: texture_2d<f32>;\r\n\r\n@fragment\r\nfn main(\r\n    @location(1) fragUV: vec2<f32>\r\n) -> @location(0) vec4<f32> {\r\n    return textureSample(tex, linearSampler, fragUV);\r\n}";
 
-var passthroughTexFrag = "@group(0) @binding(0) var tex: texture_2d<f32>;\r\n\r\n@fragment\r\nfn main(\r\n    @location(1) fragUV: vec2<f32>\r\n) -> @location(0) vec4<f32> {\r\n    var depth = saturate(textureLoad(tex, vec2<i32>(floor(fragUV * vec2(3840.0, 2160.0))), 0).r);\r\n\r\n    return vec4(depth, depth, depth, 1);\r\n}";
+var passthroughTexFrag = "@group(0) @binding(0) var tex: texture_2d<f32>;\r\n\r\n@fragment\r\nfn main(\r\n    @location(1) fragUV: vec2<f32>\r\n) -> @location(0) vec4<f32> {\r\n    var color = textureLoad(tex, vec2<i32>(floor(fragUV * vec2(2, 2))), 0).rgb;\r\n\r\n    return vec4(color, 0.5);\r\n}";
 
 var passthroughDepthFrag = "@group(0) @binding(0) var linearSampler: sampler;\r\n@group(0) @binding(1) var tex: texture_depth_2d;\r\n\r\n@fragment\r\nfn main(\r\n    @location(1) fragUV: vec2<f32>\r\n) -> @location(0) vec4<f32> {\r\n    var depth = textureSample(tex, linearSampler, fragUV);\r\n    return vec4(depth, depth, depth, 1);\r\n}";
 
 var passthroughFrag_Debug = "@group(0) @binding(0) var linearSampler: sampler;\r\n@group(0) @binding(1) var tex: texture_3d<f32>;\r\n\r\n@fragment\r\nfn main(\r\n    @location(1) fragUV: vec2<f32>\r\n) -> @location(0) vec4<f32> {\r\n    var coord = vec3(fragUV.xy, 76.5 / 90);\r\n    var f = textureSample(tex, linearSampler, coord).x;\r\n    return vec4(f, f, f, 1);\r\n}";
 
+var downsample4Frag = "struct Settings {\r\n    invResolution: vec2<f32>,\r\n}\r\n\r\n@group(0) @binding(0) var<uniform> settings: Settings;\r\n@group(0) @binding(1) var linearSampler: sampler; // linear, clamp\r\n@group(0) @binding(2) var tex: texture_2d<f32>;\r\n\r\n@fragment\r\nfn main(\r\n    @location(1) inputUV: vec2<f32>\r\n) -> @location(0) vec4<f32> {\r\n    const neighbors: array<vec2<f32>, 4> = array(\r\n\t\tvec2(-1, -1),\r\n\t\tvec2( 1, -1),\r\n\t\tvec2( 1,  1),\r\n\t\tvec2(-1,  1),\r\n    );\r\n\r\n    var outputAlpha = 0.0;\r\n\r\n\tvar acum = vec3(0.0);\r\n\tfor (var i = 0; i < 4; i++) {\r\n\t\tvar neighborUV = neighbors[i] * settings.invResolution + inputUV;\r\n\r\n        var sampledColor = textureSample(tex, linearSampler, neighborUV).rgb;\r\n\r\n\t\tacum += sampledColor * 0.25;\r\n\t}\r\n\r\n    return vec4(acum, outputAlpha);\r\n}";
+
+var downsample4ExtractBrightnessFrag = "struct Settings {\r\n    invResolution: vec2<f32>,\r\n}\r\n\r\n@group(0) @binding(0) var<uniform> settings: Settings;\r\n@group(0) @binding(1) var linearSampler: sampler; // linear, clamp\r\n@group(0) @binding(2) var tex: texture_2d<f32>;\r\n\r\n@fragment\r\nfn main(\r\n    @location(1) inputUV: vec2<f32>\r\n) -> @location(0) vec4<f32> {\r\n    const neighbors: array<vec2<f32>, 4> = array(\r\n\t\tvec2(-1, -1),\r\n\t\tvec2( 1, -1),\r\n\t\tvec2( 1,  1),\r\n\t\tvec2(-1,  1),\r\n    );\r\n\r\n    var outputAlpha = 0.0;\r\n\r\n\tvar acum = vec3(0.0);\r\n\tfor (var i = 0; i < 4; i++) {\r\n\t\tvar neighborUV = neighbors[i] * settings.invResolution + inputUV;\r\n\r\n        var sampledColor = textureSample(tex, linearSampler, neighborUV).rgb;\r\n\r\n\t\tvar brightness = dot(vec3(0.2125, 0.7154, 0.0721), sampledColor);\r\n\r\n\t\tacum += brightness * 0.25;\r\n\t}\r\n\r\n    return vec4(acum, outputAlpha);\r\n}";
+
+var downsample16Frag = "struct Settings {\r\n    invResolution: vec2<f32>,\r\n}\r\n\r\n@group(0) @binding(0) var<uniform> settings: Settings;\r\n@group(0) @binding(1) var linearSampler: sampler; // linear, clamp\r\n@group(0) @binding(2) var tex: texture_2d<f32>;\r\n\r\n@fragment\r\nfn main(\r\n    @location(1) inputUV: vec2<f32>\r\n) -> @location(0) vec4<f32> {\r\n    const neighbors: array<vec2<f32>, 16> = array(\r\n\t\tvec2(-1.5, -1.5),\r\n\t\tvec2(-0.5, -1.5),\r\n\t\tvec2( 0.5, -1.5),\r\n\t\tvec2( 1.5, -1.5),\r\n\r\n\t\tvec2(-1.5, -0.5),\r\n\t\tvec2(-0.5, -0.5),\r\n\t\tvec2( 0.5, -0.5),\r\n\t\tvec2( 1.5, -0.5),\r\n        \r\n\t\tvec2(-1.5,  0.5),\r\n\t\tvec2(-0.5,  0.5),\r\n\t\tvec2( 0.5,  0.5),\r\n\t\tvec2( 1.5,  0.5),\r\n\r\n\t\tvec2(-1.5,  1.5),\r\n\t\tvec2(-0.5,  1.5),\r\n\t\tvec2( 0.5,  1.5),\r\n\t\tvec2( 1.5,  1.5),\r\n    );\r\n\r\n    var outputAlpha = 0.0;\r\n\r\n\tvar acum = vec3(0.0);\r\n\tfor (var i = 0; i < 16; i++) {\r\n\t\tvar neighborUV = neighbors[i] * settings.invResolution + inputUV;\r\n\r\n        var sampledColor = textureSample(tex, linearSampler, neighborUV).rgb;\r\n\r\n\t\tacum += sampledColor * 0.0625;\r\n\t}\r\n\r\n    return vec4(acum, outputAlpha);\r\n}";
+
+var downsample16ExtractDiffFrag = "struct Settings {\r\n    invResolution: vec2<f32>,\r\n    timeCoeffs: vec2<f32>,\r\n}\r\n\r\n@group(0) @binding(0) var<uniform> settings: Settings;\r\n@group(0) @binding(1) var linearSampler: sampler; // linear, clamp\r\n@group(0) @binding(2) var pointSampler: sampler; // point, clamp\r\n@group(0) @binding(3) var tex: texture_2d<f32>;\r\n@group(0) @binding(4) var prevOutput: texture_2d<f32>;\r\n\r\n@fragment\r\nfn main(\r\n    @location(1) inputUV: vec2<f32>\r\n) -> @location(0) vec4<f32> {\r\n    const neighbors: array<vec2<f32>, 16> = array(\r\n\t\tvec2(-1.5, -1.5),\r\n\t\tvec2(-0.5, -1.5),\r\n\t\tvec2( 0.5, -1.5),\r\n\t\tvec2( 1.5, -1.5),\r\n\r\n\t\tvec2(-1.5, -0.5),\r\n\t\tvec2(-0.5, -0.5),\r\n\t\tvec2( 0.5, -0.5),\r\n\t\tvec2( 1.5, -0.5),\r\n        \r\n\t\tvec2(-1.5,  0.5),\r\n\t\tvec2(-0.5,  0.5),\r\n\t\tvec2( 0.5,  0.5),\r\n\t\tvec2( 1.5,  0.5),\r\n\r\n\t\tvec2(-1.5,  1.5),\r\n\t\tvec2(-0.5,  1.5),\r\n\t\tvec2( 0.5,  1.5),\r\n\t\tvec2( 1.5,  1.5),\r\n    );\r\n\r\n    var outputAlpha = 0.0;\r\n\r\n\tvar acum = vec3(0.0);\r\n\tfor (var i = 0; i < 16; i++) {\r\n\t\tvar neighborUV = neighbors[i] * settings.invResolution + inputUV;\r\n\r\n        var sampledColor = textureSample(tex, linearSampler, neighborUV).rgb;\r\n\r\n\t\tacum += sampledColor * 0.0625;\r\n\t}\r\n\r\n\tvar prevOutputValue = textureSample(prevOutput, pointSampler, inputUV).rg;\r\n\r\n\tvar valueDelta = acum.rg - prevOutputValue;\r\n\tvar multipliedDelta = valueDelta * settings.timeCoeffs;\r\n\r\n\tvar savedSigns: vec2<f32>;\r\n    savedSigns.x = select(1.0, -1.0, multipliedDelta.x < 0.0);\r\n    savedSigns.y = select(1.0, -1.0, multipliedDelta.y < 0.0);\r\n\r\n\tvar clampedDelta = clamp(abs(multipliedDelta), vec2(1.0 / 256.0), abs(valueDelta)) * savedSigns;\r\n\r\n\treturn vec4(prevOutputValue + clampedDelta, acum.b, outputAlpha);\r\n}";
+
 var fogFrag = "@group(0) @binding(0) var sceneColors: texture_2d<f32>;\r\n@group(0) @binding(1) var depthBuffer: texture_depth_2d;\r\n\r\n@fragment\r\nfn main(\r\n    @builtin(position) screenPosInPixels: vec4<f32>,\r\n    @location(0) fragNormal: vec3<f32>,\r\n) -> @location(0) vec4<f32> {\r\n\tvar depthOffset = 0.0;\r\n\tvar depthMul = 1.0 / 67870.;\r\n\tvar depthLogMul = 0.4;\r\n\tvar minDepthValue = 0.85;\r\n\r\n\tvar fogBaseColorRGBA = vec4(0.125627145171165, 0.256408363580704, 0.279881805181503, 0.833333313465118);\r\n\tvar maxFogColorRGBA = vec4(0.315368860960007, 0.388478130102158, 0.441431760787964, 0.833333313465118);\r\n\r\n    var depthMin = 15.0;\r\n\tvar depthMax = 353840.0;\r\n\r\n    var sceneColor = textureLoad(sceneColors, vec2<i32>(floor(screenPosInPixels.xy)), 0).rgb;\r\n\r\n    var depthValue = textureLoad(depthBuffer, vec2<i32>(floor(screenPosInPixels.xy)), 0);\r\n\tvar stretchedDepthValue = (depthValue * 1.01 - 0.01) * 2.0 - 1.0;\r\n\r\n\tvar someBullshit = depthMin * depthMax * 2.0;\r\n\r\n    var depthDistanceFromZero = depthMax + depthMin;\r\n    var depthLength = depthMax - depthMin;\r\n\r\n    var depthValueInRangeFromOtherSide = depthDistanceFromZero - stretchedDepthValue * depthLength;\r\n\r\n    var depthPower = someBullshit / depthValueInRangeFromOtherSide;\r\n\r\n\tvar depthMulClamped = min(minDepthValue, exp2(depthLogMul * log2(clamp(depthPower * depthMul - depthOffset, 0.0, 1.0))));\r\n\r\n\tvar fogBaseColor = fogBaseColorRGBA.rgb;\r\n\tvar maxFogColor = maxFogColorRGBA.rgb;\r\n\r\n    var fogColorRange = maxFogColor - fogBaseColor;\r\n    var fogColor = fogBaseColor + vec3(depthMulClamped, depthMulClamped, depthMulClamped) * fogColorRange;\r\n\r\n    var sceneAfterFog = (sceneColor + vec3(depthMulClamped, depthMulClamped, depthMulClamped) * (fogColor - sceneColor)) * fogBaseColorRGBA.a;\r\n\r\n    if (depthValue < 1.0 - 10e-8) {\r\n        sceneColor = sceneAfterFog;\r\n    } else {\r\n        sceneColor = sceneColor;\r\n    }\r\n\r\n    return vec4(saturate(sceneColor), 1.0);\r\n}";
+
+var toneMappingFrag = "\r\n@group(0) @binding(0) var linearSampler: sampler; // linear, clamp\r\n@group(0) @binding(1) var scene: texture_2d<f32>;\r\n@group(0) @binding(2) var brightnessMap: texture_2d<f32>;\r\n\r\n@fragment\r\nfn main(\r\n    @builtin(position) screenPosInPixels: vec4<f32>,\r\n    @location(1) fragUV: vec2<f32>\r\n) -> @location(0) vec4<f32> {\r\n    const sunGlareMaxBrightness = 0.622557997703552;\r\n    const brightnessMul = 0.933622539043427;\r\n    const someFlag = 0;\r\n\r\n    const brightnessDeltaMul = 1.5;\r\n\r\n    const unknown_mul_0 = 1.17344582080841;\r\n    const unknown_mul_1 = 1.45914733409882;\r\n\r\n    const someColor_rgb = vec3(0.889478623867035, 0.651335895061493, 0.568432688713074);\r\n    const someColor_a = 0.437744200229645;\r\n\r\n    const logMul = 1.04166674613953;\r\n\r\n    var sceneColor = textureLoad(scene, vec2<i32>(floor(screenPosInPixels.xy)), 0).rgb;\r\n    var pixelBrightness = max(10e-6, dot(vec3(0.2125, 0.7154, 0.0721), sceneColor));\r\n\r\n    var sunGlareColor = vec3(0.0, 0.0, 0.0); // TODO ?\r\n\r\n    var brightnessMapValue = textureSample(brightnessMap, linearSampler, fragUV).xy;\r\n    var brightnessChangeRate = brightnessMapValue.y / brightnessMapValue.x;\r\n    var someBrightness = brightnessChangeRate * pixelBrightness;\r\n    var someBrightnessPlusOne = 1 + someBrightness;\r\n\r\n    var someBrightnessClamped = max(0, someBrightness - 0.004);\r\n\r\n    var lowBrightness = (0.5 + someBrightnessClamped * 6.2) * someBrightnessClamped;\r\n    var highBrightness = 0.06 + (1.7 + someBrightnessClamped * 6.2) * someBrightnessClamped;\r\n\r\n    var brightness1 = exp2(2.2 * log2(lowBrightness / highBrightness)) * brightnessMul;\r\n    var brightness2 = (someBrightness * (1 + someBrightness * brightnessMul)) / someBrightnessPlusOne;\r\n\r\n    var chosenBrightness = select(brightness2, brightness1, someFlag >= 0.5);\r\n\r\n    sunGlareColor = sunGlareColor * saturate(sunGlareMaxBrightness - chosenBrightness);\r\n\r\n    var brightnessAdjustedSceneColor = sceneColor * (chosenBrightness / pixelBrightness) + sunGlareColor;\r\n\r\n    var newBrightness = dot(brightnessAdjustedSceneColor, vec3(0.2125, 0.7154, 0.0721));\r\n\r\n    var deltaMultipliedSceneColor =\r\n        newBrightness + brightnessDeltaMul * (brightnessAdjustedSceneColor - newBrightness);\r\n    var deltaMultipliedSceneColorWithSomeColor =\r\n        deltaMultipliedSceneColor + (someColor_rgb * newBrightness - deltaMultipliedSceneColor) * someColor_a;\r\n\r\n    var deltaMultipliedSceneColorWithSomeColorMultiplied =\r\n        (deltaMultipliedSceneColorWithSomeColor * unknown_mul_0 - brightnessMapValue.x) * unknown_mul_1 +\r\n        brightnessMapValue.x;\r\n\r\n    return  vec4(exp2(logMul * log2(saturate(deltaMultipliedSceneColorWithSomeColorMultiplied))), 0);\r\n}";
 
 var glareVert = "struct Settings {\r\n    viewProjection: mat4x4<f32>,\r\n    viewProjection_inplace: mat4x4<f32>,\r\n    viewProjection_sun: mat4x4<f32>,\r\n    viewProjection_glare: mat4x4<f32>,\r\n    viewProjection_shadow_near: mat4x4<f32>,\r\n    viewProjection_shadow_far: mat4x4<f32>,\r\n    viewProjection_shadow_near_uv: mat4x4<f32>,\r\n    viewProjection_shadow_far_uv: mat4x4<f32>,\r\n    invScreenResolution: vec2<f32>,\r\n}\r\n\r\nstruct VertexOutput {\r\n    @builtin(position) fragPosition: vec4<f32>,\r\n    @location(0) fragColor: vec4<f32>,\r\n    @location(1) fragUV: vec2<f32>,\r\n}\r\n\r\n@group(0) @binding(0) var<uniform> settings: Settings;\r\n\r\n@vertex\r\nfn main(\r\n    @location(0) inputPosition: vec3<f32>,\r\n    @location(1) inputColor: vec4<f32>,\r\n    @location(2) inputUV: vec2<f32>,\r\n) -> VertexOutput {\r\n    var output: VertexOutput;\r\n\r\n    var pos = settings.viewProjection_glare * vec4(inputPosition, 1.0);\r\n    pos.z = pos.w;\r\n    // max in depth\r\n    output.fragPosition = pos;\r\n\r\n    output.fragUV = inputUV;\r\n\r\n    var rWeight = vec3(0.565203845500946, 0.228658571839333, 0.0142048010602593);\r\n    var alpha = 0.833333313465118;\r\n\r\n    var tintedColor = rWeight * inputColor.r;\r\n\r\n    output.fragColor = vec4(tintedColor * alpha, inputColor.a);\r\n\r\n    return output;\r\n}";
 
@@ -8717,7 +8727,7 @@ class BufferChunk {
 const VEC2_FLOAT_SIZE = 2;
 const VEC3_FLOAT_SIZE = 3;
 const MAT4_FLOAT_SIZE = 4 * 4;
-const VEC2_BYTE_SIZE = VEC2_FLOAT_SIZE * 4;
+// const VEC2_BYTE_SIZE = VEC2_FLOAT_SIZE * 4
 const VEC2_BYTE_SIZE_ALIGN = 4 * 4;
 const VEC3_BYTE_SIZE = VEC3_FLOAT_SIZE * 4;
 const VEC3_BYTE_SIZE_ALIGN = 4 * 4;
@@ -8736,13 +8746,16 @@ function createTexture(tex) {
     wd.queue.writeTexture({ texture }, tex.pixels, { bytesPerRow: tex.width * 4, rowsPerImage: tex.height }, { width: tex.width, height: tex.height });
     return texture;
 }
-function createFloatTexture(width, height) {
+function createTextureByFormat(width, height, format) {
     const texture = wd.createTexture({
         size: [width, height, 1],
-        format: "rg11b10ufloat",
+        format: format,
         usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
     });
     return texture;
+}
+function createFloatTexture(width, height) {
+    return createTextureByFormat(width, height, "rg11b10ufloat");
 }
 var BlankQueryState;
 (function (BlankQueryState) {
@@ -8753,8 +8766,45 @@ var BlankQueryState;
 const QUERY_BUFFER_SIZE = 8;
 const SHADOW_RESOLUTION = 4096;
 // TODO for now this must be manually synced with contact shadows shader
-const SHADOW_RND_STEP = 4 / SHADOW_RESOLUTION;
+// const SHADOW_RND_STEP = 4 / SHADOW_RESOLUTION
+class Swapchain {
+    texViews = [];
+    passes = [];
+    binds = [];
+    index = 0;
+    setTextureViews(view0, view1) {
+        this.texViews = [view0, view1];
+    }
+    setTextureView(view) {
+        this.texViews = [view, view];
+    }
+    setPasses(pass0, pass1) {
+        this.passes = [pass0, pass1];
+    }
+    setPass(pass) {
+        this.passes = [pass, pass];
+    }
+    setBinds(bind0, bind1) {
+        this.binds = [bind0, bind1];
+    }
+    swap() {
+        this.index = (this.index + 1) % this.passes.length;
+    }
+    get pass() {
+        return this.passes[this.index];
+    }
+    get bind() {
+        return this.binds[this.index];
+    }
+    get texView() {
+        return this.texViews[this.index];
+    }
+    getTexView(index) {
+        return this.texViews[index];
+    }
+}
 class Render {
+    static screenFormat = navigator.gpu.getPreferredCanvasFormat();
     static viewMatrix;
     static viewMatrix_inplace;
     static projectionMatrix;
@@ -8802,12 +8852,26 @@ class Render {
     static blankBind;
     static fogPipeline;
     static fogBind;
-    static screenPipeline;
-    static screenBind;
     static glarePipeline;
     static glareBind;
     static volumetricPostprocessPipeline;
     static volumetricPostprocessBind;
+    static downsample4Pipeline;
+    static downsample4ExtractBrightnessPipeline;
+    static downsample16Pipeline;
+    static downsample16ExtractDiffPipeline;
+    // auto exposure
+    static autoExposureTextures;
+    static autoExposurePasses;
+    static autoExposureBinds;
+    static autoExposurePipelines;
+    static autoExposureSwapchain = new Swapchain();
+    static autoExposureLastStepSettings;
+    static autoExposureLastStepSettingsBuffer;
+    static toneMappingPipeline;
+    static toneMappingSwapchain = new Swapchain();
+    static screenPipeline;
+    static screenBind;
     // atlases
     static atlasesTexture;
     static atlases;
@@ -9110,64 +9174,6 @@ class Render {
                 GPUTextureUsage.COPY_SRC,
         });
         Render.volumetricLightingBufferView0 = Render.volumetricLightingBuffer0.createView();
-        /*
-        setTimeout(async () => {
-            const byteSize =
-                VOLUMETRIC_TEX_WIDTH * VOLUMETRIC_TEX_HEIGHT * VOLUMETRIC_TEX_DEPTH * 4 * 2
-            const debugBuffer = wd.createBuffer({
-                size: byteSize,
-                usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
-            })
-            const commandEncoder = wd.createCommandEncoder()
-            commandEncoder.copyTextureToBuffer(
-                { texture: Render.volumetricLightingBuffer0 },
-                {
-                    buffer: debugBuffer,
-                    bytesPerRow: VOLUMETRIC_TEX_WIDTH * 4 * 2,
-                    rowsPerImage: VOLUMETRIC_TEX_HEIGHT,
-                },
-                {
-                    width: VOLUMETRIC_TEX_WIDTH,
-                    height: VOLUMETRIC_TEX_HEIGHT,
-                    depthOrArrayLayers: VOLUMETRIC_TEX_DEPTH,
-                }
-            )
-            wd.queue.submit([commandEncoder.finish()])
-            await wd.queue.onSubmittedWorkDone()
-            await debugBuffer.mapAsync(GPUMapMode.READ)
-            const bytes = new Uint8Array(debugBuffer.getMappedRange())
-            const floats = new Float16Array(bytes.buffer)
-
-            const volumetric_data_bytes = new Uint8Array(
-                await (await fetch("build/volumetric_data.bin")).arrayBuffer()
-            )
-            const template_floats = new Float16Array(volumetric_data_bytes.buffer)
-
-            const getOurs = (x: number, y: number, z: number) => {
-                const f = floats
-
-                const w = 320
-                const h = 192
-
-                const i = z * (w * h) + y * w + x
-
-                return f[i * 4]
-            }
-
-            const getTemplate = (x: number, y: number, z: number) => {
-                const f = template_floats
-
-                const w = 320
-                const h = 192
-
-                const i = z * (w * h) + y * w + x
-
-                return f[i]
-            }
-
-            debugger
-        }, 3000)
-        */
         Render.volumetricLightingBuffer1 = wd.createTexture({
             size: [VOLUMETRIC_TEX_WIDTH, VOLUMETRIC_TEX_HEIGHT, VOLUMETRIC_TEX_DEPTH],
             // FIXME supposed to be r16float, memory usage x4
@@ -9200,10 +9206,6 @@ class Render {
             arrayLayerCount: 1,
             dimension: "2d",
         });
-        // Render.debugTextureView = Render.volumetricLightingTextureView
-        // Render.debugTextureView = Render.contactShadowsTextureView
-        // Render.debugTextureView = Render.shadowDepthBufferNearView
-        // Render.debugIsDepth = true
         Render.blankQuery = wd.createQuerySet({
             type: "occlusion",
             count: 1,
@@ -9313,6 +9315,110 @@ class Render {
                 },
             ],
         };
+        // auto exposure
+        {
+            Render.autoExposureTextures = [];
+            Render.autoExposurePasses = [];
+            let w = wg.canvas.width;
+            let h = wg.canvas.height;
+            let inputTexWidth = w;
+            let inputTexHeight = h;
+            let inputTexView = Render.fogPassTextureView;
+            // eslint-disable-next-line no-constant-condition
+            while (true) {
+                w = Math.max(2, w / 4);
+                h = Math.max(2, h / 4);
+                if (w === 2 && h === 2) {
+                    break;
+                }
+                const outputTexWidth = Math.ceil(w);
+                const outputTexHeight = Math.ceil(h);
+                const outputTex = createFloatTexture(outputTexWidth, outputTexHeight);
+                const outputTexView = outputTex.createView();
+                const pass = {
+                    colorAttachments: [
+                        {
+                            view: outputTexView,
+                            clearValue: {
+                                r: 0,
+                                g: 0,
+                                b: 0,
+                                a: 1,
+                            },
+                            loadOp: "clear",
+                            storeOp: "store",
+                        },
+                    ],
+                };
+                Render.autoExposureTextures.push({
+                    srcW: inputTexWidth,
+                    srcH: inputTexHeight,
+                    srcTexView: inputTexView,
+                    dstW: outputTexWidth,
+                    dstH: outputTexHeight,
+                    dstTexView: outputTexView,
+                });
+                Render.autoExposurePasses.push(pass);
+                inputTexWidth = outputTexWidth;
+                inputTexHeight = outputTexHeight;
+                inputTexView = outputTexView;
+            }
+            const outputTexView0 = createFloatTexture(2, 2).createView();
+            const outputTexView1 = createFloatTexture(2, 2).createView();
+            const pass0 = {
+                colorAttachments: [
+                    {
+                        view: outputTexView0,
+                        clearValue: {
+                            r: 0,
+                            g: 0,
+                            b: 0,
+                            a: 1,
+                        },
+                        loadOp: "clear",
+                        storeOp: "store",
+                    },
+                ],
+            };
+            const pass1 = {
+                colorAttachments: [
+                    {
+                        view: outputTexView1,
+                        clearValue: {
+                            r: 0,
+                            g: 0,
+                            b: 0,
+                            a: 1,
+                        },
+                        loadOp: "clear",
+                        storeOp: "store",
+                    },
+                ],
+            };
+            Render.autoExposureSwapchain.setTextureViews(outputTexView0, outputTexView1);
+            Render.autoExposureSwapchain.setPasses(pass0, pass1);
+        }
+        // tone mapping pass
+        const toneMappingPassTexture = createTextureByFormat(canvasWebGPU.width, canvasWebGPU.height, Render.screenFormat);
+        const toneMappingPassTextureView = toneMappingPassTexture.createView();
+        const toneMappingPassDesc = {
+            colorAttachments: [
+                {
+                    view: toneMappingPassTextureView,
+                    clearValue: {
+                        r: 0,
+                        g: 0,
+                        b: 0,
+                        a: 1,
+                    },
+                    loadOp: "clear",
+                    storeOp: "store",
+                },
+            ],
+        };
+        Render.toneMappingSwapchain.setTextureView(toneMappingPassTextureView);
+        Render.toneMappingSwapchain.setPass(toneMappingPassDesc);
+        // screen
         Render.screenPassDesc = {
             colorAttachments: [
                 {
@@ -9328,6 +9434,10 @@ class Render {
                 },
             ],
         };
+        // Render.debugTextureView = Render.autoExposureSwapchain.getTexView(0)
+        // Render.debugTextureView = Render.contactShadowsTextureView
+        // Render.debugTextureView = Render.shadowDepthBufferNearView
+        // Render.debugIsDepth = true
     }
     static createPerObjectData() {
         Render.perObjectData = wd.createBuffer({
@@ -9780,6 +9890,148 @@ class Render {
                 },
             ],
         });
+        // auto exposure
+        {
+            Render.autoExposureBinds = [];
+            for (let i = 0; i < Render.autoExposureTextures.length; i++) {
+                const { srcW, srcH, srcTexView } = Render.autoExposureTextures[i];
+                const pipeline = Render.autoExposurePipelines[i];
+                const invResolutionBuffer = wd.createBuffer({
+                    size: 8,
+                    usage: GPUBufferUsage.UNIFORM,
+                    mappedAtCreation: true,
+                });
+                const zData = new Float32Array(invResolutionBuffer.getMappedRange());
+                zData[0] = 1 / srcW;
+                zData[1] = 1 / srcH;
+                invResolutionBuffer.unmap();
+                const bind = wd.createBindGroup({
+                    layout: pipeline.getBindGroupLayout(0),
+                    entries: [
+                        {
+                            binding: 0,
+                            resource: {
+                                buffer: invResolutionBuffer,
+                            },
+                        },
+                        {
+                            binding: 1,
+                            resource: linearClampSampler,
+                        },
+                        {
+                            binding: 2,
+                            resource: srcTexView,
+                        },
+                    ],
+                });
+                Render.autoExposureBinds.push(bind);
+            }
+            // swapchain
+            const { dstW, dstH, dstTexView } = Render.autoExposureTextures[Render.autoExposureTextures.length - 1];
+            Render.autoExposureLastStepSettingsBuffer = new Float32Array(4);
+            Render.autoExposureLastStepSettingsBuffer[0] = 1 / dstW;
+            Render.autoExposureLastStepSettingsBuffer[1] = 1 / dstH;
+            const settingsBuffer = wd.createBuffer({
+                size: 16,
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+                mappedAtCreation: false,
+            });
+            const bind0 = wd.createBindGroup({
+                layout: Render.downsample16ExtractDiffPipeline.getBindGroupLayout(0),
+                entries: [
+                    {
+                        binding: 0,
+                        resource: {
+                            buffer: settingsBuffer,
+                        },
+                    },
+                    {
+                        binding: 1,
+                        resource: linearClampSampler,
+                    },
+                    {
+                        binding: 2,
+                        resource: pointClampSampler,
+                    },
+                    {
+                        binding: 3,
+                        resource: dstTexView,
+                    },
+                    // prev texture
+                    {
+                        binding: 4,
+                        resource: Render.autoExposureSwapchain.getTexView(1),
+                    },
+                ],
+            });
+            const bind1 = wd.createBindGroup({
+                layout: Render.downsample16ExtractDiffPipeline.getBindGroupLayout(0),
+                entries: [
+                    {
+                        binding: 0,
+                        resource: {
+                            buffer: settingsBuffer,
+                        },
+                    },
+                    {
+                        binding: 1,
+                        resource: linearClampSampler,
+                    },
+                    {
+                        binding: 2,
+                        resource: pointClampSampler,
+                    },
+                    {
+                        binding: 3,
+                        resource: dstTexView,
+                    },
+                    // prev texture
+                    {
+                        binding: 4,
+                        resource: Render.autoExposureSwapchain.getTexView(0),
+                    },
+                ],
+            });
+            Render.autoExposureSwapchain.setBinds(bind0, bind1);
+            Render.autoExposureLastStepSettings = settingsBuffer;
+        }
+        // tone mapping
+        const toneMappingBind0 = wd.createBindGroup({
+            layout: Render.toneMappingPipeline.getBindGroupLayout(0),
+            entries: [
+                {
+                    binding: 0,
+                    resource: linearClampSampler,
+                },
+                {
+                    binding: 1,
+                    resource: Render.fogPassTextureView,
+                },
+                {
+                    binding: 2,
+                    resource: Render.autoExposureSwapchain.getTexView(0),
+                },
+            ],
+        });
+        const toneMappingBind1 = wd.createBindGroup({
+            layout: Render.toneMappingPipeline.getBindGroupLayout(0),
+            entries: [
+                {
+                    binding: 0,
+                    resource: linearClampSampler,
+                },
+                {
+                    binding: 1,
+                    resource: Render.fogPassTextureView,
+                },
+                {
+                    binding: 2,
+                    resource: Render.autoExposureSwapchain.getTexView(1),
+                },
+            ],
+        });
+        Render.toneMappingSwapchain.setBinds(toneMappingBind0, toneMappingBind1);
+        // screen
         Render.screenBind = wd.createBindGroup({
             layout: Render.screenPipeline.getBindGroupLayout(0),
             entries: [
@@ -9790,7 +10042,7 @@ class Render {
                 {
                     binding: 1,
                     // resource: Render.debugTextureExample.createView(),
-                    resource: Render.fogPassTextureView,
+                    resource: Render.toneMappingSwapchain.getTexView(0),
                 },
             ],
         });
@@ -9858,7 +10110,6 @@ class Render {
         });
     }
     static compilerShaders() {
-        const screenFormat = navigator.gpu.getPreferredCanvasFormat();
         const primitive = {
             topology: "triangle-list",
             cullMode: "back",
@@ -10221,6 +10472,121 @@ class Render {
             },
             primitive,
         });
+        const downsample4ShaderFrag = wd.createShaderModule({ code: downsample4Frag });
+        Render.downsample4Pipeline = wd.createRenderPipeline({
+            layout: "auto",
+            vertex: {
+                module: passthroughShaderVert,
+                entryPoint: "main",
+                buffers: MeshBuffer.buffers,
+            },
+            fragment: {
+                module: downsample4ShaderFrag,
+                entryPoint: "main",
+                targets: [
+                    {
+                        format: "rg11b10ufloat",
+                        writeMask: GPUColorWrite.ALL,
+                    },
+                ],
+            },
+            primitive,
+        });
+        const downsample4ExtractBrightnessShaderFrag = wd.createShaderModule({
+            code: downsample4ExtractBrightnessFrag,
+        });
+        Render.downsample4ExtractBrightnessPipeline = wd.createRenderPipeline({
+            layout: "auto",
+            vertex: {
+                module: passthroughShaderVert,
+                entryPoint: "main",
+                buffers: MeshBuffer.buffers,
+            },
+            fragment: {
+                module: downsample4ExtractBrightnessShaderFrag,
+                entryPoint: "main",
+                targets: [
+                    {
+                        format: "rg11b10ufloat",
+                        writeMask: GPUColorWrite.ALL,
+                    },
+                ],
+            },
+            primitive,
+        });
+        const downsample16ShaderFrag = wd.createShaderModule({ code: downsample16Frag });
+        Render.downsample16Pipeline = wd.createRenderPipeline({
+            layout: "auto",
+            vertex: {
+                module: passthroughShaderVert,
+                entryPoint: "main",
+                buffers: MeshBuffer.buffers,
+            },
+            fragment: {
+                module: downsample16ShaderFrag,
+                entryPoint: "main",
+                targets: [
+                    {
+                        format: "rg11b10ufloat",
+                        writeMask: GPUColorWrite.ALL,
+                    },
+                ],
+            },
+            primitive,
+        });
+        const downsample16ExtractDiffShaderFrag = wd.createShaderModule({
+            code: downsample16ExtractDiffFrag,
+        });
+        Render.downsample16ExtractDiffPipeline = wd.createRenderPipeline({
+            layout: "auto",
+            vertex: {
+                module: passthroughShaderVert,
+                entryPoint: "main",
+                buffers: MeshBuffer.buffers,
+            },
+            fragment: {
+                module: downsample16ExtractDiffShaderFrag,
+                entryPoint: "main",
+                targets: [
+                    {
+                        format: "rg11b10ufloat",
+                        writeMask: GPUColorWrite.ALL,
+                    },
+                ],
+            },
+            primitive,
+        });
+        // autoexposure
+        Render.autoExposurePipelines = new Array(Render.autoExposurePasses.length);
+        Render.autoExposurePipelines[0] = Render.downsample4Pipeline;
+        Render.autoExposurePipelines[1] = Render.downsample4ExtractBrightnessPipeline;
+        for (let i = 2; i < Render.autoExposurePipelines.length; i++) {
+            Render.autoExposurePipelines[i] = Render.downsample16Pipeline;
+        }
+        // tone mapping
+        const toneMappingShaderFrag = wd.createShaderModule({
+            code: toneMappingFrag,
+        });
+        Render.toneMappingPipeline = wd.createRenderPipeline({
+            layout: "auto",
+            vertex: {
+                module: passthroughShaderVert,
+                entryPoint: "main",
+                buffers: MeshBuffer.buffers,
+            },
+            fragment: {
+                module: toneMappingShaderFrag,
+                entryPoint: "main",
+                targets: [
+                    {
+                        format: Render.screenFormat,
+                        writeMask: GPUColorWrite.ALL,
+                    },
+                ],
+            },
+            primitive,
+        });
+        // screen
         Render.screenPipeline = wd.createRenderPipeline({
             layout: "auto",
             vertex: {
@@ -10234,7 +10600,7 @@ class Render {
                 entryPoint: "main",
                 targets: [
                     {
-                        format: screenFormat,
+                        format: Render.screenFormat,
                         writeMask: GPUColorWrite.ALL,
                     },
                 ],
@@ -10254,7 +10620,7 @@ class Render {
                 entryPoint: "main",
                 targets: [
                     {
-                        format: screenFormat,
+                        format: Render.screenFormat,
                         writeMask: GPUColorWrite.ALL,
                     },
                 ],
@@ -10274,7 +10640,7 @@ class Render {
                 entryPoint: "main",
                 targets: [
                     {
-                        format: screenFormat,
+                        format: Render.screenFormat,
                         writeMask: GPUColorWrite.ALL,
                     },
                 ],
@@ -10570,6 +10936,23 @@ class Render {
         copy$5(Render.vp_glare, Render.vp_inplace);
         multiply$5(Render.vp_glare, Render.vp_glare, glareModel);
     }
+    static calcTimeCoeffs(dt) {
+        const MIN_DT = 0.05;
+        const MAX_DT = 0.166;
+        const MIN_START_TIME = 10.21;
+        const MIN_MUL = 4.2;
+        const MIN_POWER = 0.56;
+        const MAX_START_TIME = 45.65722;
+        const MAX_MUL = 18.8;
+        const MAX_POWER = 0.56;
+        const clamped_high = Math.min(dt, MAX_DT);
+        const clamped_dt = Math.max(MIN_DT, clamped_high);
+        const calcTau = (startTime, mul, pow) => startTime + (clamped_dt - MIN_DT) ** pow * mul;
+        const calcTimeCoeff = (dt, tau) => 1.0 - Math.exp(-(dt * tau));
+        const minTau = calcTau(MIN_START_TIME, MIN_MUL, MIN_POWER);
+        const maxTau = calcTau(MAX_START_TIME, MAX_MUL, MAX_POWER);
+        return fromValues(calcTimeCoeff(clamped_high, minTau), calcTimeCoeff(clamped_high, maxTau));
+    }
     static render(dt) {
         Render.handleResize();
         // objects color pass
@@ -10577,8 +10960,13 @@ class Render {
         Render.calcSunTransform(dt);
         Render.resolutionBuffer[0] = canvasWebGPU.width;
         Render.resolutionBuffer[1] = canvasWebGPU.height;
+        // TODO implement easing of dt
+        const timeCoeffs = Render.calcTimeCoeffs(dt);
+        Render.autoExposureLastStepSettingsBuffer[2] = timeCoeffs[0];
+        Render.autoExposureLastStepSettingsBuffer[3] = timeCoeffs[1];
         wd.queue.writeBuffer(Render.settings, 0, Render.settingsBuffer);
         wd.queue.writeBuffer(Render.resolution, 0, Render.resolutionBuffer);
+        wd.queue.writeBuffer(Render.autoExposureLastStepSettings, 0, Render.autoExposureLastStepSettingsBuffer);
         const commandEncoder = wd.createCommandEncoder();
         {
             // shadow near pass
@@ -10721,6 +11109,40 @@ class Render {
             }
             passEncoder.setBindGroup(0, Render.volumetricPostprocessBind);
             passEncoder.setPipeline(Render.volumetricPostprocessPipeline);
+            passEncoder.setVertexBuffer(0, Render.fullscreenPlain.vertices);
+            passEncoder.setIndexBuffer(Render.fullscreenPlain.indices, "uint16");
+            passEncoder.drawIndexed(Render.fullscreenPlain.indexCount);
+            passEncoder.end();
+        }
+        // auto-exposure
+        {
+            Render.autoExposureSwapchain.swap();
+            for (let i = 0; i < Render.autoExposurePasses.length; i++) {
+                const pass = Render.autoExposurePasses[i];
+                const bind = Render.autoExposureBinds[i];
+                const pipeline = Render.autoExposurePipelines[i];
+                const passEncoder = commandEncoder.beginRenderPass(pass);
+                passEncoder.setBindGroup(0, bind);
+                passEncoder.setPipeline(pipeline);
+                passEncoder.setVertexBuffer(0, Render.fullscreenPlain.vertices);
+                passEncoder.setIndexBuffer(Render.fullscreenPlain.indices, "uint16");
+                passEncoder.drawIndexed(Render.fullscreenPlain.indexCount);
+                passEncoder.end();
+            }
+            const passEncoder = commandEncoder.beginRenderPass(Render.autoExposureSwapchain.pass);
+            passEncoder.setBindGroup(0, Render.autoExposureSwapchain.bind);
+            passEncoder.setPipeline(Render.downsample16ExtractDiffPipeline);
+            passEncoder.setVertexBuffer(0, Render.fullscreenPlain.vertices);
+            passEncoder.setIndexBuffer(Render.fullscreenPlain.indices, "uint16");
+            passEncoder.drawIndexed(Render.fullscreenPlain.indexCount);
+            passEncoder.end();
+        }
+        // tone mapping
+        {
+            Render.toneMappingSwapchain.swap();
+            const passEncoder = commandEncoder.beginRenderPass(Render.toneMappingSwapchain.pass);
+            passEncoder.setBindGroup(0, Render.toneMappingSwapchain.bind);
+            passEncoder.setPipeline(Render.toneMappingPipeline);
             passEncoder.setVertexBuffer(0, Render.fullscreenPlain.vertices);
             passEncoder.setIndexBuffer(Render.fullscreenPlain.indices, "uint16");
             passEncoder.drawIndexed(Render.fullscreenPlain.indexCount);

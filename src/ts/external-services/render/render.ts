@@ -27,7 +27,15 @@ import passthroughTexFrag from "../../shaders/passthrough-tex.frag.wgsl"
 import passthroughDepthFrag from "../../shaders/passthrough-depth.frag.wgsl"
 import passthroughFrag_Debug from "../../shaders/passthrough_debug.frag.wgsl"
 
+import downsample4Frag from "../../shaders/downsample-4.frag.wgsl"
+// eslint-disable-next-line max-len
+import downsample4ExtractBrightnessFrag from "../../shaders/downsample-4-extract-brightness.frag.wgsl"
+import downsample16Frag from "../../shaders/downsample-16.frag.wgsl"
+import downsample16ExtractDiffFrag from "../../shaders/downsample-16-extract-diff.frag.wgsl"
+
 import fogFrag from "../../shaders/fog.frag.wgsl"
+
+import toneMappingFrag from "../../shaders/tone-mapping.frag.wgsl"
 
 import glareVert from "../../shaders/glare.vert.wgsl"
 import glareFrag from "../../shaders/glare.frag.wgsl"
@@ -52,7 +60,6 @@ import {
 } from "../resources/loaders"
 import { ColoredMesh, ColoredTexturedMesh, Mesh, Texture } from "./render-data"
 import { ResourceManager } from "../resources/resource-manager"
-import { Float16Array } from "@petamoriken/float16"
 
 const POSITION_LOC = 0
 const COLOR_LOC = 1
@@ -310,7 +317,7 @@ const VEC2_FLOAT_SIZE = 2
 const VEC3_FLOAT_SIZE = 3
 const MAT4_FLOAT_SIZE = 4 * 4
 
-const VEC2_BYTE_SIZE = VEC2_FLOAT_SIZE * 4
+// const VEC2_BYTE_SIZE = VEC2_FLOAT_SIZE * 4
 const VEC2_BYTE_SIZE_ALIGN = 4 * 4
 const VEC3_BYTE_SIZE = VEC3_FLOAT_SIZE * 4
 const VEC3_BYTE_SIZE_ALIGN = 4 * 4
@@ -341,14 +348,22 @@ function createTexture(tex: Texture): GPUTexture {
     return texture
 }
 
-function createFloatTexture(width: number, height: number): GPUTexture {
+function createTextureByFormat(
+    width: number,
+    height: number,
+    format: GPUTextureFormat
+): GPUTexture {
     const texture = wd.createTexture({
         size: [width, height, 1],
-        format: "rg11b10ufloat",
+        format: format,
         usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
     })
 
     return texture
+}
+
+function createFloatTexture(width: number, height: number): GPUTexture {
+    return createTextureByFormat(width, height, "rg11b10ufloat")
 }
 
 type AtlasSlot = [number, number, number]
@@ -363,9 +378,58 @@ const QUERY_BUFFER_SIZE = 8
 
 const SHADOW_RESOLUTION = 4096
 // TODO for now this must be manually synced with contact shadows shader
-const SHADOW_RND_STEP = 4 / SHADOW_RESOLUTION
+// const SHADOW_RND_STEP = 4 / SHADOW_RESOLUTION
+
+class Swapchain {
+    private texViews: GPUTextureView[] = []
+    private passes: GPURenderPassDescriptor[] = []
+    private binds: GPUBindGroup[] = []
+    private index = 0
+
+    setTextureViews(view0: GPUTextureView, view1: GPUTextureView): void {
+        this.texViews = [view0, view1]
+    }
+
+    setTextureView(view: GPUTextureView): void {
+        this.texViews = [view, view]
+    }
+
+    setPasses(pass0: GPURenderPassDescriptor, pass1: GPURenderPassDescriptor): void {
+        this.passes = [pass0, pass1]
+    }
+
+    setPass(pass: GPURenderPassDescriptor): void {
+        this.passes = [pass, pass]
+    }
+
+    setBinds(bind0: GPUBindGroup, bind1: GPUBindGroup): void {
+        this.binds = [bind0, bind1]
+    }
+
+    swap(): void {
+        this.index = (this.index + 1) % this.passes.length
+    }
+
+    get pass(): GPURenderPassDescriptor {
+        return this.passes[this.index]
+    }
+
+    get bind(): GPUBindGroup {
+        return this.binds[this.index]
+    }
+
+    get texView(): GPUTextureView {
+        return this.texViews[this.index]
+    }
+
+    getTexView(index: number): GPUTextureView {
+        return this.texViews[index]
+    }
+}
 
 export class Render {
+    private static screenFormat = navigator.gpu.getPreferredCanvasFormat()
+
     private static viewMatrix: mat4
     private static viewMatrix_inplace: mat4
     private static projectionMatrix: mat4
@@ -430,14 +494,38 @@ export class Render {
     private static fogPipeline: GPURenderPipeline
     private static fogBind: GPUBindGroup
 
-    private static screenPipeline: GPURenderPipeline
-    private static screenBind: GPUBindGroup
-
     private static glarePipeline: GPURenderPipeline
     private static glareBind: GPUBindGroup
 
     private static volumetricPostprocessPipeline: GPURenderPipeline
     private static volumetricPostprocessBind: GPUBindGroup
+
+    private static downsample4Pipeline: GPURenderPipeline
+    private static downsample4ExtractBrightnessPipeline: GPURenderPipeline
+    private static downsample16Pipeline: GPURenderPipeline
+    private static downsample16ExtractDiffPipeline: GPURenderPipeline
+
+    // auto exposure
+    private static autoExposureTextures: {
+        srcW: number
+        srcH: number
+        dstW: number
+        dstH: number
+        srcTexView: GPUTextureView
+        dstTexView: GPUTextureView
+    }[]
+    private static autoExposurePasses: GPURenderPassDescriptor[]
+    private static autoExposureBinds: GPUBindGroup[]
+    private static autoExposurePipelines: GPURenderPipeline[]
+    private static autoExposureSwapchain = new Swapchain()
+    private static autoExposureLastStepSettings: GPUBuffer
+    private static autoExposureLastStepSettingsBuffer: Float32Array
+
+    private static toneMappingPipeline: GPURenderPipeline
+    private static toneMappingSwapchain = new Swapchain()
+
+    private static screenPipeline: GPURenderPipeline
+    private static screenBind: GPUBindGroup
 
     // atlases
     private static atlasesTexture: GPUTexture
@@ -839,65 +927,6 @@ export class Render {
         })
         Render.volumetricLightingBufferView0 = Render.volumetricLightingBuffer0.createView()
 
-        /*
-        setTimeout(async () => {
-            const byteSize =
-                VOLUMETRIC_TEX_WIDTH * VOLUMETRIC_TEX_HEIGHT * VOLUMETRIC_TEX_DEPTH * 4 * 2
-            const debugBuffer = wd.createBuffer({
-                size: byteSize,
-                usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
-            })
-            const commandEncoder = wd.createCommandEncoder()
-            commandEncoder.copyTextureToBuffer(
-                { texture: Render.volumetricLightingBuffer0 },
-                {
-                    buffer: debugBuffer,
-                    bytesPerRow: VOLUMETRIC_TEX_WIDTH * 4 * 2,
-                    rowsPerImage: VOLUMETRIC_TEX_HEIGHT,
-                },
-                {
-                    width: VOLUMETRIC_TEX_WIDTH,
-                    height: VOLUMETRIC_TEX_HEIGHT,
-                    depthOrArrayLayers: VOLUMETRIC_TEX_DEPTH,
-                }
-            )
-            wd.queue.submit([commandEncoder.finish()])
-            await wd.queue.onSubmittedWorkDone()
-            await debugBuffer.mapAsync(GPUMapMode.READ)
-            const bytes = new Uint8Array(debugBuffer.getMappedRange())
-            const floats = new Float16Array(bytes.buffer)
-
-            const volumetric_data_bytes = new Uint8Array(
-                await (await fetch("build/volumetric_data.bin")).arrayBuffer()
-            )
-            const template_floats = new Float16Array(volumetric_data_bytes.buffer)
-
-            const getOurs = (x: number, y: number, z: number) => {
-                const f = floats
-
-                const w = 320
-                const h = 192
-
-                const i = z * (w * h) + y * w + x
-
-                return f[i * 4]
-            }
-
-            const getTemplate = (x: number, y: number, z: number) => {
-                const f = template_floats
-
-                const w = 320
-                const h = 192
-
-                const i = z * (w * h) + y * w + x
-
-                return f[i]
-            }
-
-            debugger
-        }, 3000)
-        */
-
         Render.volumetricLightingBuffer1 = wd.createTexture({
             size: [VOLUMETRIC_TEX_WIDTH, VOLUMETRIC_TEX_HEIGHT, VOLUMETRIC_TEX_DEPTH],
             // FIXME supposed to be r16float, memory usage x4
@@ -933,11 +962,6 @@ export class Render {
             arrayLayerCount: 1,
             dimension: "2d",
         })
-
-        // Render.debugTextureView = Render.volumetricLightingTextureView
-        // Render.debugTextureView = Render.contactShadowsTextureView
-        // Render.debugTextureView = Render.shadowDepthBufferNearView
-        // Render.debugIsDepth = true
 
         Render.blankQuery = wd.createQuerySet({
             type: "occlusion",
@@ -1066,6 +1090,130 @@ export class Render {
             ],
         }
 
+        // auto exposure
+        {
+            Render.autoExposureTextures = []
+            Render.autoExposurePasses = []
+
+            let w = wg.canvas.width
+            let h = wg.canvas.height
+
+            let inputTexWidth = w
+            let inputTexHeight = h
+            let inputTexView = Render.fogPassTextureView
+
+            // eslint-disable-next-line no-constant-condition
+            while (true) {
+                w = Math.max(2, w / 4)
+                h = Math.max(2, h / 4)
+                if (w === 2 && h === 2) {
+                    break
+                }
+
+                const outputTexWidth = Math.ceil(w)
+                const outputTexHeight = Math.ceil(h)
+
+                const outputTex = createFloatTexture(outputTexWidth, outputTexHeight)
+                const outputTexView = outputTex.createView()
+
+                const pass: GPURenderPassDescriptor = {
+                    colorAttachments: [
+                        {
+                            view: outputTexView,
+
+                            clearValue: {
+                                r: 0,
+                                g: 0,
+                                b: 0,
+                                a: 1,
+                            },
+                            loadOp: "clear",
+                            storeOp: "store",
+                        },
+                    ],
+                }
+
+                Render.autoExposureTextures.push({
+                    srcW: inputTexWidth,
+                    srcH: inputTexHeight,
+                    srcTexView: inputTexView,
+                    dstW: outputTexWidth,
+                    dstH: outputTexHeight,
+                    dstTexView: outputTexView,
+                })
+                Render.autoExposurePasses.push(pass)
+
+                inputTexWidth = outputTexWidth
+                inputTexHeight = outputTexHeight
+                inputTexView = outputTexView
+            }
+
+            const outputTexView0 = createFloatTexture(2, 2).createView()
+            const outputTexView1 = createFloatTexture(2, 2).createView()
+            const pass0: GPURenderPassDescriptor = {
+                colorAttachments: [
+                    {
+                        view: outputTexView0,
+
+                        clearValue: {
+                            r: 0,
+                            g: 0,
+                            b: 0,
+                            a: 1,
+                        },
+                        loadOp: "clear",
+                        storeOp: "store",
+                    },
+                ],
+            }
+            const pass1: GPURenderPassDescriptor = {
+                colorAttachments: [
+                    {
+                        view: outputTexView1,
+
+                        clearValue: {
+                            r: 0,
+                            g: 0,
+                            b: 0,
+                            a: 1,
+                        },
+                        loadOp: "clear",
+                        storeOp: "store",
+                    },
+                ],
+            }
+            Render.autoExposureSwapchain.setTextureViews(outputTexView0, outputTexView1)
+            Render.autoExposureSwapchain.setPasses(pass0, pass1)
+        }
+
+        // tone mapping pass
+        const toneMappingPassTexture = createTextureByFormat(
+            canvasWebGPU.width,
+            canvasWebGPU.height,
+            Render.screenFormat
+        )
+        const toneMappingPassTextureView = toneMappingPassTexture.createView()
+
+        const toneMappingPassDesc: GPURenderPassDescriptor = {
+            colorAttachments: [
+                {
+                    view: toneMappingPassTextureView,
+
+                    clearValue: {
+                        r: 0,
+                        g: 0,
+                        b: 0,
+                        a: 1,
+                    },
+                    loadOp: "clear",
+                    storeOp: "store",
+                },
+            ],
+        }
+        Render.toneMappingSwapchain.setTextureView(toneMappingPassTextureView)
+        Render.toneMappingSwapchain.setPass(toneMappingPassDesc)
+
+        // screen
         Render.screenPassDesc = {
             colorAttachments: [
                 {
@@ -1082,6 +1230,11 @@ export class Render {
                 },
             ],
         }
+
+        // Render.debugTextureView = Render.autoExposureSwapchain.getTexView(0)
+        // Render.debugTextureView = Render.contactShadowsTextureView
+        // Render.debugTextureView = Render.shadowDepthBufferNearView
+        // Render.debugIsDepth = true
     }
 
     private static createPerObjectData() {
@@ -1599,6 +1752,159 @@ export class Render {
             ],
         })
 
+        // auto exposure
+        {
+            Render.autoExposureBinds = []
+
+            for (let i = 0; i < Render.autoExposureTextures.length; i++) {
+                const { srcW, srcH, srcTexView } = Render.autoExposureTextures[i]
+                const pipeline = Render.autoExposurePipelines[i]
+
+                const invResolutionBuffer = wd.createBuffer({
+                    size: 8,
+                    usage: GPUBufferUsage.UNIFORM,
+                    mappedAtCreation: true,
+                })
+                const zData = new Float32Array(invResolutionBuffer.getMappedRange())
+                zData[0] = 1 / srcW
+                zData[1] = 1 / srcH
+                invResolutionBuffer.unmap()
+
+                const bind = wd.createBindGroup({
+                    layout: pipeline.getBindGroupLayout(0),
+                    entries: [
+                        {
+                            binding: 0,
+                            resource: {
+                                buffer: invResolutionBuffer,
+                            },
+                        },
+                        {
+                            binding: 1,
+                            resource: linearClampSampler,
+                        },
+                        {
+                            binding: 2,
+                            resource: srcTexView,
+                        },
+                    ],
+                })
+
+                Render.autoExposureBinds.push(bind)
+            }
+
+            // swapchain
+            const { dstW, dstH, dstTexView } =
+                Render.autoExposureTextures[Render.autoExposureTextures.length - 1]
+
+            Render.autoExposureLastStepSettingsBuffer = new Float32Array(4)
+            Render.autoExposureLastStepSettingsBuffer[0] = 1 / dstW
+            Render.autoExposureLastStepSettingsBuffer[1] = 1 / dstH
+
+            const settingsBuffer = wd.createBuffer({
+                size: 16,
+                usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+                mappedAtCreation: false,
+            })
+
+            const bind0 = wd.createBindGroup({
+                layout: Render.downsample16ExtractDiffPipeline.getBindGroupLayout(0),
+                entries: [
+                    {
+                        binding: 0,
+                        resource: {
+                            buffer: settingsBuffer,
+                        },
+                    },
+                    {
+                        binding: 1,
+                        resource: linearClampSampler,
+                    },
+                    {
+                        binding: 2,
+                        resource: pointClampSampler,
+                    },
+                    {
+                        binding: 3,
+                        resource: dstTexView,
+                    },
+                    // prev texture
+                    {
+                        binding: 4,
+                        resource: Render.autoExposureSwapchain.getTexView(1),
+                    },
+                ],
+            })
+            const bind1 = wd.createBindGroup({
+                layout: Render.downsample16ExtractDiffPipeline.getBindGroupLayout(0),
+                entries: [
+                    {
+                        binding: 0,
+                        resource: {
+                            buffer: settingsBuffer,
+                        },
+                    },
+                    {
+                        binding: 1,
+                        resource: linearClampSampler,
+                    },
+                    {
+                        binding: 2,
+                        resource: pointClampSampler,
+                    },
+                    {
+                        binding: 3,
+                        resource: dstTexView,
+                    },
+                    // prev texture
+                    {
+                        binding: 4,
+                        resource: Render.autoExposureSwapchain.getTexView(0),
+                    },
+                ],
+            })
+            Render.autoExposureSwapchain.setBinds(bind0, bind1)
+            Render.autoExposureLastStepSettings = settingsBuffer
+        }
+
+        // tone mapping
+        const toneMappingBind0 = wd.createBindGroup({
+            layout: Render.toneMappingPipeline.getBindGroupLayout(0),
+            entries: [
+                {
+                    binding: 0,
+                    resource: linearClampSampler,
+                },
+                {
+                    binding: 1,
+                    resource: Render.fogPassTextureView,
+                },
+                {
+                    binding: 2,
+                    resource: Render.autoExposureSwapchain.getTexView(0),
+                },
+            ],
+        })
+        const toneMappingBind1 = wd.createBindGroup({
+            layout: Render.toneMappingPipeline.getBindGroupLayout(0),
+            entries: [
+                {
+                    binding: 0,
+                    resource: linearClampSampler,
+                },
+                {
+                    binding: 1,
+                    resource: Render.fogPassTextureView,
+                },
+                {
+                    binding: 2,
+                    resource: Render.autoExposureSwapchain.getTexView(1),
+                },
+            ],
+        })
+        Render.toneMappingSwapchain.setBinds(toneMappingBind0, toneMappingBind1)
+
+        // screen
         Render.screenBind = wd.createBindGroup({
             layout: Render.screenPipeline.getBindGroupLayout(0),
             entries: [
@@ -1609,7 +1915,7 @@ export class Render {
                 {
                     binding: 1,
                     // resource: Render.debugTextureExample.createView(),
-                    resource: Render.fogPassTextureView,
+                    resource: Render.toneMappingSwapchain.getTexView(0),
                 },
             ],
         })
@@ -1682,8 +1988,6 @@ export class Render {
     }
 
     private static compilerShaders() {
-        const screenFormat = navigator.gpu.getPreferredCanvasFormat()
-
         const primitive: GPUPrimitiveState = {
             topology: "triangle-list",
             cullMode: "back",
@@ -2074,6 +2378,128 @@ export class Render {
             primitive,
         })
 
+        const downsample4ShaderFrag = wd.createShaderModule({ code: downsample4Frag })
+        Render.downsample4Pipeline = wd.createRenderPipeline({
+            layout: "auto",
+            vertex: {
+                module: passthroughShaderVert,
+                entryPoint: "main",
+                buffers: MeshBuffer.buffers,
+            },
+            fragment: {
+                module: downsample4ShaderFrag,
+                entryPoint: "main",
+                targets: [
+                    {
+                        format: "rg11b10ufloat",
+                        writeMask: GPUColorWrite.ALL,
+                    },
+                ],
+            },
+            primitive,
+        })
+
+        const downsample4ExtractBrightnessShaderFrag = wd.createShaderModule({
+            code: downsample4ExtractBrightnessFrag,
+        })
+        Render.downsample4ExtractBrightnessPipeline = wd.createRenderPipeline({
+            layout: "auto",
+            vertex: {
+                module: passthroughShaderVert,
+                entryPoint: "main",
+                buffers: MeshBuffer.buffers,
+            },
+            fragment: {
+                module: downsample4ExtractBrightnessShaderFrag,
+                entryPoint: "main",
+                targets: [
+                    {
+                        format: "rg11b10ufloat",
+                        writeMask: GPUColorWrite.ALL,
+                    },
+                ],
+            },
+            primitive,
+        })
+
+        const downsample16ShaderFrag = wd.createShaderModule({ code: downsample16Frag })
+        Render.downsample16Pipeline = wd.createRenderPipeline({
+            layout: "auto",
+            vertex: {
+                module: passthroughShaderVert,
+                entryPoint: "main",
+                buffers: MeshBuffer.buffers,
+            },
+            fragment: {
+                module: downsample16ShaderFrag,
+                entryPoint: "main",
+                targets: [
+                    {
+                        format: "rg11b10ufloat",
+                        writeMask: GPUColorWrite.ALL,
+                    },
+                ],
+            },
+            primitive,
+        })
+
+        const downsample16ExtractDiffShaderFrag = wd.createShaderModule({
+            code: downsample16ExtractDiffFrag,
+        })
+        Render.downsample16ExtractDiffPipeline = wd.createRenderPipeline({
+            layout: "auto",
+            vertex: {
+                module: passthroughShaderVert,
+                entryPoint: "main",
+                buffers: MeshBuffer.buffers,
+            },
+            fragment: {
+                module: downsample16ExtractDiffShaderFrag,
+                entryPoint: "main",
+                targets: [
+                    {
+                        format: "rg11b10ufloat",
+                        writeMask: GPUColorWrite.ALL,
+                    },
+                ],
+            },
+            primitive,
+        })
+
+        // autoexposure
+        Render.autoExposurePipelines = new Array(Render.autoExposurePasses.length)
+        Render.autoExposurePipelines[0] = Render.downsample4Pipeline
+        Render.autoExposurePipelines[1] = Render.downsample4ExtractBrightnessPipeline
+        for (let i = 2; i < Render.autoExposurePipelines.length; i++) {
+            Render.autoExposurePipelines[i] = Render.downsample16Pipeline
+        }
+
+        // tone mapping
+        const toneMappingShaderFrag = wd.createShaderModule({
+            code: toneMappingFrag,
+        })
+
+        Render.toneMappingPipeline = wd.createRenderPipeline({
+            layout: "auto",
+            vertex: {
+                module: passthroughShaderVert,
+                entryPoint: "main",
+                buffers: MeshBuffer.buffers,
+            },
+            fragment: {
+                module: toneMappingShaderFrag,
+                entryPoint: "main",
+                targets: [
+                    {
+                        format: Render.screenFormat,
+                        writeMask: GPUColorWrite.ALL,
+                    },
+                ],
+            },
+            primitive,
+        })
+
+        // screen
         Render.screenPipeline = wd.createRenderPipeline({
             layout: "auto",
             vertex: {
@@ -2087,7 +2513,7 @@ export class Render {
                 entryPoint: "main",
                 targets: [
                     {
-                        format: screenFormat,
+                        format: Render.screenFormat,
                         writeMask: GPUColorWrite.ALL,
                     },
                 ],
@@ -2108,7 +2534,7 @@ export class Render {
                 entryPoint: "main",
                 targets: [
                     {
-                        format: screenFormat,
+                        format: Render.screenFormat,
                         writeMask: GPUColorWrite.ALL,
                     },
                 ],
@@ -2129,7 +2555,7 @@ export class Render {
                 entryPoint: "main",
                 targets: [
                     {
-                        format: screenFormat,
+                        format: Render.screenFormat,
                         writeMask: GPUColorWrite.ALL,
                     },
                 ],
@@ -2514,6 +2940,34 @@ export class Render {
         mat4.multiply(Render.vp_glare, Render.vp_glare, glareModel)
     }
 
+    private static calcTimeCoeffs(dt: number): vec2 {
+        const MIN_DT = 0.05
+        const MAX_DT = 0.166
+
+        const MIN_START_TIME = 10.21
+        const MIN_MUL = 4.2
+        const MIN_POWER = 0.56
+
+        const MAX_START_TIME = 45.65722
+        const MAX_MUL = 18.8
+        const MAX_POWER = 0.56
+
+        const clamped_high = Math.min(dt, MAX_DT)
+        const clamped_dt = Math.max(MIN_DT, clamped_high)
+
+        const calcTau = (startTime: number, mul: number, pow: number): number =>
+            startTime + (clamped_dt - MIN_DT) ** pow * mul
+        const calcTimeCoeff = (dt: number, tau: number): number => 1.0 - Math.exp(-(dt * tau))
+
+        const minTau = calcTau(MIN_START_TIME, MIN_MUL, MIN_POWER)
+        const maxTau = calcTau(MAX_START_TIME, MAX_MUL, MAX_POWER)
+
+        return vec2.fromValues(
+            calcTimeCoeff(clamped_high, minTau),
+            calcTimeCoeff(clamped_high, maxTau)
+        )
+    }
+
     static render(dt: number): void {
         Render.handleResize()
 
@@ -2525,8 +2979,19 @@ export class Render {
         Render.resolutionBuffer[0] = canvasWebGPU.width
         Render.resolutionBuffer[1] = canvasWebGPU.height
 
+        // TODO implement easing of dt
+        const timeCoeffs = Render.calcTimeCoeffs(dt)
+
+        Render.autoExposureLastStepSettingsBuffer[2] = timeCoeffs[0]
+        Render.autoExposureLastStepSettingsBuffer[3] = timeCoeffs[1]
+
         wd.queue.writeBuffer(Render.settings, 0, Render.settingsBuffer)
         wd.queue.writeBuffer(Render.resolution, 0, Render.resolutionBuffer)
+        wd.queue.writeBuffer(
+            Render.autoExposureLastStepSettings,
+            0,
+            Render.autoExposureLastStepSettingsBuffer
+        )
 
         const commandEncoder = wd.createCommandEncoder()
 
@@ -2725,6 +3190,46 @@ export class Render {
             passEncoder.setIndexBuffer(Render.fullscreenPlain.indices, "uint16")
             passEncoder.drawIndexed(Render.fullscreenPlain.indexCount)
 
+            passEncoder.end()
+        }
+
+        // auto-exposure
+        {
+            Render.autoExposureSwapchain.swap()
+
+            for (let i = 0; i < Render.autoExposurePasses.length; i++) {
+                const pass = Render.autoExposurePasses[i]
+                const bind = Render.autoExposureBinds[i]
+                const pipeline = Render.autoExposurePipelines[i]
+
+                const passEncoder = commandEncoder.beginRenderPass(pass)
+                passEncoder.setBindGroup(0, bind)
+                passEncoder.setPipeline(pipeline)
+                passEncoder.setVertexBuffer(0, Render.fullscreenPlain.vertices)
+                passEncoder.setIndexBuffer(Render.fullscreenPlain.indices, "uint16")
+                passEncoder.drawIndexed(Render.fullscreenPlain.indexCount)
+                passEncoder.end()
+            }
+
+            const passEncoder = commandEncoder.beginRenderPass(Render.autoExposureSwapchain.pass)
+            passEncoder.setBindGroup(0, Render.autoExposureSwapchain.bind)
+            passEncoder.setPipeline(Render.downsample16ExtractDiffPipeline)
+            passEncoder.setVertexBuffer(0, Render.fullscreenPlain.vertices)
+            passEncoder.setIndexBuffer(Render.fullscreenPlain.indices, "uint16")
+            passEncoder.drawIndexed(Render.fullscreenPlain.indexCount)
+            passEncoder.end()
+        }
+
+        // tone mapping
+        {
+            Render.toneMappingSwapchain.swap()
+
+            const passEncoder = commandEncoder.beginRenderPass(Render.toneMappingSwapchain.pass)
+            passEncoder.setBindGroup(0, Render.toneMappingSwapchain.bind)
+            passEncoder.setPipeline(Render.toneMappingPipeline)
+            passEncoder.setVertexBuffer(0, Render.fullscreenPlain.vertices)
+            passEncoder.setIndexBuffer(Render.fullscreenPlain.indices, "uint16")
+            passEncoder.drawIndexed(Render.fullscreenPlain.indexCount)
             passEncoder.end()
         }
 
