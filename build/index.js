@@ -7894,7 +7894,7 @@ var passthroughTexFrag = "@group(0) @binding(0) var tex: texture_2d<f32>;\r\n\r\
 
 var passthroughDepthFrag = "@group(0) @binding(0) var linearSampler: sampler;\r\n@group(0) @binding(1) var tex: texture_depth_2d;\r\n\r\n@fragment\r\nfn main(\r\n    @location(1) fragUV: vec2<f32>\r\n) -> @location(0) vec4<f32> {\r\n    var depth = textureSample(tex, linearSampler, fragUV);\r\n    return vec4(depth, depth, depth, 1);\r\n}";
 
-var passthroughFrag_Debug = "@group(0) @binding(0) var linearSampler: sampler;\r\n@group(0) @binding(1) var tex: texture_3d<f32>;\r\n\r\n@fragment\r\nfn main(\r\n    @location(1) fragUV: vec2<f32>\r\n) -> @location(0) vec4<f32> {\r\n    var coord = vec3(fragUV.xy, 76.5 / 90);\r\n    var f = textureSample(tex, linearSampler, coord).x;\r\n    return vec4(f, f, f, 1);\r\n}";
+var passthroughFrag_Debug = "@group(0) @binding(0) var linearSampler: sampler;\r\n@group(0) @binding(1) var tex: texture_2d<f32>;\r\n\r\n@fragment\r\nfn main(\r\n    @location(1) fragUV: vec2<f32>\r\n) -> @location(0) vec4<f32> {\r\n    var f = textureSample(tex, linearSampler, fragUV.xy).x;\r\n    var c = 0.0 + fragUV.y * 0.01 + f * 0;\r\n    return vec4(c, c, c, 1);\r\n}";
 
 var downsample4Frag = "struct Settings {\r\n    invResolution: vec2<f32>,\r\n}\r\n\r\n@group(0) @binding(0) var<uniform> settings: Settings;\r\n@group(0) @binding(1) var linearSampler: sampler; // linear, clamp\r\n@group(0) @binding(2) var tex: texture_2d<f32>;\r\n\r\n@fragment\r\nfn main(\r\n    @location(1) inputUV: vec2<f32>\r\n) -> @location(0) vec4<f32> {\r\n    const neighbors: array<vec2<f32>, 4> = array(\r\n\t\tvec2(-1, -1),\r\n\t\tvec2( 1, -1),\r\n\t\tvec2( 1,  1),\r\n\t\tvec2(-1,  1),\r\n    );\r\n\r\n    var outputAlpha = 0.0;\r\n\r\n\tvar acum = vec3(0.0);\r\n\tfor (var i = 0; i < 4; i++) {\r\n\t\tvar neighborUV = neighbors[i] * settings.invResolution + inputUV;\r\n\r\n        var sampledColor = textureSample(tex, linearSampler, neighborUV).rgb;\r\n\r\n\t\tacum += sampledColor * 0.25;\r\n\t}\r\n\r\n    return vec4(acum, outputAlpha);\r\n}";
 
@@ -7926,6 +7926,8 @@ const canvas2D = document.createElement("canvas");
 const wg = canvasWebGPU.getContext("webgpu");
 let wd;
 const ctx$1 = canvas2D.getContext("2d");
+//"rgba16float"
+const presentationFormat = "rgba16float"; // navigator.gpu.getPreferredCanvasFormat()
 async function initWebGPU() {
     const adapter = await navigator.gpu.requestAdapter();
     if (!adapter) {
@@ -7939,10 +7941,10 @@ async function initWebGPU() {
             maxComputeWorkgroupSizeY: 1024,
         },
     });
-    const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
     wg.configure({
         device: wd,
         format: presentationFormat,
+        colorSpace: "display-p3",
         alphaMode: "opaque",
     });
 }
@@ -8804,7 +8806,6 @@ class Swapchain {
     }
 }
 class Render {
-    static screenFormat = navigator.gpu.getPreferredCanvasFormat();
     static viewMatrix;
     static viewMatrix_inplace;
     static projectionMatrix;
@@ -9399,7 +9400,7 @@ class Render {
             Render.autoExposureSwapchain.setPasses(pass0, pass1);
         }
         // tone mapping pass
-        const toneMappingPassTexture = createTextureByFormat(canvasWebGPU.width, canvasWebGPU.height, Render.screenFormat);
+        const toneMappingPassTexture = createTextureByFormat(canvasWebGPU.width, canvasWebGPU.height, presentationFormat);
         const toneMappingPassTextureView = toneMappingPassTexture.createView();
         const toneMappingPassDesc = {
             colorAttachments: [
@@ -10579,7 +10580,7 @@ class Render {
                 entryPoint: "main",
                 targets: [
                     {
-                        format: Render.screenFormat,
+                        format: presentationFormat,
                         writeMask: GPUColorWrite.ALL,
                     },
                 ],
@@ -10600,7 +10601,7 @@ class Render {
                 entryPoint: "main",
                 targets: [
                     {
-                        format: Render.screenFormat,
+                        format: presentationFormat,
                         writeMask: GPUColorWrite.ALL,
                     },
                 ],
@@ -10620,7 +10621,7 @@ class Render {
                 entryPoint: "main",
                 targets: [
                     {
-                        format: Render.screenFormat,
+                        format: presentationFormat,
                         writeMask: GPUColorWrite.ALL,
                     },
                 ],
@@ -10640,7 +10641,7 @@ class Render {
                 entryPoint: "main",
                 targets: [
                     {
-                        format: Render.screenFormat,
+                        format: presentationFormat,
                         writeMask: GPUColorWrite.ALL,
                     },
                 ],
@@ -10736,10 +10737,10 @@ class Render {
     static FAR = 353840;
     static handleResize() {
         const dpr = devicePixelRatio;
-        let newWidth = Math.floor(document.body.clientWidth * dpr);
-        let newHeight = Math.floor(document.body.clientHeight * dpr);
-        newWidth = 3840;
-        newHeight = 2160;
+        const newWidth = Math.floor(document.body.clientWidth * dpr);
+        const newHeight = Math.floor(document.body.clientHeight * dpr);
+        // newWidth = 3840
+        // newHeight = 2160
         if (canvasWebGPU.width === newWidth && canvasWebGPU.height === newHeight) {
             return;
         }
@@ -11037,8 +11038,6 @@ class Render {
             passEncoder.dispatchWorkgroups(canvasWebGPU.width, Math.ceil(canvasWebGPU.height / 540), 1);
             passEncoder.end();
         }
-        // TODO
-        // volumetric lighting pass smoothing
         {
             // screen space shadow reconstruction pass
             const passEncoder = commandEncoder.beginRenderPass(Render.contactShadowsPassDesc);

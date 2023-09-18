@@ -47,7 +47,7 @@ import debugFrustumVert from "../../shaders/debug-frustum.vert.wgsl"
 import debugFrustumFrag from "../../shaders/debug-frustum.frag.wgsl"
 
 import { mat4, quat, vec2, vec3, vec4 } from "gl-matrix"
-import { wg, ctx, wd, canvasWebGPU } from "./render-context"
+import { wg, ctx, wd, canvasWebGPU, presentationFormat } from "./render-context"
 import { CHUNK_MESH_VERTEX_SIZE, Renderable } from "./renderable"
 import { Atlas, ATLAS_SIZE, MAX_ATLASES_COUNT } from "./atlas"
 import {
@@ -428,8 +428,6 @@ class Swapchain {
 }
 
 export class Render {
-    private static screenFormat = navigator.gpu.getPreferredCanvasFormat()
-
     private static viewMatrix: mat4
     private static viewMatrix_inplace: mat4
     private static projectionMatrix: mat4
@@ -1190,7 +1188,7 @@ export class Render {
         const toneMappingPassTexture = createTextureByFormat(
             canvasWebGPU.width,
             canvasWebGPU.height,
-            Render.screenFormat
+            presentationFormat
         )
         const toneMappingPassTextureView = toneMappingPassTexture.createView()
 
@@ -2491,7 +2489,7 @@ export class Render {
                 entryPoint: "main",
                 targets: [
                     {
-                        format: Render.screenFormat,
+                        format: presentationFormat,
                         writeMask: GPUColorWrite.ALL,
                     },
                 ],
@@ -2513,7 +2511,7 @@ export class Render {
                 entryPoint: "main",
                 targets: [
                     {
-                        format: Render.screenFormat,
+                        format: presentationFormat,
                         writeMask: GPUColorWrite.ALL,
                     },
                 ],
@@ -2534,7 +2532,7 @@ export class Render {
                 entryPoint: "main",
                 targets: [
                     {
-                        format: Render.screenFormat,
+                        format: presentationFormat,
                         writeMask: GPUColorWrite.ALL,
                     },
                 ],
@@ -2555,7 +2553,7 @@ export class Render {
                 entryPoint: "main",
                 targets: [
                     {
-                        format: Render.screenFormat,
+                        format: presentationFormat,
                         writeMask: GPUColorWrite.ALL,
                     },
                 ],
@@ -2673,11 +2671,11 @@ export class Render {
     static handleResize(): void {
         const dpr = devicePixelRatio
 
-        let newWidth = Math.floor(document.body.clientWidth * dpr)
-        let newHeight = Math.floor(document.body.clientHeight * dpr)
+        const newWidth = Math.floor(document.body.clientWidth * dpr)
+        const newHeight = Math.floor(document.body.clientHeight * dpr)
 
-        newWidth = 3840
-        newHeight = 2160
+        // newWidth = 3840
+        // newHeight = 2160
 
         if (canvasWebGPU.width === newWidth && canvasWebGPU.height === newHeight) {
             return
@@ -3092,9 +3090,6 @@ export class Render {
 
             passEncoder.end()
         }
-
-        // TODO
-        // volumetric lighting pass smoothing
 
         {
             // screen space shadow reconstruction pass

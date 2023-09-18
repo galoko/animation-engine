@@ -7,6 +7,9 @@ export const wg = canvasWebGPU.getContext("webgpu") as GPUCanvasContext
 export let wd: GPUDevice
 export const ctx = canvas2D.getContext("2d")!
 
+//"rgba16float"
+export const presentationFormat = "rgba16float" // navigator.gpu.getPreferredCanvasFormat()
+
 export async function initWebGPU() {
     const adapter = await navigator.gpu.requestAdapter()
     if (!adapter) {
@@ -21,11 +24,10 @@ export async function initWebGPU() {
         },
     })
 
-    const presentationFormat = navigator.gpu.getPreferredCanvasFormat()
-
     wg.configure({
         device: wd,
         format: presentationFormat,
+        colorSpace: "display-p3",
         alphaMode: "opaque",
     })
 }
