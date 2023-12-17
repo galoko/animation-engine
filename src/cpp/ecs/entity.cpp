@@ -7,5 +7,7 @@ Entity::Entity() {
 }
 
 Entity::~Entity() {
-    Services->worldManager.registry.destroy(this->handle);
+    if (Services) {
+        Services->worldManager.registry.destroy(this->handle);
+    }
 }

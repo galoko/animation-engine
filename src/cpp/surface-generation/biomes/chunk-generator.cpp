@@ -61,7 +61,8 @@ int32_t NoiseSettings::getMinCellY() const {
 
 NoiseGeneratorSettings::NoiseGeneratorSettings(StructureSettings const &_structureSettings,
                                                NoiseSettings const &_noiseSettings, BlockState defaultBlock,
-                                               BlockState defaultFluid, SurfaceRules::RuleSource const &_surfaceRule,
+                                               BlockState defaultFluid,
+                                               const shared_ptr<SurfaceRules::RuleSource> _surfaceRule,
                                                int32_t _seaLevel, bool _disableMobGeneration, bool aquifersEnabled,
                                                bool noiseCavesEnabled, bool oreVeinsEnabled, bool noodleCavesEnabled,
                                                bool useLegacyRandom)
@@ -93,7 +94,7 @@ BlockState NoiseGeneratorSettings::getDefaultFluid() const {
     return this->defaultFluid;
 }
 
-SurfaceRules::RuleSource const &NoiseGeneratorSettings::surfaceRule() const {
+const shared_ptr<SurfaceRules::RuleSource> NoiseGeneratorSettings::surfaceRule() const {
     return this->_surfaceRule;
 }
 
@@ -138,7 +139,7 @@ NoiseGeneratorSettings NoiseGeneratorSettings::end() {
         StructureSettings(false),
         NoiseSettings::create(0, 128, NoiseSamplingSettings(2.0, 1.0, 80.0, 160.0), NoiseSlider(-23.4375, 64, -46),
                               NoiseSlider(-0.234375, 7, 1), 2, 1, true, false, false, TerrainProvider::end()),
-        Blocks::END_STONE, Blocks::AIR, SurfaceRuleData::end(), 0, true, false, false, false, false, true);
+        Blocks::END_STONE, Blocks::AIR, SurfaceRulesData::end(), 0, true, false, false, false, false, true);
 }
 
 NoiseGeneratorSettings NoiseGeneratorSettings::overworld(bool isAmplified, bool isLargeBiomes) {
@@ -148,7 +149,7 @@ NoiseGeneratorSettings NoiseGeneratorSettings::overworld(bool isAmplified, bool 
                               NoiseSlider(-0.078125, 2, isAmplified ? 0 : 8),
                               NoiseSlider(isAmplified ? 0.4 : 0.1171875, 3, 0), 1, 2, false, isAmplified, isLargeBiomes,
                               TerrainProvider::overworld(isAmplified)),
-        Blocks::STONE, Blocks::WATER, SurfaceRuleData::overworld(), 63, false, true, false, true, false, false);
+        Blocks::STONE, Blocks::WATER, SurfaceRulesData::overworld(), 63, false, true, false, true, false, false);
 }
 
 NoiseGeneratorSettings NoiseGeneratorSettings::caves() {
@@ -156,7 +157,7 @@ NoiseGeneratorSettings NoiseGeneratorSettings::caves() {
                                   NoiseSettings::create(-64, 192, NoiseSamplingSettings(1.0, 3.0, 80.0, 60.0),
                                                         NoiseSlider(0.9375, 3, 0), NoiseSlider(2.5, 4, -1), 1, 2, false,
                                                         false, false, TerrainProvider::caves()),
-                                  Blocks::STONE, Blocks::WATER, SurfaceRuleData::overworldLike(false, true, true), 32,
+                                  Blocks::STONE, Blocks::WATER, SurfaceRulesData::overworldLike(false, true, true), 32,
                                   false, false, false, false, false, true);
 }
 
@@ -165,7 +166,7 @@ NoiseGeneratorSettings NoiseGeneratorSettings::floatingIslands() {
                                   NoiseSettings::create(0, 256, NoiseSamplingSettings(2.0, 1.0, 80.0, 160.0),
                                                         NoiseSlider(-23.4375, 64, -46), NoiseSlider(-0.234375, 7, 1), 2,
                                                         1, false, false, false, TerrainProvider::floatingIslands()),
-                                  Blocks::STONE, Blocks::WATER, SurfaceRuleData::overworldLike(false, false, false),
+                                  Blocks::STONE, Blocks::WATER, SurfaceRulesData::overworldLike(false, false, false),
                                   -64, false, false, false, false, false, true);
 }
 

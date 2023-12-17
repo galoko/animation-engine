@@ -88,7 +88,7 @@ private:
     NoiseSettings _noiseSettings;
     BlockState defaultBlock;
     BlockState defaultFluid;
-    SurfaceRules::RuleSource _surfaceRule;
+    shared_ptr<SurfaceRules::RuleSource> _surfaceRule;
     int32_t _seaLevel;
     bool _disableMobGeneration;
     bool aquifersEnabled;
@@ -99,16 +99,16 @@ private:
 private:
     NoiseGeneratorSettings(StructureSettings const &_structureSettings, NoiseSettings const &_noiseSettings,
                            BlockState defaultBlock, BlockState defaultFluid,
-                           SurfaceRules::RuleSource const &_surfaceRule, int32_t _seaLevel, bool _disableMobGeneration,
-                           bool aquifersEnabled, bool noiseCavesEnabled, bool oreVeinsEnabled, bool noodleCavesEnabled,
-                           bool useLegacyRandom);
+                           const shared_ptr<SurfaceRules::RuleSource> _surfaceRule, int32_t _seaLevel,
+                           bool _disableMobGeneration, bool aquifersEnabled, bool noiseCavesEnabled,
+                           bool oreVeinsEnabled, bool noodleCavesEnabled, bool useLegacyRandom);
 
 public:
     StructureSettings const &structureSettings() const;
     NoiseSettings const &noiseSettings() const;
     BlockState getDefaultBlock() const;
     BlockState getDefaultFluid() const;
-    SurfaceRules::RuleSource const &surfaceRule() const;
+    const shared_ptr<SurfaceRules::RuleSource> surfaceRule() const;
     int32_t seaLevel() const;
     bool disableMobGeneration() const;
     bool isAquifersEnabled() const;
@@ -195,8 +195,7 @@ public:
 
 class NoiseSampler : public Climate::Sampler, public enable_shared_from_this<NoiseSampler> {
 public:
-    enum class VeinType
-    {
+    enum class VeinType {
         NULL_VEIN,
         COPPER,
         IRON,

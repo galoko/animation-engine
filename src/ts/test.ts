@@ -1,6 +1,8 @@
-import { Engine } from "./engine-bridge/module"
+import { Engine, loadEngine } from "./engine-bridge/module"
 
-export function test(): void {
+export async function test(): Promise<void> {
+    await loadEngine()
+
     Engine._init()
 
     const startTime = performance.now()
