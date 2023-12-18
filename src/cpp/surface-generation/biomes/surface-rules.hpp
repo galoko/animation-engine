@@ -589,8 +589,6 @@ class SurfaceRulesData {
 
 public:
     static const shared_ptr<SurfaceRules::RuleSource> overworld();
-    static const shared_ptr<SurfaceRules::RuleSource> overworldLike(bool p_198381_, bool haveBedrockRoof,
-                                                                    bool haveBedrockFloor);
     static const shared_ptr<SurfaceRules::RuleSource> nether();
     static const shared_ptr<SurfaceRules::RuleSource> end();
 };
