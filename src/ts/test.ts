@@ -1,9 +1,15 @@
 import { Engine, loadEngine } from "./engine-bridge/module"
 
+function delay(timeout: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, timeout))
+}
+
 export async function test(): Promise<void> {
     await loadEngine()
 
     Engine._init()
+
+    await delay(1500)
 
     const startTime = performance.now()
     Engine._test()

@@ -152,31 +152,19 @@ NoiseGeneratorSettings NoiseGeneratorSettings::overworld(bool isAmplified, bool 
         Blocks::STONE, Blocks::WATER, SurfaceRulesData::overworld(), 63, false, true, false, true, false, false);
 }
 
-NoiseGeneratorSettings NoiseGeneratorSettings::caves() {
-    return NoiseGeneratorSettings(StructureSettings(false),
-                                  NoiseSettings::create(-64, 192, NoiseSamplingSettings(1.0, 3.0, 80.0, 60.0),
-                                                        NoiseSlider(0.9375, 3, 0), NoiseSlider(2.5, 4, -1), 1, 2, false,
-                                                        false, false, TerrainProvider::caves()),
-                                  Blocks::STONE, Blocks::WATER, SurfaceRulesData::overworldLike(false, true, true), 32,
-                                  false, false, false, false, false, true);
-}
+NoiseGeneratorSettings NoiseGeneratorSettings::OVERWORLD;
+NoiseGeneratorSettings NoiseGeneratorSettings::LARGE_BIOMES;
+NoiseGeneratorSettings NoiseGeneratorSettings::AMPLIFIED;
+// const NoiseGeneratorSettings NoiseGeneratorSettings::NETHER;
+NoiseGeneratorSettings NoiseGeneratorSettings::END;
 
-NoiseGeneratorSettings NoiseGeneratorSettings::floatingIslands() {
-    return NoiseGeneratorSettings(StructureSettings(true),
-                                  NoiseSettings::create(0, 256, NoiseSamplingSettings(2.0, 1.0, 80.0, 160.0),
-                                                        NoiseSlider(-23.4375, 64, -46), NoiseSlider(-0.234375, 7, 1), 2,
-                                                        1, false, false, false, TerrainProvider::floatingIslands()),
-                                  Blocks::STONE, Blocks::WATER, SurfaceRulesData::overworldLike(false, false, false),
-                                  -64, false, false, false, false, false, true);
+void NoiseGeneratorSettings::initialize() {
+    NoiseGeneratorSettings::OVERWORLD = NoiseGeneratorSettings::overworld(false, false);
+    NoiseGeneratorSettings::LARGE_BIOMES = NoiseGeneratorSettings::overworld(false, true);
+    NoiseGeneratorSettings::AMPLIFIED = NoiseGeneratorSettings::overworld(true, false);
+    // NoiseGeneratorSettings::NETHER = NoiseGeneratorSettings::nether();
+    NoiseGeneratorSettings::END = NoiseGeneratorSettings::end();
 }
-
-const NoiseGeneratorSettings NoiseGeneratorSettings::OVERWORLD = NoiseGeneratorSettings::overworld(false, false);
-const NoiseGeneratorSettings NoiseGeneratorSettings::LARGE_BIOMES = NoiseGeneratorSettings::overworld(false, true);
-const NoiseGeneratorSettings NoiseGeneratorSettings::AMPLIFIED = NoiseGeneratorSettings::overworld(true, false);
-// const NoiseGeneratorSettings NoiseGeneratorSettings::NETHER = NoiseGeneratorSettings::nether();
-const NoiseGeneratorSettings NoiseGeneratorSettings::END = NoiseGeneratorSettings::end();
-const NoiseGeneratorSettings NoiseGeneratorSettings::CAVES = NoiseGeneratorSettings::caves();
-const NoiseGeneratorSettings NoiseGeneratorSettings::FLOATING_ISLANDS = NoiseGeneratorSettings::floatingIslands();
 
 void NoiseGeneratorSettings::finalize() {
     ((NoiseGeneratorSettings *)(&NoiseGeneratorSettings::OVERWORLD))->~NoiseGeneratorSettings();
@@ -184,8 +172,6 @@ void NoiseGeneratorSettings::finalize() {
     ((NoiseGeneratorSettings *)(&NoiseGeneratorSettings::AMPLIFIED))->~NoiseGeneratorSettings();
     // ((NoiseGeneratorSettings *)(&NoiseGeneratorSettings::NETHER))->~NoiseGeneratorSettings();
     ((NoiseGeneratorSettings *)(&NoiseGeneratorSettings::END))->~NoiseGeneratorSettings();
-    ((NoiseGeneratorSettings *)(&NoiseGeneratorSettings::CAVES))->~NoiseGeneratorSettings();
-    ((NoiseGeneratorSettings *)(&NoiseGeneratorSettings::FLOATING_ISLANDS))->~NoiseGeneratorSettings();
 }
 
 // TerrainInfo
@@ -764,14 +750,14 @@ Aquifer::FluidStatus SimpleFluidPicker::computeFluid(int32_t x, int32_t y, int32
 
 // NoiseClimateSampler
 
-NoiseClimateSampler::NoiseClimateSampler(shared_ptr<NoiseSampler> sampler, shared_ptr<NoiseChunk> noisechunk)
-    : sampler(sampler), noisechunk(noisechunk) {
+NoiseClimateSampler::NoiseClimateSampler(shared_ptr<NoiseSampler> sampler, shared_ptr<NoiseChunk> noiseChunk)
+    : sampler(sampler), noiseChunk(noiseChunk) {
     objectCreated("Climate::Sampler");
     objectCreated("NoiseClimateSampler");
 }
 
 Climate::TargetPoint const NoiseClimateSampler::sample(int32_t x, int32_t y, int32_t z) const {
-    return this->sampler->target(x, y, z, this->noisechunk->noiseData(x, z));
+    return this->sampler->target(x, y, z, this->noiseChunk->noiseData(x, z));
 }
 
 // NoiseBasedChunkGenerator
@@ -826,10 +812,12 @@ NoiseBasedChunkGenerator::NoiseBasedChunkGenerator(shared_ptr<BiomeSource> biome
     Aquifer::FluidStatus defaultFluid = Aquifer::FluidStatus(seaLevel, noiseGeneratorSettings.getDefaultFluid());
     // Aquifer::FluidStatus air = Aquifer::FluidStatus(noiseSettings.minY - 1, Blocks::AIR);
     this->globalFluidPicker = make_shared<SimpleFluidPicker>(seaLevel, lava, defaultFluid);
-    /*
     this->surfaceSystem =
-        new SurfaceSystem(this->defaultBlock, seaLevel, seed, noiseGeneratorSettings.getRandomSource());
-    */
+        make_shared<SurfaceSystem>(this->defaultBlock, seed, noiseGeneratorSettings.getRandomSource());
+}
+
+void NoiseBasedChunkGenerator::init() {
+    this->biomeManager = make_shared<BiomeManager>(this->shared_from_this(), BiomeManager::obfuscateSeed(seed));
 }
 
 shared_ptr<ChunkAccess> NoiseBasedChunkGenerator::createBiomes(Blender const &blender,
@@ -839,12 +827,12 @@ shared_ptr<ChunkAccess> NoiseBasedChunkGenerator::createBiomes(Blender const &bl
 }
 
 void NoiseBasedChunkGenerator::doCreateBiomes(Blender const &blender, shared_ptr<ChunkAccess> chunkAccess) {
-    shared_ptr<NoiseChunk> noisechunk = chunkAccess->getOrCreateNoiseChunk(
+    shared_ptr<NoiseChunk> noiseChunk = chunkAccess->getOrCreateNoiseChunk(
         this->sampler, [chunkAccess]() -> NoiseFiller { return makeBeardifier(chunkAccess); }, this->settings,
         this->globalFluidPicker, blender);
     shared_ptr<BiomeResolver> biomeresolver =
         BelowZeroRetrogen::getBiomeResolver(blender.getBiomeResolver(this->runtimeBiomeSource), chunkAccess);
-    chunkAccess->fillBiomesFromNoise(biomeresolver, make_shared<NoiseClimateSampler>(this->sampler, noisechunk));
+    chunkAccess->fillBiomesFromNoise(biomeresolver, make_shared<NoiseClimateSampler>(this->sampler, noiseChunk));
 }
 
 shared_ptr<Climate::Sampler> NoiseBasedChunkGenerator::climateSampler() const {
@@ -891,6 +879,21 @@ shared_ptr<ChunkAccess> NoiseBasedChunkGenerator::fillFromNoise(Blender const &b
     }
 }
 
+shared_ptr<ChunkAccess> NoiseBasedChunkGenerator::buildSurface(shared_ptr<ChunkAccess> chunkAccess) {
+    NoiseGeneratorSettings const &noiseGeneratorSettings = this->settings;
+    shared_ptr<NoiseChunk> noiseChunk = chunkAccess->getOrCreateNoiseChunk(
+        this->sampler, [chunkAccess]() -> NoiseFiller { return makeBeardifier(chunkAccess); }, noiseGeneratorSettings,
+        this->globalFluidPicker, Blender::empty());
+
+    const LevelHeightAccessor &levelHeightAccessor = chunkAccess->getHeightAccessorForGeneration();
+    WorldGenerationContext worldGenerationContext(this->shared_from_this(), levelHeightAccessor);
+
+    this->surfaceSystem->buildSurface(this->biomeManager, worldGenerationContext, chunkAccess, noiseChunk,
+                                      noiseGeneratorSettings.surfaceRule());
+
+    return chunkAccess;
+}
+
 shared_ptr<ChunkAccess> NoiseBasedChunkGenerator::doFill(Blender const &blender, shared_ptr<ChunkAccess> chunkAccess,
                                                          int32_t minCellY, int32_t cellCount) {
     NoiseGeneratorSettings const &settings = this->settings;
@@ -906,9 +909,6 @@ shared_ptr<ChunkAccess> NoiseBasedChunkGenerator::doFill(Blender const &blender,
     int32_t z = chunkPos.getMinBlockZ();
 
     noiseChunk->initializeForFirstCellX();
-
-    // Aquifer *aquifer = noiseChunk->aquifer();
-    // MutableBlockPos pos = MutableBlockPos();
 
     NoiseSettings const &noiseSettings = settings.noiseSettings();
 

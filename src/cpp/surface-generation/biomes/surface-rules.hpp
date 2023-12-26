@@ -3,7 +3,9 @@
 #include <limits>
 #include <vector>
 
+#include "biome-manager.hpp"
 #include "noise-chunk.hpp"
+#include "noise-data.hpp"
 
 using namespace std;
 
@@ -62,6 +64,8 @@ enum CaveSurface {
     CEILING = 1,
     FLOOR = -1,
 };
+
+class SurfaceSystem;
 
 class SurfaceRules {
 public:
@@ -253,62 +257,94 @@ public:
         }
     };
 
-    // Hole
+    class StoneDepthCheck;
 
-    class HoleCondition : public LazyXZCondition {
+    class StoneDepthCondition : public LazyYCondition {
+    private:
+        shared_ptr<StoneDepthCheck> conditionSource;
+        bool isCeiling;
+
     public:
-        HoleCondition(shared_ptr<Context> ctx) : LazyXZCondition(ctx) {
+        StoneDepthCondition(shared_ptr<Context> ctx, shared_ptr<StoneDepthCheck> conditionSource, bool isCeiling)
+            : LazyYCondition(ctx), conditionSource(conditionSource), isCeiling(isCeiling) {
         }
 
     protected:
         virtual bool compute() {
-            return this->context->surfaceDepth <= 0;
+            return (isCeiling ? this->context->stoneDepthBelow : this->context->stoneDepthAbove) <=
+                   1 + this->conditionSource->offset +
+                       (this->conditionSource->addSurfaceDepth ? this->context->surfaceDepth : 0) +
+                       (this->conditionSource->addSurfaceSecondaryDepth ? this->context->getSurfaceSecondaryDepth()
+                                                                        : 0);
         }
     };
 
-    class Hole : public ConditionSource {
+    class StoneDepthCheck : public ConditionSource, public enable_shared_from_this<StoneDepthCheck> {
     public:
-        static shared_ptr<Hole> INSTANCE;
+        int32_t offset;
+        bool addSurfaceDepth;
+        bool addSurfaceSecondaryDepth;
+        CaveSurface surfaceType;
+
+        StoneDepthCheck(int32_t offset, bool addSurfaceDepth, bool addSurfaceSecondaryDepth, CaveSurface surfaceType) {
+        }
 
         virtual shared_ptr<Condition> apply(shared_ptr<Context> ctx) {
-            return ctx->hole;
+            bool isCeiling = this->surfaceType == CaveSurface::CEILING;
+
+            return make_shared<StoneDepthCondition>(ctx, this->shared_from_this(), isCeiling);
         }
     };
 
-    // Steep
+    class BiomeConditionSource;
 
-    class SteepMaterialCondition : public LazyXZCondition {
+    class BiomeCondition : public LazyYCondition {
+    private:
+        shared_ptr<BiomeConditionSource> conditionSource;
+
     public:
-        SteepMaterialCondition(shared_ptr<Context> ctx) : LazyXZCondition(ctx) {
+        BiomeCondition(shared_ptr<Context> ctx, shared_ptr<BiomeConditionSource> conditionSource)
+            : LazyYCondition(ctx), conditionSource(conditionSource) {
+            //
         }
 
     protected:
-        virtual bool compute() {
-            int32_t chunkX = this->context->blockX & 15;
-            int32_t chunkZ = this->context->blockZ & 15;
-            int32_t chunkBeforeZ = std::max(chunkZ - 1, 0);
-            int32_t chunkAfterZ = std::min(chunkZ + 1, 15);
-            shared_ptr<ChunkAccess> chunkAccess = this->context->chunk;
-            int32_t heightBeforeZ = chunkAccess->getHeight(HeightmapTypes::WORLD_SURFACE_WG, chunkX, chunkBeforeZ);
-            int32_t heightAfterZ = chunkAccess->getHeight(HeightmapTypes::WORLD_SURFACE_WG, chunkX, chunkAfterZ);
-            if (heightAfterZ >= heightBeforeZ + 4) {
-                return true;
-            } else {
-                int32_t chunkBeforeX = std::max(chunkX - 1, 0);
-                int32_t chunkAfterX = std::min(chunkX + 1, 15);
-                int32_t heightBeforeX = chunkAccess->getHeight(HeightmapTypes::WORLD_SURFACE_WG, chunkBeforeX, chunkZ);
-                int32_t heightAfterX = chunkAccess->getHeight(HeightmapTypes::WORLD_SURFACE_WG, chunkAfterX, chunkZ);
-                return heightBeforeX >= heightAfterX + 4;
-            }
+        bool compute() {
+            return this->conditionSource->biomes.contains(this->context->biome());
         }
     };
 
-    class Steep : public ConditionSource {
+    class BiomeConditionSource : public ConditionSource, public enable_shared_from_this<BiomeConditionSource> {
     public:
-        static shared_ptr<Steep> INSTANCE;
+        const set<Biomes> biomes;
+
+        BiomeConditionSource(const vector<Biomes> biomes) : biomes(biomes.begin(), biomes.end()) {
+        }
 
         virtual shared_ptr<Condition> apply(shared_ptr<Context> ctx) {
-            return ctx->steep;
+            return make_shared<BiomeCondition>(ctx, this->shared_from_this());
+        }
+    };
+
+    class AbovePreliminarySurfaceCondition : public SurfaceRules::Condition {
+    private:
+        shared_ptr<Context> ctx;
+
+    public:
+        AbovePreliminarySurfaceCondition(shared_ptr<Context> ctx) : ctx(ctx) {
+        }
+
+        virtual bool test() {
+            return this->ctx->blockY >= this->ctx->getMinSurfaceLevel();
+        }
+    };
+
+    class AbovePreliminarySurface : public ConditionSource {
+    public:
+        static shared_ptr<AbovePreliminarySurface> INSTANCE;
+
+        shared_ptr<SurfaceRules::Condition> apply(shared_ptr<Context> ctx) {
+            return ctx->abovePreliminarySurface;
         }
     };
 
@@ -321,7 +357,7 @@ public:
         StateRule(Blocks state) : state(state) {
         }
 
-        virtual BlockState tryApply(int x, int y, int z) {
+        virtual BlockState tryApply(int32_t x, int32_t y, int32_t z) {
             return this->state;
         }
     };
@@ -348,10 +384,11 @@ public:
         shared_ptr<SurfaceRule> followup;
 
     public:
-        TestRule(shared_ptr<Condition> condition, shared_ptr<SurfaceRule> followup) {
+        TestRule(shared_ptr<Condition> condition, shared_ptr<SurfaceRule> followup)
+            : condition(condition), followup(followup) {
         }
 
-        virtual BlockState tryApply(int x, int y, int z) {
+        virtual BlockState tryApply(int32_t x, int32_t y, int32_t z) {
             return !this->condition->test() ? Blocks::NULL_BLOCK : this->followup->tryApply(x, y, z);
         }
     };
@@ -364,6 +401,9 @@ public:
     public:
         TestRuleSource(shared_ptr<ConditionSource> ifTrue, shared_ptr<RuleSource> thenRun)
             : ifTrue(ifTrue), thenRun(thenRun) {
+            if (ifTrue == nullptr) {
+                throw new exception();
+            }
         }
 
         shared_ptr<SurfaceRule> apply(shared_ptr<Context> ctx) {
@@ -382,7 +422,7 @@ public:
         SequenceRule(const vector<shared_ptr<SurfaceRule>> &rules) : rules(rules) {
         }
 
-        virtual BlockState tryApply(int x, int y, int z) {
+        virtual BlockState tryApply(int32_t x, int32_t y, int32_t z) {
             for (shared_ptr<SurfaceRule> surfaceRule : this->rules) {
                 BlockState blockstate = surfaceRule->tryApply(x, y, z);
                 if (blockstate != Blocks::NULL_BLOCK) {
@@ -418,13 +458,16 @@ public:
     };
 
     // Context
-
     class Context : public enable_shared_from_this<Context> {
     private:
         const static int32_t HOW_FAR_BELOW_PRELIMINARY_SURFACE_LEVEL_TO_BUILD_SURFACE = 8;
         const static int32_t SURFACE_CELL_BITS = 4;
         const static int32_t SURFACE_CELL_SIZE = 16;
         const static int32_t SURFACE_CELL_MASK = 15;
+
+        bool isBiomeValueCached = false;
+        Biomes biomeCachedValue = Biomes::NULL_BIOME;
+        MutableBlockPos pos;
 
     public:
         int64_t lastUpdateY = -9223372036854775807L;
@@ -442,9 +485,41 @@ public:
         WorldGenerationContext context;
 
         shared_ptr<ChunkAccess> chunk;
+        shared_ptr<NoiseChunk> noiseChunk;
 
-        shared_ptr<Condition> hole = make_shared<HoleCondition>(this->shared_from_this());
-        shared_ptr<Condition> steep = make_shared<SteepMaterialCondition>(this->shared_from_this());
+        shared_ptr<SurfaceSystem> system;
+        shared_ptr<BiomeManager> biomeManager;
+
+        int64_t lastSurfaceDepth2Update = this->lastUpdateXZ - 1L;
+        int32_t surfaceSecondaryDepth;
+
+        int64_t lastMinSurfaceLevelUpdate = this->lastUpdateXZ - 1L;
+        int32_t minSurfaceLevel;
+
+        int64_t lastPreliminarySurfaceCellOrigin = std::numeric_limits<int64_t>::max();
+        int32_t preliminarySurfaceCache[4];
+
+        shared_ptr<SurfaceRules::Condition> abovePreliminarySurface;
+
+        Context(shared_ptr<SurfaceSystem> system, shared_ptr<ChunkAccess> chunk, shared_ptr<NoiseChunk> noiseChunk,
+                shared_ptr<BiomeManager> biomeManager, WorldGenerationContext context)
+            : context(context), chunk(chunk), noiseChunk(noiseChunk), system(system), biomeManager(biomeManager) {
+        }
+
+        void init() {
+            shared_ptr<SurfaceRules::Condition> abovePreliminarySurface = this->abovePreliminarySurface =
+                make_shared<SurfaceRules::AbovePreliminarySurfaceCondition>(this->shared_from_this());
+        }
+
+        void updateXZ(int32_t x, int32_t z);
+        void updateY(int32_t stoneDepthAbove, int32_t stoneDepthBelow, int32_t waterHeight, int32_t blockX,
+                     int32_t blockY, int32_t blockZ);
+
+        int32_t getSurfaceSecondaryDepth();
+
+        Biomes biome();
+
+        int32_t getMinSurfaceLevel();
     };
 
     // consts
@@ -453,6 +528,8 @@ public:
     static shared_ptr<ConditionSource> UNDER_FLOOR;
     static shared_ptr<ConditionSource> ON_CEILING;
     static shared_ptr<ConditionSource> UNDER_CEILING;
+
+    static void initialize();
 
     // constructor helpers
 
@@ -472,71 +549,29 @@ public:
         return make_shared<WaterConditionSource>(offset, surfaceDepthMultiplier, true);
     }
 
-    static shared_ptr<ConditionSource> hole() {
-        return SurfaceRules::Hole::INSTANCE;
-    }
-
-    static shared_ptr<ConditionSource> steep() {
-        return SurfaceRules::Steep::INSTANCE;
-    }
-
     static shared_ptr<RuleSource> state(Blocks block) {
         return make_shared<BlockRuleSource>(block);
     }
 
-    static shared_ptr<RuleSource> ifTrue(shared_ptr<ConditionSource> cond, shared_ptr<RuleSource> p_189396_) {
-        return make_shared<TestRuleSource>(cond, p_189396_);
+    static shared_ptr<RuleSource> ifTrue(shared_ptr<ConditionSource> cond, shared_ptr<RuleSource> thenRun) {
+        return make_shared<TestRuleSource>(cond, thenRun);
+    }
+
+    static shared_ptr<ConditionSource> stoneDepthCheck(int32_t offset, bool addSurfaceDepth,
+                                                       bool addSurfaceSecondaryDepth, CaveSurface surfaceType) {
+        return make_shared<StoneDepthCheck>(offset, addSurfaceDepth, addSurfaceSecondaryDepth, surfaceType);
     }
 
     static shared_ptr<ConditionSource> isBiome(const vector<Biomes> biomes) {
-        // TODO not implemented
-        return nullptr;
-    }
-
-    static shared_ptr<ConditionSource> stoneDepthCheck(int offset, bool addSurfaceDepth, bool addSurfaceSecondaryDepth,
-                                                       CaveSurface surfaceType) {
-        // TODO not implemented
-        return nullptr;
-    }
-
-    static shared_ptr<ConditionSource> noiseCondition(Noises p_189410_, double p_189411_) {
-        // TODO not implemented
-        return nullptr;
-    }
-
-    static shared_ptr<ConditionSource> noiseCondition(Noises p_189413_, double p_189414_, double p_189415_) {
-        // TODO not implemented
-        return nullptr;
-    }
-
-    static shared_ptr<ConditionSource> _not(shared_ptr<ConditionSource> p_189413_) {
-        // TODO not implemented
-        return nullptr;
-    }
-
-    static shared_ptr<RuleSource> bandlands() {
-        // TODO not implemented
-        return nullptr;
-    }
-
-    static shared_ptr<ConditionSource> temperature() {
-        // TODO not implemented
-        return nullptr;
-    }
-
-    static shared_ptr<ConditionSource> surfaceNoiseAbove(double p_194809_) {
-        // TODO not implemented
-        return nullptr;
-    }
-
-    static shared_ptr<SurfaceRules::ConditionSource> verticalGradient(string p_189404_,
-                                                                      shared_ptr<VerticalAnchor> p_189405_,
-                                                                      shared_ptr<VerticalAnchor> p_189406_) {
-        // TODO not implemented
-        return nullptr;
+        return make_shared<BiomeConditionSource>(biomes);
     }
 
     static shared_ptr<SurfaceRules::ConditionSource> abovePreliminarySurface() {
+        return SurfaceRules::AbovePreliminarySurface::INSTANCE;
+    }
+
+    static shared_ptr<SurfaceRules::ConditionSource> verticalGradient(string name, shared_ptr<VerticalAnchor> p_189405_,
+                                                                      shared_ptr<VerticalAnchor> p_189406_) {
         // TODO not implemented
         return nullptr;
     }
@@ -588,6 +623,8 @@ class SurfaceRulesData {
     static shared_ptr<SurfaceRules::RuleSource> ENDSTONE;
 
 public:
+    static void initialize();
+
     static const shared_ptr<SurfaceRules::RuleSource> overworld();
     static const shared_ptr<SurfaceRules::RuleSource> nether();
     static const shared_ptr<SurfaceRules::RuleSource> end();

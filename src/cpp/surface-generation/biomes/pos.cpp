@@ -67,8 +67,18 @@ MutableBlockPos &MutableBlockPos::set(double x, double y, double z) {
     return this->set(Mth::floor(x), Mth::floor(y), Mth::floor(z));
 }
 
+MutableBlockPos &MutableBlockPos::setX(int32_t x) {
+    BlockPos::setX(x);
+    return *this;
+}
+
 MutableBlockPos &MutableBlockPos::setY(int32_t y) {
     BlockPos::setY(y);
+    return *this;
+}
+
+MutableBlockPos &MutableBlockPos::setZ(int32_t z) {
+    BlockPos::setZ(z);
     return *this;
 }
 

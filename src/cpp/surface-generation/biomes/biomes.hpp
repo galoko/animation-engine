@@ -5,8 +5,7 @@
 
 using namespace std;
 
-enum class Biomes
-{
+enum class Biomes {
     NULL_BIOME = 0,
     THE_VOID = 1,
     PLAINS,

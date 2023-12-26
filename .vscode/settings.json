@@ -99,7 +99,9 @@
         "regex": "cpp",
         "unordered_set": "cpp",
         "variant": "cpp",
-        "__memory": "cpp"
+        "__memory": "cpp",
+        "cinttypes": "cpp",
+        "numeric": "cpp"
     },
     "editor.formatOnSave": true,
     "[cpp]": {

@@ -8,8 +8,7 @@
 
 using namespace std;
 
-enum class Noises
-{
+enum class Noises {
     TEMPERATURE = 1,
     VEGETATION,
     CONTINENTALNESS,
@@ -81,4 +80,5 @@ NormalNoise::NoiseParameters const &getNoiseParameters(Noises noise);
 
 NormalNoise Noises_instantiate(shared_ptr<PositionalRandomFactory> random, Noises noise);
 
+void Noises_initialize();
 void Noises_finalize();

@@ -297,18 +297,6 @@ TerrainShaper TerrainProvider::overworld(bool isAmplified) {
     return TerrainShaper::overworld(isAmplified);
 }
 
-TerrainShaper TerrainProvider::caves() {
-    return TerrainShaper(CubicSpline<TerrainShaper::Point>::constant(0.0F),
-                         CubicSpline<TerrainShaper::Point>::constant(0.0F),
-                         CubicSpline<TerrainShaper::Point>::constant(0.0F));
-}
-
-TerrainShaper TerrainProvider::floatingIslands() {
-    return TerrainShaper(CubicSpline<TerrainShaper::Point>::constant(0.0F),
-                         CubicSpline<TerrainShaper::Point>::constant(0.0F),
-                         CubicSpline<TerrainShaper::Point>::constant(0.0F));
-}
-
 TerrainShaper TerrainProvider::nether() {
     return TerrainShaper(CubicSpline<TerrainShaper::Point>::constant(0.0F),
                          CubicSpline<TerrainShaper::Point>::constant(0.0F),

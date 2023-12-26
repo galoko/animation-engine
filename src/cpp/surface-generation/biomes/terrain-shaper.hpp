@@ -9,8 +9,7 @@ using namespace std;
 
 class TerrainShaper {
 private:
-    enum Coordinate
-    {
+    enum Coordinate {
         CONTINENTS,
         EROSION,
         WEIRDNESS,
@@ -39,6 +38,9 @@ private:
 public:
     TerrainShaper(shared_ptr<CubicSpline<Point>> offsetSampler, shared_ptr<CubicSpline<Point>> factorSampler,
                   shared_ptr<CubicSpline<Point>> jaggednessSampler);
+
+    TerrainShaper() {
+    }
 
 private:
     static constexpr inline float getAmplifiedOffset(float const &value) {
@@ -119,8 +121,6 @@ public:
 class TerrainProvider {
 public:
     static TerrainShaper overworld(bool isAmplified);
-    static TerrainShaper caves();
-    static TerrainShaper floatingIslands();
     static TerrainShaper nether();
     static TerrainShaper end();
 };

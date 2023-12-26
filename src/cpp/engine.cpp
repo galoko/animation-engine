@@ -17,6 +17,8 @@
 #include "surface-generation/biomes/chunk-status.hpp"
 #include "surface-generation/biomes/worldgen-settings.hpp"
 
+#include "surface-generation/biomes/noise-data.hpp"
+
 using namespace std;
 
 #ifndef _MSC_VER
@@ -39,6 +41,12 @@ extern "C" {
     // life cycle
 
     void init() {
+        Noises_initialize();
+        ChunkStatus::initialize();
+        SurfaceRules::initialize();
+        SurfaceRulesData::initialize();
+        NoiseGeneratorSettings::initialize();
+
         Services = make_unique<ServicesManager>();
 
         Services->cameraManager.init();

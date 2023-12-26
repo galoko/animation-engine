@@ -1,6 +1,7 @@
 #pragma once
 
 #include "aquifer.hpp"
+#include "biome-manager.hpp"
 #include "biome-source.hpp"
 #include "blocks.hpp"
 #include "chunks.fwd.hpp"
@@ -12,6 +13,7 @@
 #include "pos.hpp"
 #include "random.hpp"
 #include "surface-rules.hpp"
+#include "surface-system.hpp"
 #include "terrain-shaper.hpp"
 
 #include <map>
@@ -36,6 +38,9 @@ public:
 
     StructureSettings(bool canHaveStrongholds) {
     }
+
+    StructureSettings() {
+    }
 };
 
 class NoiseSlider {
@@ -46,6 +51,8 @@ private:
 
 public:
     NoiseSlider(double target, int32_t size, int32_t offset);
+    NoiseSlider() {
+    }
 
     double applySlide(double y, int32_t cellY) const;
 };
@@ -68,6 +75,9 @@ public:
                   NoiseSlider const &topSlideSettings, NoiseSlider const &bottomSlideSettings,
                   int32_t noiseSizeHorizontal, int32_t noiseSizeVertical, bool islandNoiseOverride, bool isAmplified,
                   bool largeBiomes, TerrainShaper const &terrainShaper);
+
+    NoiseSettings() {
+    }
 
 public:
     static NoiseSettings create(int32_t minY, int32_t height, NoiseSamplingSettings const &noiseSamplingSettings,
@@ -102,6 +112,8 @@ private:
                            const shared_ptr<SurfaceRules::RuleSource> _surfaceRule, int32_t _seaLevel,
                            bool _disableMobGeneration, bool aquifersEnabled, bool noiseCavesEnabled,
                            bool oreVeinsEnabled, bool noodleCavesEnabled, bool useLegacyRandom);
+    NoiseGeneratorSettings() {
+    }
 
 public:
     StructureSettings const &structureSettings() const;
@@ -126,18 +138,17 @@ private:
     // TODO
     // static NoiseGeneratorSettings nether();
     static NoiseGeneratorSettings end();
-    static NoiseGeneratorSettings caves();
-    static NoiseGeneratorSettings floatingIslands();
 
 public:
-    static const NoiseGeneratorSettings OVERWORLD;
-    static const NoiseGeneratorSettings LARGE_BIOMES;
-    static const NoiseGeneratorSettings AMPLIFIED;
-    // static const NoiseGeneratorSettings NETHER;
-    static const NoiseGeneratorSettings END;
-    static const NoiseGeneratorSettings CAVES;
-    static const NoiseGeneratorSettings FLOATING_ISLANDS;
+    static NoiseGeneratorSettings OVERWORLD;
+    static NoiseGeneratorSettings LARGE_BIOMES;
+    static NoiseGeneratorSettings AMPLIFIED;
+    // static NoiseGeneratorSettings NETHER;
+    static NoiseGeneratorSettings END;
+    static NoiseGeneratorSettings CAVES;
+    static NoiseGeneratorSettings FLOATING_ISLANDS;
 
+    static void initialize();
     static void finalize();
 };
 
@@ -362,14 +373,6 @@ private:
     NoiseSampler::VeinType getVeinType(double veiness, int32_t y);
 };
 
-class NoiseBiomeSource {
-public:
-    virtual Biomes getNoiseBiome(int32_t x, int32_t y, int32_t z) = 0;
-    virtual ~NoiseBiomeSource() {
-        objectFreed("NoiseBiomeSource");
-    }
-};
-
 class ChunkGenerator : public NoiseBiomeSource {
 private:
     StructureSettings const &settings;
@@ -400,6 +403,7 @@ public:
     virtual int32_t getGenDepth() const = 0;
 
     virtual shared_ptr<ChunkAccess> fillFromNoise(Blender const &blender, shared_ptr<ChunkAccess> chunkAccess) = 0;
+    virtual shared_ptr<ChunkAccess> buildSurface(shared_ptr<ChunkAccess> chunkAccess) = 0;
 
     virtual int32_t getSeaLevel() const = 0;
 
@@ -441,7 +445,7 @@ public:
 class NoiseClimateSampler : public Climate::Sampler {
 private:
     shared_ptr<NoiseSampler> sampler;
-    shared_ptr<NoiseChunk> noisechunk;
+    shared_ptr<NoiseChunk> noiseChunk;
 
 public:
     NoiseClimateSampler(shared_ptr<NoiseSampler> sampler, shared_ptr<NoiseChunk> noisechunk);
@@ -453,7 +457,7 @@ public:
     Climate::TargetPoint const sample(int32_t x, int32_t y, int32_t z) const override;
 };
 
-class NoiseBasedChunkGenerator : public ChunkGenerator {
+class NoiseBasedChunkGenerator : public ChunkGenerator, public enable_shared_from_this<NoiseBasedChunkGenerator> {
 private:
     static const BlockState AIR = Blocks::AIR;
 
@@ -461,12 +465,14 @@ private:
     int64_t seed;
     NoiseGeneratorSettings const &settings;
     shared_ptr<NoiseSampler> sampler;
-    // SurfaceSystem> surfaceSystem;
+    shared_ptr<SurfaceSystem> surfaceSystem;
+    shared_ptr<BiomeManager> biomeManager;
     WorldGenMaterialRule materialRule;
     shared_ptr<Aquifer::FluidPicker> globalFluidPicker;
 
 public:
     NoiseBasedChunkGenerator(shared_ptr<BiomeSource> biomeSource, int64_t seed, NoiseGeneratorSettings const &settings);
+    void init();
 
 private:
     NoiseBasedChunkGenerator(shared_ptr<BiomeSource> biomeSource, shared_ptr<BiomeSource> runtimeBiomeSource,
@@ -486,6 +492,7 @@ public:
                           LevelHeightAccessor const &heightAccessor) const override;
 
     shared_ptr<ChunkAccess> fillFromNoise(Blender const &blender, shared_ptr<ChunkAccess> chunkAccess) override;
+    shared_ptr<ChunkAccess> buildSurface(shared_ptr<ChunkAccess> chunkAccess) override;
 
 private:
     shared_ptr<ChunkAccess> doFill(Blender const &blender, shared_ptr<ChunkAccess> chunkAccess, int32_t minCellY,

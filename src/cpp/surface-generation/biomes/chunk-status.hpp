@@ -13,8 +13,7 @@ using namespace std;
 
 class ChunkStatus {
 public:
-    enum ChunkType
-    {
+    enum ChunkType {
         PROTOCHUNK,
         LEVELCHUNK,
     };
@@ -72,7 +71,7 @@ public:
 private:
     string name;
     int32_t index;
-    ChunkStatus const &parent;
+    ChunkStatus *parent;
     ChunkStatus::GenerationTask generationTask;
     ChunkStatus::LoadingTask loadingTask;
     int32_t range;
@@ -91,6 +90,7 @@ public:
     static ChunkStatus _register(string name, ChunkStatus *chunkStatus, int32_t index,
                                  vector<HeightmapTypes> heightmapsAfter, ChunkStatus::ChunkType chunkType,
                                  ChunkStatus::GenerationTask generationTask, ChunkStatus::LoadingTask loadingTask);
+    static void initialize();
     static void finalize();
 
 public:
@@ -102,6 +102,10 @@ private:
     ChunkStatus(string name, ChunkStatus *parent, int32_t range, vector<HeightmapTypes> heightmapsAfter,
                 ChunkStatus::ChunkType chunkType, ChunkStatus::GenerationTask generationTask,
                 ChunkStatus::LoadingTask loadingTask);
+    ChunkStatus()
+        : parent(nullptr){
+
+          };
 
     int32_t getIndex() const;
     string getName() const;

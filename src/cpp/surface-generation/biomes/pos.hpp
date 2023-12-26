@@ -63,7 +63,9 @@ public:
     MutableBlockPos &set(int32_t x, int32_t y, int32_t z);
     MutableBlockPos &set(double x, double y, double z);
 
+    MutableBlockPos &setX(int32_t x);
     MutableBlockPos &setY(int32_t y);
+    MutableBlockPos &setZ(int32_t z);
 };
 
 class QuartPos {

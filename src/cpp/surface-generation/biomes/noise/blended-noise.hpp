@@ -15,6 +15,9 @@ public:
     NoiseSamplingSettings(double xzScale, double yScale, double xzFactor, double yFactor)
         : xzScale(xzScale), yScale(yScale), xzFactor(xzFactor), yFactor(yFactor) {
     }
+
+    NoiseSamplingSettings() {
+    }
 };
 
 struct BlendedNoiseInput {
@@ -35,7 +38,8 @@ private:
     int32_t cellWidth;
     int32_t cellHeight;
 
-    BlendedNoise(BlendedNoiseInput const &blendedNoiseInput, NoiseSamplingSettings const &settings, int32_t cellWidth, int32_t cellHeight);
+    BlendedNoise(BlendedNoiseInput const &blendedNoiseInput, NoiseSamplingSettings const &settings, int32_t cellWidth,
+                 int32_t cellHeight);
 
 public:
     BlendedNoise() {

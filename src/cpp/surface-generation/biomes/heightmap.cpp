@@ -1,6 +1,6 @@
 #include "heightmap.hpp"
 
-Heightmap::Heightmap(shared_ptr<ChunkAccess> chunkAccess, Heightmap::Types type) : chunkAccess(chunkAccess) {
+Heightmap::Heightmap(shared_ptr<ChunkAccess> chunkAccess, Heightmap::Types type) : data(), chunkAccess(chunkAccess) {
     this->isOpaque = Type_isOpaque(type);
 }
 

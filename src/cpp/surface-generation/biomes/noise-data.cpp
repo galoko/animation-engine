@@ -84,7 +84,7 @@ void registerBiomeNoises(int32_t octaveOffset, Noises temperature, Noises vegeta
     registerNoise(erosion, -9 + octaveOffset, 1.0, {1.0, 0.0, 1.0, 1.0});
 };
 
-int32_t registerNoises() {
+void Noises_initialize() {
     registerBiomeNoises(0, Noises::TEMPERATURE, Noises::VEGETATION, Noises::CONTINENTALNESS, Noises::EROSION);
     registerBiomeNoises(-2, Noises::TEMPERATURE_LARGE, Noises::VEGETATION_LARGE, Noises::CONTINENTALNESS_LARGE,
                         Noises::EROSION_LARGE);
@@ -141,11 +141,7 @@ int32_t registerNoises() {
     registerNoise(Noises::NETHERRACK, -3, 1.0, {0.0, 0.0, 0.35});
     registerNoise(Noises::NETHER_WART, -3, 1.0, {0.0, 0.0, 0.9});
     registerNoise(Noises::NETHER_STATE_SELECTOR, -4, 1.0);
-
-    return 0;
 };
-
-int32_t dummy = registerNoises();
 
 const char *getNoiseName(Noises noise) {
     return NOISE_NAMES[(int32_t)noise];
