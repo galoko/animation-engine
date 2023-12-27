@@ -133,3 +133,5 @@ out/*
 
 animation-engine/x64
 animation-engine/.vs
+
+visual_studio_project/
