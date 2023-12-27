@@ -20,7 +20,7 @@ void processInputQueue() {
     ServicesQueue *queue = getInputQueue();
 
     uint8_t *ptr = &queue->buffer[0];
-    for (int messageIndex = 0; messageIndex < queue->messagesCount; messageIndex++) {
+    for (uint32_t messageIndex = 0; messageIndex < queue->messagesCount; messageIndex++) {
         ServicesMessage const *msg = (ServicesMessage const *)ptr;
 
         // printf("message received, id: %d, size: %d, handle: %lld\n", msg->header.id, msg->header.size,

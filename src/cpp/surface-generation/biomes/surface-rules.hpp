@@ -2,6 +2,7 @@
 
 #include <limits>
 #include <vector>
+#include <stdexcept>
 
 #include "biome-manager.hpp"
 #include "noise-chunk.hpp"

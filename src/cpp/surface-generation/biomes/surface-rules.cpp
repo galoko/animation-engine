@@ -276,7 +276,7 @@ int32_t SurfaceRules::Context::getMinSurfaceLevel() {
         this->lastMinSurfaceLevelUpdate = this->lastUpdateXZ;
         int32_t cellX = blockCoordToSurfaceCell(this->blockX);
         int32_t cellZ = blockCoordToSurfaceCell(this->blockZ);
-        long chunkPos = ChunkPos::asLong(cellX, cellZ);
+        int64_t chunkPos = ChunkPos::asLong(cellX, cellZ);
         if (this->lastPreliminarySurfaceCellOrigin != chunkPos) {
             this->lastPreliminarySurfaceCellOrigin = chunkPos;
             this->preliminarySurfaceCache[0] = this->noiseChunk->preliminarySurfaceLevel(

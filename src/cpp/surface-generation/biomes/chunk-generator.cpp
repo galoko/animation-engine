@@ -949,6 +949,10 @@ shared_ptr<ChunkAccess> NoiseBasedChunkGenerator::doFill(Blender const &blender,
                             double zt = (double)zOffset / (double)cellWidth;
                             noiseChunk->updateForZ(zt);
 
+                            if (xForSection == 0 && zForSection == 0 && currentY == 64) {
+                                zt = zt;
+                            }
+
                             BlockState blockState = this->materialRule(noiseChunk, currentX, currentY, currentZ);
                             if (blockState == Blocks::NULL_BLOCK) {
                                 blockState = this->defaultBlock;

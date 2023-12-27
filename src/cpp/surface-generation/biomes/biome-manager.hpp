@@ -126,7 +126,7 @@ public:
 
 private:
     static double getFiddle(int64_t value) {
-        double t = (double)Mth::floorMod(value >> 24, 1024) / 1024.0;
+        double t = (double)Mth::floorMod((int32_t)(value >> 24), 1024) / 1024.0;
         return (t - 0.5) * 0.9;
     }
 };

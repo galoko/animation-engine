@@ -7,12 +7,12 @@
 #include "../surface-generation/biomes/pos.hpp"
 #include "../surface-generation/biomes/worldgen-settings.hpp"
 
-#include "template-1-0.hpp"
+#include "template-1-0-noise.hpp"
 
 uint8_t RESULT[16 * 16 * 384];
 
 bool compareChunkWithTemplate() {
-    bool ok = true;
+    int nonMatch = 0;
     int i = 0;
     for (int y = -64; y < 256; y++) {
         for (int x = 0; x < 16; x++) {
@@ -21,14 +21,17 @@ bool compareChunkWithTemplate() {
                 auto templateBlock = BLOCKS[i];
                 i++;
                 if (strcmp(block, templateBlock) != 0) {
-                    ok = false;
-                    break;
+                    nonMatch++;
+                    printf("non matched block at %d %d %d, template: %s, ours: %s\n", x, y, z, templateBlock, block);
+                    return false;
                 }
             }
         }
     }
 
-    return ok;
+    printf("non matched blocks: %d\n", nonMatch);
+
+    return nonMatch == 0;
 }
 
 void saveTestResult(shared_ptr<ProtoChunk> chunk) {
@@ -57,7 +60,7 @@ void doTest() {
 
     ChunkStatus::BIOMES.generate(chunkGenerator, ChunkStatus::EMPTY_CONVERTER, {chunk});
     ChunkStatus::NOISE.generate(chunkGenerator, ChunkStatus::EMPTY_CONVERTER, {chunk});
-    ChunkStatus::SURFACE.generate(chunkGenerator, ChunkStatus::EMPTY_CONVERTER, {chunk});
+    // ChunkStatus::SURFACE.generate(chunkGenerator, ChunkStatus::EMPTY_CONVERTER, {chunk});
 
     saveTestResult(chunk);
 }

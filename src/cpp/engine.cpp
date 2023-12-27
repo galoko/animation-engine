@@ -90,6 +90,16 @@ extern "C" {
 #endif
 }
 
+#ifdef _MSC_VER
+int main(int argc, char *argv[]) {
+    init();
+    test();
+    bool ok = check();
+    printf(ok ? "ok\n" : "NOT OK\n");
+    finalize();
+}
+#endif
+
 #ifndef _MSC_VER
 #pragma GCC diagnostic pop
 #endif
