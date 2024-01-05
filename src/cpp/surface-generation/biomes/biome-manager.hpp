@@ -25,7 +25,7 @@ private:
     static const int32_t ZOOM = 4;
     static const int32_t ZOOM_MASK = 3;
 
-    shared_ptr<NoiseBiomeSource> noiseBiomeSource;
+    weak_ptr<NoiseBiomeSource> noiseBiomeSource;
     int64_t biomeZoomSeed;
 
 public:
@@ -82,7 +82,7 @@ public:
         int32_t finalY = (maxDistanceIndex & 2) == 0 ? sectionY : sectionY + 1;
         int32_t finalZ = (maxDistanceIndex & 1) == 0 ? sectionZ : sectionZ + 1;
 
-        return this->noiseBiomeSource->getNoiseBiome(finalX, finalY, finalZ);
+        return this->noiseBiomeSource.lock()->getNoiseBiome(finalX, finalY, finalZ);
     }
 
     Biomes getNoiseBiomeAtPosition(double x, double y, double z) {
@@ -100,7 +100,7 @@ public:
     }
 
     Biomes getNoiseBiomeAtQuart(int32_t x, int32_t y, int32_t z) {
-        return this->noiseBiomeSource->getNoiseBiome(x, y, z);
+        return this->noiseBiomeSource.lock()->getNoiseBiome(x, y, z);
     }
 
     static double getFiddledDistance(int64_t seed, int32_t x, int32_t y, int32_t z, double xt, double yt, double zt) {

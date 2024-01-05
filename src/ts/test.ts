@@ -16,9 +16,13 @@ export async function test(): Promise<void> {
     const ok = Engine._check()
 
     const ms_int = Math.round(endTime - startTime)
-    alert(`${ms_int} ms`)
+    console.log(`${ms_int} ms`)
 
-    alert(ok ? "ok" : "NOT OK")
+    if (ok) {
+        console.log("ok")
+    } else {
+        console.warn("NOT OK")
+    }
 
     Engine._finalize()
 
