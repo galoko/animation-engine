@@ -9,8 +9,6 @@ export async function test(): Promise<void> {
 
     Engine._init()
 
-    await delay(5000)
-
     const startTime = performance.now()
     Engine._test()
     const endTime = performance.now()

@@ -49,9 +49,9 @@ public:
     public:
         static MultiNoiseBiomeSource::PresetInstance NULL_PRESET_INSTANCE;
 
-        MultiNoiseBiomeSource::Preset const &preset;
+        MultiNoiseBiomeSource::Preset const *preset;
 
-        PresetInstance(MultiNoiseBiomeSource::Preset const &preset);
+        PresetInstance(MultiNoiseBiomeSource::Preset const *preset);
 
         unique_ptr<MultiNoiseBiomeSource> biomeSource() const;
 
@@ -74,7 +74,7 @@ public:
 
         bool isNull() const;
 
-        unique_ptr<MultiNoiseBiomeSource> biomeSource(MultiNoiseBiomeSource::PresetInstance const &presetInstance,
+        unique_ptr<MultiNoiseBiomeSource> biomeSource(MultiNoiseBiomeSource::PresetInstance const presetInstance,
                                                       bool usePresetInstance) const;
         unique_ptr<MultiNoiseBiomeSource> biomeSource(bool usePresetInstance) const;
         unique_ptr<MultiNoiseBiomeSource> biomeSource() const;
@@ -86,12 +86,12 @@ private:
     static vector<Biomes> getBiomes(Climate::ParameterList<Biomes> const &parameters);
 
     Climate::ParameterList<Biomes> parameters;
-    MultiNoiseBiomeSource::PresetInstance const &preset;
+    MultiNoiseBiomeSource::PresetInstance const preset;
 
 public:
     MultiNoiseBiomeSource(Climate::ParameterList<Biomes> const &parameters);
     MultiNoiseBiomeSource(Climate::ParameterList<Biomes> const &parameters,
-                          MultiNoiseBiomeSource::PresetInstance const &preset);
+                          MultiNoiseBiomeSource::PresetInstance const preset);
 
     shared_ptr<BiomeSource> withSeed(int64_t seed) override;
 
