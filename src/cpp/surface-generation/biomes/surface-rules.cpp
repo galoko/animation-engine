@@ -17,8 +17,18 @@ int32_t WorldGenerationContext::getGenDepth() const {
     return this->height;
 }
 
-shared_ptr<VerticalAnchor> VerticalAnchor::BOTTOM = VerticalAnchor::aboveBottom(0);
-shared_ptr<VerticalAnchor> VerticalAnchor::TOP = VerticalAnchor::belowTop(0);
+shared_ptr<VerticalAnchor> VerticalAnchor::BOTTOM;
+shared_ptr<VerticalAnchor> VerticalAnchor::TOP;
+
+void VerticalAnchor::initialize() {
+    VerticalAnchor::BOTTOM = VerticalAnchor::aboveBottom(0);
+    VerticalAnchor::TOP = VerticalAnchor::belowTop(0);
+}
+
+void VerticalAnchor::finalize() {
+    VerticalAnchor::BOTTOM = nullptr;
+    VerticalAnchor::TOP = nullptr;
+}
 
 class AbsoluteVerticalAnchor : public VerticalAnchor {
 public:
@@ -117,6 +127,8 @@ shared_ptr<SurfaceRules::RuleSource> SurfaceRulesData::CRIMSON_NYLIUM;
 shared_ptr<SurfaceRules::RuleSource> SurfaceRulesData::ENDSTONE;
 
 void SurfaceRulesData::initialize() {
+    VerticalAnchor::initialize();
+
     SurfaceRulesData::AIR = makeStateRule(Blocks::AIR);
     SurfaceRulesData::BEDROCK = makeStateRule(Blocks::BEDROCK);
     SurfaceRulesData::WHITE_TERRACOTTA = makeStateRule(Blocks::WHITE_TERRACOTTA);
@@ -153,6 +165,45 @@ void SurfaceRulesData::initialize() {
     SurfaceRulesData::ENDSTONE = makeStateRule(Blocks::END_STONE);
 }
 
+void SurfaceRulesData::finalize() {
+    SurfaceRulesData::AIR = nullptr;
+    SurfaceRulesData::BEDROCK = nullptr;
+    SurfaceRulesData::WHITE_TERRACOTTA = nullptr;
+    SurfaceRulesData::ORANGE_TERRACOTTA = nullptr;
+    SurfaceRulesData::TERRACOTTA = nullptr;
+    SurfaceRulesData::RED_SAND = nullptr;
+    SurfaceRulesData::RED_SANDSTONE = nullptr;
+    SurfaceRulesData::STONE = nullptr;
+    SurfaceRulesData::DEEPSLATE = nullptr;
+    SurfaceRulesData::DIRT = nullptr;
+    SurfaceRulesData::PODZOL = nullptr;
+    SurfaceRulesData::COARSE_DIRT = nullptr;
+    SurfaceRulesData::MYCELIUM = nullptr;
+    SurfaceRulesData::GRASS_BLOCK = nullptr;
+    SurfaceRulesData::CALCITE = nullptr;
+    SurfaceRulesData::GRAVEL = nullptr;
+    SurfaceRulesData::SAND = nullptr;
+    SurfaceRulesData::SANDSTONE = nullptr;
+    SurfaceRulesData::PACKED_ICE = nullptr;
+    SurfaceRulesData::SNOW_BLOCK = nullptr;
+    SurfaceRulesData::POWDER_SNOW = nullptr;
+    SurfaceRulesData::ICE = nullptr;
+    SurfaceRulesData::WATER = nullptr;
+    SurfaceRulesData::LAVA = nullptr;
+    SurfaceRulesData::NETHERRACK = nullptr;
+    SurfaceRulesData::SOUL_SAND = nullptr;
+    SurfaceRulesData::SOUL_SOIL = nullptr;
+    SurfaceRulesData::BASALT = nullptr;
+    SurfaceRulesData::BLACKSTONE = nullptr;
+    SurfaceRulesData::WARPED_WART_BLOCK = nullptr;
+    SurfaceRulesData::WARPED_NYLIUM = nullptr;
+    SurfaceRulesData::NETHER_WART_BLOCK = nullptr;
+    SurfaceRulesData::CRIMSON_NYLIUM = nullptr;
+    SurfaceRulesData::ENDSTONE = nullptr;
+
+    VerticalAnchor::finalize();
+}
+
 shared_ptr<SurfaceRules::ConditionSource> SurfaceRules::ON_FLOOR;
 shared_ptr<SurfaceRules::ConditionSource> SurfaceRules::UNDER_FLOOR;
 shared_ptr<SurfaceRules::ConditionSource> SurfaceRules::ON_CEILING;
@@ -166,6 +217,15 @@ void SurfaceRules::initialize() {
     SurfaceRules::UNDER_CEILING = SurfaceRules::stoneDepthCheck(0, true, false, CaveSurface::CEILING);
 
     SurfaceRules::AbovePreliminarySurface::INSTANCE = make_shared<SurfaceRules::AbovePreliminarySurface>();
+}
+
+void SurfaceRules::finalize() {
+    SurfaceRules::ON_FLOOR = nullptr;
+    SurfaceRules::UNDER_FLOOR = nullptr;
+    SurfaceRules::ON_CEILING = nullptr;
+    SurfaceRules::UNDER_CEILING = nullptr;
+
+    SurfaceRules::AbovePreliminarySurface::INSTANCE = nullptr;
 }
 
 const shared_ptr<SurfaceRules::RuleSource> SurfaceRulesData::overworld() {

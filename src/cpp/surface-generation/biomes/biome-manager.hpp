@@ -33,6 +33,11 @@ public:
 
     BiomeManager(shared_ptr<NoiseBiomeSource> noiseBiomeSource, int64_t biomeZoomSeed)
         : noiseBiomeSource(noiseBiomeSource), biomeZoomSeed(biomeZoomSeed) {
+        objectCreated("BiomeManager");
+    }
+
+    ~BiomeManager() {
+        objectFreed("BiomeManager");
     }
 
     static int64_t obfuscateSeed(int64_t seed) {

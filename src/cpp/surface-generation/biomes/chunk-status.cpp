@@ -167,7 +167,7 @@ void ChunkStatus::finalize() {
     ChunkStatus::STRUCTURE_REFERENCES.~ChunkStatus();
     ChunkStatus::BIOMES.~ChunkStatus();
     ChunkStatus::NOISE.~ChunkStatus();
-    // ChunkStatus::SURFACE.~ChunkStatus();
+    ChunkStatus::SURFACE.~ChunkStatus();
     // ChunkStatus::CARVERS.~ChunkStatus();
     // ChunkStatus::LIQUID_CARVERS.~ChunkStatus();
     // ChunkStatus::FEATURES.~ChunkStatus();

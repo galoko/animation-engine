@@ -1,8 +1,8 @@
 #pragma once
 
 #include <limits>
-#include <vector>
 #include <stdexcept>
+#include <vector>
 
 #include "biome-manager.hpp"
 #include "noise-chunk.hpp"
@@ -59,6 +59,9 @@ public:
     static shared_ptr<VerticalAnchor> top() {
         return TOP;
     }
+
+    static void initialize();
+    static void finalize();
 };
 
 enum CaveSurface {
@@ -531,6 +534,7 @@ public:
     static shared_ptr<ConditionSource> UNDER_CEILING;
 
     static void initialize();
+    static void finalize();
 
     // constructor helpers
 
@@ -625,6 +629,7 @@ class SurfaceRulesData {
 
 public:
     static void initialize();
+    static void finalize();
 
     static const shared_ptr<SurfaceRules::RuleSource> overworld();
     static const shared_ptr<SurfaceRules::RuleSource> nether();
