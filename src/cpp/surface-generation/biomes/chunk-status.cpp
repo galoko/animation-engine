@@ -160,20 +160,21 @@ void ChunkStatus::initialize() {
 }
 
 void ChunkStatus::finalize() {
-    ChunkStatus::PRE_FEATURES.~vector();
-    ChunkStatus::POST_FEATURES.~vector();
-    ChunkStatus::EMPTY.~ChunkStatus();
-    ChunkStatus::STRUCTURE_STARTS.~ChunkStatus();
-    ChunkStatus::STRUCTURE_REFERENCES.~ChunkStatus();
-    ChunkStatus::BIOMES.~ChunkStatus();
-    ChunkStatus::NOISE.~ChunkStatus();
-    ChunkStatus::SURFACE.~ChunkStatus();
-    // ChunkStatus::CARVERS.~ChunkStatus();
-    // ChunkStatus::LIQUID_CARVERS.~ChunkStatus();
-    // ChunkStatus::FEATURES.~ChunkStatus();
-    // ChunkStatus::LIGHT.~ChunkStatus();
-    // ChunkStatus::SPAWN.~ChunkStatus();
-    // ChunkStatus::HEIGHTMAPS.~ChunkStatus();
-    ChunkStatus::FULL.~ChunkStatus();
-    // ChunkStatus::STATUS_BY_RANGE.~vector();
+    ChunkStatus::PRE_FEATURES = vector<HeightmapTypes>();
+    ChunkStatus::POST_FEATURES = vector<HeightmapTypes>();
+
+    ChunkStatus::EMPTY = ChunkStatus();
+    ChunkStatus::STRUCTURE_STARTS = ChunkStatus();
+    ChunkStatus::STRUCTURE_REFERENCES = ChunkStatus();
+    ChunkStatus::BIOMES = ChunkStatus();
+    ChunkStatus::NOISE = ChunkStatus();
+    ChunkStatus::SURFACE = ChunkStatus();
+    // ChunkStatus::CARVERS = ChunkStatus();
+    // ChunkStatus::LIQUID_CARVERS = ChunkStatus();
+    // ChunkStatus::FEATURES = ChunkStatus();
+    // ChunkStatus::LIGHT = ChunkStatus();
+    // ChunkStatus::SPAWN = ChunkStatus();
+    // ChunkStatus::HEIGHTMAPS = ChunkStatus();
+    ChunkStatus::FULL = ChunkStatus();
+    // ChunkStatus::STATUS_BY_RANGE = vector<HeightmapTypes>();
 }

@@ -205,7 +205,7 @@ vector<LevelChunkSection> &ChunkAccess::getSections() {
 }
 
 LevelChunkSection &ChunkAccess::getSection(int32_t sectionIndex) {
-    return this->getSections().at(sectionIndex);
+    return this->sections.at(sectionIndex);
 }
 
 Heightmap &ChunkAccess::getOrCreateHeightmapUnprimed(HeightmapTypes type) {

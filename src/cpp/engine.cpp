@@ -61,10 +61,12 @@ extern "C" {
     }
 
     void finalize() {
+        Noises_finalize();
         ChunkStatus::finalize();
+        SurfaceRules::finalize();
+        SurfaceRulesData::finalize();
         NoiseGeneratorSettings::finalize();
         MultiNoiseBiomeSource::Preset::finalize();
-        Noises_finalize();
         Services = nullptr;
         unregisterAll();
     }

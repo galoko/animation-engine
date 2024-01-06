@@ -35,7 +35,9 @@ bool MultiNoiseBiomeSource::Preset::isNull() const {
 unique_ptr<MultiNoiseBiomeSource> MultiNoiseBiomeSource::Preset::biomeSource(
     MultiNoiseBiomeSource::PresetInstance const presetInstance, bool usePresetInstance) const {
     Climate::ParameterList<Biomes> parameterlist = this->parameterSource();
-    return make_unique<MultiNoiseBiomeSource>(parameterlist, usePresetInstance ? presetInstance : MultiNoiseBiomeSource::PresetInstance::NULL_PRESET_INSTANCE);
+    return make_unique<MultiNoiseBiomeSource>(
+        parameterlist,
+        usePresetInstance ? presetInstance : MultiNoiseBiomeSource::PresetInstance::NULL_PRESET_INSTANCE);
 }
 
 unique_ptr<MultiNoiseBiomeSource> MultiNoiseBiomeSource::Preset::biomeSource(bool usePresetInstance) const {
@@ -67,9 +69,9 @@ MultiNoiseBiomeSource::Preset MultiNoiseBiomeSource::Preset::NETHER =
     });
 
 void MultiNoiseBiomeSource::Preset::finalize() {
-    MultiNoiseBiomeSource::Preset::NULL_PRESET.~Preset();
-    MultiNoiseBiomeSource::Preset::OVERWORLD.~Preset();
-    MultiNoiseBiomeSource::Preset::NETHER.~Preset();
+    MultiNoiseBiomeSource::Preset::NULL_PRESET = MultiNoiseBiomeSource::Preset();
+    MultiNoiseBiomeSource::Preset::OVERWORLD = MultiNoiseBiomeSource::Preset();
+    MultiNoiseBiomeSource::Preset::NETHER = MultiNoiseBiomeSource::Preset();
 }
 
 // PresetInstance

@@ -72,7 +72,8 @@ const char *NOISE_NAMES[] = {
 
 NormalNoise::NoiseParameters NOISE_PARAMETERS[(int32_t)Noises::LAST + 1];
 
-void registerNoise(Noises noise, int32_t firstOctave, double firstAmplitude, vector<double> amplitudes = {}) {
+void registerNoise(Noises noise, int32_t firstOctave, double firstAmplitude,
+                   vector<double> amplitudes = vector<double>()) {
     NOISE_PARAMETERS[(int32_t)noise] = NormalNoise::NoiseParameters(firstOctave, firstAmplitude, amplitudes);
 };
 
@@ -157,6 +158,6 @@ NormalNoise Noises_instantiate(shared_ptr<PositionalRandomFactory> random, Noise
 
 void Noises_finalize() {
     for (int32_t noise = (int32_t)Noises::FIRST; noise <= (int32_t)Noises::LAST; noise++) {
-        NOISE_PARAMETERS[noise].~NoiseParameters();
+        NOISE_PARAMETERS[noise] = NormalNoise::NoiseParameters();
     }
 }
