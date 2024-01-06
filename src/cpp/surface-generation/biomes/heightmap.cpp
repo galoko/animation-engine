@@ -6,7 +6,7 @@ Heightmap::Heightmap(shared_ptr<ChunkAccess> chunkAccess, Heightmap::Types type)
 
 void Heightmap::primeHeightmaps(shared_ptr<ChunkAccess> chunkAccess, vector<Heightmap::Types> types) {
     int32_t typeCount = (int32_t)types.size();
-    vector<Heightmap *> heightmaps = vector<Heightmap *>();
+    vector<shared_ptr<Heightmap>> heightmaps = vector<shared_ptr<Heightmap>>();
     heightmaps.reserve(typeCount);
 
     int32_t maxY = chunkAccess->getHighestSectionPosition() + 16;
@@ -17,7 +17,7 @@ void Heightmap::primeHeightmaps(shared_ptr<ChunkAccess> chunkAccess, vector<Heig
 
             heightmaps.clear();
             for (Heightmap::Types &type : types) {
-                heightmaps.push_back(&chunkAccess->getOrCreateHeightmapUnprimed(type));
+                heightmaps.push_back(chunkAccess->getOrCreateHeightmapUnprimed(type));
             }
 
             for (int32_t y = maxY - 1; y >= chunkAccess->getMinBuildHeight(); --y) {

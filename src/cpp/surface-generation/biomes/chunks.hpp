@@ -112,7 +112,7 @@ public:
 
 protected:
     vector<LevelChunkSection> sections;
-    std::map<HeightmapTypes, Heightmap> heightmaps;
+    std::map<HeightmapTypes, shared_ptr<Heightmap>> heightmaps;
 
 public:
     bool isLightCorrect;
@@ -131,7 +131,7 @@ public:
     vector<LevelChunkSection> &getSections();
     LevelChunkSection &getSection(int32_t sectionIndex);
 
-    Heightmap &getOrCreateHeightmapUnprimed(HeightmapTypes type);
+    shared_ptr<Heightmap> getOrCreateHeightmapUnprimed(HeightmapTypes type);
     bool hasPrimedHeightmap(HeightmapTypes type) const;
 
     int32_t getHeight(HeightmapTypes type, int32_t x, int32_t z);

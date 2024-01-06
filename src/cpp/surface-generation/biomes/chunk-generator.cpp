@@ -901,8 +901,10 @@ shared_ptr<ChunkAccess> NoiseBasedChunkGenerator::doFill(Blender const &blender,
         this->sampler, [chunkAccess]() -> NoiseFiller { return makeBeardifier(chunkAccess); }, settings,
         this->globalFluidPicker, blender);
 
-    Heightmap &oceanFloorHeightMap = chunkAccess->getOrCreateHeightmapUnprimed(HeightmapTypes::OCEAN_FLOOR_WG);
-    Heightmap &worldSurfaceHeightMap = chunkAccess->getOrCreateHeightmapUnprimed(HeightmapTypes::WORLD_SURFACE_WG);
+    shared_ptr<Heightmap> oceanFloorHeightMap =
+        chunkAccess->getOrCreateHeightmapUnprimed(HeightmapTypes::OCEAN_FLOOR_WG);
+    shared_ptr<Heightmap> worldSurfaceHeightMap =
+        chunkAccess->getOrCreateHeightmapUnprimed(HeightmapTypes::WORLD_SURFACE_WG);
 
     ChunkPos const &chunkPos = chunkAccess->getPos();
     int32_t x = chunkPos.getMinBlockX();
@@ -967,8 +969,8 @@ shared_ptr<ChunkAccess> NoiseBasedChunkGenerator::doFill(Blender const &blender,
                                 */
 
                                 section->setBlockState(xForSection, yForSection, zForSection, blockState, false);
-                                oceanFloorHeightMap.update(xForSection, currentY, zForSection, blockState);
-                                worldSurfaceHeightMap.update(xForSection, currentY, zForSection, blockState);
+                                oceanFloorHeightMap->update(xForSection, currentY, zForSection, blockState);
+                                worldSurfaceHeightMap->update(xForSection, currentY, zForSection, blockState);
 
                                 /*
                                 if (aquifer.shouldScheduleFluidUpdate() && !blockState.getFluidState().isEmpty()) {

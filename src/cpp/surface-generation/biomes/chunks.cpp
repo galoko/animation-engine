@@ -164,7 +164,7 @@ ChunkAccess::ChunkAccess(ChunkPos const &chunkPos, LevelHeightAccessor const &le
     this->noiseChunk = nullptr;
     this->isLightCorrect = false;
     this->sections = vector<LevelChunkSection>(levelHeightAccessor.getSectionsCount());
-    this->heightmaps = std::map<HeightmapTypes, Heightmap>();
+    this->heightmaps = std::map<HeightmapTypes, shared_ptr<Heightmap>>();
 
     replaceMissingSections(levelHeightAccessor, this->sections);
 
@@ -208,10 +208,10 @@ LevelChunkSection &ChunkAccess::getSection(int32_t sectionIndex) {
     return this->sections.at(sectionIndex);
 }
 
-Heightmap &ChunkAccess::getOrCreateHeightmapUnprimed(HeightmapTypes type) {
+shared_ptr<Heightmap> ChunkAccess::getOrCreateHeightmapUnprimed(HeightmapTypes type) {
     auto iterator = this->heightmaps.find(type);
     if (iterator == this->heightmaps.end()) {
-        Heightmap heightmap = Heightmap(this->shared_from_this(), type);
+        shared_ptr<Heightmap> heightmap = make_shared<Heightmap>(this->shared_from_this(), type);
         this->heightmaps.insert({type, heightmap});
         return this->heightmaps.at(type);
     } else {
@@ -228,8 +228,8 @@ int32_t ChunkAccess::getHeight(HeightmapTypes type, int32_t x, int32_t z) {
     if (heightmapIterator == this->heightmaps.end()) {
         Heightmap::primeHeightmaps(this->shared_from_this(), {type});
     }
-    Heightmap const &heightmap = this->heightmaps.at(type);
-    return heightmap.getFirstAvailable(x & 15, z & 15) - 1;
+    shared_ptr<Heightmap> heightmap = this->heightmaps.at(type);
+    return heightmap->getFirstAvailable(x & 15, z & 15) - 1;
 }
 
 ChunkPos const &ChunkAccess::getPos() const {
@@ -325,7 +325,7 @@ BlockState ProtoChunk::setBlockState(BlockPos const &pos, BlockState blockState,
             }
 
             for (HeightmapTypes &type : heightmapsAfter) {
-                this->heightmaps.at(type).update(x & 15, y, z & 15, blockState);
+                this->heightmaps.at(type)->update(x & 15, y, z & 15, blockState);
             }
 
             return prevBlockState;
