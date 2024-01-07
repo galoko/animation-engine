@@ -149,7 +149,7 @@ NoiseGeneratorSettings NoiseGeneratorSettings::overworld(bool isAmplified, bool 
                               NoiseSlider(-0.078125, 2, isAmplified ? 0 : 8),
                               NoiseSlider(isAmplified ? 0.4 : 0.1171875, 3, 0), 1, 2, false, isAmplified, isLargeBiomes,
                               TerrainProvider::overworld(isAmplified)),
-        Blocks::STONE, Blocks::WATER, SurfaceRulesData::overworld(), 63, false, true, false, true, false, false);
+        Blocks::STONE, Blocks::WATER, SurfaceRulesData::overworld(), 63, false, true, false, false, false, false);
 }
 
 NoiseGeneratorSettings NoiseGeneratorSettings::OVERWORLD;
@@ -167,11 +167,11 @@ void NoiseGeneratorSettings::initialize() {
 }
 
 void NoiseGeneratorSettings::finalize() {
-    ((NoiseGeneratorSettings *)(&NoiseGeneratorSettings::OVERWORLD))->~NoiseGeneratorSettings();
-    ((NoiseGeneratorSettings *)(&NoiseGeneratorSettings::LARGE_BIOMES))->~NoiseGeneratorSettings();
-    ((NoiseGeneratorSettings *)(&NoiseGeneratorSettings::AMPLIFIED))->~NoiseGeneratorSettings();
-    // ((NoiseGeneratorSettings *)(&NoiseGeneratorSettings::NETHER))->~NoiseGeneratorSettings();
-    ((NoiseGeneratorSettings *)(&NoiseGeneratorSettings::END))->~NoiseGeneratorSettings();
+    NoiseGeneratorSettings::OVERWORLD = NoiseGeneratorSettings();
+    NoiseGeneratorSettings::LARGE_BIOMES = NoiseGeneratorSettings();
+    NoiseGeneratorSettings::AMPLIFIED = NoiseGeneratorSettings();
+    // NoiseGeneratorSettings::NETHER = NoiseGeneratorSettings();
+    NoiseGeneratorSettings::END = NoiseGeneratorSettings();
 }
 
 // TerrainInfo
