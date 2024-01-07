@@ -7,7 +7,7 @@
 #include "../surface-generation/biomes/pos.hpp"
 #include "../surface-generation/biomes/worldgen-settings.hpp"
 
-#include "template-1-0-noise.hpp"
+#include "template-8-24-noise.hpp"
 
 uint8_t RESULT[16 * 16 * 384];
 
@@ -55,7 +55,7 @@ void doTest() {
 
     SimpleLevelHeightAccessor heightAccessor = SimpleLevelHeightAccessor();
 
-    ChunkPos chunkPos = ChunkPos(1, 0);
+    ChunkPos chunkPos = ChunkPos(8, 24);
     shared_ptr<ProtoChunk> chunk = make_shared<ProtoChunk>(chunkPos, heightAccessor);
 
     ChunkStatus::BIOMES.generate(chunkGenerator, ChunkStatus::EMPTY_CONVERTER, {chunk});

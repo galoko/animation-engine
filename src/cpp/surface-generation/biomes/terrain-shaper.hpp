@@ -24,8 +24,10 @@ public:
     };
 
     static constexpr ToFloatFunction<Point const &> CoordinateGetters[] = {
-        [](Point const &value) { return value.continents; }, [](Point const &value) { return value.erosion; },
-        [](Point const &value) { return value.ridges; }, [](Point const &value) { return value.weirdness; }};
+        [](Point const &value) { return value.continents; }, 
+        [](Point const &value) { return value.erosion; },
+        [](Point const &value) { return value.weirdness; },
+        [](Point const& value) { return value.ridges; }};
 
 private:
     static constexpr float GLOBAL_OFFSET = -0.50375F;
