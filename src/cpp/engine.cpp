@@ -95,9 +95,9 @@ extern "C" {
 #ifdef _MSC_VER
 int main(int argc, char *argv[]) {
     init();
-    // test();
-    // bool ok = check();
-    // printf(ok ? "ok\n" : "NOT OK\n");
+    test();
+    bool ok = check();
+    printf(ok ? "ok\n" : "NOT OK\n");
     finalize();
 }
 #endif
