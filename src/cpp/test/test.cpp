@@ -1,13 +1,19 @@
 #include "test.hpp"
 
+#include <chrono>
+#include <iostream>
+
 #include "../surface-generation/biomes/blocks.hpp"
 #include "../surface-generation/biomes/chunk-generator.hpp"
 #include "../surface-generation/biomes/chunk-status.hpp"
 #include "../surface-generation/biomes/chunks.hpp"
 #include "../surface-generation/biomes/pos.hpp"
+#include "../surface-generation/biomes/worldgen-region.hpp"
 #include "../surface-generation/biomes/worldgen-settings.hpp"
 
-#include "template-8-24-noise.hpp"
+#include "template-8-24-surface.hpp"
+
+using namespace std;
 
 uint8_t RESULT[16 * 16 * 384];
 
@@ -22,14 +28,12 @@ bool compareChunkWithTemplate() {
                 i++;
                 if (strcmp(block, templateBlock) != 0) {
                     nonMatch++;
-                    printf("non matched block at %d %d %d, template: %s, ours: %s\n", x, y, z, templateBlock, block);
-                    return false;
+                    // printf("non matched block at %d %d %d, template: %s, ours: %s\n", x, y, z, templateBlock, block);
+                    // return false;
                 }
             }
         }
     }
-
-    printf("non matched blocks: %d\n", nonMatch);
 
     return nonMatch == 0;
 }
@@ -58,9 +62,28 @@ void doTest() {
     ChunkPos chunkPos = ChunkPos(8, 24);
     shared_ptr<ProtoChunk> chunk = make_shared<ProtoChunk>(chunkPos, heightAccessor);
 
-    ChunkStatus::BIOMES.generate(chunkGenerator, ChunkStatus::EMPTY_CONVERTER, {chunk});
-    ChunkStatus::NOISE.generate(chunkGenerator, ChunkStatus::EMPTY_CONVERTER, {chunk});
-    // ChunkStatus::SURFACE.generate(chunkGenerator, ChunkStatus::EMPTY_CONVERTER, {chunk});
+    vector<shared_ptr<ChunkAccess>> cache = {chunk};
+    shared_ptr<WorldGenRegion> region = make_shared<WorldGenRegion>(chunkGenerator, cache);
+    region->init(seed);
+    chunkGenerator->region = region;
+
+    auto start_time = chrono::high_resolution_clock::now();
+    ChunkStatus::BIOMES.generate(chunkGenerator, ChunkStatus::EMPTY_CONVERTER, cache);
+    auto end_time = std::chrono::high_resolution_clock::now();
+    auto time = end_time - start_time;
+    cout << "biomes took " << time / std::chrono::milliseconds(1) << "ms to run.\n";
+
+    start_time = chrono::high_resolution_clock::now();
+    ChunkStatus::NOISE.generate(chunkGenerator, ChunkStatus::EMPTY_CONVERTER, cache);
+    end_time = std::chrono::high_resolution_clock::now();
+    time = end_time - start_time;
+    cout << "noise took " << time / std::chrono::milliseconds(1) << "ms to run.\n";
+
+    start_time = chrono::high_resolution_clock::now();
+    ChunkStatus::SURFACE.generate(chunkGenerator, ChunkStatus::EMPTY_CONVERTER, cache);
+    end_time = std::chrono::high_resolution_clock::now();
+    time = end_time - start_time;
+    cout << "surface took " << time / std::chrono::milliseconds(1) << "ms to run.\n";
 
     saveTestResult(chunk);
 }

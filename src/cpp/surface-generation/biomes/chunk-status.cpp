@@ -9,13 +9,14 @@ using namespace std;
 // ChunkStatus
 
 ChunkStatus::GenerationTask ChunkStatus::makeGenerationTask(SimpleGenerationTask simpleTask) {
-    return [simpleTask](ChunkStatus const &chunkStatus, shared_ptr<ChunkGenerator> generator, ChunkConverter converter,
-                        vector<shared_ptr<ChunkAccess>> neighbors,
-                        shared_ptr<ChunkAccess> chunkAccess) -> shared_ptr<ChunkAccess> {
-        // TODO status progress
-        simpleTask(chunkStatus, generator, neighbors, chunkAccess);
-        return chunkAccess;
-    };
+    return
+        [simpleTask](ChunkStatus const &chunkStatus, shared_ptr<ChunkGenerator> generator,
+                     ChunkConverter converter, vector<shared_ptr<ChunkAccess>> neighbors,
+                     shared_ptr<ChunkAccess> chunkAccess) -> shared_ptr<ChunkAccess> {
+            // TODO status progress
+            simpleTask(chunkStatus, generator, neighbors, chunkAccess);
+            return chunkAccess;
+        };
 }
 
 ChunkStatus ChunkStatus::registerSimple(string name, ChunkStatus *chunkStatus, int32_t index,
@@ -80,11 +81,15 @@ ChunkStatus const &ChunkStatus::getParent() const {
     return *this->parent;
 }
 
-shared_ptr<ChunkAccess> ChunkStatus::generate(shared_ptr<ChunkGenerator> generator, ChunkConverter converter,
-                                              vector<shared_ptr<ChunkAccess>> chunks) {
+shared_ptr<ChunkAccess> ChunkStatus::generate(shared_ptr<ChunkGenerator> generator, 
+                                              ChunkConverter converter, vector<shared_ptr<ChunkAccess>> chunks) {
     shared_ptr<ChunkAccess> chunkAccess = chunks.at(chunks.size() / 2);
 
-    return this->generationTask(*this, generator, converter, chunks, chunkAccess);
+    shared_ptr<ChunkAccess> result = this->generationTask(*this, generator, converter, chunks, chunkAccess);
+
+    result->setStatus(this);
+
+    return result;
 }
 
 int32_t ChunkStatus::getRange() const {
@@ -122,8 +127,8 @@ void ChunkStatus::initialize() {
 
     ChunkStatus::STRUCTURE_STARTS =
         _register("structure_starts", &EMPTY, 0, PRE_FEATURES, ChunkStatus::ChunkType::PROTOCHUNK,
-                  [](ChunkStatus const &chunkStatus, shared_ptr<ChunkGenerator> generator, ChunkConverter converter,
-                     vector<shared_ptr<ChunkAccess>> neighbors,
+                  [](ChunkStatus const &chunkStatus, shared_ptr<ChunkGenerator> generator, 
+                     ChunkConverter converter, vector<shared_ptr<ChunkAccess>> neighbors,
                      shared_ptr<ChunkAccess> chunkAccess) -> shared_ptr<ChunkAccess> { return chunkAccess; });
 
     ChunkStatus::STRUCTURE_REFERENCES =
@@ -131,31 +136,34 @@ void ChunkStatus::initialize() {
                        [](ChunkStatus const &chunkStatus, shared_ptr<ChunkGenerator> generator,
                           vector<shared_ptr<ChunkAccess>> neighbors, shared_ptr<ChunkAccess> chunkAccess) -> void {});
 
-    ChunkStatus::BIOMES = _register("biomes", &STRUCTURE_REFERENCES, 8, PRE_FEATURES, ChunkType::PROTOCHUNK,
-                                    [](ChunkStatus const &chunkStatus, shared_ptr<ChunkGenerator> generator,
-                                       ChunkConverter converter, vector<shared_ptr<ChunkAccess>> neighbors,
-                                       shared_ptr<ChunkAccess> chunkAccess) -> shared_ptr<ChunkAccess> {
-                                        return generator->createBiomes(Blender::empty(), chunkAccess);
-                                    });
+    ChunkStatus::BIOMES =
+        _register("biomes", &STRUCTURE_REFERENCES, 8, PRE_FEATURES, ChunkType::PROTOCHUNK,
+                  [](ChunkStatus const &chunkStatus, shared_ptr<ChunkGenerator> generator, 
+                     ChunkConverter converter, vector<shared_ptr<ChunkAccess>> neighbors,
+                     shared_ptr<ChunkAccess> chunkAccess) -> shared_ptr<ChunkAccess> {
+                      return generator->createBiomes(Blender::empty(), chunkAccess);
+                  });
 
-    ChunkStatus::NOISE = _register("noise", &BIOMES, 8, PRE_FEATURES, ChunkStatus::ChunkType::PROTOCHUNK,
-                                   [](ChunkStatus const &chunkStatus, shared_ptr<ChunkGenerator> generator,
-                                      ChunkConverter converter, vector<shared_ptr<ChunkAccess>> neighbors,
-                                      shared_ptr<ChunkAccess> chunkAccess) -> shared_ptr<ChunkAccess> {
-                                       return generator->fillFromNoise(Blender::empty(), chunkAccess);
-                                   });
+    ChunkStatus::NOISE =
+        _register("noise", &BIOMES, 8, PRE_FEATURES, ChunkStatus::ChunkType::PROTOCHUNK,
+                  [](ChunkStatus const &chunkStatus, shared_ptr<ChunkGenerator> generator, 
+                     ChunkConverter converter, vector<shared_ptr<ChunkAccess>> neighbors,
+                     shared_ptr<ChunkAccess> chunkAccess) -> shared_ptr<ChunkAccess> {
+                      return generator->fillFromNoise(Blender::empty(), chunkAccess);
+                  });
 
-    ChunkStatus::SURFACE = _register("surface", &NOISE, 8, PRE_FEATURES, ChunkStatus::ChunkType::PROTOCHUNK,
-                                     [](ChunkStatus const &chunkStatus, shared_ptr<ChunkGenerator> generator,
-                                        ChunkConverter converter, vector<shared_ptr<ChunkAccess>> neighbors,
-                                        shared_ptr<ChunkAccess> chunkAccess) -> shared_ptr<ChunkAccess> {
-                                         return generator->buildSurface(chunkAccess);
-                                     });
+    ChunkStatus::SURFACE =
+        _register("surface", &NOISE, 8, PRE_FEATURES, ChunkStatus::ChunkType::PROTOCHUNK,
+                  [](ChunkStatus const &chunkStatus, shared_ptr<ChunkGenerator> generator, 
+                     ChunkConverter converter, vector<shared_ptr<ChunkAccess>> neighbors,
+                     shared_ptr<ChunkAccess> chunkAccess) -> shared_ptr<ChunkAccess> {
+                      return generator->buildSurface(chunkAccess);
+                  });
 
     ChunkStatus::FULL =
         _register("fill", &SURFACE, 8, PRE_FEATURES, ChunkStatus::ChunkType::PROTOCHUNK,
-                  [](ChunkStatus const &chunkStatus, shared_ptr<ChunkGenerator> generator, ChunkConverter converter,
-                     vector<shared_ptr<ChunkAccess>> neighbors,
+                  [](ChunkStatus const &chunkStatus, shared_ptr<ChunkGenerator> generator, 
+                     ChunkConverter converter, vector<shared_ptr<ChunkAccess>> neighbors,
                      shared_ptr<ChunkAccess> chunkAccess) -> shared_ptr<ChunkAccess> { return chunkAccess; });
 }
 

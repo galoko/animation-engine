@@ -1,5 +1,7 @@
 #include "chunk-generator.hpp"
 #include "heightmap.hpp"
+#include "worldgen-region.hpp"
+#include "biome-manager.hpp"
 
 // NoiseSlider
 
@@ -816,10 +818,6 @@ NoiseBasedChunkGenerator::NoiseBasedChunkGenerator(shared_ptr<BiomeSource> biome
         make_shared<SurfaceSystem>(this->defaultBlock, seed, noiseGeneratorSettings.getRandomSource());
 }
 
-void NoiseBasedChunkGenerator::init() {
-    this->biomeManager = make_shared<BiomeManager>(this->shared_from_this(), BiomeManager::obfuscateSeed(seed));
-}
-
 shared_ptr<ChunkAccess> NoiseBasedChunkGenerator::createBiomes(Blender const &blender,
                                                                shared_ptr<ChunkAccess> chunkAccess) {
     this->doCreateBiomes(blender, chunkAccess);
@@ -888,7 +886,7 @@ shared_ptr<ChunkAccess> NoiseBasedChunkGenerator::buildSurface(shared_ptr<ChunkA
     const LevelHeightAccessor &levelHeightAccessor = chunkAccess->getHeightAccessorForGeneration();
     WorldGenerationContext worldGenerationContext(this->shared_from_this(), levelHeightAccessor);
 
-    this->surfaceSystem->buildSurface(this->biomeManager, worldGenerationContext, chunkAccess, noiseChunk,
+    this->surfaceSystem->buildSurface(this->region->biomeManager, worldGenerationContext, chunkAccess, noiseChunk,
                                       noiseGeneratorSettings.surfaceRule());
 
     return chunkAccess;

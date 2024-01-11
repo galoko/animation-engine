@@ -151,15 +151,20 @@ public:
 
     LevelHeightAccessor const &getHeightAccessorForGeneration();
 
-    virtual shared_ptr<ChunkStatus> getStatus() = 0;
+
+    virtual void setStatus(ChunkStatus* status) = 0;
+    virtual ChunkStatus* getStatus() = 0;
 };
 
 class ProtoChunk : public ChunkAccess {
+private:
+    ChunkStatus* status;
 public:
     ProtoChunk(ChunkPos const &chunkPos, LevelHeightAccessor const &levelHeightAccessor);
 
     BlockState getBlockState(BlockPos const &pos) const override;
     BlockState setBlockState(BlockPos const &pos, BlockState blockState, bool checked) override;
 
-    shared_ptr<ChunkStatus> getStatus() override;
+    void setStatus(ChunkStatus* status) override;
+    ChunkStatus* getStatus() override;
 };

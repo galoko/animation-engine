@@ -21,8 +21,8 @@ public:
     using ChunkConverter = function<shared_ptr<ChunkAccess>(shared_ptr<ChunkAccess>)>;
 
     using GenerationTask = function<shared_ptr<ChunkAccess>(
-        ChunkStatus const &chunkStatus, shared_ptr<ChunkGenerator> generator, ChunkConverter converter,
-        vector<shared_ptr<ChunkAccess>> neighbors, shared_ptr<ChunkAccess> chunkAccess)>;
+        ChunkStatus const &chunkStatus, shared_ptr<ChunkGenerator> generator, 
+        ChunkConverter converter, vector<shared_ptr<ChunkAccess>> neighbors, shared_ptr<ChunkAccess> chunkAccess)>;
 
     using SimpleGenerationTask =
         function<void(ChunkStatus const &chunkStatus, shared_ptr<ChunkGenerator> generator,
@@ -112,8 +112,8 @@ private:
     ChunkStatus const &getParent() const;
 
 public:
-    shared_ptr<ChunkAccess> generate(shared_ptr<ChunkGenerator> generator, ChunkConverter converter,
-                                     vector<shared_ptr<ChunkAccess>> chunks);
+    shared_ptr<ChunkAccess> generate(shared_ptr<ChunkGenerator> generator,
+                                     ChunkConverter converter, vector<shared_ptr<ChunkAccess>> chunks);
 
     int32_t getRange() const;
 

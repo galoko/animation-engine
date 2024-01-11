@@ -290,7 +290,8 @@ public:
         bool addSurfaceSecondaryDepth;
         CaveSurface surfaceType;
 
-        StoneDepthCheck(int32_t offset, bool addSurfaceDepth, bool addSurfaceSecondaryDepth, CaveSurface surfaceType) {
+        StoneDepthCheck(int32_t offset, bool addSurfaceDepth, bool addSurfaceSecondaryDepth, CaveSurface surfaceType) : 
+            offset(offset), addSurfaceDepth(addSurfaceDepth), addSurfaceSecondaryDepth(addSurfaceSecondaryDepth), surfaceType(surfaceType) {
         }
 
         virtual shared_ptr<Condition> apply(shared_ptr<Context> ctx) {
@@ -486,7 +487,7 @@ public:
         int32_t blockZ;
         int32_t surfaceDepth;
 
-        WorldGenerationContext context;
+        WorldGenerationContext context; 
 
         shared_ptr<ChunkAccess> chunk;
         shared_ptr<NoiseChunk> noiseChunk;

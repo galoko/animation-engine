@@ -284,7 +284,7 @@ LevelHeightAccessor const &ChunkAccess::getHeightAccessorForGeneration() {
 // ProtoChunk
 
 ProtoChunk::ProtoChunk(ChunkPos const &chunkPos, LevelHeightAccessor const &levelHeightAccessor)
-    : ChunkAccess(chunkPos, levelHeightAccessor) {
+    : ChunkAccess(chunkPos, levelHeightAccessor), status(nullptr) {
 }
 
 BlockState ProtoChunk::getBlockState(BlockPos const &pos) const {
@@ -335,6 +335,10 @@ BlockState ProtoChunk::setBlockState(BlockPos const &pos, BlockState blockState,
     }
 }
 
-shared_ptr<ChunkStatus> ProtoChunk::getStatus() {
-    return nullptr;
+void ProtoChunk::setStatus(ChunkStatus* status) {
+    this->status = status;
+}
+
+ChunkStatus* ProtoChunk::getStatus() {
+    return this->status;
 }

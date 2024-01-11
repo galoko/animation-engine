@@ -15,6 +15,7 @@
 #include "surface-rules.hpp"
 #include "surface-system.hpp"
 #include "terrain-shaper.hpp"
+#include "worldgen-region.fwd.hpp"
 
 #include <map>
 #include <set>
@@ -466,14 +467,13 @@ private:
     NoiseGeneratorSettings const &settings;
     shared_ptr<NoiseSampler> sampler;
     shared_ptr<SurfaceSystem> surfaceSystem;
-    shared_ptr<BiomeManager> biomeManager;
     WorldGenMaterialRule materialRule;
     shared_ptr<Aquifer::FluidPicker> globalFluidPicker;
 
 public:
-    NoiseBasedChunkGenerator(shared_ptr<BiomeSource> biomeSource, int64_t seed, NoiseGeneratorSettings const &settings);
-    void init();
+    shared_ptr<WorldGenRegion> region;
 
+    NoiseBasedChunkGenerator(shared_ptr<BiomeSource> biomeSource, int64_t seed, NoiseGeneratorSettings const &settings);
 private:
     NoiseBasedChunkGenerator(shared_ptr<BiomeSource> biomeSource, shared_ptr<BiomeSource> runtimeBiomeSource,
                              int64_t seed, NoiseGeneratorSettings const &settings);
