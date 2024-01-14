@@ -1,7 +1,7 @@
 #include "chunk-generator.hpp"
+#include "biome-manager.hpp"
 #include "heightmap.hpp"
 #include "worldgen-region.hpp"
-#include "biome-manager.hpp"
 
 // NoiseSlider
 
@@ -948,10 +948,6 @@ shared_ptr<ChunkAccess> NoiseBasedChunkGenerator::doFill(Blender const &blender,
                             int32_t zForSection = currentZ & 15;
                             double zt = (double)zOffset / (double)cellWidth;
                             noiseChunk->updateForZ(zt);
-
-                            if (xForSection == 0 && zForSection == 0 && currentY == 64) {
-                                zt = zt;
-                            }
 
                             BlockState blockState = this->materialRule(noiseChunk, currentX, currentY, currentZ);
                             if (blockState == Blocks::NULL_BLOCK) {
