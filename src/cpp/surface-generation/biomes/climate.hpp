@@ -4,11 +4,18 @@
 #include <utility>
 
 #include <cstdint>
+#include <stdexcept>
 
 #include "../../utils/memory-debug.hpp"
+#include "biomes.hpp"
 #include "mth.hpp"
 
 using namespace std;
+
+inline int64_t my_abs(int64_t x) {
+    int64_t s = x >> 63;
+    return (x ^ s) - s;
+}
 
 class Climate {
 private:
@@ -25,12 +32,23 @@ public:
         int64_t weirdness;
         TargetPoint(int64_t temperature, int64_t humidity, int64_t continentalness, int64_t erosion, int64_t depth,
                     int64_t weirdness);
+
+        vector<int64_t> toParameterArray() const {
+            return {this->temperature,
+                    this->humidity,
+                    this->continentalness,
+                    this->erosion,
+                    this->depth,
+                    this->weirdness,
+                    0L};
+        }
     };
 
     class Parameter {
     public:
         int64_t min, max;
 
+        Parameter(): min(numeric_limits<int64_t>::max()), max(numeric_limits<int64_t>::min()) {};
         Parameter(int64_t min, int64_t max);
 
         static Climate::Parameter const point(float value);
@@ -43,6 +61,8 @@ public:
         int64_t distance(Climate::Parameter const &parameter) const;
 
         Climate::Parameter const span(Climate::Parameter const &parameterToMerge) const;
+
+        bool isNull() const;
     };
 
     class ParameterPoint {
@@ -60,6 +80,16 @@ public:
                        Climate::Parameter const &depth, Climate::Parameter const &weirdness, int64_t offset);
 
         int64_t fitness(Climate::TargetPoint const &otherPoint) const;
+
+        const vector<Climate::Parameter> parameterSpace() const {
+            return {this->temperature,
+                    this->humidity,
+                    this->continentalness,
+                    this->erosion,
+                    this->depth,
+                    this->weirdness,
+                    Climate::Parameter(this->offset, this->offset)};
+        }
     };
 
     static Climate::TargetPoint const target(float temperature, float humidity, float continentalness, float erosion,
@@ -81,31 +111,6 @@ public:
         return (float)coord / QUANTIZATION_FACTOR;
     }
 
-    template <typename T> class ParameterList {
-    public:
-        vector<pair<Climate::ParameterPoint, T>> values;
-
-        // ParameterList
-
-        ParameterList(vector<pair<Climate::ParameterPoint, T>> const &values) : values(values) {
-        }
-
-        T findValueBruteForce(Climate::TargetPoint const &targetPoint, T defaultValue) const {
-            int64_t minDistance = numeric_limits<int64_t>::max();
-            T result = defaultValue;
-
-            for (const pair<Climate::ParameterPoint, T> &pair : this->values) {
-                int64_t distance = pair.first.fitness(targetPoint);
-                if (distance < minDistance) {
-                    minDistance = distance;
-                    result = pair.second;
-                }
-            }
-
-            return result;
-        }
-    };
-
     class Sampler {
     public:
         virtual Climate::TargetPoint const sample(int32_t x, int32_t y, int32_t z) const = 0;
@@ -116,147 +121,254 @@ public:
 
     // RTree
 
-    template <typename T> class RTree {
+    class RTree {
     private:
-        static const int CHILDREN_PER_NODE = 10;
-        Climate::RTree::Node<T> root;
-        Climate::RTree::Leaf<T> lastResult
+        class Leaf;
 
-        RTree(Climate::RTree::Node<T> root)
-            : root(root) {
-            this.root = p_186913_;
+        class Node {
+            friend class RTree;
+
+        protected:
+            vector<Climate::Parameter> parameterSpace;
+
+            Node(vector<Climate::Parameter> parameters) : parameterSpace(parameters) {
+            }
+
+            virtual ~Node() {
+                //
+            }
+
+            virtual shared_ptr<Climate::RTree::Leaf> search(const vector<int64_t> &pointParameters,
+                                                            shared_ptr<Climate::RTree::Leaf> leaf) = 0;
+
+            int64_t distance(const vector<int64_t> &pointParameters) {
+                int64_t sumSq = 0L;
+
+                for (int32_t j = 0; j < 7; ++j) {
+                    sumSq += Mth::square(this->parameterSpace[j].distance(pointParameters[j]));
+                }
+
+                return sumSq;
+            }
+        };
+
+        class Leaf : public Climate::RTree::Node, public enable_shared_from_this<Climate::RTree::Leaf> {
+        public:
+            Biomes value;
+
+            Leaf(Climate::ParameterPoint paramPoint, Biomes value) : Node(paramPoint.parameterSpace()), value(value) {
+            }
+
+        protected:
+            virtual shared_ptr<Climate::RTree::Leaf> search(const vector<int64_t> &pointParameters,
+                                                            shared_ptr<Climate::RTree::Leaf> leaf) override {
+                return this->shared_from_this();
+            }
+        };
+
+        class SubTree : public Climate::RTree::Node {
+        public:
+            vector<shared_ptr<Climate::RTree::Node>> children;
+
+            SubTree(vector<shared_ptr<Climate::RTree::Node>> nodes)
+                : SubTree(Climate::RTree::buildParameterSpace(nodes), nodes) {
+            }
+
+            SubTree(vector<Climate::Parameter> parameters, const vector<shared_ptr<Climate::RTree::Node>> &children)
+                : Node(parameters), children(children) {
+            }
+
+            virtual shared_ptr<Climate::RTree::Leaf> search(const vector<int64_t> &pointParameters,
+                                                            shared_ptr<Climate::RTree::Leaf> leaf) override {
+                int64_t minDistance =
+                    leaf == nullptr ? numeric_limits<int64_t>::max() : leaf->distance(pointParameters);
+                shared_ptr<Climate::RTree::Leaf> result = leaf;
+
+                for (shared_ptr<Climate::RTree::Node> child : this->children) {
+                    int64_t childDistance = child->distance(pointParameters);
+                    if (minDistance > childDistance) {
+                        shared_ptr<Climate::RTree::Leaf> subLeaf = child->search(pointParameters, result);
+                        int64_t subLeafDistance = child == subLeaf ? childDistance : subLeaf->distance(pointParameters);
+                        if (minDistance > subLeafDistance) {
+                            minDistance = subLeafDistance;
+                            result = subLeaf;
+                        }
+                    }
+                }
+
+                return result;
+            }
+        };
+
+    private:
+        static const int32_t CHILDREN_PER_NODE = 10;
+        shared_ptr<Climate::RTree::Node> root;
+        shared_ptr<Climate::RTree::Leaf> lastResult;
+
+        RTree(shared_ptr<Climate::RTree::Node> root) : root(root) {
         }
 
     public:
-        static<T> Climate::RTree<T> create(List<Pair<Climate::ParameterPoint, T>> p_186936_) {
-            if (p_186936_.isEmpty()) {
-                throw new IllegalArgumentException("Need at least one value to build the search tree.");
+        static Climate::RTree create(const vector<pair<Climate::ParameterPoint, Biomes>> &data) {
+            if (data.empty()) {
+                throw new runtime_error("Need at least one value to build the search tree.");
             } else {
-                int i = p_186936_.get(0).getFirst().parameterSpace().size();
-                if (i != 7) {
-                    throw new IllegalStateException("Expecting parameter space to be 7, got " + i);
+                int32_t dataSize = (int32_t)data[0].first.parameterSpace().size();
+                if (dataSize != 7) {
+                    throw new runtime_error("Expecting parameter space to be 7");
                 } else {
-                    List<Climate::RTree.Leaf<T>> list =
-                        p_186936_.stream()
-                            .map((p_186934_)->{
-                                return new Climate::RTree.Leaf<T>(p_186934_.getFirst(), p_186934_.getSecond());
-                            })
-                            .collect(Collectors.toCollection(ArrayList::new));
-                    return new Climate::RTree<>(build(i, list));
+                    vector<shared_ptr<Climate::RTree::Node>> list(data.size());
+                    transform(
+                        data.begin(), data.end(), list.begin(),
+                        [](const pair<Climate::ParameterPoint, Biomes> &pair) -> shared_ptr<Climate::RTree::Leaf> {
+                            return make_shared<Climate::RTree::Leaf>(pair.first, pair.second);
+                        });
+                    return Climate::RTree(build(dataSize, list));
                 }
             }
         }
 
-    private static <T> Climate::RTree.Node<T> build(int p_186921_, List<? extends Climate::RTree.Node<T>> p_186922_) {
-            if (p_186922_.isEmpty()) {
-                throw new IllegalStateException("Need at least one child to build a node");
-            } else if (p_186922_.size() == 1) {
-                return p_186922_.get(0);
-            } else if (p_186922_.size() <= 10) {
-                p_186922_.sort(Comparator.comparingLong((p_186916_)->{
-                    long i1 = 0L;
+    private:
+        static shared_ptr<Climate::RTree::Node> build(int32_t nodeCount,
+                                                      vector<shared_ptr<Climate::RTree::Node>> &nodes) {
+            if (nodes.empty()) {
+                throw new runtime_error("Need at least one child to build a node");
+            } else if (nodes.size() == 1) {
+                return nodes[0];
+            } else if (nodes.size() <= 10) {
+                auto computeNodeValue = [nodeCount](const shared_ptr<Climate::RTree::Node> node) -> int64_t {
+                    int64_t sum = 0L;
 
-                    for (int j1 = 0; j1 < p_186921_; ++j1) {
-                        Climate::Parameter climate$parameter = p_186916_.parameterSpace[j1];
-                        i1 += Math.abs((climate$parameter.min() + climate$parameter.max()) / 2L);
+                    for (int32_t i = 0; i < nodeCount; ++i) {
+                        Climate::Parameter parameter = node->parameterSpace[i];
+                        sum += my_abs((parameter.min + parameter.max) / 2L);
                     }
 
-                    return i1;
-                }));
-                return new Climate::RTree.SubTree<>(p_186922_);
+                    return sum;
+                };
+
+                std::sort(nodes.begin(), nodes.end(),
+                          [computeNodeValue](const shared_ptr<Climate::RTree::Node> left,
+                                             const shared_ptr<Climate::RTree::Node> right) -> bool {
+                              return computeNodeValue(left) < computeNodeValue(right);
+                          });
+
+                return make_shared<Climate::RTree::SubTree>(nodes);
             } else {
-                long i = Long.MAX_VALUE;
-                int j = -1;
-                List<Climate::RTree.SubTree<T>> list = null;
+                int64_t minCost = numeric_limits<int64_t>::max();
+                int32_t minCostIndex = -1;
 
-                for (int k = 0; k < p_186921_; ++k) {
-                    sort(p_186922_, p_186921_, k, false);
-                    List<Climate::RTree.SubTree<T>> list1 = bucketize(p_186922_);
-                    long l = 0L;
+                vector<shared_ptr<Climate::RTree::SubTree>> minCostList;
 
-                    for (Climate::RTree.SubTree<T> subtree : list1) {
-                        l += cost(subtree.parameterSpace);
+                for (int32_t k = 0; k < nodeCount; ++k) {
+                    sort(nodes, nodeCount, k, false);
+                    vector<shared_ptr<Climate::RTree::SubTree>> list = bucketize(nodes);
+                    int64_t costSum = 0L;
+
+                    for (shared_ptr<Climate::RTree::SubTree> subtree : list) {
+                        costSum += cost(subtree->parameterSpace);
                     }
 
-                    if (i > l) {
-                        i = l;
-                        j = k;
-                        list = list1;
+                    if (minCost > costSum) {
+                        minCost = costSum;
+                        minCostIndex = k;
+                        minCostList = list;
                     }
                 }
 
-                sort(list, p_186921_, j, true);
-                return new Climate::RTree.SubTree<>(
-                    list.stream()
-                        .map((p_186919_)->{ return build(p_186921_, Arrays.asList(p_186919_.children)); })
-                        .collect(Collectors.toList()));
+                sort_subtree(minCostList, nodeCount, minCostIndex, true);
+
+                vector<shared_ptr<Climate::RTree::Node>> mappedList(minCostList.size());
+                transform(minCostList.begin(), minCostList.end(), mappedList.begin(),
+                          [nodeCount](const shared_ptr<Climate::RTree::SubTree> &subtree)
+                              -> shared_ptr<Climate::RTree::Node> { return build(nodeCount, subtree->children); });
+
+                return make_shared<Climate::RTree::SubTree>(mappedList);
             }
         }
 
-    private static <T> void sort(List<? extends Climate::RTree.Node<T>> p_186938_, int p_186939_, int p_186940_, boolean p_186941_) {
-            Comparator<Climate::RTree.Node<T>> comparator = comparator(p_186940_, p_186941_);
+        inline static int64_t getNodeValueForSort(shared_ptr<Climate::RTree::Node> node, int32_t index, bool doAbs) {
+            Climate::Parameter parameter = node->parameterSpace[index];
+            int64_t mean = (parameter.min + parameter.max) / 2L;
+            return doAbs ? my_abs(mean) : mean;
+        }
 
-            for (int i = 1; i < p_186939_; ++i) {
-                comparator = comparator.thenComparing(comparator((p_186940_ + i) % p_186939_, p_186941_));
+        static bool compareTwoNodesRecursive(shared_ptr<Climate::RTree::Node> left,
+                                             shared_ptr<Climate::RTree::Node> right, int32_t index, int32_t nodeCount,
+                                             bool doAbs) {
+            for (int i = 0; i < nodeCount; i++) {
+                int indexToCompare = (index + i) % nodeCount;
+                int64_t leftValue = getNodeValueForSort(left, indexToCompare, doAbs);
+                int64_t rightValue = getNodeValueForSort(right, indexToCompare, doAbs);
+
+                if (leftValue < rightValue) {
+                    return true;
+                }
+                if (leftValue > rightValue) {
+                    return false;
+                }
             }
-
-            p_186938_.sort(comparator);
+            return false;
         }
 
-    private
-        static<T> Comparator<Climate::RTree.Node<T>> comparator(int p_186924_, boolean p_186925_) {
-            return Comparator.comparingLong((p_186929_)->{
-                Climate::Parameter climate$parameter = p_186929_.parameterSpace[p_186924_];
-                long i = (climate$parameter.min() + climate$parameter.max()) / 2L;
-                return p_186925_ ? Math.abs(i) : i;
-            });
+        static void sort(vector<shared_ptr<Climate::RTree::Node>> &nodes, int32_t nodeCount, int32_t index,
+                         bool doAbs) {
+            std::sort(nodes.begin(), nodes.end(),
+                      [doAbs, index, nodeCount](shared_ptr<Climate::RTree::Node> left,
+                                                shared_ptr<Climate::RTree::Node> right) -> bool {
+                          return compareTwoNodesRecursive(left, right, index, nodeCount, doAbs);
+                      });
         }
 
-    private static <T> List<Climate::RTree.SubTree<T>> bucketize(List<? extends Climate::RTree.Node<T>> p_186945_) {
-            List<Climate::RTree.SubTree<T>> list = Lists.newArrayList();
-            List<Climate::RTree.Node<T>> list1 = Lists.newArrayList();
-            int i = (int)Math.pow(10.0D, Math.floor(Math.log((double)p_186945_.size() - 0.01D) / Math.log(10.0D)));
+        static void sort_subtree(vector<shared_ptr<Climate::RTree::SubTree>> &nodes, int32_t nodeCount, int32_t index,
+                                 bool doAbs) {
+            std::sort(nodes.begin(), nodes.end(),
+                      [doAbs, index, nodeCount](shared_ptr<Climate::RTree::SubTree> left,
+                                                shared_ptr<Climate::RTree::SubTree> right) -> bool {
+                          return compareTwoNodesRecursive(left, right, index, nodeCount, doAbs);
+                      });
+        }
 
-            for (Climate::RTree.Node<T> node : p_186945_) {
-                list1.add(node);
+        static vector<shared_ptr<Climate::RTree::SubTree>> bucketize(vector<shared_ptr<Climate::RTree::Node>> nodes) {
+            vector<shared_ptr<Climate::RTree::SubTree>> list;
+            vector<shared_ptr<Climate::RTree::Node>> list1;
+
+            int32_t i = (int32_t)pow(10.0, floor(log((double)nodes.size() - 0.01) / log(10.0)));
+
+            for (shared_ptr<Climate::RTree::Node> node : nodes) {
+                list1.push_back(node);
                 if (list1.size() >= i) {
-                    list.add(new Climate::RTree.SubTree<>(list1));
-                    list1 = Lists.newArrayList();
+                    list.push_back(make_shared<Climate::RTree::SubTree>(list1));
+                    list1 = {};
                 }
             }
 
-            if (!list1.isEmpty()) {
-                list.add(new Climate::RTree.SubTree<>(list1));
+            if (!list1.empty()) {
+                list.push_back(make_shared<Climate::RTree::SubTree>(list1));
             }
 
             return list;
         }
 
-    private
-        static long cost(Climate::Parameter[] p_186943_) {
-            long i = 0L;
+        static int64_t cost(const vector<Climate::Parameter> &parameters) {
+            int64_t sum = 0L;
 
-            for (Climate::Parameter climate$parameter : p_186943_) {
-                i += Math.abs(climate$parameter.max() - climate$parameter.min());
+            for (Climate::Parameter parameter : parameters) {
+                sum += my_abs(parameter.max - parameter.min);
             }
 
-            return i;
+            return sum;
         }
 
-        static <T> List<Climate::Parameter> buildParameterSpace(List<? extends Climate::RTree.Node<T>> p_186947_) {
-            if (p_186947_.isEmpty()) {
-                throw new IllegalArgumentException("SubTree needs at least one child");
+        static vector<Climate::Parameter> buildParameterSpace(vector<shared_ptr<Climate::RTree::Node>> nodes) {
+            if (nodes.empty()) {
+                throw new runtime_error("SubTree needs at least one child");
             } else {
-                int i = 7;
-                List<Climate::Parameter> list = Lists.newArrayList();
+                vector<Climate::Parameter> list(7);
 
-                for (int j = 0; j < 7; ++j) {
-                    list.add((Climate::Parameter)null);
-                }
-
-                for (Climate::RTree.Node<T> node : p_186947_) {
-                    for (int k = 0; k < 7; ++k) {
-                        list.set(k, node.parameterSpace[k].span(list.get(k)));
+                for (shared_ptr<Climate::RTree::Node> node : nodes) {
+                    for (int32_t i = 0; i < 7; ++i) {
+                        list[i] = node->parameterSpace[i].span(list[i]);
                     }
                 }
 
@@ -264,92 +376,44 @@ public:
             }
         }
 
-    public
-        T search(Climate::TargetPoint p_186931_, Climate::DistanceMetric<T> p_186932_) {
-            long[] along = p_186931_.toParameterArray();
-            Climate::RTree.Leaf<T> leaf = this.root.search(along, this.lastResult.get(), p_186932_);
-            this.lastResult.set(leaf);
-            return leaf.value;
+    public:
+        Biomes search(Climate::TargetPoint const &targetPoint) {
+            vector<int64_t> pointParameters = targetPoint.toParameterArray();
+            shared_ptr<Climate::RTree::Leaf> leaf = this->root->search(pointParameters, this->lastResult);
+            this->lastResult = leaf;
+            return leaf->value;
+        }
+    };
+
+    class ParameterList {
+    public:
+        vector<pair<Climate::ParameterPoint, Biomes>> values;
+        Climate::RTree index;
+
+        // ParameterList
+
+        ParameterList(vector<pair<Climate::ParameterPoint, Biomes>> const &values)
+            : values(values), index(RTree::create(values)) {
         }
 
-        static final class Leaf<T> extends Climate::RTree.Node<T> {
-            final T value;
-
-            Leaf(Climate::ParameterPoint p_186950_, T p_186951_) {
-                super(p_186950_.parameterSpace());
-                this.value = p_186951_;
-            }
-
-        protected
-            Climate::RTree.Leaf<T> search(long[] p_186953_, @Nullable Climate::RTree.Leaf<T> p_186954_,
-                                          Climate::DistanceMetric<T> p_186955_) {
-                return this;
-            }
+        Biomes findValue(Climate::TargetPoint const &targetPoint, Biomes defaultValue) {
+            return this->index.search(targetPoint);
+            // return this->findValueBruteForce(targetPoint, defaultValue);
         }
 
-        abstract static class Node<T> {
-        protected
-            final Climate::Parameter[] parameterSpace;
+        Biomes findValueBruteForce(Climate::TargetPoint const &targetPoint, Biomes defaultValue) const {
+            int64_t minDistance = numeric_limits<int64_t>::max();
+            Biomes result = defaultValue;
 
-        protected
-            Node(List<Climate::Parameter> parameters) {
-                this.parameterSpace = parameters.toArray(new Climate::Parameter[0]);
-            }
-
-        protected
-            abstract Climate::RTree.Leaf<T> search(long[] p_186961_, @Nullable Climate::RTree.Leaf<T> p_186962_,
-                                                   Climate::DistanceMetric<T> p_186963_);
-
-        protected
-            long distance(long[] values) {
-                long i = 0L;
-
-                for (int j = 0; j < 7; ++j) {
-                    i += Mth.square(this.parameterSpace[j].distance(values[j]));
+            for (const pair<Climate::ParameterPoint, Biomes> &pair : this->values) {
+                int64_t distance = pair.first.fitness(targetPoint);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    result = pair.second;
                 }
-
-                return i;
             }
 
-        public
-            String toString() {
-                return Arrays.toString((Object[])this.parameterSpace);
-            }
-        }
-
-        static final class SubTree<T>
-            extends Climate::RTree.Node<T> {
-            final Climate::RTree.Node<T>[] children;
-
-        protected SubTree(List<? extends Climate::RTree.Node<T>> p_186967_) {
-                this(Climate::RTree.buildParameterSpace(p_186967_), p_186967_);
-            }
-
-        protected SubTree(List<Climate::Parameter> p_186969_, List<? extends Climate::RTree.Node<T>> p_186970_) {
-                super(p_186969_);
-                this.children = p_186970_.toArray(new Climate::RTree.Node[0]);
-            }
-
-        protected
-            Climate::RTree.Leaf<T> search(long[] p_186972_, @Nullable Climate::RTree.Leaf<T> p_186973_,
-                                          Climate::DistanceMetric<T> p_186974_) {
-                long i = p_186973_ == null ? Long.MAX_VALUE : p_186974_.distance(p_186973_, p_186972_);
-                Climate::RTree.Leaf<T> leaf = p_186973_;
-
-                for (Climate::RTree.Node<T> node : this.children) {
-                    long j = p_186974_.distance(node, p_186972_);
-                    if (i > j) {
-                        Climate::RTree.Leaf<T> leaf1 = node.search(p_186972_, leaf, p_186974_);
-                        long k = node == leaf1 ? j : p_186974_.distance(leaf1, p_186972_);
-                        if (i > k) {
-                            i = k;
-                            leaf = leaf1;
-                        }
-                    }
-                }
-
-                return leaf;
-            }
+            return result;
         }
     };
 };

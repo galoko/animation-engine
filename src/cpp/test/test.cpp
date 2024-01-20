@@ -59,31 +59,35 @@ void doTest() {
 
     SimpleLevelHeightAccessor heightAccessor = SimpleLevelHeightAccessor();
 
-    ChunkPos chunkPos = ChunkPos(8, 24);
-    shared_ptr<ProtoChunk> chunk = make_shared<ProtoChunk>(chunkPos, heightAccessor);
+    for (int i = 0; i < 10; i++) {
+        ChunkPos chunkPos = ChunkPos(8, 24);
+        shared_ptr<ProtoChunk> chunk = make_shared<ProtoChunk>(chunkPos, heightAccessor);
 
-    vector<shared_ptr<ChunkAccess>> cache = {chunk};
-    shared_ptr<WorldGenRegion> region = make_shared<WorldGenRegion>(chunkGenerator, cache);
-    region->init(seed);
-    chunkGenerator->region = region;
+        vector<shared_ptr<ChunkAccess>> cache = { chunk };
+        shared_ptr<WorldGenRegion> region = make_shared<WorldGenRegion>(chunkGenerator, cache);
+        region->init(seed);
+        chunkGenerator->region = region;
 
-    auto start_time = chrono::high_resolution_clock::now();
-    ChunkStatus::BIOMES.generate(chunkGenerator, ChunkStatus::EMPTY_CONVERTER, cache);
-    auto end_time = std::chrono::high_resolution_clock::now();
-    auto time = end_time - start_time;
-    cout << "biomes took " << time / std::chrono::milliseconds(1) << "ms to run.\n";
+        auto start_time = chrono::high_resolution_clock::now();
+        ChunkStatus::BIOMES.generate(chunkGenerator, ChunkStatus::EMPTY_CONVERTER, cache);
+        auto end_time = std::chrono::high_resolution_clock::now();
+        auto time = end_time - start_time;
+        cout << "biomes took " << time / std::chrono::milliseconds(1) << "ms to run.\n";
 
-    start_time = chrono::high_resolution_clock::now();
-    ChunkStatus::NOISE.generate(chunkGenerator, ChunkStatus::EMPTY_CONVERTER, cache);
-    end_time = std::chrono::high_resolution_clock::now();
-    time = end_time - start_time;
-    cout << "noise took " << time / std::chrono::milliseconds(1) << "ms to run.\n";
+        start_time = chrono::high_resolution_clock::now();
+        ChunkStatus::NOISE.generate(chunkGenerator, ChunkStatus::EMPTY_CONVERTER, cache);
+        end_time = std::chrono::high_resolution_clock::now();
+        time = end_time - start_time;
+        cout << "noise took " << time / std::chrono::milliseconds(1) << "ms to run.\n";
 
-    start_time = chrono::high_resolution_clock::now();
-    ChunkStatus::SURFACE.generate(chunkGenerator, ChunkStatus::EMPTY_CONVERTER, cache);
-    end_time = std::chrono::high_resolution_clock::now();
-    time = end_time - start_time;
-    cout << "surface took " << time / std::chrono::milliseconds(1) << "ms to run.\n";
+        start_time = chrono::high_resolution_clock::now();
+        ChunkStatus::SURFACE.generate(chunkGenerator, ChunkStatus::EMPTY_CONVERTER, cache);
+        end_time = std::chrono::high_resolution_clock::now();
+        time = end_time - start_time;
+        cout << "surface took " << time / std::chrono::milliseconds(1) << "ms to run.\n";
 
-    saveTestResult(chunk);
+        cout << "------\n";
+
+        saveTestResult(chunk);
+    }
 }

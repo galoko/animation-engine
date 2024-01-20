@@ -43,7 +43,11 @@ int64_t Climate::Parameter::distance(Climate::Parameter const &parameter) const 
 }
 
 Climate::Parameter const Climate::Parameter::span(Climate::Parameter const &parameterToMerge) const {
-    return Climate::Parameter(std::min(this->min, parameterToMerge.min), std::max(this->max, parameterToMerge.max));
+    return parameterToMerge.isNull() ? *this : Climate::Parameter(std::min(this->min, parameterToMerge.min), std::max(this->max, parameterToMerge.max));
+}
+
+bool Climate::Parameter::isNull() const {
+    return this->min > this->max;
 }
 
 // ParameterPoint
