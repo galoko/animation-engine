@@ -82,4 +82,6 @@ void SurfaceSystem::buildSurface(shared_ptr<BiomeManager> biomeManager, WorldGen
             }
         }
     }
+
+    context->free();
 }

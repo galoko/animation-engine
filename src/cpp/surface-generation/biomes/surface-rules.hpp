@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <vector>
 
+#include "../../utils/memory-debug.hpp"
 #include "biome-manager.hpp"
 #include "noise-chunk.hpp"
 #include "noise-data.hpp"
@@ -290,8 +291,9 @@ public:
         bool addSurfaceSecondaryDepth;
         CaveSurface surfaceType;
 
-        StoneDepthCheck(int32_t offset, bool addSurfaceDepth, bool addSurfaceSecondaryDepth, CaveSurface surfaceType) : 
-            offset(offset), addSurfaceDepth(addSurfaceDepth), addSurfaceSecondaryDepth(addSurfaceSecondaryDepth), surfaceType(surfaceType) {
+        StoneDepthCheck(int32_t offset, bool addSurfaceDepth, bool addSurfaceSecondaryDepth, CaveSurface surfaceType)
+            : offset(offset), addSurfaceDepth(addSurfaceDepth), addSurfaceSecondaryDepth(addSurfaceSecondaryDepth),
+              surfaceType(surfaceType) {
         }
 
         virtual shared_ptr<Condition> apply(shared_ptr<Context> ctx) {
@@ -487,7 +489,7 @@ public:
         int32_t blockZ;
         int32_t surfaceDepth;
 
-        WorldGenerationContext context; 
+        WorldGenerationContext context;
 
         shared_ptr<ChunkAccess> chunk;
         shared_ptr<NoiseChunk> noiseChunk;
@@ -509,11 +511,20 @@ public:
         Context(shared_ptr<SurfaceSystem> system, shared_ptr<ChunkAccess> chunk, shared_ptr<NoiseChunk> noiseChunk,
                 shared_ptr<BiomeManager> biomeManager, WorldGenerationContext context)
             : context(context), chunk(chunk), noiseChunk(noiseChunk), system(system), biomeManager(biomeManager) {
+            objectCreated("Context");
+        }
+
+        ~Context() {
+            objectFreed("Context");
         }
 
         void init() {
-            shared_ptr<SurfaceRules::Condition> abovePreliminarySurface = this->abovePreliminarySurface =
+            this->abovePreliminarySurface =
                 make_shared<SurfaceRules::AbovePreliminarySurfaceCondition>(this->shared_from_this());
+        }
+
+        void free() {
+            this->abovePreliminarySurface = nullptr;
         }
 
         void updateXZ(int32_t x, int32_t z);

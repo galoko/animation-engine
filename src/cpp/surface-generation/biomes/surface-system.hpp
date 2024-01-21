@@ -23,6 +23,11 @@ public:
 
         this->surfaceNoise = Noises_instantiate(this->randomFactory, Noises::SURFACE);
         this->surfaceSecondaryNoise = Noises_instantiate(this->randomFactory, Noises::SURFACE_SECONDARY);
+        objectCreated("SurfaceSystem");
+    }
+
+    ~SurfaceSystem() {
+        objectFreed("SurfaceSystem");
     }
 
     void buildSurface(shared_ptr<BiomeManager> biomeManager, WorldGenerationContext generationContext,
