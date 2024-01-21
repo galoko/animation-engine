@@ -408,9 +408,6 @@ public:
     public:
         TestRuleSource(shared_ptr<ConditionSource> ifTrue, shared_ptr<RuleSource> thenRun)
             : ifTrue(ifTrue), thenRun(thenRun) {
-            if (ifTrue == nullptr) {
-                throw new exception();
-            }
         }
 
         shared_ptr<SurfaceRule> apply(shared_ptr<Context> ctx) {

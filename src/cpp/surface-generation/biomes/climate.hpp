@@ -388,17 +388,17 @@ public:
     class ParameterList {
     public:
         vector<pair<Climate::ParameterPoint, Biomes>> values;
-        // Climate::RTree index;
+        Climate::RTree index;
 
         // ParameterList
 
         ParameterList(vector<pair<Climate::ParameterPoint, Biomes>> const &values)
-            : values(values) /*, index(RTree::create(values))*/ {
+            : values(values), index(RTree::create(values)) {
         }
 
         Biomes findValue(Climate::TargetPoint const &targetPoint, Biomes defaultValue) {
-            // return this->index.search(targetPoint);
-            return this->findValueBruteForce(targetPoint, defaultValue);
+            return this->index.search(targetPoint);
+            // return this->findValueBruteForce(targetPoint, defaultValue);
         }
 
         Biomes findValueBruteForce(Climate::TargetPoint const &targetPoint, Biomes defaultValue) const {
