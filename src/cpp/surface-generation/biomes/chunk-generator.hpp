@@ -471,9 +471,10 @@ private:
     shared_ptr<Aquifer::FluidPicker> globalFluidPicker;
 
 public:
-    shared_ptr<WorldGenRegion> region;
+    weak_ptr<WorldGenRegion> region;
 
     NoiseBasedChunkGenerator(shared_ptr<BiomeSource> biomeSource, int64_t seed, NoiseGeneratorSettings const &settings);
+
 private:
     NoiseBasedChunkGenerator(shared_ptr<BiomeSource> biomeSource, shared_ptr<BiomeSource> runtimeBiomeSource,
                              int64_t seed, NoiseGeneratorSettings const &settings);

@@ -886,8 +886,8 @@ shared_ptr<ChunkAccess> NoiseBasedChunkGenerator::buildSurface(shared_ptr<ChunkA
     const LevelHeightAccessor &levelHeightAccessor = chunkAccess->getHeightAccessorForGeneration();
     WorldGenerationContext worldGenerationContext(this->shared_from_this(), levelHeightAccessor);
 
-    this->surfaceSystem->buildSurface(this->region->biomeManager, worldGenerationContext, chunkAccess, noiseChunk,
-                                      noiseGeneratorSettings.surfaceRule());
+    this->surfaceSystem->buildSurface(this->region.lock()->biomeManager, worldGenerationContext, chunkAccess,
+                                      noiseChunk, noiseGeneratorSettings.surfaceRule());
 
     return chunkAccess;
 }

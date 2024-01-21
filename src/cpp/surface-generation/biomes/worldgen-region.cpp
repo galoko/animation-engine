@@ -1,18 +1,17 @@
 #include "worldgen-region.hpp"
 
-WorldGenRegion::WorldGenRegion(shared_ptr<ChunkGenerator> generator, vector<shared_ptr<ChunkAccess>>& cache)
+WorldGenRegion::WorldGenRegion(shared_ptr<ChunkGenerator> generator, vector<shared_ptr<ChunkAccess>> &cache)
     : generator(generator), cache(cache), firstPos(cache[0]->getPos()), lastPos(cache[cache.size() - 1]->getPos()) {
     int size = Mth::floor(sqrt((double)cache.size()));
     this->size = size;
     objectCreated("NoiseBiomeSource");
 }
 
-
 void WorldGenRegion::init(int64_t seed) {
     this->biomeManager = make_shared<BiomeManager>(this->shared_from_this(), BiomeManager::obfuscateSeed(seed));
 }
 
-shared_ptr<ChunkAccess> WorldGenRegion::getChunk(int32_t x, int32_t z, const ChunkStatus& status, bool ensureNonNull) {
+shared_ptr<ChunkAccess> WorldGenRegion::getChunk(int32_t x, int32_t z, const ChunkStatus &status, bool ensureNonNull) {
     shared_ptr<ChunkAccess> chunkAccess;
     if (this->hasChunk(x, z)) {
         int shiftedX = x - this->firstPos.x;
@@ -21,19 +20,16 @@ shared_ptr<ChunkAccess> WorldGenRegion::getChunk(int32_t x, int32_t z, const Chu
         if (chunkAccess->getStatus()->isOrAfter(status)) {
             return chunkAccess;
         }
-    }
-    else {
+    } else {
         chunkAccess = nullptr;
     }
 
     if (!ensureNonNull) {
         return nullptr;
-    }
-    else {
+    } else {
         if (chunkAccess != nullptr) {
             throw runtime_error("Chunk is not of correct status");
-        }
-        else {
+        } else {
             throw runtime_error("We are asking a region for a chunk out of bound");
         }
     }
@@ -50,5 +46,5 @@ Biomes WorldGenRegion::getNoiseBiome(int x, int y, int z) {
 }
 
 Biomes WorldGenRegion::getUncachedNoiseBiome(int32_t x, int32_t y, int32_t z) {
-    return this->generator->getNoiseBiome(x, y, z);
+    return this->generator.lock()->getNoiseBiome(x, y, z);
 }
