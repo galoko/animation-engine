@@ -52,6 +52,7 @@ public:
         return obfuscatedSeed;
     }
 
+    // what's going on here?
     Biomes getBiome(BlockPos blockPos) {
         int32_t blockCenterX = blockPos.getX() - BiomeManager::CHUNK_CENTER_QUART;
         int32_t blockCenterY = blockPos.getY() - BiomeManager::CHUNK_CENTER_QUART;
