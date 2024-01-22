@@ -2671,8 +2671,8 @@ export class Render {
     static handleResize(): void {
         const dpr = devicePixelRatio
 
-        const newWidth = Math.floor(document.body.clientWidth * dpr)
-        const newHeight = Math.floor(document.body.clientHeight * dpr)
+        const newWidth = Math.ceil(document.body.clientWidth * dpr)
+        const newHeight = Math.ceil(document.body.clientHeight * dpr)
 
         // newWidth = 3840
         // newHeight = 2160
@@ -2681,14 +2681,14 @@ export class Render {
             return
         }
 
-        ctx.canvas.style.width = newWidth / dpr + "px"
-        ctx.canvas.style.height = newHeight / dpr + "px"
+        ctx.canvas.style.width = document.body.clientWidth + "px"
+        ctx.canvas.style.height = document.body.clientHeight + "px"
         ctx.canvas.width = newWidth
         ctx.canvas.height = newHeight
 
         const glCanvas = canvasWebGPU as HTMLCanvasElement
-        glCanvas.style.width = newWidth / dpr + "px"
-        glCanvas.style.height = newHeight / dpr + "px"
+        glCanvas.style.width = document.body.clientWidth + "px"
+        glCanvas.style.height = document.body.clientHeight + "px"
         canvasWebGPU.width = newWidth
         canvasWebGPU.height = newHeight
 

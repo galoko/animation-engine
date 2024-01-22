@@ -13,29 +13,41 @@ void PlayerInputManager::tick(double dt) {
         Services->worldManager.registry.get<TransformComponent>(this->managedEntity->handle);
 
     float speed = 0.0;
+    vec3 direction(0, 0, 0);
     if (Services->inputManager.isPressed(
-            {KeyboardKey::KEY_W, KeyboardKey::KEY_S, KeyboardKey::KEY_A,
-             KeyboardKey::KEY_D /*, KeyboardKey::KEY_LCONTROL, KeyboardKey::KEY_LSHIFT*/})) {
+            {KeyboardKey::KEY_W, KeyboardKey::KEY_S, KeyboardKey::KEY_A, KeyboardKey::KEY_D})) {
+        speed = 5.2 * 100 * 1;
+        direction.x = -1;
+    }
+
+    float desiredAngleZ = Services->cameraManager.getZAngle();
+    if (Services->inputManager.isPressed(KeyboardKey::KEY_A)) {
+        desiredAngleZ -= Services->inputManager.isPressed(KeyboardKey::KEY_W)   ? PI / 4
+                         : Services->inputManager.isPressed(KeyboardKey::KEY_S) ? -PI / 4
+                                                                                : PI / 2;
+    }
+    if (Services->inputManager.isPressed(KeyboardKey::KEY_D)) {
+        desiredAngleZ += Services->inputManager.isPressed(KeyboardKey::KEY_W)   ? PI / 4
+                         : Services->inputManager.isPressed(KeyboardKey::KEY_S) ? -PI / 4
+                                                                                : PI / 2;
+    }
+    if (Services->inputManager.isPressed(KeyboardKey::KEY_S)) {
+        desiredAngleZ += PI;
+    }
+
+    if (Services->inputManager.isPressed(KeyboardKey::KEY_LSHIFT)) {
+        direction.z = 1;
+        speed = 5.2 * 100 * 1;
+    }
+    if (Services->inputManager.isPressed(KeyboardKey::KEY_LCONTROL)) {
+        direction.z = -1;
         speed = 5.2 * 100 * 1;
     }
 
-    float desiredAngle = Services->cameraManager.getZAngle();
-    if (Services->inputManager.isPressed(KeyboardKey::KEY_A)) {
-        desiredAngle -= Services->inputManager.isPressed(KeyboardKey::KEY_W)   ? PI / 4
-                        : Services->inputManager.isPressed(KeyboardKey::KEY_S) ? -PI / 4
-                                                                               : PI / 2;
-    }
-    if (Services->inputManager.isPressed(KeyboardKey::KEY_D)) {
-        desiredAngle += Services->inputManager.isPressed(KeyboardKey::KEY_W)   ? PI / 4
-                        : Services->inputManager.isPressed(KeyboardKey::KEY_S) ? -PI / 4
-                                                                               : PI / 2;
-    }
-    if (Services->inputManager.isPressed(KeyboardKey::KEY_S)) {
-        desiredAngle += PI;
-    }
+    if (speed > 0) {
+        quat q = quat(vec3(0, 0, -desiredAngleZ));
+        vec3 velocity = q * (normalize(direction) * speed);
 
-    quat q = quat(vec3(0, 0, -desiredAngle));
-    vec3 velocity = q * vec3(-speed, 0, 0);
-
-    transform.transform.position += velocity * vec3((float)dt);
+        transform.transform.position += velocity * vec3((float)dt);
+    }
 }
