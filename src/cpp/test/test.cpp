@@ -72,21 +72,21 @@ void doTest() {
         ChunkStatus::BIOMES.generate(chunkGenerator, ChunkStatus::EMPTY_CONVERTER, cache);
         auto end_time = std::chrono::high_resolution_clock::now();
         auto time = end_time - start_time;
-        cout << "biomes took " << time / std::chrono::milliseconds(1) << "ms to run.\n";
+        printf("biomes took %lldms to run.\n", time / std::chrono::milliseconds(1));
 
         start_time = chrono::high_resolution_clock::now();
         ChunkStatus::NOISE.generate(chunkGenerator, ChunkStatus::EMPTY_CONVERTER, cache);
         end_time = std::chrono::high_resolution_clock::now();
         time = end_time - start_time;
-        cout << "noise took " << time / std::chrono::milliseconds(1) << "ms to run.\n";
+        printf("noise took %lldms to run.\n", time / std::chrono::milliseconds(1));
 
         start_time = chrono::high_resolution_clock::now();
         ChunkStatus::SURFACE.generate(chunkGenerator, ChunkStatus::EMPTY_CONVERTER, cache);
         end_time = std::chrono::high_resolution_clock::now();
         time = end_time - start_time;
-        cout << "surface took " << time / std::chrono::milliseconds(1) << "ms to run.\n";
+        printf("surface took %lldms to run.\n", time / std::chrono::milliseconds(1));
 
-        cout << "------\n";
+        printf("------\n");
 
         saveTestResult(chunk);
     }
