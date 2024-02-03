@@ -60,13 +60,12 @@ private:
     shared_ptr<Aquifer> _aquifer;
     NoiseChunk::BlockStateFiller baseNoise;
     NoiseChunk::BlockStateFiller oreVeins;
-    Blender const &blender;
 
 public:
     static shared_ptr<NoiseChunk> forChunk(shared_ptr<ChunkAccess> chunkAccess, shared_ptr<NoiseSampler> sampler,
                                            function<NoiseChunk::NoiseFiller(void)> filler,
                                            NoiseGeneratorSettings const &generatorSettings,
-                                           shared_ptr<SimpleFluidPicker> fluidPicker, Blender const &blender);
+                                           shared_ptr<SimpleFluidPicker> fluidPicker);
 
     static shared_ptr<NoiseChunk> forColumn(int32_t startX, int32_t startZ, int32_t cellNoiseMinY, int32_t cellCountY,
                                             shared_ptr<NoiseSampler> sampler,
@@ -75,12 +74,11 @@ public:
 
     NoiseChunk(int32_t cellCountXZ, int32_t cellCountY, int32_t cellNoiseMinY, shared_ptr<NoiseSampler> sampler,
                int32_t startX, int32_t startZ, NoiseChunk::NoiseFiller filler,
-               NoiseGeneratorSettings const &noiseSettings, shared_ptr<SimpleFluidPicker> fluidPicker,
-               Blender const &blender);
+               NoiseGeneratorSettings const &noiseSettings, shared_ptr<SimpleFluidPicker> fluidPicker);
     shared_ptr<NoiseChunk> afterConstructor(int32_t cellCountXZ, int32_t cellCountY, int32_t cellNoiseMinY,
                                             shared_ptr<NoiseSampler> sampler, int32_t startX, int32_t startZ,
                                             NoiseChunk::NoiseFiller filler, NoiseGeneratorSettings const &noiseSettings,
-                                            shared_ptr<SimpleFluidPicker> fluidPicker, Blender const &blender);
+                                            shared_ptr<SimpleFluidPicker> fluidPicker);
 
     virtual ~NoiseChunk();
 
@@ -94,8 +92,6 @@ private:
 
 public:
     shared_ptr<NoiseChunk::NoiseInterpolator> createNoiseInterpolator(NoiseChunk::NoiseFiller filler);
-
-    Blender const &getBlender();
 
     void initializeForFirstCellX();
     void advanceCellX(int32_t cellX);

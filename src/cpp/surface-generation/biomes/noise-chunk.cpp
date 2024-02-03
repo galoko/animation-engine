@@ -18,7 +18,7 @@ double ConstantSampler::sample() {
 shared_ptr<NoiseChunk> NoiseChunk::forChunk(shared_ptr<ChunkAccess> chunkAccess, shared_ptr<NoiseSampler> sampler,
                                             function<NoiseChunk::NoiseFiller(void)> fillerSupplier,
                                             NoiseGeneratorSettings const &generatorSettings,
-                                            shared_ptr<SimpleFluidPicker> fluidPicker, Blender const &blender) {
+                                            shared_ptr<SimpleFluidPicker> fluidPicker) {
     ChunkPos const &chunkPos = chunkAccess->getPos();
     NoiseSettings const &noiseSettings = generatorSettings.noiseSettings();
     int32_t minY = max(noiseSettings.minY, chunkAccess->getMinBuildHeight());
@@ -28,9 +28,9 @@ shared_ptr<NoiseChunk> NoiseChunk::forChunk(shared_ptr<ChunkAccess> chunkAccess,
     NoiseFiller filler = fillerSupplier();
     return make_shared<NoiseChunk>(16 / noiseSettings.getCellWidth(), cellCountY, cellMinY, sampler,
                                    chunkPos.getMinBlockX(), chunkPos.getMinBlockZ(), filler, generatorSettings,
-                                   fluidPicker, blender)
+                                   fluidPicker)
         ->afterConstructor(16 / noiseSettings.getCellWidth(), cellCountY, cellMinY, sampler, chunkPos.getMinBlockX(),
-                           chunkPos.getMinBlockZ(), filler, generatorSettings, fluidPicker, blender);
+                           chunkPos.getMinBlockZ(), filler, generatorSettings, fluidPicker);
 }
 
 shared_ptr<NoiseChunk> NoiseChunk::forColumn(int32_t startX, int32_t startZ, int32_t cellNoiseMinY, int32_t cellCountY,
@@ -38,18 +38,15 @@ shared_ptr<NoiseChunk> NoiseChunk::forColumn(int32_t startX, int32_t startZ, int
                                              NoiseGeneratorSettings const &noiseSettings,
                                              shared_ptr<SimpleFluidPicker> fluidPicker) {
     NoiseFiller filler = [](int32_t x, int32_t y, int32_t z) -> double { return 0.0; };
-    Blender const &blender = Blender::empty();
     return make_shared<NoiseChunk>(1, cellCountY, cellNoiseMinY, sampler, startX, startZ, filler, noiseSettings,
-                                   fluidPicker, blender)
-        ->afterConstructor(1, cellCountY, cellNoiseMinY, sampler, startX, startZ, filler, noiseSettings, fluidPicker,
-                           blender);
+                                   fluidPicker)
+        ->afterConstructor(1, cellCountY, cellNoiseMinY, sampler, startX, startZ, filler, noiseSettings, fluidPicker);
 }
 
 NoiseChunk::NoiseChunk(int32_t cellCountXZ, int32_t cellCountY, int32_t cellNoiseMinY, shared_ptr<NoiseSampler> sampler,
                        int32_t startX, int32_t startZ, NoiseChunk::NoiseFiller filler,
-                       NoiseGeneratorSettings const &noiseSettings, shared_ptr<SimpleFluidPicker> fluidPicker,
-                       Blender const &blender)
-    : noiseSettings(noiseSettings.noiseSettings()), sampler(sampler), blender(blender) {
+                       NoiseGeneratorSettings const &noiseSettings, shared_ptr<SimpleFluidPicker> fluidPicker)
+    : noiseSettings(noiseSettings.noiseSettings()), sampler(sampler) {
     this->cellCountXZ = cellCountXZ;
     this->cellCountY = cellCountY;
     this->cellNoiseMinY = cellNoiseMinY;
@@ -67,7 +64,7 @@ NoiseChunk::NoiseChunk(int32_t cellCountXZ, int32_t cellCountY, int32_t cellNois
 
         for (int32_t offsetZ = 0; offsetZ <= countXZ; ++offsetZ) {
             int32_t z = this->firstNoiseZ + offsetZ;
-            this->_noiseData[offsetX][offsetZ] = sampler->noiseData(x, z, blender);
+            this->_noiseData[offsetX][offsetZ] = sampler->noiseData(x, z);
         }
     }
 
@@ -82,8 +79,7 @@ shared_ptr<NoiseChunk> NoiseChunk::afterConstructor(int32_t cellCountXZ, int32_t
                                                     shared_ptr<NoiseSampler> sampler, int32_t startX, int32_t startZ,
                                                     NoiseChunk::NoiseFiller filler,
                                                     NoiseGeneratorSettings const &noiseSettings,
-                                                    shared_ptr<SimpleFluidPicker> fluidPicker,
-                                                    Blender const &blender) {
+                                                    shared_ptr<SimpleFluidPicker> fluidPicker) {
     shared_ptr<NoiseChunk> sharedThis = this->shared_from_this();
 
     this->_aquifer = sampler->createAquifer(sharedThis, startX, startZ, cellNoiseMinY, cellCountY, fluidPicker,
@@ -119,7 +115,7 @@ int32_t NoiseChunk::computePreliminarySurfaceLevel(int64_t loc) {
     TerrainInfo const &terraininfo =
         (shiftedChunkX >= 0 && shiftedChunkY >= 0 && shiftedChunkX < noiseDataSize && shiftedChunkY < noiseDataSize)
             ? this->_noiseData[shiftedChunkX][shiftedChunkY].terrainInfo
-            : this->sampler->noiseData(chunkX, chunkY, this->blender).terrainInfo;
+            : this->sampler->noiseData(chunkX, chunkY).terrainInfo;
 
     return this->sampler->getPreliminarySurfaceLevel(QuartPos::toBlock(chunkX), QuartPos::toBlock(chunkY), terraininfo);
 }
@@ -131,10 +127,6 @@ shared_ptr<NoiseChunk::NoiseInterpolator> NoiseChunk::createNoiseInterpolator(No
     this->interpolators.push_back(interpolator);
 
     return interpolator;
-}
-
-Blender const &NoiseChunk::getBlender() {
-    return this->blender;
 }
 
 void NoiseChunk::initializeForFirstCellX() {

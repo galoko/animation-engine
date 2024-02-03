@@ -132,8 +132,8 @@ Biomes LevelChunkSection::getNoiseBiome(int32_t x, int32_t y, int32_t z) const {
     return this->biomes.at(getBiomesIndex(x, y, z));
 }
 
-void LevelChunkSection::fillBiomesFromNoise(shared_ptr<BiomeSource> resolver,
-                                            shared_ptr<Climate::Sampler> sampler, int32_t offsetX, int32_t offsetZ) {
+void LevelChunkSection::fillBiomesFromNoise(shared_ptr<BiomeSource> resolver, shared_ptr<Climate::Sampler> sampler,
+                                            int32_t offsetX, int32_t offsetZ) {
     vector<Biomes> &biomes = this->biomes;
     // biomes->acquire();
 
@@ -245,11 +245,9 @@ int32_t ChunkAccess::getHeight() const {
 shared_ptr<NoiseChunk> ChunkAccess::getOrCreateNoiseChunk(shared_ptr<NoiseSampler> sampler,
                                                           function<NoiseFiller(void)> filler,
                                                           NoiseGeneratorSettings const &settings,
-                                                          shared_ptr<SimpleFluidPicker> fluidPicker,
-                                                          Blender const &blender) {
+                                                          shared_ptr<SimpleFluidPicker> fluidPicker) {
     if (this->noiseChunk == nullptr) {
-        this->noiseChunk =
-            NoiseChunk::forChunk(this->shared_from_this(), sampler, filler, settings, fluidPicker, blender);
+        this->noiseChunk = NoiseChunk::forChunk(this->shared_from_this(), sampler, filler, settings, fluidPicker);
     }
 
     return this->noiseChunk;
@@ -263,8 +261,7 @@ Biomes ChunkAccess::getNoiseBiome(int32_t x, int32_t y, int32_t z) {
     return this->getSection(sectionIndex).getNoiseBiome(x & 3, clampedY & 3, z & 3);
 }
 
-void ChunkAccess::fillBiomesFromNoise(shared_ptr<BiomeSource> resolver,
-                                      shared_ptr<Climate::Sampler> sampler) {
+void ChunkAccess::fillBiomesFromNoise(shared_ptr<BiomeSource> resolver, shared_ptr<Climate::Sampler> sampler) {
     ChunkPos const &chunkpos = this->getPos();
     int32_t x = QuartPos::fromBlock(chunkpos.getMinBlockX());
     int32_t z = QuartPos::fromBlock(chunkpos.getMinBlockZ());

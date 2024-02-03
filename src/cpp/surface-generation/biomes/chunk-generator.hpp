@@ -163,18 +163,6 @@ public:
     TerrainInfo(double offset, double factor, double jaggedness);
 };
 
-class Blender {
-private:
-    static Blender EMPTY;
-
-public:
-    TerrainInfo const &blendOffsetAndFactor(int32_t x, int32_t z, TerrainInfo const &terrainInfo) const;
-    double blendDensity(int32_t x, int32_t y, int32_t z, double density) const;
-    shared_ptr<BiomeSource> getBiomeResolver(shared_ptr<BiomeSource> resolver) const;
-
-    static Blender const &empty();
-};
-
 class NoiseUtils {
 public:
     static double sampleNoiseAndMapToRange(NormalNoise const &noise, double x, double y, double z, double v0,
@@ -315,10 +303,9 @@ private:
     static NoiseChunk::InterpolatableNoise yLimitedInterpolatableNoise(NormalNoise const &noise, int32_t minY,
                                                                        int32_t maxY, int32_t outOfRangeValue,
                                                                        double noiseMul);
-    double calculateBaseNoise(int32_t x, int32_t y, int32_t z, TerrainInfo const &terrainInfo,
-                              Blender const &blender) const;
+    double calculateBaseNoise(int32_t x, int32_t y, int32_t z, TerrainInfo const &terrainInfo) const;
     double calculateBaseNoise(int32_t x, int32_t y, int32_t z, TerrainInfo const &terrainInfo, double blended,
-                              bool isNoiseCavesDisabled, bool useJagged, Blender const &blender) const;
+                              bool isNoiseCavesDisabled, bool useJagged) const;
     double sampleJaggedNoise(double jaggedness, double x, double z) const;
     double computeBaseDensity(int32_t y, TerrainInfo const &terrainInfo) const;
     double applySlide(double height, int32_t cellY) const;
@@ -333,13 +320,12 @@ public:
     unique_ptr<Aquifer> createAquifer(shared_ptr<NoiseChunk> chunkNoise, int32_t x, int32_t z, int32_t cellY,
                                       int32_t cellCount, shared_ptr<SimpleFluidPicker> fluidPicker, bool enabled);
 
-    FlatNoiseData const noiseData(int32_t x, int32_t z, Blender const &blender) const;
+    FlatNoiseData const noiseData(int32_t x, int32_t z) const;
 
     Climate::TargetPoint const sample(int32_t x, int32_t y, int32_t z) const override;
     Climate::TargetPoint const target(int32_t x, int32_t y, int32_t z, FlatNoiseData const &flatData) const;
 
-    TerrainInfo const terrainInfo(int32_t x, int32_t z, float continents, float weirdness, float erosion,
-                                  Blender const &blender) const;
+    TerrainInfo const terrainInfo(int32_t x, int32_t z, float continents, float weirdness, float erosion) const;
 
     BlockPos const findSpawnPosition() const;
 
@@ -375,14 +361,6 @@ private:
 };
 
 using WorldGenMaterialRule = function<BlockState(shared_ptr<NoiseChunk> noiseChunk, int32_t x, int32_t y, int32_t z)>;
-
-class BelowZeroRetrogen {
-public:
-    static shared_ptr<BiomeSource> getBiomeResolver(shared_ptr<BiomeSource> resolver,
-                                                    shared_ptr<ChunkAccess> chunkAccess) {
-        return resolver;
-    };
-};
 
 class NoiseClimateSampler : public Climate::Sampler {
 private:
@@ -427,10 +405,10 @@ private:
                    NoiseGeneratorSettings const &settings);
 
 private:
-    void doCreateBiomes(Blender const &blender, shared_ptr<ChunkAccess> chunkAccess);
+    void doCreateBiomes(shared_ptr<ChunkAccess> chunkAccess);
 
 public:
-    shared_ptr<ChunkAccess> createBiomes(Blender const &blender, shared_ptr<ChunkAccess> chunkAccess);
+    shared_ptr<ChunkAccess> createBiomes(shared_ptr<ChunkAccess> chunkAccess);
 
     shared_ptr<Climate::Sampler> climateSampler() const;
 
@@ -438,12 +416,11 @@ public:
 
     int32_t getBaseHeight(int32_t x, int32_t z, HeightmapTypes type, LevelHeightAccessor const &heightAccessor) const;
 
-    shared_ptr<ChunkAccess> fillFromNoise(Blender const &blender, shared_ptr<ChunkAccess> chunkAccess);
+    shared_ptr<ChunkAccess> fillFromNoise(shared_ptr<ChunkAccess> chunkAccess);
     shared_ptr<ChunkAccess> buildSurface(shared_ptr<ChunkAccess> chunkAccess);
 
 private:
-    shared_ptr<ChunkAccess> doFill(Blender const &blender, shared_ptr<ChunkAccess> chunkAccess, int32_t minCellY,
-                                   int32_t cellCount);
+    shared_ptr<ChunkAccess> doFill(shared_ptr<ChunkAccess> chunkAccess, int32_t minCellY, int32_t cellCount);
 
 public:
     int32_t getGenDepth() const;

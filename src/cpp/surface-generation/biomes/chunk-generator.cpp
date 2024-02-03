@@ -182,26 +182,6 @@ TerrainInfo::TerrainInfo(double offset, double factor, double jaggedness)
     : offset(offset), factor(factor), jaggedness(jaggedness) {
 }
 
-// Blender
-
-TerrainInfo const &Blender::blendOffsetAndFactor(int32_t x, int32_t z, TerrainInfo const &terrainInfo) const {
-    return terrainInfo;
-}
-
-double Blender::blendDensity(int32_t x, int32_t y, int32_t z, double density) const {
-    return density;
-}
-
-shared_ptr<BiomeSource> Blender::getBiomeResolver(shared_ptr<BiomeSource> resolver) const {
-    return resolver;
-}
-
-Blender const &Blender::empty() {
-    return EMPTY;
-}
-
-Blender Blender::EMPTY = Blender();
-
 // NoiseUtils
 
 double NoiseUtils::sampleNoiseAndMapToRange(NormalNoise const &noise, double x, double y, double z, double v0,
@@ -328,8 +308,7 @@ void NoiseSampler::afterConstructor(NoiseSettings const &noiseSettings, bool isN
             [weakThis, weakNoiseChunk](int32_t x, int32_t y, int32_t z) -> double {
                 shared_ptr<NoiseChunk> noiseChunk = weakNoiseChunk.lock();
                 return weakThis.lock()->calculateBaseNoise(
-                    x, y, z, noiseChunk->noiseData(QuartPos::fromBlock(x), QuartPos::fromBlock(z)).terrainInfo,
-                    noiseChunk->getBlender());
+                    x, y, z, noiseChunk->noiseData(QuartPos::fromBlock(x), QuartPos::fromBlock(z)).terrainInfo);
             });
     };
 }
@@ -347,15 +326,14 @@ NoiseChunk::InterpolatableNoise NoiseSampler::yLimitedInterpolatableNoise(Normal
     };
 }
 
-double NoiseSampler::calculateBaseNoise(int32_t x, int32_t y, int32_t z, TerrainInfo const &terrainInfo,
-                                        Blender const &blender) const {
+double NoiseSampler::calculateBaseNoise(int32_t x, int32_t y, int32_t z, TerrainInfo const &terrainInfo) const {
     double blended = this->blendedNoise.calculateNoise(x, y, z);
     bool isNoiseCavesDisabled = !this->isNoiseCavesEnabled;
-    return this->calculateBaseNoise(x, y, z, terrainInfo, blended, isNoiseCavesDisabled, true, blender);
+    return this->calculateBaseNoise(x, y, z, terrainInfo, blended, isNoiseCavesDisabled, true);
 }
 
 double NoiseSampler::calculateBaseNoise(int32_t x, int32_t y, int32_t z, TerrainInfo const &terrainInfo, double blended,
-                                        bool isNoiseCavesDisabled, bool useJagged, Blender const &blender) const {
+                                        bool isNoiseCavesDisabled, bool useJagged) const {
     double height;
     if (noiseSettings.islandNoiseOverride) {
         // TODO
@@ -408,7 +386,6 @@ double NoiseSampler::calculateBaseNoise(int32_t x, int32_t y, int32_t z, Terrain
 
     double finalHeight = max(min(someHeight, spaghettiHeight), pillars);
     finalHeight = this->applySlide(finalHeight, y / this->noiseSettings.getCellHeight());
-    finalHeight = blender.blendDensity(x, y, z, finalHeight);
     return Mth::clamp(finalHeight, -64.0, 64.0);
 }
 
@@ -511,7 +488,7 @@ int32_t NoiseSampler::getPreliminarySurfaceLevel(int32_t x, int32_t z, TerrainIn
     for (int32_t cellY = this->noiseSettings.getMinCellY() + this->noiseSettings.getCellCountY();
          cellY >= this->noiseSettings.getMinCellY(); --cellY) {
         int32_t y = cellY * this->noiseSettings.getCellHeight();
-        double baseNoise = this->calculateBaseNoise(x, y, z, terrainInfo, -0.703125, true, false, Blender::empty());
+        double baseNoise = this->calculateBaseNoise(x, y, z, terrainInfo, -0.703125, true, false);
         if (baseNoise > 0.390625) {
             return y;
         }
@@ -531,19 +508,19 @@ unique_ptr<Aquifer> NoiseSampler::createAquifer(shared_ptr<NoiseChunk> chunkNois
                            fluidPicker);
 }
 
-FlatNoiseData const NoiseSampler::noiseData(int32_t x, int32_t z, Blender const &blender) const {
+FlatNoiseData const NoiseSampler::noiseData(int32_t x, int32_t z) const {
     double shiftedX = (double)x + this->getOffset(x, 0, z);
     double shiftedZ = (double)z + this->getOffset(z, x, 0);
     double continentalness = this->getContinentalness(shiftedX, 0.0, shiftedZ);
     double weirdness = this->getWeirdness(shiftedX, 0.0, shiftedZ);
     double erosion = this->getErosion(shiftedX, 0.0, shiftedZ);
-    TerrainInfo const terrainInfo = this->terrainInfo(
-        QuartPos::toBlock(x), QuartPos::toBlock(z), (float)continentalness, (float)weirdness, (float)erosion, blender);
+    TerrainInfo const terrainInfo = this->terrainInfo(QuartPos::toBlock(x), QuartPos::toBlock(z),
+                                                      (float)continentalness, (float)weirdness, (float)erosion);
     return FlatNoiseData(shiftedX, shiftedZ, continentalness, weirdness, erosion, terrainInfo);
 }
 
 Climate::TargetPoint const NoiseSampler::sample(int32_t x, int32_t y, int32_t z) const {
-    return this->target(x, y, z, this->noiseData(x, z, Blender::empty()));
+    return this->target(x, y, z, this->noiseData(x, z));
 }
 
 Climate::TargetPoint const NoiseSampler::target(int32_t x, int32_t y, int32_t z, FlatNoiseData const &flatData) const {
@@ -556,15 +533,15 @@ Climate::TargetPoint const NoiseSampler::target(int32_t x, int32_t y, int32_t z,
                            (float)flatData.erosion, (float)baseDensity, (float)flatData.weirdness);
 }
 
-TerrainInfo const NoiseSampler::terrainInfo(int32_t x, int32_t z, float continents, float weirdness, float erosion,
-                                            Blender const &blender) const {
+TerrainInfo const NoiseSampler::terrainInfo(int32_t x, int32_t z, float continents, float weirdness,
+                                            float erosion) const {
     TerrainShaper const &terrainShaper = this->noiseSettings.terrainShaper;
     TerrainShaper::Point const point = terrainShaper.makePoint(continents, erosion, weirdness);
     float offset = terrainShaper.offset(point);
     float factor = terrainShaper.factor(point);
     float jaggedness = terrainShaper.jaggedness(point);
     TerrainInfo terrainInfo = TerrainInfo((double)offset, (double)factor, (double)jaggedness);
-    return blender.blendOffsetAndFactor(x, z, terrainInfo);
+    return terrainInfo;
 }
 
 BlockPos const NoiseSampler::findSpawnPosition() const {
@@ -783,18 +760,17 @@ int32_t ChunkGenerator::getFirstOccupiedHeight(int32_t x, int32_t z, HeightmapTy
     return this->getBaseHeight(x, z, type, heightAccessor) - 1;
 }
 
-shared_ptr<ChunkAccess> ChunkGenerator::createBiomes(Blender const &blender, shared_ptr<ChunkAccess> chunkAccess) {
-    this->doCreateBiomes(blender, chunkAccess);
+shared_ptr<ChunkAccess> ChunkGenerator::createBiomes(shared_ptr<ChunkAccess> chunkAccess) {
+    this->doCreateBiomes(chunkAccess);
     return chunkAccess;
 }
 
-void ChunkGenerator::doCreateBiomes(Blender const &blender, shared_ptr<ChunkAccess> chunkAccess) {
+void ChunkGenerator::doCreateBiomes(shared_ptr<ChunkAccess> chunkAccess) {
     shared_ptr<NoiseChunk> noiseChunk = chunkAccess->getOrCreateNoiseChunk(
         this->sampler, [chunkAccess]() -> NoiseFiller { return makeBeardifier(chunkAccess); }, this->settings,
-        this->globalFluidPicker, blender);
-    shared_ptr<BiomeSource> biomeresolver =
-        BelowZeroRetrogen::getBiomeResolver(blender.getBiomeResolver(this->runtimeBiomeSource), chunkAccess);
-    chunkAccess->fillBiomesFromNoise(biomeresolver, make_shared<NoiseClimateSampler>(this->sampler, noiseChunk));
+        this->globalFluidPicker);
+    chunkAccess->fillBiomesFromNoise(this->runtimeBiomeSource,
+                                     make_shared<NoiseClimateSampler>(this->sampler, noiseChunk));
 }
 
 shared_ptr<Climate::Sampler> ChunkGenerator::climateSampler() const {
@@ -810,7 +786,7 @@ int32_t ChunkGenerator::getBaseHeight(int32_t x, int32_t z, HeightmapTypes type,
     return 0;
 }
 
-shared_ptr<ChunkAccess> ChunkGenerator::fillFromNoise(Blender const &blender, shared_ptr<ChunkAccess> chunkAccess) {
+shared_ptr<ChunkAccess> ChunkGenerator::fillFromNoise(shared_ptr<ChunkAccess> chunkAccess) {
     NoiseSettings const &noiseSettings = this->settings.noiseSettings();
     LevelHeightAccessor const &heightAccessor = chunkAccess->getHeightAccessorForGeneration();
     int32_t minY = max(noiseSettings.minY, heightAccessor.getMinBuildHeight());
@@ -830,7 +806,7 @@ shared_ptr<ChunkAccess> ChunkGenerator::fillFromNoise(Blender const &blender, sh
             sections.push_back(&section);
         }
 
-        shared_ptr<ChunkAccess> result = this->doFill(blender, chunkAccess, minCellY, cellCount);
+        shared_ptr<ChunkAccess> result = this->doFill(chunkAccess, minCellY, cellCount);
 
         for (LevelChunkSection *&section : sections) {
             section->release();
@@ -844,7 +820,7 @@ shared_ptr<ChunkAccess> ChunkGenerator::buildSurface(shared_ptr<ChunkAccess> chu
     NoiseGeneratorSettings const &noiseGeneratorSettings = this->settings;
     shared_ptr<NoiseChunk> noiseChunk = chunkAccess->getOrCreateNoiseChunk(
         this->sampler, [chunkAccess]() -> NoiseFiller { return makeBeardifier(chunkAccess); }, noiseGeneratorSettings,
-        this->globalFluidPicker, Blender::empty());
+        this->globalFluidPicker);
 
     const LevelHeightAccessor &levelHeightAccessor = chunkAccess->getHeightAccessorForGeneration();
     WorldGenerationContext worldGenerationContext(this->shared_from_this(), levelHeightAccessor);
@@ -855,12 +831,12 @@ shared_ptr<ChunkAccess> ChunkGenerator::buildSurface(shared_ptr<ChunkAccess> chu
     return chunkAccess;
 }
 
-shared_ptr<ChunkAccess> ChunkGenerator::doFill(Blender const &blender, shared_ptr<ChunkAccess> chunkAccess,
-                                               int32_t minCellY, int32_t cellCount) {
+shared_ptr<ChunkAccess> ChunkGenerator::doFill(shared_ptr<ChunkAccess> chunkAccess, int32_t minCellY,
+                                               int32_t cellCount) {
     NoiseGeneratorSettings const &settings = this->settings;
     shared_ptr<NoiseChunk> noiseChunk = chunkAccess->getOrCreateNoiseChunk(
         this->sampler, [chunkAccess]() -> NoiseFiller { return makeBeardifier(chunkAccess); }, settings,
-        this->globalFluidPicker, blender);
+        this->globalFluidPicker);
 
     shared_ptr<Heightmap> oceanFloorHeightMap =
         chunkAccess->getOrCreateHeightmapUnprimed(HeightmapTypes::OCEAN_FLOOR_WG);

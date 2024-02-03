@@ -94,9 +94,10 @@ public:
 
 class ChunkAccess : public LevelHeightAccessor, public enable_shared_from_this<ChunkAccess> {
 private:
-    ChunkStatus* status;
+    ChunkStatus *status;
     ChunkPos chunkPos;
     LevelHeightAccessor const &levelHeightAccessor;
+
 public:
     shared_ptr<NoiseChunk> noiseChunk;
 
@@ -131,7 +132,7 @@ public:
 
     shared_ptr<NoiseChunk> getOrCreateNoiseChunk(shared_ptr<NoiseSampler> sampler, function<NoiseFiller(void)> filler,
                                                  NoiseGeneratorSettings const &settings,
-                                                 shared_ptr<SimpleFluidPicker> fluidPicker, Blender const &blender);
+                                                 shared_ptr<SimpleFluidPicker> fluidPicker);
 
     Biomes getNoiseBiome(int32_t x, int32_t y, int32_t z);
 
@@ -139,9 +140,9 @@ public:
 
     LevelHeightAccessor const &getHeightAccessorForGeneration();
 
-    BlockState getBlockState(BlockPos const& pos) const;
-    BlockState setBlockState(BlockPos const& pos, BlockState blockState, bool checked);
+    BlockState getBlockState(BlockPos const &pos) const;
+    BlockState setBlockState(BlockPos const &pos, BlockState blockState, bool checked);
 
-    void setStatus(ChunkStatus* status);
-    ChunkStatus* getStatus();
+    void setStatus(ChunkStatus *status);
+    ChunkStatus *getStatus();
 };
