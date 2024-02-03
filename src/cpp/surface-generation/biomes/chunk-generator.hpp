@@ -374,59 +374,12 @@ private:
     NoiseSampler::VeinType getVeinType(double veiness, int32_t y);
 };
 
-class ChunkGenerator : public NoiseBiomeSource {
-private:
-    StructureSettings const &settings;
-    int64_t strongholdSeed;
-
-protected:
-    shared_ptr<BiomeSource> biomeSource;
-    shared_ptr<BiomeSource> runtimeBiomeSource;
-
-public:
-    ChunkGenerator(shared_ptr<BiomeSource> biomeSource, StructureSettings const &settings);
-    ChunkGenerator(shared_ptr<BiomeSource> biomeSource, shared_ptr<BiomeSource> runtimeBiomeSource,
-                   StructureSettings const &settings, int64_t strongholdSeed);
-
-    virtual shared_ptr<ChunkGenerator> withSeed(int64_t seed) = 0;
-
-    virtual shared_ptr<ChunkAccess> createBiomes(Blender const &blender, shared_ptr<ChunkAccess> chunkAccess);
-    virtual shared_ptr<Climate::Sampler> climateSampler() const = 0;
-
-    Biomes getNoiseBiome(int32_t x, int32_t y, int32_t z) override;
-
-    StructureSettings const &getSettings() const;
-
-    int32_t getSpawnHeight(LevelHeightAccessor const &heightAccessor) const;
-
-    shared_ptr<BiomeSource> getBiomeSource() const;
-
-    virtual int32_t getGenDepth() const = 0;
-
-    virtual shared_ptr<ChunkAccess> fillFromNoise(Blender const &blender, shared_ptr<ChunkAccess> chunkAccess) = 0;
-    virtual shared_ptr<ChunkAccess> buildSurface(shared_ptr<ChunkAccess> chunkAccess) = 0;
-
-    virtual int32_t getSeaLevel() const = 0;
-
-    virtual int32_t getMinY() const = 0;
-
-    virtual int32_t getBaseHeight(int32_t x, int32_t z, HeightmapTypes type,
-                                  LevelHeightAccessor const &heightAccessor) const = 0;
-
-    // virtual NoiseColumn* getBaseColumn(int32_t x, int32_t y, LevelHeightAccessor const& heightAccessor) = 0;
-
-    int32_t getFirstFreeHeight(int32_t x, int32_t z, HeightmapTypes type,
-                               LevelHeightAccessor const &heightAccessor) const;
-    int32_t getFirstOccupiedHeight(int32_t x, int32_t z, HeightmapTypes type,
-                                   LevelHeightAccessor const &heightAccessor) const;
-};
-
 using WorldGenMaterialRule = function<BlockState(shared_ptr<NoiseChunk> noiseChunk, int32_t x, int32_t y, int32_t z)>;
 
 class BelowZeroRetrogen {
 public:
     static shared_ptr<BiomeSource> getBiomeResolver(shared_ptr<BiomeSource> resolver,
-                                                      shared_ptr<ChunkAccess> chunkAccess) {
+                                                    shared_ptr<ChunkAccess> chunkAccess) {
         return resolver;
     };
 };
@@ -446,10 +399,12 @@ public:
     Climate::TargetPoint const sample(int32_t x, int32_t y, int32_t z) const override;
 };
 
-class NoiseBasedChunkGenerator : public ChunkGenerator, public enable_shared_from_this<NoiseBasedChunkGenerator> {
+class ChunkGenerator : public enable_shared_from_this<ChunkGenerator> {
 private:
     static const BlockState AIR = Blocks::AIR;
 
+    StructureSettings const &structureSettings;
+    // int64_t strongholdSeed;
     BlockState defaultBlock;
     int64_t seed;
     NoiseGeneratorSettings const &settings;
@@ -458,37 +413,53 @@ private:
     WorldGenMaterialRule materialRule;
     shared_ptr<SimpleFluidPicker> globalFluidPicker;
 
+protected:
+    shared_ptr<BiomeSource> biomeSource;
+    shared_ptr<BiomeSource> runtimeBiomeSource;
+
 public:
     weak_ptr<WorldGenRegion> region;
 
-    NoiseBasedChunkGenerator(shared_ptr<BiomeSource> biomeSource, int64_t seed, NoiseGeneratorSettings const &settings);
+    ChunkGenerator(shared_ptr<BiomeSource> biomeSource, int64_t seed, NoiseGeneratorSettings const &settings);
 
 private:
-    NoiseBasedChunkGenerator(shared_ptr<BiomeSource> biomeSource, shared_ptr<BiomeSource> runtimeBiomeSource,
-                             int64_t seed, NoiseGeneratorSettings const &settings);
-
-    shared_ptr<ChunkAccess> createBiomes(Blender const &blender, shared_ptr<ChunkAccess> chunkAccess) override;
+    ChunkGenerator(shared_ptr<BiomeSource> biomeSource, shared_ptr<BiomeSource> runtimeBiomeSource, int64_t seed,
+                   NoiseGeneratorSettings const &settings);
 
 private:
     void doCreateBiomes(Blender const &blender, shared_ptr<ChunkAccess> chunkAccess);
 
 public:
-    shared_ptr<Climate::Sampler> climateSampler() const override;
+    shared_ptr<ChunkAccess> createBiomes(Blender const &blender, shared_ptr<ChunkAccess> chunkAccess);
 
-    shared_ptr<ChunkGenerator> withSeed(int64_t seed) override;
+    shared_ptr<Climate::Sampler> climateSampler() const;
 
-    int32_t getBaseHeight(int32_t x, int32_t z, HeightmapTypes type,
-                          LevelHeightAccessor const &heightAccessor) const override;
+    shared_ptr<ChunkGenerator> withSeed(int64_t seed);
 
-    shared_ptr<ChunkAccess> fillFromNoise(Blender const &blender, shared_ptr<ChunkAccess> chunkAccess) override;
-    shared_ptr<ChunkAccess> buildSurface(shared_ptr<ChunkAccess> chunkAccess) override;
+    int32_t getBaseHeight(int32_t x, int32_t z, HeightmapTypes type, LevelHeightAccessor const &heightAccessor) const;
+
+    shared_ptr<ChunkAccess> fillFromNoise(Blender const &blender, shared_ptr<ChunkAccess> chunkAccess);
+    shared_ptr<ChunkAccess> buildSurface(shared_ptr<ChunkAccess> chunkAccess);
 
 private:
     shared_ptr<ChunkAccess> doFill(Blender const &blender, shared_ptr<ChunkAccess> chunkAccess, int32_t minCellY,
                                    int32_t cellCount);
 
 public:
-    int32_t getGenDepth() const override;
-    int32_t getSeaLevel() const override;
-    int32_t getMinY() const override;
+    int32_t getGenDepth() const;
+    int32_t getSeaLevel() const;
+    int32_t getMinY() const;
+
+    // NoiseColumn* getBaseColumn(int32_t x, int32_t y, LevelHeightAccessor const& heightAccessor) = 0;
+
+    Biomes getNoiseBiome(int32_t x, int32_t y, int32_t z);
+    StructureSettings const &getSettings() const;
+
+    shared_ptr<BiomeSource> getBiomeSource() const;
+    int32_t getSpawnHeight(LevelHeightAccessor const &heightAccessor) const;
+
+    int32_t getFirstFreeHeight(int32_t x, int32_t z, HeightmapTypes type,
+                               LevelHeightAccessor const &heightAccessor) const;
+    int32_t getFirstOccupiedHeight(int32_t x, int32_t z, HeightmapTypes type,
+                                   LevelHeightAccessor const &heightAccessor) const;
 };

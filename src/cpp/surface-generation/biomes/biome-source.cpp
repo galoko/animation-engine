@@ -9,7 +9,7 @@ using namespace std;
 // BiomeSource
 
 BiomeSource::StepFeatureData::StepFeatureData(vector<PlacedFeature> features,
-                                                        function<int32_t(PlacedFeature)> indexMapping){};
+                                              function<int32_t(PlacedFeature)> indexMapping){};
 
 // Preset
 
@@ -24,12 +24,11 @@ bool BiomeSource::Preset::isNull() const {
     return this->name != "";
 }
 
-unique_ptr<BiomeSource> BiomeSource::Preset::biomeSource(
-    BiomeSource::PresetInstance const presetInstance, bool usePresetInstance) const {
+unique_ptr<BiomeSource> BiomeSource::Preset::biomeSource(BiomeSource::PresetInstance const presetInstance,
+                                                         bool usePresetInstance) const {
     Climate::ParameterList parameterlist = this->parameterSource();
     return make_unique<BiomeSource>(
-        parameterlist,
-        usePresetInstance ? presetInstance : BiomeSource::PresetInstance::NULL_PRESET_INSTANCE);
+        parameterlist, usePresetInstance ? presetInstance : BiomeSource::PresetInstance::NULL_PRESET_INSTANCE);
 }
 
 unique_ptr<BiomeSource> BiomeSource::Preset::biomeSource(bool usePresetInstance) const {
@@ -42,23 +41,21 @@ unique_ptr<BiomeSource> BiomeSource::Preset::biomeSource() const {
 
 BiomeSource::Preset BiomeSource::Preset::NULL_PRESET = BiomeSource::Preset();
 
-BiomeSource::Preset BiomeSource::Preset::OVERWORLD =
-    BiomeSource::Preset("overworld", []() -> Climate::ParameterList {
-        vector<pair<Climate::ParameterPoint, Biomes>> builder = vector<pair<Climate::ParameterPoint, Biomes>>();
+BiomeSource::Preset BiomeSource::Preset::OVERWORLD = BiomeSource::Preset("overworld", []() -> Climate::ParameterList {
+    vector<pair<Climate::ParameterPoint, Biomes>> builder = vector<pair<Climate::ParameterPoint, Biomes>>();
 
-        OverworldBiomeBuilder().addBiomes(builder);
-        return Climate::ParameterList(builder);
-    });
+    OverworldBiomeBuilder().addBiomes(builder);
+    return Climate::ParameterList(builder);
+});
 
-BiomeSource::Preset BiomeSource::Preset::NETHER =
-    BiomeSource::Preset("nether", []() -> Climate::ParameterList {
-        return Climate::ParameterList(
-            {pair(Climate::parameters(0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F), Biomes::NETHER_WASTES),
-             pair(Climate::parameters(0.0F, -0.5F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F), Biomes::SOUL_SAND_VALLEY),
-             pair(Climate::parameters(0.4F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F), Biomes::CRIMSON_FOREST),
-             pair(Climate::parameters(0.0F, 0.5F, 0.0F, 0.0F, 0.0F, 0.0F, 0.375F), Biomes::WARPED_FOREST),
-             pair(Climate::parameters(-0.5F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.175F), Biomes::BASALT_DELTAS)});
-    });
+BiomeSource::Preset BiomeSource::Preset::NETHER = BiomeSource::Preset("nether", []() -> Climate::ParameterList {
+    return Climate::ParameterList(
+        {pair(Climate::parameters(0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F), Biomes::NETHER_WASTES),
+         pair(Climate::parameters(0.0F, -0.5F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F), Biomes::SOUL_SAND_VALLEY),
+         pair(Climate::parameters(0.4F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F), Biomes::CRIMSON_FOREST),
+         pair(Climate::parameters(0.0F, 0.5F, 0.0F, 0.0F, 0.0F, 0.0F, 0.375F), Biomes::WARPED_FOREST),
+         pair(Climate::parameters(-0.5F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.175F), Biomes::BASALT_DELTAS)});
+});
 
 void BiomeSource::Preset::finalize() {
     BiomeSource::Preset::NULL_PRESET = BiomeSource::Preset();
@@ -97,9 +94,8 @@ BiomeSource::BiomeSource(Climate::ParameterList const &parameters)
     : BiomeSource(parameters, PresetInstance::NULL_PRESET_INSTANCE) {
 }
 
-BiomeSource::BiomeSource(Climate::ParameterList const &parameters,
-                                             BiomeSource::PresetInstance const preset)
-    : parameters(parameters), possibleBiomes(this->getBiomes(parameters)), preset(preset) {
+BiomeSource::BiomeSource(Climate::ParameterList const &parameters, BiomeSource::PresetInstance const preset)
+    : possibleBiomes(this->getBiomes(parameters)), parameters(parameters), preset(preset) {
     // this->featuresPerStep = this->buildFeaturesPerStep(biomes, true);
 }
 

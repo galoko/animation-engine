@@ -270,7 +270,7 @@ void WorldManager::generateTerrain() {
 
     int64_t seed = hashCode("test");
 
-    shared_ptr<NoiseBasedChunkGenerator> chunkGenerator = WorldGenSettings::makeDefaultOverworld(seed);
+    shared_ptr<ChunkGenerator> chunkGenerator = WorldGenSettings::makeDefaultOverworld(seed);
 
     auto generation_start_time = chrono::high_resolution_clock::now();
 

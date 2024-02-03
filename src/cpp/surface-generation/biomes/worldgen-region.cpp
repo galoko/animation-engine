@@ -4,7 +4,6 @@ WorldGenRegion::WorldGenRegion(shared_ptr<ChunkGenerator> generator, vector<shar
     : generator(generator), cache(cache), firstPos(cache[0]->getPos()), lastPos(cache[cache.size() - 1]->getPos()) {
     int32_t size = Mth::floor(sqrt((double)cache.size()));
     this->size = size;
-    objectCreated("NoiseBiomeSource");
 }
 
 void WorldGenRegion::init(int64_t seed) {

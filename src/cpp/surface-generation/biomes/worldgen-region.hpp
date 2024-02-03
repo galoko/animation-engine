@@ -10,7 +10,7 @@
 
 using namespace std;
 
-class WorldGenRegion : public NoiseBiomeSource, public enable_shared_from_this<WorldGenRegion> {
+class WorldGenRegion : public enable_shared_from_this<WorldGenRegion> {
 private:
     weak_ptr<ChunkGenerator> generator;
     vector<shared_ptr<ChunkAccess>> cache;

@@ -55,7 +55,7 @@ void saveTestResult(shared_ptr<ChunkAccess> chunk) {
 void doTest() {
     int64_t seed = hashCode("test");
 
-    shared_ptr<NoiseBasedChunkGenerator> chunkGenerator = WorldGenSettings::makeDefaultOverworld(seed);
+    shared_ptr<ChunkGenerator> chunkGenerator = WorldGenSettings::makeDefaultOverworld(seed);
 
     LevelHeightAccessor heightAccessor = LevelHeightAccessor();
 

@@ -525,10 +525,10 @@ unique_ptr<Aquifer> NoiseSampler::createAquifer(shared_ptr<NoiseChunk> chunkNois
                                                 bool enabled) {
     int32_t chunkX = SectionPos::blockToSectionCoord(x);
     int32_t chunkZ = SectionPos::blockToSectionCoord(z);
-    return Aquifer::create(chunkNoise, ChunkPos(chunkX, chunkZ), this->barrierNoise,
-                            this->fluidLevelFloodednessNoise, this->fluidLevelSpreadNoise, this->lavaNoise,
-                            this->aquiferPositionalRandomFactory, cellY * this->noiseSettings.getCellHeight(),
-                            cellCount * this->noiseSettings.getCellHeight(), fluidPicker);
+    return Aquifer::create(chunkNoise, ChunkPos(chunkX, chunkZ), this->barrierNoise, this->fluidLevelFloodednessNoise,
+                           this->fluidLevelSpreadNoise, this->lavaNoise, this->aquiferPositionalRandomFactory,
+                           cellY * this->noiseSettings.getCellHeight(), cellCount * this->noiseSettings.getCellHeight(),
+                           fluidPicker);
 }
 
 FlatNoiseData const NoiseSampler::noiseData(int32_t x, int32_t z, Blender const &blender) const {
@@ -689,51 +689,6 @@ NoiseSampler::VeinType NoiseSampler::getVeinType(double veiness, int32_t y) {
     //}
 }
 
-// ChunkGenerator
-
-ChunkGenerator::ChunkGenerator(shared_ptr<BiomeSource> biomeSource, StructureSettings const &settings)
-    : ChunkGenerator(biomeSource, biomeSource, settings, 0LL) {
-}
-
-ChunkGenerator::ChunkGenerator(shared_ptr<BiomeSource> biomeSource, shared_ptr<BiomeSource> runtimeBiomeSource,
-                               StructureSettings const &settings, int64_t strongholdSeed)
-    : settings(settings), biomeSource(biomeSource), runtimeBiomeSource(runtimeBiomeSource) {
-    this->strongholdSeed = strongholdSeed;
-
-    objectCreated("NoiseBiomeSource");
-}
-
-shared_ptr<ChunkAccess> ChunkGenerator::createBiomes(Blender const &blender, shared_ptr<ChunkAccess> chunkAccess) {
-    chunkAccess->fillBiomesFromNoise(this->runtimeBiomeSource, this->climateSampler());
-    return chunkAccess;
-}
-
-Biomes ChunkGenerator::getNoiseBiome(int32_t x, int32_t y, int32_t z) {
-    return this->getBiomeSource()->getNoiseBiome(x, y, z, this->climateSampler());
-}
-
-StructureSettings const &ChunkGenerator::getSettings() const {
-    return this->settings;
-}
-
-int32_t ChunkGenerator::getSpawnHeight(LevelHeightAccessor const &heightAccessor) const {
-    return 64;
-}
-
-shared_ptr<BiomeSource> ChunkGenerator::getBiomeSource() const {
-    return this->runtimeBiomeSource;
-}
-
-int32_t ChunkGenerator::getFirstFreeHeight(int32_t x, int32_t z, HeightmapTypes type,
-                                           LevelHeightAccessor const &heightAccessor) const {
-    return this->getBaseHeight(x, z, type, heightAccessor);
-}
-
-int32_t ChunkGenerator::getFirstOccupiedHeight(int32_t x, int32_t z, HeightmapTypes type,
-                                               LevelHeightAccessor const &heightAccessor) const {
-    return this->getBaseHeight(x, z, type, heightAccessor) - 1;
-}
-
 // NoiseClimateSampler
 
 NoiseClimateSampler::NoiseClimateSampler(shared_ptr<NoiseSampler> sampler, shared_ptr<NoiseChunk> noiseChunk)
@@ -746,7 +701,7 @@ Climate::TargetPoint const NoiseClimateSampler::sample(int32_t x, int32_t y, int
     return this->sampler->target(x, y, z, this->noiseChunk->noiseData(x, z));
 }
 
-// NoiseBasedChunkGenerator
+// ChunkGenerator
 
 WorldGenMaterialRule makeMaterialRuleList(vector<WorldGenMaterialRule> rules) {
     return [rules](shared_ptr<NoiseChunk> noiseChunk, int32_t x, int32_t y, int32_t z) -> BlockState {
@@ -765,15 +720,15 @@ NoiseFiller makeBeardifier(shared_ptr<ChunkAccess> chunkAccess) {
     return [](int32_t x, int32_t y, int32_t z) -> double { return 0; };
 }
 
-NoiseBasedChunkGenerator::NoiseBasedChunkGenerator(shared_ptr<BiomeSource> biomeSource, int64_t seed,
-                                                   NoiseGeneratorSettings const &settings)
-    : NoiseBasedChunkGenerator(biomeSource, biomeSource, seed, settings) {
+ChunkGenerator::ChunkGenerator(shared_ptr<BiomeSource> biomeSource, int64_t seed,
+                               NoiseGeneratorSettings const &settings)
+    : ChunkGenerator(biomeSource, biomeSource, seed, settings) {
 }
 
-NoiseBasedChunkGenerator::NoiseBasedChunkGenerator(shared_ptr<BiomeSource> biomeSource,
-                                                   shared_ptr<BiomeSource> runtimeBiomeSource, int64_t seed,
-                                                   NoiseGeneratorSettings const &settings)
-    : ChunkGenerator(biomeSource, runtimeBiomeSource, settings.structureSettings(), seed), settings(settings) {
+ChunkGenerator::ChunkGenerator(shared_ptr<BiomeSource> biomeSource, shared_ptr<BiomeSource> runtimeBiomeSource,
+                               int64_t seed, NoiseGeneratorSettings const &settings)
+    : structureSettings(settings.structureSettings()), settings(settings), biomeSource(biomeSource),
+      runtimeBiomeSource(runtimeBiomeSource) {
 
     this->seed = seed;
     NoiseGeneratorSettings const &noiseGeneratorSettings = this->settings;
@@ -802,13 +757,38 @@ NoiseBasedChunkGenerator::NoiseBasedChunkGenerator(shared_ptr<BiomeSource> biome
         make_shared<SurfaceSystem>(this->defaultBlock, seed, noiseGeneratorSettings.getRandomSource());
 }
 
-shared_ptr<ChunkAccess> NoiseBasedChunkGenerator::createBiomes(Blender const &blender,
-                                                               shared_ptr<ChunkAccess> chunkAccess) {
+Biomes ChunkGenerator::getNoiseBiome(int32_t x, int32_t y, int32_t z) {
+    return this->getBiomeSource()->getNoiseBiome(x, y, z, this->climateSampler());
+}
+
+StructureSettings const &ChunkGenerator::getSettings() const {
+    return this->structureSettings;
+}
+
+int32_t ChunkGenerator::getSpawnHeight(LevelHeightAccessor const &heightAccessor) const {
+    return 64;
+}
+
+shared_ptr<BiomeSource> ChunkGenerator::getBiomeSource() const {
+    return this->runtimeBiomeSource;
+}
+
+int32_t ChunkGenerator::getFirstFreeHeight(int32_t x, int32_t z, HeightmapTypes type,
+                                           LevelHeightAccessor const &heightAccessor) const {
+    return this->getBaseHeight(x, z, type, heightAccessor);
+}
+
+int32_t ChunkGenerator::getFirstOccupiedHeight(int32_t x, int32_t z, HeightmapTypes type,
+                                               LevelHeightAccessor const &heightAccessor) const {
+    return this->getBaseHeight(x, z, type, heightAccessor) - 1;
+}
+
+shared_ptr<ChunkAccess> ChunkGenerator::createBiomes(Blender const &blender, shared_ptr<ChunkAccess> chunkAccess) {
     this->doCreateBiomes(blender, chunkAccess);
     return chunkAccess;
 }
 
-void NoiseBasedChunkGenerator::doCreateBiomes(Blender const &blender, shared_ptr<ChunkAccess> chunkAccess) {
+void ChunkGenerator::doCreateBiomes(Blender const &blender, shared_ptr<ChunkAccess> chunkAccess) {
     shared_ptr<NoiseChunk> noiseChunk = chunkAccess->getOrCreateNoiseChunk(
         this->sampler, [chunkAccess]() -> NoiseFiller { return makeBeardifier(chunkAccess); }, this->settings,
         this->globalFluidPicker, blender);
@@ -817,21 +797,20 @@ void NoiseBasedChunkGenerator::doCreateBiomes(Blender const &blender, shared_ptr
     chunkAccess->fillBiomesFromNoise(biomeresolver, make_shared<NoiseClimateSampler>(this->sampler, noiseChunk));
 }
 
-shared_ptr<Climate::Sampler> NoiseBasedChunkGenerator::climateSampler() const {
+shared_ptr<Climate::Sampler> ChunkGenerator::climateSampler() const {
     return this->sampler;
 }
 
-shared_ptr<ChunkGenerator> NoiseBasedChunkGenerator::withSeed(int64_t seed) {
-    return make_shared<NoiseBasedChunkGenerator>(this->biomeSource->withSeed(seed), seed, this->settings);
+shared_ptr<ChunkGenerator> ChunkGenerator::withSeed(int64_t seed) {
+    return make_shared<ChunkGenerator>(this->biomeSource->withSeed(seed), seed, this->settings);
 }
 
-int32_t NoiseBasedChunkGenerator::getBaseHeight(int32_t x, int32_t z, HeightmapTypes type,
-                                                LevelHeightAccessor const &heightAccessor) const {
+int32_t ChunkGenerator::getBaseHeight(int32_t x, int32_t z, HeightmapTypes type,
+                                      LevelHeightAccessor const &heightAccessor) const {
     return 0;
 }
 
-shared_ptr<ChunkAccess> NoiseBasedChunkGenerator::fillFromNoise(Blender const &blender,
-                                                                shared_ptr<ChunkAccess> chunkAccess) {
+shared_ptr<ChunkAccess> ChunkGenerator::fillFromNoise(Blender const &blender, shared_ptr<ChunkAccess> chunkAccess) {
     NoiseSettings const &noiseSettings = this->settings.noiseSettings();
     LevelHeightAccessor const &heightAccessor = chunkAccess->getHeightAccessorForGeneration();
     int32_t minY = max(noiseSettings.minY, heightAccessor.getMinBuildHeight());
@@ -861,7 +840,7 @@ shared_ptr<ChunkAccess> NoiseBasedChunkGenerator::fillFromNoise(Blender const &b
     }
 }
 
-shared_ptr<ChunkAccess> NoiseBasedChunkGenerator::buildSurface(shared_ptr<ChunkAccess> chunkAccess) {
+shared_ptr<ChunkAccess> ChunkGenerator::buildSurface(shared_ptr<ChunkAccess> chunkAccess) {
     NoiseGeneratorSettings const &noiseGeneratorSettings = this->settings;
     shared_ptr<NoiseChunk> noiseChunk = chunkAccess->getOrCreateNoiseChunk(
         this->sampler, [chunkAccess]() -> NoiseFiller { return makeBeardifier(chunkAccess); }, noiseGeneratorSettings,
@@ -876,8 +855,8 @@ shared_ptr<ChunkAccess> NoiseBasedChunkGenerator::buildSurface(shared_ptr<ChunkA
     return chunkAccess;
 }
 
-shared_ptr<ChunkAccess> NoiseBasedChunkGenerator::doFill(Blender const &blender, shared_ptr<ChunkAccess> chunkAccess,
-                                                         int32_t minCellY, int32_t cellCount) {
+shared_ptr<ChunkAccess> ChunkGenerator::doFill(Blender const &blender, shared_ptr<ChunkAccess> chunkAccess,
+                                               int32_t minCellY, int32_t cellCount) {
     NoiseGeneratorSettings const &settings = this->settings;
     shared_ptr<NoiseChunk> noiseChunk = chunkAccess->getOrCreateNoiseChunk(
         this->sampler, [chunkAccess]() -> NoiseFiller { return makeBeardifier(chunkAccess); }, settings,
@@ -969,14 +948,14 @@ shared_ptr<ChunkAccess> NoiseBasedChunkGenerator::doFill(Blender const &blender,
     return chunkAccess;
 }
 
-int32_t NoiseBasedChunkGenerator::getGenDepth() const {
+int32_t ChunkGenerator::getGenDepth() const {
     return this->settings.noiseSettings().height;
 }
 
-int32_t NoiseBasedChunkGenerator::getSeaLevel() const {
+int32_t ChunkGenerator::getSeaLevel() const {
     return this->settings.seaLevel();
 }
 
-int32_t NoiseBasedChunkGenerator::getMinY() const {
+int32_t ChunkGenerator::getMinY() const {
     return this->settings.noiseSettings().minY;
 }
