@@ -43,13 +43,11 @@ int32_t LevelHeightAccessor::getSectionYFromSectionIndex(int32_t sectionIndex) c
     return sectionIndex + this->getMinSection();
 }
 
-// SimpleLevelHeightAccessor
-
-int32_t SimpleLevelHeightAccessor::getHeight() const {
+int32_t LevelHeightAccessor::getHeight() const {
     return 384;
 }
 
-int32_t SimpleLevelHeightAccessor::getMinBuildHeight() const {
+int32_t LevelHeightAccessor::getMinBuildHeight() const {
     return -64;
 }
 
@@ -160,7 +158,7 @@ void LevelChunkSection::fillBiomesFromNoise(shared_ptr<BiomeResolver> resolver, 
 // ChunkAccess
 
 ChunkAccess::ChunkAccess(ChunkPos const &chunkPos, LevelHeightAccessor const &levelHeightAccessor)
-    : chunkPos(chunkPos), levelHeightAccessor(levelHeightAccessor) {
+    : chunkPos(chunkPos), levelHeightAccessor(levelHeightAccessor), status(nullptr) {
     this->noiseChunk = nullptr;
     this->isLightCorrect = false;
     this->sections = vector<LevelChunkSection>(levelHeightAccessor.getSectionsCount());
@@ -247,7 +245,7 @@ int32_t ChunkAccess::getHeight() const {
 shared_ptr<NoiseChunk> ChunkAccess::getOrCreateNoiseChunk(shared_ptr<NoiseSampler> sampler,
                                                           function<NoiseFiller(void)> filler,
                                                           NoiseGeneratorSettings const &settings,
-                                                          shared_ptr<Aquifer::FluidPicker> fluidPicker,
+                                                          shared_ptr<SimpleFluidPicker> fluidPicker,
                                                           Blender const &blender) {
     if (this->noiseChunk == nullptr) {
         this->noiseChunk =
@@ -281,13 +279,7 @@ LevelHeightAccessor const &ChunkAccess::getHeightAccessorForGeneration() {
     return *this;
 }
 
-// ProtoChunk
-
-ProtoChunk::ProtoChunk(ChunkPos const &chunkPos, LevelHeightAccessor const &levelHeightAccessor)
-    : ChunkAccess(chunkPos, levelHeightAccessor), status(nullptr) {
-}
-
-BlockState ProtoChunk::getBlockState(BlockPos const &pos) const {
+BlockState ChunkAccess::getBlockState(BlockPos const &pos) const {
     int32_t y = pos.getY();
     if (this->isOutsideBuildHeight(y)) {
         return Blocks::VOID_AIR;
@@ -297,7 +289,7 @@ BlockState ProtoChunk::getBlockState(BlockPos const &pos) const {
     }
 }
 
-BlockState ProtoChunk::setBlockState(BlockPos const &pos, BlockState blockState, bool checked) {
+BlockState ChunkAccess::setBlockState(BlockPos const &pos, BlockState blockState, bool checked) {
     int32_t x = pos.getX();
     int32_t y = pos.getY();
     int32_t z = pos.getZ();
@@ -335,10 +327,10 @@ BlockState ProtoChunk::setBlockState(BlockPos const &pos, BlockState blockState,
     }
 }
 
-void ProtoChunk::setStatus(ChunkStatus* status) {
+void ChunkAccess::setStatus(ChunkStatus* status) {
     this->status = status;
 }
 
-ChunkStatus* ProtoChunk::getStatus() {
+ChunkStatus* ChunkAccess::getStatus() {
     return this->status;
 }

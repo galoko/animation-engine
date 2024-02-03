@@ -521,18 +521,14 @@ int32_t NoiseSampler::getPreliminarySurfaceLevel(int32_t x, int32_t z, TerrainIn
 }
 
 unique_ptr<Aquifer> NoiseSampler::createAquifer(shared_ptr<NoiseChunk> chunkNoise, int32_t x, int32_t z, int32_t cellY,
-                                                int32_t cellCount, shared_ptr<Aquifer::FluidPicker> fluidPicker,
+                                                int32_t cellCount, shared_ptr<SimpleFluidPicker> fluidPicker,
                                                 bool enabled) {
-    if (!enabled) {
-        return Aquifer::createDisabled(fluidPicker);
-    } else {
-        int32_t chunkX = SectionPos::blockToSectionCoord(x);
-        int32_t chunkZ = SectionPos::blockToSectionCoord(z);
-        return Aquifer::create(chunkNoise, ChunkPos(chunkX, chunkZ), this->barrierNoise,
-                               this->fluidLevelFloodednessNoise, this->fluidLevelSpreadNoise, this->lavaNoise,
-                               this->aquiferPositionalRandomFactory, cellY * this->noiseSettings.getCellHeight(),
-                               cellCount * this->noiseSettings.getCellHeight(), fluidPicker);
-    }
+    int32_t chunkX = SectionPos::blockToSectionCoord(x);
+    int32_t chunkZ = SectionPos::blockToSectionCoord(z);
+    return Aquifer::create(chunkNoise, ChunkPos(chunkX, chunkZ), this->barrierNoise,
+                            this->fluidLevelFloodednessNoise, this->fluidLevelSpreadNoise, this->lavaNoise,
+                            this->aquiferPositionalRandomFactory, cellY * this->noiseSettings.getCellHeight(),
+                            cellCount * this->noiseSettings.getCellHeight(), fluidPicker);
 }
 
 FlatNoiseData const NoiseSampler::noiseData(int32_t x, int32_t z, Blender const &blender) const {
@@ -736,18 +732,6 @@ int32_t ChunkGenerator::getFirstFreeHeight(int32_t x, int32_t z, HeightmapTypes 
 int32_t ChunkGenerator::getFirstOccupiedHeight(int32_t x, int32_t z, HeightmapTypes type,
                                                LevelHeightAccessor const &heightAccessor) const {
     return this->getBaseHeight(x, z, type, heightAccessor) - 1;
-}
-
-// SimpleFluidPicker
-
-SimpleFluidPicker::SimpleFluidPicker(int32_t seaLevel, Aquifer::FluidStatus const &lava,
-                                     Aquifer::FluidStatus const &defaultFluid)
-    : seaLevel(seaLevel), lava(lava), defaultFluid(defaultFluid) {
-    objectCreated("FluidPicker");
-}
-
-Aquifer::FluidStatus SimpleFluidPicker::computeFluid(int32_t x, int32_t y, int32_t z) {
-    return y < min(-54, this->seaLevel) ? this->lava : this->defaultFluid;
 }
 
 // NoiseClimateSampler

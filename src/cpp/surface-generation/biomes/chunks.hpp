@@ -16,8 +16,8 @@ using namespace std;
 
 class LevelHeightAccessor {
 public:
-    virtual int32_t getHeight() const = 0;
-    virtual int32_t getMinBuildHeight() const = 0;
+    int32_t getHeight() const;
+    int32_t getMinBuildHeight() const;
 
     int32_t getMaxBuildHeight() const;
     int32_t getSectionsCount() const;
@@ -30,17 +30,6 @@ public:
     int32_t getSectionIndex(int32_t y) const;
     int32_t getSectionIndexFromSectionY(int32_t sectionY) const;
     int32_t getSectionYFromSectionIndex(int32_t sectionIndex) const;
-};
-
-class SimpleLevelHeightAccessor : public LevelHeightAccessor {
-public:
-    int32_t getHeight() const override;
-    int32_t getMinBuildHeight() const override;
-};
-
-class BlockGetter : public LevelHeightAccessor {
-public:
-    virtual BlockState getBlockState(BlockPos const &pos) const = 0;
 };
 
 class LevelChunkSection {
@@ -68,11 +57,11 @@ public:
 
 private:
     static constexpr inline int32_t getBlockStateIndex(int32_t x, int32_t y, int32_t z) {
-        return (z * STATES_CONTAINER_SIZE * STATES_CONTAINER_SIZE + y * STATES_CONTAINER_SIZE + x);
+        return (y * STATES_CONTAINER_SIZE * STATES_CONTAINER_SIZE + z * STATES_CONTAINER_SIZE + x);
     }
 
     static constexpr inline int32_t getBiomesIndex(int32_t x, int32_t y, int32_t z) {
-        return (z * BIOME_CONTAINER_SIZE * BIOME_CONTAINER_SIZE + y * BIOME_CONTAINER_SIZE + x);
+        return (y * BIOME_CONTAINER_SIZE * BIOME_CONTAINER_SIZE + z * BIOME_CONTAINER_SIZE + x);
     }
 
 public:
@@ -103,11 +92,11 @@ public:
                              int32_t offsetZ);
 };
 
-class ChunkAccess : public BlockGetter, public enable_shared_from_this<ChunkAccess> {
+class ChunkAccess : public LevelHeightAccessor, public enable_shared_from_this<ChunkAccess> {
 private:
+    ChunkStatus* status;
     ChunkPos chunkPos;
     LevelHeightAccessor const &levelHeightAccessor;
-    // DEBUG
 public:
     shared_ptr<NoiseChunk> noiseChunk;
 
@@ -125,8 +114,6 @@ private:
     static void replaceMissingSections(LevelHeightAccessor const &heightAccessor, vector<LevelChunkSection> &sections);
 
 public:
-    virtual BlockState setBlockState(BlockPos const &pos, BlockState blockState, bool checked) = 0;
-
     LevelChunkSection *getHighestSection();
     int32_t getHighestSectionPosition();
     vector<LevelChunkSection> &getSections();
@@ -139,12 +126,12 @@ public:
 
     ChunkPos const &getPos() const;
 
-    int32_t getMinBuildHeight() const override;
-    int32_t getHeight() const override;
+    int32_t getMinBuildHeight() const;
+    int32_t getHeight() const;
 
     shared_ptr<NoiseChunk> getOrCreateNoiseChunk(shared_ptr<NoiseSampler> sampler, function<NoiseFiller(void)> filler,
                                                  NoiseGeneratorSettings const &settings,
-                                                 shared_ptr<Aquifer::FluidPicker> fluidPicker, Blender const &blender);
+                                                 shared_ptr<SimpleFluidPicker> fluidPicker, Blender const &blender);
 
     Biomes getNoiseBiome(int32_t x, int32_t y, int32_t z);
 
@@ -152,20 +139,9 @@ public:
 
     LevelHeightAccessor const &getHeightAccessorForGeneration();
 
-    virtual void setStatus(ChunkStatus *status) = 0;
-    virtual ChunkStatus *getStatus() = 0;
-};
+    BlockState getBlockState(BlockPos const& pos) const;
+    BlockState setBlockState(BlockPos const& pos, BlockState blockState, bool checked);
 
-class ProtoChunk : public ChunkAccess {
-private:
-    ChunkStatus *status;
-
-public:
-    ProtoChunk(ChunkPos const &chunkPos, LevelHeightAccessor const &levelHeightAccessor);
-
-    BlockState getBlockState(BlockPos const &pos) const override;
-    BlockState setBlockState(BlockPos const &pos, BlockState blockState, bool checked) override;
-
-    void setStatus(ChunkStatus *status) override;
-    ChunkStatus *getStatus() override;
+    void setStatus(ChunkStatus* status);
+    ChunkStatus* getStatus();
 };

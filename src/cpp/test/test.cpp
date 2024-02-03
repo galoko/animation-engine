@@ -38,7 +38,7 @@ bool compareChunkWithTemplate() {
     return nonMatch == 0;
 }
 
-void saveTestResult(shared_ptr<ProtoChunk> chunk) {
+void saveTestResult(shared_ptr<ChunkAccess> chunk) {
     int32_t i = 0;
     MutableBlockPos pos = MutableBlockPos();
     for (int32_t y = -64; y < 256; y++) {
@@ -57,11 +57,11 @@ void doTest() {
 
     shared_ptr<NoiseBasedChunkGenerator> chunkGenerator = WorldGenSettings::makeDefaultOverworld(seed);
 
-    SimpleLevelHeightAccessor heightAccessor = SimpleLevelHeightAccessor();
+    LevelHeightAccessor heightAccessor = LevelHeightAccessor();
 
     for (int32_t i = 0; i < 1; i++) {
         ChunkPos chunkPos = ChunkPos(8, 24);
-        shared_ptr<ProtoChunk> chunk = make_shared<ProtoChunk>(chunkPos, heightAccessor);
+        shared_ptr<ChunkAccess> chunk = make_shared<ChunkAccess>(chunkPos, heightAccessor);
 
         vector<shared_ptr<ChunkAccess>> cache = {chunk};
         shared_ptr<WorldGenRegion> region = make_shared<WorldGenRegion>(chunkGenerator, cache);

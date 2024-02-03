@@ -66,21 +66,21 @@ public:
     static shared_ptr<NoiseChunk> forChunk(shared_ptr<ChunkAccess> chunkAccess, shared_ptr<NoiseSampler> sampler,
                                            function<NoiseChunk::NoiseFiller(void)> filler,
                                            NoiseGeneratorSettings const &generatorSettings,
-                                           shared_ptr<Aquifer::FluidPicker> fluidPicker, Blender const &blender);
+                                           shared_ptr<SimpleFluidPicker> fluidPicker, Blender const &blender);
 
     static shared_ptr<NoiseChunk> forColumn(int32_t startX, int32_t startZ, int32_t cellNoiseMinY, int32_t cellCountY,
                                             shared_ptr<NoiseSampler> sampler,
                                             NoiseGeneratorSettings const &noiseSettings,
-                                            shared_ptr<Aquifer::FluidPicker> fluidPicker);
+                                            shared_ptr<SimpleFluidPicker> fluidPicker);
 
     NoiseChunk(int32_t cellCountXZ, int32_t cellCountY, int32_t cellNoiseMinY, shared_ptr<NoiseSampler> sampler,
                int32_t startX, int32_t startZ, NoiseChunk::NoiseFiller filler,
-               NoiseGeneratorSettings const &noiseSettings, shared_ptr<Aquifer::FluidPicker> fluidPicker,
+               NoiseGeneratorSettings const &noiseSettings, shared_ptr<SimpleFluidPicker> fluidPicker,
                Blender const &blender);
     shared_ptr<NoiseChunk> afterConstructor(int32_t cellCountXZ, int32_t cellCountY, int32_t cellNoiseMinY,
                                             shared_ptr<NoiseSampler> sampler, int32_t startX, int32_t startZ,
                                             NoiseChunk::NoiseFiller filler, NoiseGeneratorSettings const &noiseSettings,
-                                            shared_ptr<Aquifer::FluidPicker> fluidPicker, Blender const &blender);
+                                            shared_ptr<SimpleFluidPicker> fluidPicker, Blender const &blender);
 
     virtual ~NoiseChunk();
 

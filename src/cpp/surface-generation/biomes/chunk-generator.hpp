@@ -331,7 +331,7 @@ public:
     int32_t getPreliminarySurfaceLevel(int32_t x, int32_t z, TerrainInfo const &terrainInfo) const;
 
     unique_ptr<Aquifer> createAquifer(shared_ptr<NoiseChunk> chunkNoise, int32_t x, int32_t z, int32_t cellY,
-                                      int32_t cellCount, shared_ptr<Aquifer::FluidPicker> fluidPicker, bool enabled);
+                                      int32_t cellCount, shared_ptr<SimpleFluidPicker> fluidPicker, bool enabled);
 
     FlatNoiseData const noiseData(int32_t x, int32_t z, Blender const &blender) const;
 
@@ -423,18 +423,6 @@ public:
 
 using WorldGenMaterialRule = function<BlockState(shared_ptr<NoiseChunk> noiseChunk, int32_t x, int32_t y, int32_t z)>;
 
-class SimpleFluidPicker : public Aquifer::FluidPicker {
-private:
-    int32_t seaLevel;
-    Aquifer::FluidStatus lava;
-    Aquifer::FluidStatus defaultFluid;
-
-public:
-    SimpleFluidPicker(int32_t seaLevel, Aquifer::FluidStatus const &lava, Aquifer::FluidStatus const &defaultFluid);
-
-    Aquifer::FluidStatus computeFluid(int32_t x, int32_t y, int32_t z) override;
-};
-
 class BelowZeroRetrogen {
 public:
     static shared_ptr<BiomeResolver> getBiomeResolver(shared_ptr<BiomeResolver> resolver,
@@ -468,7 +456,7 @@ private:
     shared_ptr<NoiseSampler> sampler;
     shared_ptr<SurfaceSystem> surfaceSystem;
     WorldGenMaterialRule materialRule;
-    shared_ptr<Aquifer::FluidPicker> globalFluidPicker;
+    shared_ptr<SimpleFluidPicker> globalFluidPicker;
 
 public:
     weak_ptr<WorldGenRegion> region;

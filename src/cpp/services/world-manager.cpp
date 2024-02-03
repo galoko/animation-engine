@@ -4,22 +4,13 @@
 #include <glm.hpp>
 #include <gtc/quaternion.hpp>
 #include <gtx/transform.hpp>
+#include <thread>
 #include <vec3.hpp>
 #include <vec4.hpp>
 
 #include "../ecs/components/components.hpp"
 #include "../external-services/external-render.hpp"
 #include "../services.hpp"
-
-// minecraft
-
-#include "../surface-generation/biomes/blocks.hpp"
-#include "../surface-generation/biomes/chunk-generator.hpp"
-#include "../surface-generation/biomes/chunk-status.hpp"
-#include "../surface-generation/biomes/chunks.hpp"
-#include "../surface-generation/biomes/pos.hpp"
-#include "../surface-generation/biomes/worldgen-region.hpp"
-#include "../surface-generation/biomes/worldgen-settings.hpp"
 
 using namespace glm;
 
@@ -194,31 +185,102 @@ void WorldManager::addPillars() {
 #define RANGE (10)
 #define RANGE_SIZE (1 + RANGE * 2)
 
+int32_t WorldManager::getIndex(int32_t chunkX, int32_t chunkZ) {
+    ChunkPos &centerPos = this->terrainGenerationContext.centerPos;
+
+    int32_t x = chunkX - (-RANGE + centerPos.x);
+    int32_t z = chunkZ - (-RANGE + centerPos.z);
+    return x * RANGE_SIZE + z;
+};
+
+int i = 5;
+
+Blocks WorldManager::getBlock(int32_t x, int32_t y, int32_t z) {
+    auto &heightAccessor = this->terrainGenerationContext.heightAccessor;
+    int32_t startX = this->terrainGenerationContext.startX;
+    int32_t endX = this->terrainGenerationContext.endX;
+    int32_t startZ = this->terrainGenerationContext.startZ;
+    int32_t endZ = this->terrainGenerationContext.endZ;
+
+    if (x < startX || x > endX || z < startZ || z > endZ || y < heightAccessor.getMinBuildHeight() ||
+        y > heightAccessor.getMaxBuildHeight()) {
+        return Blocks::NULL_BLOCK;
+    }
+
+    // debug
+    if (x == 124 && z == 377 && y == 65) {
+        return Blocks::DIRT;
+    }
+
+    BlockPos blockPos(x, y, z);
+    ChunkPos chunkPos(blockPos);
+
+    int32_t index = this->getIndex(chunkPos.x, chunkPos.z);
+
+    shared_ptr<ChunkAccess> &chunk = this->terrainGenerationContext.chunks[index];
+
+    BlockPos blockPosInChunk(x - chunkPos.getMinBlockX(), y, z - chunkPos.getMinBlockZ());
+
+    return chunk->getBlockState(blockPosInChunk);
+};
+
+bool isInvisible(Blocks block) {
+    return block == Blocks::AIR || block == Blocks::NULL_BLOCK || block == Blocks::VOID_AIR;
+};
+
+bool isTransparent(Blocks block) {
+    return block == Blocks::WATER || isInvisible(block);
+};
+
+bool shouldAddSide(Blocks block, Blocks otherBlock) {
+    // invisible block
+    if (isInvisible(block)) {
+        return false;
+    }
+
+    // blocks are the same
+    if (block == otherBlock) {
+        return false;
+    }
+
+    // if we are facing non-transparent block
+    if (!isTransparent(otherBlock)) {
+        return false;
+    }
+
+    return true;
+};
+
+void writeVertex(vector<float> &vertices, vec3 v, vec3 &n, vec2 uv) {
+    vertices.push_back(v.x);
+    vertices.push_back(v.y);
+    vertices.push_back(v.z);
+    vertices.push_back(n.x);
+    vertices.push_back(n.y);
+    vertices.push_back(n.z);
+    vertices.push_back(uv.x);
+    vertices.push_back(uv.y);
+};
+
 void WorldManager::generateTerrain() {
+    TerrainGenerationContext &context = this->terrainGenerationContext;
+    context.centerPos = ChunkPos(7, 23);
+    context.heightAccessor = LevelHeightAccessor();
+    context.chunks = vector<shared_ptr<ChunkAccess>>(RANGE_SIZE * RANGE_SIZE);
+
     int64_t seed = hashCode("test");
 
     shared_ptr<NoiseBasedChunkGenerator> chunkGenerator = WorldGenSettings::makeDefaultOverworld(seed);
-    SimpleLevelHeightAccessor heightAccessor = SimpleLevelHeightAccessor();
-
-    ChunkPos centerPos = ChunkPos(7, 23);
-
-    vector<shared_ptr<ProtoChunk>> chunks(RANGE_SIZE * RANGE_SIZE);
-
-    auto getIndex = [centerPos](int32_t chunkX, int32_t chunkZ) -> int32_t {
-        int32_t x = chunkX - (-RANGE + centerPos.x);
-        int32_t z = chunkZ - (-RANGE + centerPos.z);
-        return x * RANGE_SIZE + z;
-    };
 
     auto generation_start_time = chrono::high_resolution_clock::now();
 
-    for (int32_t chunkX = -RANGE + centerPos.x; chunkX <= centerPos.x + RANGE; chunkX++) {
-        for (int32_t chunkZ = -RANGE + centerPos.z; chunkZ <= centerPos.z + RANGE; chunkZ++) {
+    for (int32_t chunkX = -RANGE + context.centerPos.x; chunkX <= context.centerPos.x + RANGE; chunkX++) {
+        for (int32_t chunkZ = -RANGE + context.centerPos.z; chunkZ <= context.centerPos.z + RANGE; chunkZ++) {
             auto chunk_start_time = chrono::high_resolution_clock::now();
-            int32_t index = getIndex(chunkX, chunkZ);
+            int32_t index = this->getIndex(chunkX, chunkZ);
 
             ChunkPos chunkPos = ChunkPos(chunkX, chunkZ);
-            shared_ptr<ProtoChunk> chunk = make_shared<ProtoChunk>(chunkPos, heightAccessor);
+            shared_ptr<ChunkAccess> chunk = make_shared<ChunkAccess>(chunkPos, context.heightAccessor);
 
             vector<shared_ptr<ChunkAccess>> cache = {chunk};
             shared_ptr<WorldGenRegion> region = make_shared<WorldGenRegion>(chunkGenerator, cache);
@@ -229,7 +291,7 @@ void WorldManager::generateTerrain() {
             ChunkStatus::NOISE.generate(chunkGenerator, ChunkStatus::EMPTY_CONVERTER, cache);
             ChunkStatus::SURFACE.generate(chunkGenerator, ChunkStatus::EMPTY_CONVERTER, cache);
 
-            chunks[index] = chunk;
+            context.chunks[index] = chunk;
 
             auto chunkTime = chrono::high_resolution_clock::now() - chunk_start_time;
 
@@ -239,84 +301,26 @@ void WorldManager::generateTerrain() {
     }
 
     auto generation_total_time = chrono::high_resolution_clock::now() - generation_start_time;
-    printf("%d chunks has been generated in %lldms\n", (int32_t)chunks.size(),
+    printf("%d chunks has been generated in %lldms\n", (int32_t)context.chunks.size(),
            generation_total_time / chrono::milliseconds(1));
+
+    this_thread::sleep_for(1000ms);
 
     auto meshing_start_time = chrono::high_resolution_clock::now();
 
-    shared_ptr<ProtoChunk> firstChunk = chunks[0];
-    shared_ptr<ProtoChunk> lastChunk = chunks[chunks.size() - 1];
-
-    int32_t startX = firstChunk->getPos().getMinBlockX();
-    int32_t startZ = firstChunk->getPos().getMinBlockZ();
-
-    int32_t endX = lastChunk->getPos().getMaxBlockX();
-    int32_t endZ = lastChunk->getPos().getMaxBlockZ();
-
-    auto getBlock = [chunks, startX, startZ, endX, endZ, &heightAccessor, getIndex](int32_t x, int32_t y,
-                                                                                    int32_t z) -> Blocks {
-        if (x < startX || x > endX || z < startZ || z > endZ || y < heightAccessor.getMinBuildHeight() ||
-            y > heightAccessor.getMaxBuildHeight()) {
-            return Blocks::NULL_BLOCK;
-        }
-
-        // debug
-        if (x == 124 && z == 377 && y == 65) {
-            return Blocks::DIRT;
-        }
-
-        BlockPos blockPos(x, y, z);
-        ChunkPos chunkPos(blockPos);
-
-        int32_t index = getIndex(chunkPos.x, chunkPos.z);
-
-        shared_ptr<ProtoChunk> chunk = chunks[index];
-
-        BlockPos blockPosInChunk(x - chunkPos.getMinBlockX(), y, z - chunkPos.getMinBlockZ());
-        return chunk->getBlockState(blockPosInChunk);
-    };
-
-    auto isInvisible = [](Blocks block) -> bool {
-        return block == Blocks::AIR || block == Blocks::NULL_BLOCK || block == Blocks::VOID_AIR;
-    };
-
-    auto isTransparent = [isInvisible](Blocks block) -> bool { return block == Blocks::WATER || isInvisible(block); };
-
-    auto shouldAddSide = [getBlock, isTransparent, isInvisible](Blocks block, Blocks otherBlock) -> bool {
-        // invisible block
-        if (isInvisible(block)) {
-            return false;
-        }
-
-        // blocks are the same
-        if (block == otherBlock) {
-            return false;
-        }
-
-        // if we are facing non-transparent block
-        if (!isTransparent(otherBlock)) {
-            return false;
-        }
-
-        return true;
-    };
-
     RenderHandle atlasTexture = Render::requestTexture("minecraft-atlas.png");
 
-    for (shared_ptr<ChunkAccess> chunk : chunks) {
+    shared_ptr<ChunkAccess> firstChunk = context.chunks[0];
+    shared_ptr<ChunkAccess> lastChunk = context.chunks[context.chunks.size() - 1];
+
+    context.startX = firstChunk->getPos().getMinBlockX();
+    context.startZ = firstChunk->getPos().getMinBlockZ();
+    context.endX = lastChunk->getPos().getMaxBlockX();
+    context.endZ = lastChunk->getPos().getMaxBlockZ();
+
+    for (shared_ptr<ChunkAccess> chunk : context.chunks) {
         vector<float> vertices;
         vector<uint16_t> indices;
-
-        auto writeVertex = [&vertices](vec3 v, vec3 n, vec2 uv) -> void {
-            vertices.push_back(v.x);
-            vertices.push_back(v.y);
-            vertices.push_back(v.z);
-            vertices.push_back(n.x);
-            vertices.push_back(n.y);
-            vertices.push_back(n.z);
-            vertices.push_back(uv.x);
-            vertices.push_back(uv.y);
-        };
 
         ChunkPos chunkPos = chunk->getPos();
         int32_t startX = chunkPos.getMinBlockX();
@@ -324,10 +328,11 @@ void WorldManager::generateTerrain() {
         int32_t startZ = chunkPos.getMinBlockZ();
         int32_t endZ = chunkPos.getMaxBlockZ();
 
-        for (int32_t y = heightAccessor.getMinBuildHeight(); y <= heightAccessor.getMaxBuildHeight(); y++) {
+        for (int32_t y = context.heightAccessor.getMinBuildHeight(); y <= context.heightAccessor.getMaxBuildHeight();
+             y++) {
             for (int32_t z = startZ; z <= endZ; z++) {
                 for (int32_t x = startX; x <= endX; x++) {
-                    Blocks block = getBlock(x, y, z);
+                    Blocks block = this->getBlock(x, y, z);
                     if (isInvisible(block)) {
                         continue;
                     }
@@ -336,7 +341,7 @@ void WorldManager::generateTerrain() {
                         vec3 blockPos(x, z, y);
                         blockPos += vec3(0.5, 0.5, 0);
                         vec3 offset = offsets[side];
-                        Blocks otherBlock = getBlock(x + offset.x, y + offset.y, z + offset.z);
+                        Blocks otherBlock = this->getBlock(x + offset.x, y + offset.y, z + offset.z);
 
                         if (shouldAddSide(block, otherBlock)) {
                             // printf("adding side at %d %d %d\n", x, z, y);
@@ -358,10 +363,12 @@ void WorldManager::generateTerrain() {
                             vec2 uv = vec2((float)uvIndex * 16.f / 256.f, 0.f);
                             vec2 one_texture_length(16.f / 256.f, 16.f / 16.f);
 
-                            writeVertex(blockPos + q * vec3(-0.5f, -0.5f, 0.5f), n, uv);
-                            writeVertex(blockPos + q * vec3(0.5f, -0.5f, 0.5f), n, uv + vec2(one_texture_length.x, 0));
-                            writeVertex(blockPos + q * vec3(-0.5f, 0.5f, 0.5f), n, uv + vec2(0, one_texture_length.y));
-                            writeVertex(blockPos + q * vec3(0.5f, 0.5f, 0.5f), n, uv + one_texture_length);
+                            writeVertex(vertices, blockPos + q * vec3(-0.5f, -0.5f, 0.5f), n, uv);
+                            writeVertex(vertices, blockPos + q * vec3(0.5f, -0.5f, 0.5f), n,
+                                        uv + vec2(one_texture_length.x, 0));
+                            writeVertex(vertices, blockPos + q * vec3(-0.5f, 0.5f, 0.5f), n,
+                                        uv + vec2(0, one_texture_length.y));
+                            writeVertex(vertices, blockPos + q * vec3(0.5f, 0.5f, 0.5f), n, uv + one_texture_length);
                         }
                     }
                 }
@@ -382,6 +389,6 @@ void WorldManager::generateTerrain() {
     }
 
     auto meshing_total_time = chrono::high_resolution_clock::now() - meshing_start_time;
-    printf("%d chunks has been meshed in %lldms\n", (int32_t)chunks.size(),
+    printf("%d chunks has been meshed in %lldms\n", (int32_t)context.chunks.size(),
            meshing_total_time / chrono::milliseconds(1));
 }
