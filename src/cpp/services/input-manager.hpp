@@ -11,8 +11,7 @@ using namespace glm;
 using namespace entt;
 using namespace std;
 
-enum class MouseButton
-{
+enum class MouseButton {
     NONE = 0,
 
     LEFT,
@@ -23,8 +22,7 @@ enum class MouseButton
     LAST_BUTTON = RIGHT
 };
 
-enum class KeyboardKey
-{
+enum class KeyboardKey {
     KEY_0 = 1,
     KEY_1,
     KEY_2,
@@ -73,8 +71,8 @@ enum class KeyboardKey
 
 class InputManager {
 private:
-    bool keyboardState[(int)KeyboardKey::LAST_KEY + 1];
-    bool mouseState[(int)MouseButton::LAST_BUTTON + 1];
+    bool keyboardState[(int32_t)KeyboardKey::LAST_KEY + 1];
+    bool mouseState[(int32_t)MouseButton::LAST_BUTTON + 1];
 
     vec2 mousePoint, mouseDelta;
     bool mouseCaptured;

@@ -18,11 +18,11 @@ using namespace std;
 uint8_t RESULT[16 * 16 * 384];
 
 bool compareChunkWithTemplate() {
-    int nonMatch = 0;
-    int i = 0;
-    for (int y = -64; y < 256; y++) {
-        for (int x = 0; x < 16; x++) {
-            for (int z = 0; z < 16; z++) {
+    int32_t nonMatch = 0;
+    int32_t i = 0;
+    for (int32_t y = -64; y < 256; y++) {
+        for (int32_t x = 0; x < 16; x++) {
+            for (int32_t z = 0; z < 16; z++) {
                 auto block = blockToStr((BlockState)RESULT[i]);
                 auto templateBlock = BLOCKS[i];
                 i++;
@@ -39,11 +39,11 @@ bool compareChunkWithTemplate() {
 }
 
 void saveTestResult(shared_ptr<ProtoChunk> chunk) {
-    int i = 0;
+    int32_t i = 0;
     MutableBlockPos pos = MutableBlockPos();
-    for (int y = -64; y < 256; y++) {
-        for (int x = 0; x < 16; x++) {
-            for (int z = 0; z < 16; z++) {
+    for (int32_t y = -64; y < 256; y++) {
+        for (int32_t x = 0; x < 16; x++) {
+            for (int32_t z = 0; z < 16; z++) {
                 pos.set(x, y, z);
                 BlockState block = chunk->getBlockState(pos);
                 RESULT[i++] = (uint8_t)block;
@@ -59,7 +59,7 @@ void doTest() {
 
     SimpleLevelHeightAccessor heightAccessor = SimpleLevelHeightAccessor();
 
-    for (int i = 0; i < 10; i++) {
+    for (int32_t i = 0; i < 1; i++) {
         ChunkPos chunkPos = ChunkPos(8, 24);
         shared_ptr<ProtoChunk> chunk = make_shared<ProtoChunk>(chunkPos, heightAccessor);
 

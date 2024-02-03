@@ -36,11 +36,11 @@ void PlayerInputManager::tick(double dt) {
     }
 
     if (Services->inputManager.isPressed(KeyboardKey::KEY_LSHIFT)) {
-        direction.z = 1;
+        direction.z = -1;
         speed = 5.2 * 100 * 1;
     }
-    if (Services->inputManager.isPressed(KeyboardKey::KEY_LCONTROL)) {
-        direction.z = -1;
+    if (Services->inputManager.isPressed(KeyboardKey::KEY_SPACE)) {
+        direction.z = 1;
         speed = 5.2 * 100 * 1;
     }
 

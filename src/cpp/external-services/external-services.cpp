@@ -12,7 +12,7 @@ ServicesQueue *getOutputQueue() {
     return &outputQueue;
 }
 
-GenericMessageHandler inputHandlers[(int)InputMessageId::LAST_INPUT_MESSAGE + 1];
+GenericMessageHandler inputHandlers[(int32_t)InputMessageId::LAST_INPUT_MESSAGE + 1];
 
 MessageHandle nextHandle = 1;
 
@@ -42,7 +42,7 @@ void processInputQueue() {
 }
 
 void unregisterAll() {
-    for (int i = 0; i <= (int)InputMessageId::LAST_INPUT_MESSAGE; i++) {
+    for (int32_t i = 0; i <= (int32_t)InputMessageId::LAST_INPUT_MESSAGE; i++) {
         inputHandlers[i] = nullptr;
     }
 }

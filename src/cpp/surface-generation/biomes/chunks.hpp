@@ -33,6 +33,7 @@ public:
 };
 
 class SimpleLevelHeightAccessor : public LevelHeightAccessor {
+public:
     int32_t getHeight() const override;
     int32_t getMinBuildHeight() const override;
 };
@@ -151,20 +152,20 @@ public:
 
     LevelHeightAccessor const &getHeightAccessorForGeneration();
 
-
-    virtual void setStatus(ChunkStatus* status) = 0;
-    virtual ChunkStatus* getStatus() = 0;
+    virtual void setStatus(ChunkStatus *status) = 0;
+    virtual ChunkStatus *getStatus() = 0;
 };
 
 class ProtoChunk : public ChunkAccess {
 private:
-    ChunkStatus* status;
+    ChunkStatus *status;
+
 public:
     ProtoChunk(ChunkPos const &chunkPos, LevelHeightAccessor const &levelHeightAccessor);
 
     BlockState getBlockState(BlockPos const &pos) const override;
     BlockState setBlockState(BlockPos const &pos, BlockState blockState, bool checked) override;
 
-    void setStatus(ChunkStatus* status) override;
-    ChunkStatus* getStatus() override;
+    void setStatus(ChunkStatus *status) override;
+    ChunkStatus *getStatus() override;
 };

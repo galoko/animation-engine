@@ -34,6 +34,7 @@ public:
 
     static RenderHandle requestTexture(string texName);
     static RenderHandle requestMesh(string meshName);
+    static RenderHandle createGeneratedMesh(uint32_t vertexCount, uint32_t indexCount, void *data);
 
     static RenderHandle generateOneColorTexture(vec4 color);
 };

@@ -31,6 +31,7 @@ export enum OutputMessageId {
     REQUEST_TEXTURE,
     REQUEST_MESH,
     REQUEST_ANIMATION,
+    CREATE_GENERATED_MESH,
 
     // Resource generators
     GENERATE_ONE_COLOR_TEXTURE,

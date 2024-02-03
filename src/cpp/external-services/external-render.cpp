@@ -34,6 +34,12 @@ RenderHandle Render::requestMesh(string meshName) {
     return RenderHandle(handle);
 }
 
+RenderHandle Render::createGeneratedMesh(uint32_t vertexCount, uint32_t indexCount, void *data) {
+    MessageHandle handle =
+        pushMessage(OutputMessageId::CREATE_GENERATED_MESH, CreateGeneratedMeshMessage(vertexCount, indexCount, data));
+    return RenderHandle(handle);
+}
+
 RenderHandle Render::generateOneColorTexture(vec4 color) {
     MessageHandle handle =
         pushMessage(OutputMessageId::GENERATE_ONE_COLOR_TEXTURE, GenerateOneColorTextureMessage(color));

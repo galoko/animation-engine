@@ -4,11 +4,11 @@
 #include <memory>
 #include <stdio.h>
 
-unique_ptr<map<string, int>> counters = nullptr;
+unique_ptr<map<string, int32_t>> counters = nullptr;
 
 void _objectCreated(string name) {
     if (counters == nullptr) {
-        counters = make_unique<map<string, int>>();
+        counters = make_unique<map<string, int32_t>>();
     }
 
     (*counters)[name] = (*counters)[name] + 1;
@@ -16,7 +16,7 @@ void _objectCreated(string name) {
 
 void _objectFreed(string name) {
     if (counters == nullptr) {
-        counters = make_unique<map<string, int>>();
+        counters = make_unique<map<string, int32_t>>();
     }
 
     (*counters)[name] = (*counters)[name] - 1;

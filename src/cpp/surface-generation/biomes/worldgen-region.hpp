@@ -25,7 +25,7 @@ public:
     void init(int64_t seed);
 
     shared_ptr<ChunkAccess> getChunk(int32_t x, int32_t z, const ChunkStatus &status, bool ensureNonNull);
-    bool hasChunk(int x, int z);
-    Biomes getNoiseBiome(int x, int y, int z);
+    bool hasChunk(int32_t x, int32_t z);
+    Biomes getNoiseBiome(int32_t x, int32_t y, int32_t z);
     Biomes getUncachedNoiseBiome(int32_t x, int32_t y, int32_t z);
 };

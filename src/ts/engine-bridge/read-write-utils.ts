@@ -56,6 +56,10 @@ export function readU32(ptr: SeekablePtr | number): number {
     return Engine.HEAPU32[ptr / 4]
 }
 
+export function readPointer(ptr: SeekablePtr | number): number {
+    return readU32(ptr)
+}
+
 export function readU64(ptr: SeekablePtr | number): number {
     ptr = getAndSeekPtr(ptr, 8)
 

@@ -51,6 +51,16 @@ struct RequestMeshMessage {
     }
 };
 
+struct CreateGeneratedMeshMessage {
+    uint32_t vertexCount;
+    uint32_t indexCount;
+    void *data;
+
+    CreateGeneratedMeshMessage(uint32_t vertexCount, uint32_t indexCount, void *data)
+        : vertexCount(vertexCount), indexCount(indexCount), data(data) {
+    }
+};
+
 struct RequestTextureMessage {
     char texName[MAX_NAME_LENGTH];
 

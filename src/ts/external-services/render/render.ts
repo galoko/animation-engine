@@ -764,79 +764,11 @@ export class Render {
     }
 
     static async setupTest(): Promise<void> {
-        /*
-        const coordinates = [
-            //
-            8, -101515.1328125, -38915.29296875, -1551.75769042969,
-            //
-            8, -101515.1328125, -71683.296875, -1551.75769042969,
-            //
-            4, -35979.12890625, 10236.70703125, -1551.75769042969,
-            //
-            4, -35979.12890625, 10236.70703125, -1551.75769042969,
-            //
-            4, -35979.12890625, -6147.29296875, -1551.75769042969,
-            //
-            4, -35979.12890625, -6147.29296875, -1551.75769042969,
-            //
-            8, -68747.1328125, -6147.29296875, -1551.75769042969,
-            //
-            4, -35979.12890625, -22531.29296875, -1551.75769042969,
-            //
-            4, -35979.12890625, -22531.29296875, -1551.75769042969,
-            //
-            8, -68747.1328125, -38915.29296875, -1551.75769042969,
-            //
-            8, -68747.1328125, -71683.296875, -1551.75769042969,
-            //
-            8, -101515.1328125, -6147.29296875, -1551.75769042969,
-            //
-            8, -134283.125, 26620.70703125, -1551.75769042969,
-            //
-            8, -134283.125, -6147.29296875, -1551.75769042969,
-            //
-            16, -134283.125, -137219.296875, -1551.75769042969,
-            //
-            16, -199819.125, 59388.70703125, -1551.75769042969,
-            //
-            16, -199819.125, -6147.29296875, -1551.75769042969,
-            //
-            16, -265355.125, -6147.29296875, -1551.75769042969,
-        ]
-
-        for (let i = 0; i < 18; i++) {
-            const mountains = new Renderable(
-                await ResourceManager.requestMesh(`mountains_${i}`),
-                await ResourceManager.requestTexture("mountains.png")
-            )
-            Render.setTransform(
-                mountains,
-                new Float32Array([
-                    // rotation
-                    0,
-                    0,
-                    0,
-                    1,
-                    // scale
-                    coordinates[i * 4 + 0],
-                    // position
-                    coordinates[i * 4 + 1],
-                    coordinates[i * 4 + 2],
-                    coordinates[i * 4 + 3],
-                ])
-            )
-
-            Render.addRenderable(mountains)
-        }
-        */
-
         Render.fullscreenPlain = new MeshBuffer(
             await ResourceManager.requestMesh("fullscreen_plane")
         )
 
-        Render.debugTexturePlane = new MeshBuffer(
-            ResourceManager.generatePlane(0, 0, canvasWebGPU.width, canvasWebGPU.height)
-        )
+        Render.debugTexturePlane = new MeshBuffer(ResourceManager.generatePlane(0, 0, 640, 640))
     }
 
     private static initAtlases() {
@@ -1661,7 +1593,7 @@ export class Render {
                 },
                 {
                     binding: 2,
-                    resource: linearRepeatSampler,
+                    resource: pointRepeatSampler,
                 },
                 {
                     binding: 3,
@@ -2152,6 +2084,18 @@ export class Render {
                     {
                         format: "rg11b10ufloat",
                         writeMask: GPUColorWrite.RED | GPUColorWrite.GREEN | GPUColorWrite.BLUE,
+                        blend: {
+                            color: {
+                                operation: "add",
+                                srcFactor: "src-alpha",
+                                dstFactor: "one-minus-src-alpha",
+                            },
+                            alpha: {
+                                operation: "add",
+                                srcFactor: "src-alpha",
+                                dstFactor: "one-minus-src-alpha",
+                            },
+                        },
                     },
                 ],
             },
@@ -2680,6 +2624,8 @@ export class Render {
         if (canvasWebGPU.width === newWidth && canvasWebGPU.height === newHeight) {
             return
         }
+
+        console.log(`resize: ${document.body.clientWidth}x${document.body.clientHeight}x${dpr}`)
 
         ctx.canvas.style.width = document.body.clientWidth + "px"
         ctx.canvas.style.height = document.body.clientHeight + "px"

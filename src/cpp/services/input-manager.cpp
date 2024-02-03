@@ -16,7 +16,7 @@ InputManager::InputManager()
 
         bool down = id == InputMessageId::KEY_DOWN;
 
-        this->keyboardState[(int)key] = down;
+        this->keyboardState[(int32_t)key] = down;
 
         // printf("key message %d is %s\n", msg.key, down ? "pressed" : "not pressed");
 
@@ -31,9 +31,9 @@ InputManager::InputManager()
         }
 
         if (id == InputMessageId::MOUSE_DOWN) {
-            this->mouseState[(int)button] = true;
+            this->mouseState[(int32_t)button] = true;
         } else if (id == InputMessageId::MOUSE_UP) {
-            this->mouseState[(int)button] = false;
+            this->mouseState[(int32_t)button] = false;
         }
 
         this->mouseDelta.x = !isnan(msg.dx) ? msg.dx : 0;
@@ -55,7 +55,7 @@ InputManager::InputManager()
 }
 
 bool InputManager::isPressed(KeyboardKey key) {
-    return this->keyboardState[(int)key];
+    return this->keyboardState[(int32_t)key];
 }
 
 bool InputManager::isPressed(vector<KeyboardKey> keys) {

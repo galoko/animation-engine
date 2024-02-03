@@ -5,7 +5,16 @@ import { Renderable } from "../../external-services/render/renderable"
 import { ResourceManager } from "../../external-services/resources/resource-manager"
 import { OutputMessageId, registerOutputHandler } from "../queue-messages"
 import { Queues } from "../queues"
-import { readString, readToFloatArray, readU64, SeekablePtr } from "../read-write-utils"
+import {
+    readPointer,
+    readString,
+    readToFloatArray,
+    readU32,
+    readU64,
+    SeekablePtr,
+} from "../read-write-utils"
+import { Engine } from "../module"
+import { MESH_VERTEX_SIZE } from "../../external-services/resources/loaders"
 
 const pos = vec3.create()
 const lookAt = vec3.create()
@@ -81,6 +90,26 @@ async function RequestMesh(ptr: SeekablePtr): Promise<Mesh> {
 }
 
 registerOutputHandler(OutputMessageId.REQUEST_MESH, RequestMesh)
+
+async function CreateGeneratedMesh(ptr: SeekablePtr): Promise<Mesh> {
+    const vertexCount = readU32(ptr)
+    const indexCount = readU32(ptr)
+    const data = readPointer(ptr)
+
+    const vertices = new Float32Array(Engine.HEAPU8.buffer, data, vertexCount)
+
+    const indices = new Uint16Array(
+        Engine.HEAPU8.buffer,
+        data + vertexCount * Float32Array.BYTES_PER_ELEMENT,
+        indexCount
+    )
+
+    const model = new Mesh(vertices, indices)
+
+    return model
+}
+
+registerOutputHandler(OutputMessageId.CREATE_GENERATED_MESH, CreateGeneratedMesh)
 
 async function GenerateOneColorTexture(/*ptr: SeekablePtr*/): Promise<void> {
     // TODO

@@ -1,10 +1,10 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include <functional>
 
 using namespace std;
 
@@ -45,6 +45,7 @@ enum class OutputMessageId {
     REQUEST_TEXTURE,
     REQUEST_MESH,
     REQUEST_ANIMATION,
+    CREATE_GENERATED_MESH,
 
     // Resource generators
     GENERATE_ONE_COLOR_TEXTURE,
@@ -90,7 +91,7 @@ namespace {
     using GenericMessageHandler = MessageHandler<ServicesMessageData>;
 }; // namespace
 
-extern GenericMessageHandler inputHandlers[(int)InputMessageId::LAST_INPUT_MESSAGE + 1];
+extern GenericMessageHandler inputHandlers[(int32_t)InputMessageId::LAST_INPUT_MESSAGE + 1];
 
 ServicesQueue *getInputQueue();
 ServicesQueue *getOutputQueue();
@@ -99,8 +100,8 @@ extern MessageHandle nextHandle;
 
 template <typename T> MessageHandle pushMessage(OutputMessageId id, T data) {
     ServicesQueue *queue = getOutputQueue();
-    int messageBodySize = sizeof(T);
-    int messageSize = sizeof(ServiceMessageHeader) + messageBodySize;
+    int32_t messageBodySize = sizeof(T);
+    int32_t messageSize = sizeof(ServiceMessageHeader) + messageBodySize;
 
     if (queue->bufferPosition + messageSize > QUEUE_BUFFER_SIZE) {
         throw overflow_error("Output queue buffer overflow.");
@@ -124,11 +125,11 @@ template <typename T> MessageHandle pushMessage(OutputMessageId id, T data) {
 void processInputQueue();
 
 template <typename T> void registerHandler(InputMessageId id, MessageHandler<T> handler) {
-    if (inputHandlers[(int)id] != nullptr) {
+    if (inputHandlers[(int32_t)id] != nullptr) {
         throw runtime_error("Handler is already registered for id.");
         return;
     }
-    inputHandlers[(int)id] = *((GenericMessageHandler *)&handler);
+    inputHandlers[(int32_t)id] = *((GenericMessageHandler *)&handler);
 }
 
 template <typename T> void registerHandler(vector<InputMessageId> const &ids, MessageHandler<T> handler) {

@@ -296,8 +296,8 @@ public:
         static bool compareTwoNodesRecursive(shared_ptr<Climate::RTree::Node> left,
                                              shared_ptr<Climate::RTree::Node> right, int32_t index, int32_t nodeCount,
                                              bool doAbs) {
-            for (int i = 0; i < nodeCount; i++) {
-                int indexToCompare = (index + i) % nodeCount;
+            for (int32_t i = 0; i < nodeCount; i++) {
+                int32_t indexToCompare = (index + i) % nodeCount;
                 int64_t leftValue = getNodeValueForSort(left, indexToCompare, doAbs);
                 int64_t rightValue = getNodeValueForSort(right, indexToCompare, doAbs);
 
