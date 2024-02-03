@@ -132,8 +132,8 @@ Biomes LevelChunkSection::getNoiseBiome(int32_t x, int32_t y, int32_t z) const {
     return this->biomes.at(getBiomesIndex(x, y, z));
 }
 
-void LevelChunkSection::fillBiomesFromNoise(shared_ptr<BiomeResolver> resolver, shared_ptr<Climate::Sampler> sampler,
-                                            int32_t offsetX, int32_t offsetZ) {
+void LevelChunkSection::fillBiomesFromNoise(shared_ptr<BiomeSource> resolver,
+                                            shared_ptr<Climate::Sampler> sampler, int32_t offsetX, int32_t offsetZ) {
     vector<Biomes> &biomes = this->biomes;
     // biomes->acquire();
 
@@ -158,7 +158,7 @@ void LevelChunkSection::fillBiomesFromNoise(shared_ptr<BiomeResolver> resolver, 
 // ChunkAccess
 
 ChunkAccess::ChunkAccess(ChunkPos const &chunkPos, LevelHeightAccessor const &levelHeightAccessor)
-    : chunkPos(chunkPos), levelHeightAccessor(levelHeightAccessor), status(nullptr) {
+    : status(nullptr), chunkPos(chunkPos), levelHeightAccessor(levelHeightAccessor) {
     this->noiseChunk = nullptr;
     this->isLightCorrect = false;
     this->sections = vector<LevelChunkSection>(levelHeightAccessor.getSectionsCount());
@@ -263,7 +263,8 @@ Biomes ChunkAccess::getNoiseBiome(int32_t x, int32_t y, int32_t z) {
     return this->getSection(sectionIndex).getNoiseBiome(x & 3, clampedY & 3, z & 3);
 }
 
-void ChunkAccess::fillBiomesFromNoise(shared_ptr<BiomeResolver> resolver, shared_ptr<Climate::Sampler> sampler) {
+void ChunkAccess::fillBiomesFromNoise(shared_ptr<BiomeSource> resolver,
+                                      shared_ptr<Climate::Sampler> sampler) {
     ChunkPos const &chunkpos = this->getPos();
     int32_t x = QuartPos::fromBlock(chunkpos.getMinBlockX());
     int32_t z = QuartPos::fromBlock(chunkpos.getMinBlockZ());
@@ -327,10 +328,10 @@ BlockState ChunkAccess::setBlockState(BlockPos const &pos, BlockState blockState
     }
 }
 
-void ChunkAccess::setStatus(ChunkStatus* status) {
+void ChunkAccess::setStatus(ChunkStatus *status) {
     this->status = status;
 }
 
-ChunkStatus* ChunkAccess::getStatus() {
+ChunkStatus *ChunkAccess::getStatus() {
     return this->status;
 }

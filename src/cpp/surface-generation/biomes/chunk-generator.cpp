@@ -192,7 +192,7 @@ double Blender::blendDensity(int32_t x, int32_t y, int32_t z, double density) co
     return density;
 }
 
-shared_ptr<BiomeResolver> Blender::getBiomeResolver(shared_ptr<BiomeResolver> resolver) const {
+shared_ptr<BiomeSource> Blender::getBiomeResolver(shared_ptr<BiomeSource> resolver) const {
     return resolver;
 }
 
@@ -812,7 +812,7 @@ void NoiseBasedChunkGenerator::doCreateBiomes(Blender const &blender, shared_ptr
     shared_ptr<NoiseChunk> noiseChunk = chunkAccess->getOrCreateNoiseChunk(
         this->sampler, [chunkAccess]() -> NoiseFiller { return makeBeardifier(chunkAccess); }, this->settings,
         this->globalFluidPicker, blender);
-    shared_ptr<BiomeResolver> biomeresolver =
+    shared_ptr<BiomeSource> biomeresolver =
         BelowZeroRetrogen::getBiomeResolver(blender.getBiomeResolver(this->runtimeBiomeSource), chunkAccess);
     chunkAccess->fillBiomesFromNoise(biomeresolver, make_shared<NoiseClimateSampler>(this->sampler, noiseChunk));
 }

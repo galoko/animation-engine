@@ -170,7 +170,7 @@ private:
 public:
     TerrainInfo const &blendOffsetAndFactor(int32_t x, int32_t z, TerrainInfo const &terrainInfo) const;
     double blendDensity(int32_t x, int32_t y, int32_t z, double density) const;
-    shared_ptr<BiomeResolver> getBiomeResolver(shared_ptr<BiomeResolver> resolver) const;
+    shared_ptr<BiomeSource> getBiomeResolver(shared_ptr<BiomeSource> resolver) const;
 
     static Blender const &empty();
 };
@@ -425,7 +425,7 @@ using WorldGenMaterialRule = function<BlockState(shared_ptr<NoiseChunk> noiseChu
 
 class BelowZeroRetrogen {
 public:
-    static shared_ptr<BiomeResolver> getBiomeResolver(shared_ptr<BiomeResolver> resolver,
+    static shared_ptr<BiomeSource> getBiomeResolver(shared_ptr<BiomeSource> resolver,
                                                       shared_ptr<ChunkAccess> chunkAccess) {
         return resolver;
     };

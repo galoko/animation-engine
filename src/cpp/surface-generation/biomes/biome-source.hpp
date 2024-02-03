@@ -11,58 +11,37 @@
 
 using namespace std;
 
-class BiomeResolver {
-public:
-    virtual Biomes getNoiseBiome(int32_t x, int32_t y, int32_t z, shared_ptr<Climate::Sampler> sampler) = 0;
-
-    virtual ~BiomeResolver() {
-    }
-};
-
 class PlacedFeature {};
 
-class BiomeSource : public BiomeResolver {
+class BiomeSource : public enable_shared_from_this<BiomeSource> {
 private:
     class StepFeatureData {
         StepFeatureData(vector<PlacedFeature> features, function<int32_t(PlacedFeature)> indexMapping);
     };
-
 public:
     set<Biomes> possibleBiomes;
-    vector<BiomeSource::StepFeatureData> featuresPerStep;
+    vector<StepFeatureData> featuresPerStep;
 
-    BiomeSource(vector<Biomes> const &biomes);
-
-    virtual ~BiomeSource() {
-        objectFreed("BiomeSource");
-    }
-
-    virtual shared_ptr<BiomeSource> withSeed(int64_t seed) = 0;
-    virtual Biomes getNoiseBiome(int32_t x, int32_t y, int32_t z, shared_ptr<Climate::Sampler> sampler) = 0;
-};
-
-class MultiNoiseBiomeSource : public BiomeSource, public enable_shared_from_this<MultiNoiseBiomeSource> {
-public:
     class Preset;
 
     class PresetInstance {
     public:
-        static MultiNoiseBiomeSource::PresetInstance NULL_PRESET_INSTANCE;
+        static BiomeSource::PresetInstance NULL_PRESET_INSTANCE;
 
-        MultiNoiseBiomeSource::Preset const *preset;
+        BiomeSource::Preset const *preset;
 
-        PresetInstance(MultiNoiseBiomeSource::Preset const *preset);
+        PresetInstance(BiomeSource::Preset const *preset);
 
-        unique_ptr<MultiNoiseBiomeSource> biomeSource() const;
+        unique_ptr<BiomeSource> biomeSource() const;
 
         bool isNull() const;
     };
 
     class Preset {
     public:
-        static MultiNoiseBiomeSource::Preset NULL_PRESET;
-        static MultiNoiseBiomeSource::Preset OVERWORLD;
-        static MultiNoiseBiomeSource::Preset NETHER;
+        static BiomeSource::Preset NULL_PRESET;
+        static BiomeSource::Preset OVERWORLD;
+        static BiomeSource::Preset NETHER;
         string name;
 
     private:
@@ -74,28 +53,28 @@ public:
 
         bool isNull() const;
 
-        unique_ptr<MultiNoiseBiomeSource> biomeSource(MultiNoiseBiomeSource::PresetInstance const presetInstance,
+        unique_ptr<BiomeSource> biomeSource(BiomeSource::PresetInstance const presetInstance,
                                                       bool usePresetInstance) const;
-        unique_ptr<MultiNoiseBiomeSource> biomeSource(bool usePresetInstance) const;
-        unique_ptr<MultiNoiseBiomeSource> biomeSource() const;
+        unique_ptr<BiomeSource> biomeSource(bool usePresetInstance) const;
+        unique_ptr<BiomeSource> biomeSource() const;
 
         static void finalize();
     };
 
 private:
-    static vector<Biomes> getBiomes(Climate::ParameterList const &parameters);
+    static set<Biomes> getBiomes(Climate::ParameterList const &parameters);
 
     Climate::ParameterList parameters;
-    MultiNoiseBiomeSource::PresetInstance const preset;
+    BiomeSource::PresetInstance const preset;
 
 public:
-    MultiNoiseBiomeSource(Climate::ParameterList const &parameters);
-    MultiNoiseBiomeSource(Climate::ParameterList const &parameters, MultiNoiseBiomeSource::PresetInstance const preset);
+    BiomeSource(Climate::ParameterList const &parameters);
+    BiomeSource(Climate::ParameterList const &parameters, BiomeSource::PresetInstance const preset);
 
-    shared_ptr<BiomeSource> withSeed(int64_t seed) override;
+    shared_ptr<BiomeSource> withSeed(int64_t seed);
 
-    bool stable(MultiNoiseBiomeSource::Preset const &preset) const;
+    bool stable(BiomeSource::Preset const &preset) const;
 
-    Biomes getNoiseBiome(int32_t x, int32_t y, int32_t z, shared_ptr<Climate::Sampler> sampler) override;
+    Biomes getNoiseBiome(int32_t x, int32_t y, int32_t z, shared_ptr<Climate::Sampler> sampler);
     Biomes getNoiseBiome(Climate::TargetPoint const &targetPoint);
 };

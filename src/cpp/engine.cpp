@@ -66,7 +66,7 @@ extern "C" {
         SurfaceRules::finalize();
         SurfaceRulesData::finalize();
         NoiseGeneratorSettings::finalize();
-        MultiNoiseBiomeSource::Preset::finalize();
+        BiomeSource::Preset::finalize();
         Services = nullptr;
         unregisterAll();
     }

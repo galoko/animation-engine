@@ -88,7 +88,7 @@ public:
     vector<Biomes> const &getBiomes() const;
 
     Biomes getNoiseBiome(int32_t x, int32_t y, int32_t z) const;
-    void fillBiomesFromNoise(shared_ptr<BiomeResolver> resolver, shared_ptr<Climate::Sampler> sampler, int32_t offsetX,
+    void fillBiomesFromNoise(shared_ptr<BiomeSource> resolver, shared_ptr<Climate::Sampler> sampler, int32_t offsetX,
                              int32_t offsetZ);
 };
 
@@ -135,7 +135,7 @@ public:
 
     Biomes getNoiseBiome(int32_t x, int32_t y, int32_t z);
 
-    void fillBiomesFromNoise(shared_ptr<BiomeResolver> resolver, shared_ptr<Climate::Sampler> sampler);
+    void fillBiomesFromNoise(shared_ptr<BiomeSource> resolver, shared_ptr<Climate::Sampler> sampler);
 
     LevelHeightAccessor const &getHeightAccessorForGeneration();
 

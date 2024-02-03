@@ -304,8 +304,6 @@ void WorldManager::generateTerrain() {
     printf("%d chunks has been generated in %lldms\n", (int32_t)context.chunks.size(),
            generation_total_time / chrono::milliseconds(1));
 
-    this_thread::sleep_for(1000ms);
-
     auto meshing_start_time = chrono::high_resolution_clock::now();
 
     RenderHandle atlasTexture = Render::requestTexture("minecraft-atlas.png");

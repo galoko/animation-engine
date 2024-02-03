@@ -17,5 +17,5 @@ shared_ptr<NoiseBasedChunkGenerator> WorldGenSettings::makeOverworld(int64_t see
                                                                      NoiseGeneratorSettings const &settings,
                                                                      bool usePreset) {
     return make_shared<NoiseBasedChunkGenerator>(
-        MultiNoiseBiomeSource::Preset::OVERWORLD.biomeSource(usePreset), seed, settings);;
+        BiomeSource::Preset::OVERWORLD.biomeSource(usePreset), seed, settings);;
 }
