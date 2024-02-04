@@ -316,9 +316,11 @@ void WorldManager::generateTerrain() {
     context.endX = lastChunk->getPos().getMaxBlockX();
     context.endZ = lastChunk->getPos().getMaxBlockZ();
 
+    vector<float> vertices;
+    vector<uint16_t> indices;
     for (shared_ptr<ChunkAccess> chunk : context.chunks) {
-        vector<float> vertices;
-        vector<uint16_t> indices;
+        vertices.clear();
+        indices.clear();
 
         ChunkPos chunkPos = chunk->getPos();
         int32_t startX = chunkPos.getMinBlockX();

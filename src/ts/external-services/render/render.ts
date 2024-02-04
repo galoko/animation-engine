@@ -2615,26 +2615,29 @@ export class Render {
     static handleResize(): void {
         const dpr = devicePixelRatio
 
-        const newWidth = Math.ceil(document.body.clientWidth * dpr)
-        const newHeight = Math.ceil(document.body.clientHeight * dpr)
+        // const clientWidth = document.body.clientWidth
+        // const clientHeight = document.body.clientHeight
 
-        // newWidth = 3840
-        // newHeight = 2160
+        const clientWidth = 1920
+        const clientHeight = 963
+
+        const newWidth = Math.ceil(clientWidth * dpr)
+        const newHeight = Math.ceil(clientHeight * dpr)
 
         if (canvasWebGPU.width === newWidth && canvasWebGPU.height === newHeight) {
             return
         }
 
-        console.log(`resize: ${document.body.clientWidth}x${document.body.clientHeight}x${dpr}`)
+        console.log(`resize: ${clientWidth}x${clientHeight}x${dpr}`)
 
-        ctx.canvas.style.width = document.body.clientWidth + "px"
-        ctx.canvas.style.height = document.body.clientHeight + "px"
+        ctx.canvas.style.width = clientWidth + "px"
+        ctx.canvas.style.height = clientHeight + "px"
         ctx.canvas.width = newWidth
         ctx.canvas.height = newHeight
 
         const glCanvas = canvasWebGPU as HTMLCanvasElement
-        glCanvas.style.width = document.body.clientWidth + "px"
-        glCanvas.style.height = document.body.clientHeight + "px"
+        glCanvas.style.width = clientWidth + "px"
+        glCanvas.style.height = clientHeight + "px"
         canvasWebGPU.width = newWidth
         canvasWebGPU.height = newHeight
 
