@@ -1,6 +1,7 @@
 #include "chunk-generator.hpp"
 #include "biome-manager.hpp"
 #include "heightmap.hpp"
+#include "random.hpp"
 #include "worldgen-region.hpp"
 
 // NoiseSlider
@@ -307,7 +308,7 @@ void NoiseSampler::afterConstructor(NoiseSettings const &noiseSettings, bool isN
         return noiseChunk->createNoiseInterpolator(
             [weakThis, weakNoiseChunk](int32_t x, int32_t y, int32_t z) -> double {
                 shared_ptr<NoiseChunk> noiseChunk = weakNoiseChunk.lock();
-                return weakThis.lock()->calculateBaseNoise(
+                return weakthis->lock()->calculateBaseNoise(
                     x, y, z, noiseChunk->noiseData(QuartPos::fromBlock(x), QuartPos::fromBlock(z)).terrainInfo);
             });
     };
@@ -455,7 +456,7 @@ NoiseChunk::BlockStateFiller NoiseSampler::makeOreVeinifier(shared_ptr<NoiseChun
         weak_ptr<NoiseSampler> weakThis = this->shared_from_this();
         return [weakThis, blockState, veininessSampler, veinASampler, veinBSampler](int32_t x, int32_t y,
                                                                                     int32_t z) -> BlockState {
-            shared_ptr<NoiseSampler> sharedThis = weakThis.lock();
+            shared_ptr<NoiseSampler> sharedThis = weakthis->lock();
             shared_ptr<RandomSource> randomSource = sharedThis->oreVeinsPositionalRandomFactory->at(x, y, z);
             double veininess = veininessSampler->sample();
             NoiseSampler::VeinType veinType = sharedThis->getVeinType(veininess, y);
@@ -829,6 +830,49 @@ shared_ptr<ChunkAccess> ChunkGenerator::buildSurface(shared_ptr<ChunkAccess> chu
                                       noiseChunk, noiseGeneratorSettings.surfaceRule());
 
     return chunkAccess;
+}
+
+shared_ptr<ChunkAccess> ChunkGenerator::applyCarvers(shared_ptr<ChunkAccess> chunk,
+                                                     GenerationStep::Carving carvingBlock) {
+    shared_ptr<WorldgenRandom> carverRandom = make_shared<WorldgenRandom>(make_unique<LegacyRandomSource>(0L));
+    // this seems to be estimated or calculated based on most lucky numbers (or maybe like something about 99
+    // percentile?)
+    int carveRange = 8;
+    ChunkPos chunkPos = chunk->getPos();
+    shared_ptr<NoiseChunk> noiseChunk = chunk->getOrCreateNoiseChunk(
+        this->sampler, [chunk]() -> NoiseFiller { return makeBeardifier(chunk); }, this->settings,
+        this->globalFluidPicker);
+    shared_ptr<Aquifer> aquifer = noiseChunk->aquifer();
+    CarvingContext context =
+        new CarvingContext(this, worldRegion.registryAccess(), chunk.getHeightAccessorForGeneration(), noiseChunk);
+    CarvingMask mask = ((ProtoChunk)chunk).getOrCreateCarvingMask(carvingBlock);
+
+    for (int xOffset = -carveRange; xOffset <= carveRange; ++xOffset) {
+        for (int zOffset = -carveRange; zOffset <= carveRange; ++zOffset) {
+            ChunkPos neighbourChunkPos = new ChunkPos(chunkPos.x + xOffset, chunkPos.z + zOffset);
+            ChunkAccess neighbourChunk = worldRegion.getChunk(neighbourChunkPos.x, neighbourChunkPos.z);
+            BiomeGenerationSettings generationSettings =
+                neighbourChunk
+                    .carverBiome(()->{
+                        return this->biomeSource.getNoiseBiome(QuartPos.fromBlock(neighbourChunkPos.getMinBlockX()), 0,
+                                                               QuartPos.fromBlock(neighbourChunkPos.getMinBlockZ()),
+                                                               this->climateSampler());
+                    })
+                    .getGenerationSettings();
+            List < Supplier < ConfiguredWorldCarver < ? >>> carvers = generationSettings.getCarvers(carvingBlock);
+            ListIterator < Supplier < ConfiguredWorldCarver < ? >>> carverIterator = carvers.listIterator();
+
+            while (carverIterator.hasNext()) {
+                int carverIndex = carverIterator.nextIndex();
+                ConfiguredWorldCarver < ? > carver = carverIterator.next().get();
+                carverRandom.setLargeFeatureSeed(seed + (long)carverIndex, neighbourChunkPos.x, neighbourChunkPos.z);
+                if (carver.isStartChunk(carverRandom)) {
+                    carver.carve(context, chunk, biomeManagerWithSpecificBiomeSource::getBiome, carverRandom, aquifer,
+                                 neighbourChunkPos, mask);
+                }
+            }
+        }
+    }
 }
 
 shared_ptr<ChunkAccess> ChunkGenerator::doFill(shared_ptr<ChunkAccess> chunkAccess, int32_t minCellY,

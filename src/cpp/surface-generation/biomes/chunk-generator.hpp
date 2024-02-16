@@ -4,6 +4,7 @@
 #include "biome-manager.hpp"
 #include "biome-source.hpp"
 #include "blocks.hpp"
+#include "carvers.hpp"
 #include "chunks.fwd.hpp"
 #include "mth.hpp"
 #include "noise-chunk.hpp"
@@ -418,6 +419,7 @@ public:
 
     shared_ptr<ChunkAccess> fillFromNoise(shared_ptr<ChunkAccess> chunkAccess);
     shared_ptr<ChunkAccess> buildSurface(shared_ptr<ChunkAccess> chunkAccess);
+    shared_ptr<ChunkAccess> applyCarvers(shared_ptr<ChunkAccess> chunkAccess, GenerationStep::Carving carvingBlock);
 
 private:
     shared_ptr<ChunkAccess> doFill(shared_ptr<ChunkAccess> chunkAccess, int32_t minCellY, int32_t cellCount);

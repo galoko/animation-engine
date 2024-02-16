@@ -156,6 +156,13 @@ void ChunkStatus::initialize() {
                                          return generator->buildSurface(chunkAccess);
                                      });
 
+    ChunkStatus::CARVERS = _register("carvers", &SURFACE, 8, PRE_FEATURES, ChunkStatus::ChunkType::PROTOCHUNK,
+                                     [](ChunkStatus const &chunkStatus, shared_ptr<ChunkGenerator> generator,
+                                        ChunkConverter converter, vector<shared_ptr<ChunkAccess>> neighbors,
+                                        shared_ptr<ChunkAccess> chunkAccess) -> shared_ptr<ChunkAccess> {
+                                         return generator->applyCarvers(chunkAccess, GenerationStep::Carving::AIR);
+                                     });
+
     ChunkStatus::FULL =
         _register("fill", &SURFACE, 8, PRE_FEATURES, ChunkStatus::ChunkType::PROTOCHUNK,
                   [](ChunkStatus const &chunkStatus, shared_ptr<ChunkGenerator> generator, ChunkConverter converter,
@@ -173,7 +180,7 @@ void ChunkStatus::finalize() {
     ChunkStatus::BIOMES = ChunkStatus();
     ChunkStatus::NOISE = ChunkStatus();
     ChunkStatus::SURFACE = ChunkStatus();
-    // ChunkStatus::CARVERS = ChunkStatus();
+    ChunkStatus::CARVERS = ChunkStatus();
     // ChunkStatus::LIQUID_CARVERS = ChunkStatus();
     // ChunkStatus::FEATURES = ChunkStatus();
     // ChunkStatus::LIGHT = ChunkStatus();
