@@ -332,3 +332,17 @@ void ChunkAccess::setStatus(ChunkStatus *status) {
 ChunkStatus *ChunkAccess::getStatus() {
     return this->status;
 }
+
+shared_ptr<CarvingMask> ChunkAccess::getOrCreateCarvingMask(GenerationStep::Carving carvingBlock) {
+    shared_ptr<CarvingMask> result;
+
+    auto it = this->carvingMasks.find(carvingBlock);
+    if (it != this->carvingMasks.end()) {
+        result = make_shared<CarvingMask>(this->getHeight(), this->getMinBuildHeight());
+        this->carvingMasks.emplace(carvingBlock, result);
+    } else {
+        result = it->second;
+    }
+
+    return result;
+}

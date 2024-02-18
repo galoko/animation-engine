@@ -24,7 +24,8 @@ public:
     WorldGenRegion(shared_ptr<ChunkGenerator> generator, vector<shared_ptr<ChunkAccess>> &cache);
     void init(int64_t seed);
 
-    shared_ptr<ChunkAccess> getChunk(int32_t x, int32_t z, const ChunkStatus &status, bool ensureNonNull);
+    shared_ptr<ChunkAccess> getChunk(int32_t x, int32_t z, const ChunkStatus &status = ChunkStatus::EMPTY,
+                                     bool ensureNonNull = true);
     bool hasChunk(int32_t x, int32_t z);
     Biomes getNoiseBiome(int32_t x, int32_t y, int32_t z);
     Biomes getUncachedNoiseBiome(int32_t x, int32_t y, int32_t z);

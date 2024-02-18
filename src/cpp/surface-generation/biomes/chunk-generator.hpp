@@ -27,8 +27,6 @@ class StrongholdConfiguration {};
 
 class StructureFeatureConfiguration {};
 
-class FeatureConfiguration {};
-
 template <typename T> class StructureFeature {};
 
 class StructureSettings {
@@ -441,4 +439,6 @@ public:
                                LevelHeightAccessor const &heightAccessor) const;
     int32_t getFirstOccupiedHeight(int32_t x, int32_t z, HeightmapTypes type,
                                    LevelHeightAccessor const &heightAccessor) const;
+    Blocks topMaterial(CarvingContext context, shared_ptr<BiomeManager> biomeManager, shared_ptr<ChunkAccess> chunk,
+                       shared_ptr<NoiseChunk> noiseChunk, BlockPos blockPos, bool useWaterHeight);
 };

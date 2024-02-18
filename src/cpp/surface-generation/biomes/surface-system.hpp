@@ -47,6 +47,21 @@ public:
                          this->randomFactory->at(x, 0, z)->nextDouble() * 0.25);
     }
 
+    Blocks topMaterial(shared_ptr<SurfaceRules::RuleSource> ruleSource, CarvingContext carvingContext,
+                       shared_ptr<BiomeManager> biomeManager, shared_ptr<ChunkAccess> chunk,
+                       shared_ptr<NoiseChunk> noiseChunk, BlockPos blockPos, bool useWaterHeight) {
+        shared_ptr<SurfaceRules::Context> context = make_shared<SurfaceRules::Context>(
+            this->shared_from_this(), chunk, noiseChunk, biomeManager, carvingContext);
+        shared_ptr<SurfaceRules::SurfaceRule> surfaceRule = ruleSource->apply(context);
+        int32_t x = blockPos.getX();
+        int32_t y = blockPos.getY();
+        int32_t z = blockPos.getZ();
+        context->updateXZ(x, z);
+        context->updateY(1, 1, useWaterHeight ? y + 1 : numeric_limits<int32_t>::min(), x, y, z);
+        BlockState block = surfaceRule->tryApply(x, y, z);
+        return block;
+    }
+
 private:
     bool isStone(BlockState blockState) {
         return blockState != Blocks::AIR && blockState != Blocks::WATER;

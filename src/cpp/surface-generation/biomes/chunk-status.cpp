@@ -111,6 +111,7 @@ ChunkStatus ChunkStatus::STRUCTURE_REFERENCES;
 ChunkStatus ChunkStatus::BIOMES;
 ChunkStatus ChunkStatus::NOISE;
 ChunkStatus ChunkStatus::SURFACE;
+ChunkStatus ChunkStatus::CARVERS;
 ChunkStatus ChunkStatus::FULL;
 
 void ChunkStatus::initialize() {

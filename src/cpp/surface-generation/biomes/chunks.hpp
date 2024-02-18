@@ -3,6 +3,7 @@
 #include "aquifer.hpp"
 #include "biome-source.hpp"
 #include "biomes.hpp"
+#include "carvers.hpp"
 #include "chunk-generator.fwd.hpp"
 #include "chunk-status.fwd.hpp"
 #include "chunks.fwd.hpp"
@@ -11,6 +12,8 @@
 #include "mth.hpp"
 #include "noise-chunk.fwd.hpp"
 #include "pos.hpp"
+
+#include <map>
 
 using namespace std;
 
@@ -98,6 +101,8 @@ private:
     ChunkPos chunkPos;
     LevelHeightAccessor const &levelHeightAccessor;
 
+    map<GenerationStep::Carving, shared_ptr<CarvingMask>> carvingMasks;
+
 public:
     shared_ptr<NoiseChunk> noiseChunk;
 
@@ -145,4 +150,6 @@ public:
 
     void setStatus(ChunkStatus *status);
     ChunkStatus *getStatus();
+
+    shared_ptr<CarvingMask> getOrCreateCarvingMask(GenerationStep::Carving carvingBlock);
 };
