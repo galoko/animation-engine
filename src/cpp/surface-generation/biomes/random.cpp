@@ -442,3 +442,13 @@ unique_ptr<RandomSource> WorldgenRandom::Algorithm_newInstance(Algorithm algorit
         return nullptr;
     }
 }
+
+namespace Rnd {
+    int32_t randomBetweenInclusive(shared_ptr<Random> random, int32_t min, int32_t max) {
+        return random->nextInt(max - min + 1) + min;
+    }
+
+    float randomBetween(shared_ptr<Random> random, float min, float max) {
+        return random->nextFloat() * (max - min) + min;
+    }
+} // namespace Rnd

@@ -20,8 +20,8 @@ void CameraManager::onMouseEvent(const MouseMessage &msg) {
     bool isLocked = !!msg.isCaptured;
 
     if (this->orbitCamera.entityToOrbit != nullptr && isLocked) {
-        const float ROTATION_SPEED = 0.1 * CameraManager::DEG_TO_RAD;
-        const float e = 10e-3;
+        const float ROTATION_SPEED = (float)(0.1 * CameraManager::DEG_TO_RAD);
+        const float e = 10e-3f;
 
         this->orbitCamera.zAngle = fmod(this->orbitCamera.zAngle + dx * ROTATION_SPEED, (float)(PI * 2));
         this->orbitCamera.yAngle = std::max(

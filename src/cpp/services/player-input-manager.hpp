@@ -15,7 +15,7 @@ class PlayerInputManager {
 private:
     shared_ptr<Entity> managedEntity;
 
-    static constexpr double PI = 3.141592653589793238463;
+    static constexpr float PI = 3.141592653589793238463f;
 
 public:
     void setManagedEntity(shared_ptr<Entity> entity);

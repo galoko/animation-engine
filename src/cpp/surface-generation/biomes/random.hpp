@@ -289,11 +289,15 @@ public:
     void setLargeFeatureWithSalt(int64_t salt, int32_t x, int32_t y, int32_t z);
     static unique_ptr<Random> seedSlimeChunk(int32_t x, int32_t z, int64_t seed, int64_t salt);
 
-    enum class Algorithm
-    {
+    enum class Algorithm {
         LEGACY,
         XOROSHIRO,
     };
 
     static unique_ptr<RandomSource> Algorithm_newInstance(Algorithm algorithm, int64_t seed);
 };
+
+namespace Rnd {
+    int32_t randomBetweenInclusive(shared_ptr<Random> random, int32_t min, int32_t max);
+    float randomBetween(shared_ptr<Random> random, float min, float max);
+} // namespace Rnd

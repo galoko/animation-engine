@@ -64,13 +64,13 @@ void registerTexture(Blocks block, Textures texture) {
     registerTextureSide(block, BlockSide::BACK, texture);
 }
 
-vec3 offsets[BlockSide::NUM_SIDES] = {
-    vec3(0, 1, 0),  // top
-    vec3(0, -1, 0), // bottom
-    vec3(-1, 0, 0), // left
-    vec3(1, 0, 0),  // right
-    vec3(0, 0, -1), // front
-    vec3(0, 0, 1),  // back
+ivec3 offsets[BlockSide::NUM_SIDES] = {
+    ivec3(0, 1, 0),  // top
+    ivec3(0, -1, 0), // bottom
+    ivec3(-1, 0, 0), // left
+    ivec3(1, 0, 0),  // right
+    ivec3(0, 0, -1), // front
+    ivec3(0, 0, 1),  // back
 };
 
 quat sideRotations[BlockSide::NUM_SIDES] = {
@@ -167,7 +167,7 @@ void WorldManager::addPillars() {
     float STEP = DISTANCE / PILLARS_COUNT;
     for (int32_t i = 0; i < PILLARS_COUNT; i++) {
         float x = -5.0;
-        float y = -DISTANCE / 2 + (float)i * STEP + 0.5;
+        float y = -DISTANCE / 2.0f + (float)i * STEP + 0.5f;
 
         float t = (float)i / (float)(PILLARS_COUNT - 1);
         t = t * 2 - 1;
@@ -192,8 +192,6 @@ int32_t WorldManager::getIndex(int32_t chunkX, int32_t chunkZ) {
     int32_t z = chunkZ - (-RANGE + centerPos.z);
     return x * RANGE_SIZE + z;
 };
-
-int i = 5;
 
 Blocks WorldManager::getBlock(int32_t x, int32_t y, int32_t z) {
     auto &heightAccessor = this->terrainGenerationContext.heightAccessor;
@@ -340,7 +338,7 @@ void WorldManager::generateTerrain() {
                     for (int32_t side = BlockSide::TOP; side <= BlockSide::BACK; side++) {
                         vec3 blockPos(x, z, y);
                         blockPos += vec3(0.5, 0.5, 0);
-                        vec3 offset = offsets[side];
+                        ivec3 offset = offsets[side];
                         Blocks otherBlock = this->getBlock(x + offset.x, y + offset.y, z + offset.z);
 
                         if (shouldAddSide(block, otherBlock)) {
@@ -348,7 +346,7 @@ void WorldManager::generateTerrain() {
 
                             quat q = sideRotations[side];
 
-                            int32_t offset = vertices.size() / (3 + 3 + 2);
+                            int32_t offset = (int32_t)vertices.size() / (3 + 3 + 2);
 
                             indices.push_back(offset + 0);
                             indices.push_back(offset + 1);
@@ -379,7 +377,8 @@ void WorldManager::generateTerrain() {
         memcpy(memory, vertices.data(), vertices.size() * sizeof(float));
         memcpy((void *)((float *)memory + vertices.size()), indices.data(), indices.size() * sizeof(uint16_t));
 
-        RenderHandle generatedModel = Render::createGeneratedMesh(vertices.size(), indices.size(), memory);
+        RenderHandle generatedModel =
+            Render::createGeneratedMesh((int32_t)vertices.size(), (int32_t)indices.size(), memory);
         RenderHandle model = Render::createRenderable(generatedModel, atlasTexture);
 
         Transformation transform = Transformation(0, 0, 0, 100);

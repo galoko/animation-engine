@@ -1,9 +1,9 @@
 #include "chunk-generator.hpp"
+#include "biome-generation-settings.hpp"
 #include "biome-manager.hpp"
 #include "heightmap.hpp"
 #include "random.hpp"
 #include "worldgen-region.hpp"
-#include "biome-generation-settings.hpp"
 
 // NoiseSlider
 
