@@ -2,8 +2,10 @@
 
 #include "biome-generation-settings.hpp"
 #include "carvers.hpp"
+#include "mob-spawner-settings.hpp"
 
 class BiomeDefaultFeatures {
+public:
     static void addDefaultCarversAndLakes(BiomeGenerationSettings::Builder &settingsBuilder) {
         settingsBuilder.addCarver(GenerationStep::Carving::AIR, Carvers::CAVE);
         settingsBuilder.addCarver(GenerationStep::Carving::AIR, Carvers::CAVE_EXTRA_UNDERGROUND);
@@ -571,126 +573,149 @@ class BiomeDefaultFeatures {
         */
     }
 
-    /*
-    static void farmAnimals(MobSpawnSettings::Builder settingsBuilder) {
-        settingsBuilder.addSpawn(MobCategory::CREATURE,
+    static void farmAnimals(MobSpawnSettings::Builder &mobSpawnerBuilder) {
+        /*
+        mobSpawnerBuilder.addSpawn(MobCategory::CREATURE,
                                  make_shared<MobSpawnSettings::SpawnerData>(EntityType::SHEEP, 12, 4, 4));
-        settingsBuilder.addSpawn(MobCategory::CREATURE,
+        mobSpawnerBuilder.addSpawn(MobCategory::CREATURE,
                                  make_shared<MobSpawnSettings::SpawnerData>(EntityType::PIG, 10, 4, 4));
-        settingsBuilder.addSpawn(MobCategory::CREATURE,
+        mobSpawnerBuilder.addSpawn(MobCategory::CREATURE,
                                  make_shared<MobSpawnSettings::SpawnerData>(EntityType::CHICKEN, 10, 4, 4));
-        settingsBuilder.addSpawn(MobCategory::CREATURE,
+        mobSpawnerBuilder.addSpawn(MobCategory::CREATURE,
                                  make_shared<MobSpawnSettings::SpawnerData>(EntityType::COW, 8, 4, 4));
+        */
     }
 
-    static void caveSpawns(MobSpawnSettings::Builder settingsBuilder) {
-        settingsBuilder.addSpawn(MobCategory::AMBIENT,
+    static void caveSpawns(MobSpawnSettings::Builder &mobSpawnerBuilder) {
+        /*
+        mobSpawnerBuilder.addSpawn(MobCategory::AMBIENT,
                                  make_shared<MobSpawnSettings::SpawnerData>(EntityType::BAT, 10, 8, 8));
-        settingsBuilder.addSpawn(MobCategory::UNDERGROUND_WATER_CREATURE,
+        mobSpawnerBuilder.addSpawn(MobCategory::UNDERGROUND_WATER_CREATURE,
                                  make_shared<MobSpawnSettings::SpawnerData>(EntityType::GLOW_SQUID, 10, 4, 6));
+        */
     }
 
-    static void commonSpawns(MobSpawnSettings::Builder settingsBuilder) {
-        caveSpawns(settingsBuilder);
-        monsters(settingsBuilder, 95, 5, 100, false);
+    static void commonSpawns(MobSpawnSettings::Builder &mobSpawnerBuilder) {
+        caveSpawns(mobSpawnerBuilder);
+        monsters(mobSpawnerBuilder, 95, 5, 100, false);
     }
 
-    static void oceanSpawns(MobSpawnSettings::Builder settingsBuilder, int32_t squidWeight, int32_t squidMaxCount,
+    static void oceanSpawns(MobSpawnSettings::Builder &mobSpawnerBuilder, int32_t squidWeight, int32_t squidMaxCount,
                             int32_t codWeight) {
-        settingsBuilder.addSpawn(MobCategory::WATER_CREATURE, make_shared<MobSpawnSettings::SpawnerData>(
+        /*
+        mobSpawnerBuilder.addSpawn(MobCategory::WATER_CREATURE, make_shared<MobSpawnSettings::SpawnerData>(
                                                                   EntityType::SQUID, squidWeight, 1, squidMaxCount));
-        settingsBuilder.addSpawn(MobCategory::WATER_AMBIENT,
+        mobSpawnerBuilder.addSpawn(MobCategory::WATER_AMBIENT,
                                  make_shared<MobSpawnSettings::SpawnerData>(EntityType::COD, codWeight, 3, 6));
-        commonSpawns(settingsBuilder);
-        settingsBuilder.addSpawn(MobCategory::MONSTER,
+        commonSpawns(mobSpawnerBuilder);
+        mobSpawnerBuilder.addSpawn(MobCategory::MONSTER,
                                  make_shared<MobSpawnSettings::SpawnerData>(EntityType::DROWNED, 5, 1, 1));
+        */
     }
 
-    static void warmOceanSpawns(MobSpawnSettings::Builder settingsBuilder, int32_t squidWeight, int32_t squidMinCount) {
-        settingsBuilder.addSpawn(MobCategory::WATER_CREATURE, make_shared<MobSpawnSettings::SpawnerData>(
+    static void warmOceanSpawns(MobSpawnSettings::Builder &mobSpawnerBuilder, int32_t squidWeight,
+                                int32_t squidMinCount) {
+        /*
+        mobSpawnerBuilder.addSpawn(MobCategory::WATER_CREATURE, make_shared<MobSpawnSettings::SpawnerData>(
                                                                   EntityType::SQUID, squidWeight, squidMinCount, 4));
-        settingsBuilder.addSpawn(MobCategory::WATER_AMBIENT,
+        mobSpawnerBuilder.addSpawn(MobCategory::WATER_AMBIENT,
                                  make_shared<MobSpawnSettings::SpawnerData>(EntityType::TROPICAL_FISH, 25, 8, 8));
-        settingsBuilder.addSpawn(MobCategory::WATER_CREATURE,
+        mobSpawnerBuilder.addSpawn(MobCategory::WATER_CREATURE,
                                  make_shared<MobSpawnSettings::SpawnerData>(EntityType::DOLPHIN, 2, 1, 2));
-        settingsBuilder.addSpawn(MobCategory::MONSTER,
+        mobSpawnerBuilder.addSpawn(MobCategory::MONSTER,
                                  make_shared<MobSpawnSettings::SpawnerData>(EntityType::DROWNED, 5, 1, 1));
-        commonSpawns(settingsBuilder);
+        */
+        commonSpawns(mobSpawnerBuilder);
     }
 
-    static void plainsSpawns(MobSpawnSettings::Builder settingsBuilder) {
-        farmAnimals(settingsBuilder);
-        settingsBuilder.addSpawn(MobCategory::CREATURE,
+    static void plainsSpawns(MobSpawnSettings::Builder &mobSpawnerBuilder) {
+        farmAnimals(mobSpawnerBuilder);
+        /*
+        mobSpawnerBuilder.addSpawn(MobCategory::CREATURE,
                                  make_shared<MobSpawnSettings::SpawnerData>(EntityType::HORSE, 5, 2, 6));
-        settingsBuilder.addSpawn(MobCategory::CREATURE,
+        mobSpawnerBuilder.addSpawn(MobCategory::CREATURE,
                                  make_shared<MobSpawnSettings::SpawnerData>(EntityType::DONKEY, 1, 1, 3));
-        commonSpawns(settingsBuilder);
+        */
+        commonSpawns(mobSpawnerBuilder);
     }
 
-    static void snowySpawns(MobSpawnSettings::Builder settingsBuilder) {
-        settingsBuilder.addSpawn(MobCategory::CREATURE,
+    static void snowySpawns(MobSpawnSettings::Builder &mobSpawnerBuilder) {
+        /*
+        mobSpawnerBuilder.addSpawn(MobCategory::CREATURE,
                                  make_shared<MobSpawnSettings::SpawnerData>(EntityType::RABBIT, 10, 2, 3));
-        settingsBuilder.addSpawn(MobCategory::CREATURE,
+        mobSpawnerBuilder.addSpawn(MobCategory::CREATURE,
                                  make_shared<MobSpawnSettings::SpawnerData>(EntityType::POLAR_BEAR, 1, 1, 2));
-        caveSpawns(settingsBuilder);
-        monsters(settingsBuilder, 95, 5, 20, false);
-        settingsBuilder.addSpawn(MobCategory::MONSTER,
+        caveSpawns(mobSpawnerBuilder);
+        monsters(mobSpawnerBuilder, 95, 5, 20, false);
+        mobSpawnerBuilder.addSpawn(MobCategory::MONSTER,
                                  make_shared<MobSpawnSettings::SpawnerData>(EntityType::STRAY, 80, 4, 4));
+        */
     }
 
-    static void desertSpawns(MobSpawnSettings::Builder settingsBuilder) {
-        settingsBuilder.addSpawn(MobCategory::CREATURE,
+    static void desertSpawns(MobSpawnSettings::Builder &mobSpawnerBuilder) {
+        /*
+        mobSpawnerBuilder.addSpawn(MobCategory::CREATURE,
                                  make_shared<MobSpawnSettings::SpawnerData>(EntityType::RABBIT, 4, 2, 3));
-        caveSpawns(settingsBuilder);
-        monsters(settingsBuilder, 19, 1, 100, false);
-        settingsBuilder.addSpawn(MobCategory::MONSTER,
+        caveSpawns(mobSpawnerBuilder);
+        monsters(mobSpawnerBuilder, 19, 1, 100, false);
+        mobSpawnerBuilder.addSpawn(MobCategory::MONSTER,
                                  make_shared<MobSpawnSettings::SpawnerData>(EntityType::HUSK, 80, 4, 4));
+        */
     }
 
-    static void dripstoneCavesSpawns(MobSpawnSettings::Builder &settingsBuilder) {
-        caveSpawns(settingsBuilder);
-        monsters(settingsBuilder, 95, 5, 100, false);
-        settingsBuilder.addSpawn(MobCategory::MONSTER,
+    static void dripstoneCavesSpawns(MobSpawnSettings::Builder &mobSpawnerBuilder) {
+        /*
+        caveSpawns(mobSpawnerBuilder);
+        monsters(mobSpawnerBuilder, 95, 5, 100, false);
+        mobSpawnerBuilder.addSpawn(MobCategory::MONSTER,
                                  make_shared<MobSpawnSettings::SpawnerData>(EntityType::DROWNED, 95, 4, 4));
+        */
     }
 
-    static void monsters(MobSpawnSettings::Builder &settingsBuilder, int32_t zombieWeight, int32_t zombieVillagerWeight,
-                         int32_t skeletonWeight, boolean water) {
-        settingsBuilder.addSpawn(MobCategory::MONSTER,
+    static void monsters(MobSpawnSettings::Builder &mobSpawnerBuilder, int32_t zombieWeight,
+                         int32_t zombieVillagerWeight, int32_t skeletonWeight, bool water) {
+        /*
+        mobSpawnerBuilder.addSpawn(MobCategory::MONSTER,
                                  make_shared<MobSpawnSettings::SpawnerData>(EntityType::SPIDER, 100, 4, 4));
-        settingsBuilder.addSpawn(MobCategory::MONSTER,
+        mobSpawnerBuilder.addSpawn(MobCategory::MONSTER,
                                  make_shared<MobSpawnSettings::SpawnerData>(
                                      water ? EntityType::DROWNED : EntityType::ZOMBIE, zombieWeight, 4, 4));
-        settingsBuilder.addSpawn(MobCategory::MONSTER, make_shared<MobSpawnSettings::SpawnerData>(
+        mobSpawnerBuilder.addSpawn(MobCategory::MONSTER, make_shared<MobSpawnSettings::SpawnerData>(
                                                            EntityType::ZOMBIE_VILLAGER, zombieVillagerWeight, 1, 1));
-        settingsBuilder.addSpawn(MobCategory::MONSTER, make_shared<MobSpawnSettings::SpawnerData>(
+        mobSpawnerBuilder.addSpawn(MobCategory::MONSTER, make_shared<MobSpawnSettings::SpawnerData>(
                                                            EntityType::SKELETON, skeletonWeight, 4, 4));
-        settingsBuilder.addSpawn(MobCategory::MONSTER,
+        mobSpawnerBuilder.addSpawn(MobCategory::MONSTER,
                                  make_shared<MobSpawnSettings::SpawnerData>(EntityType::CREEPER, 100, 4, 4));
-        settingsBuilder.addSpawn(MobCategory::MONSTER,
+        mobSpawnerBuilder.addSpawn(MobCategory::MONSTER,
                                  make_shared<MobSpawnSettings::SpawnerData>(EntityType::SLIME, 100, 4, 4));
-        settingsBuilder.addSpawn(MobCategory::MONSTER,
+        mobSpawnerBuilder.addSpawn(MobCategory::MONSTER,
                                  make_shared<MobSpawnSettings::SpawnerData>(EntityType::ENDERMAN, 10, 1, 4));
-        settingsBuilder.addSpawn(MobCategory::MONSTER,
+        mobSpawnerBuilder.addSpawn(MobCategory::MONSTER,
                                  make_shared<MobSpawnSettings::SpawnerData>(EntityType::WITCH, 5, 1, 1));
+        */
     }
 
-    static void mooshroomSpawns(MobSpawnSettings::Builder settingsBuilder) {
-        settingsBuilder.addSpawn(MobCategory::CREATURE,
+    static void mooshroomSpawns(MobSpawnSettings::Builder &mobSpawnerBuilder) {
+        /*
+        mobSpawnerBuilder.addSpawn(MobCategory::CREATURE,
                                  make_shared<MobSpawnSettings::SpawnerData>(EntityType::MOOSHROOM, 8, 4, 8));
-        caveSpawns(settingsBuilder);
+        caveSpawns(mobSpawnerBuilder);
+        */
     }
 
-    static void baseJungleSpawns(MobSpawnSettings::Builder settingsBuilder) {
-        farmAnimals(settingsBuilder);
-        settingsBuilder.addSpawn(MobCategory::CREATURE,
+    static void baseJungleSpawns(MobSpawnSettings::Builder &mobSpawnerBuilder) {
+        /*
+        farmAnimals(mobSpawnerBuilder);
+        mobSpawnerBuilder.addSpawn(MobCategory::CREATURE,
                                  make_shared<MobSpawnSettings::SpawnerData>(EntityType::CHICKEN, 10, 4, 4));
-        commonSpawns(settingsBuilder);
+        commonSpawns(mobSpawnerBuilder);
+        */
     }
 
-    static void endSpawns(MobSpawnSettings::Builder settingsBuilder) {
-        settingsBuilder.addSpawn(MobCategory::MONSTER,
+    static void endSpawns(MobSpawnSettings::Builder &mobSpawnerBuilder) {
+        /*
+        mobSpawnerBuilder.addSpawn(MobCategory::MONSTER,
                                  make_shared<MobSpawnSettings::SpawnerData>(EntityType::ENDERMAN, 10, 4, 4));
+        */
     }
-    */
 };

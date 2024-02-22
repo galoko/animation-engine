@@ -49,6 +49,10 @@ public:
     virtual float sample(shared_ptr<Random> random) = 0;
     virtual float getMinValue() = 0;
     virtual float getMaxValue() = 0;
+
+    virtual ~FloatProvider() {
+        //
+    }
 };
 
 class UniformFloat : public FloatProvider {
