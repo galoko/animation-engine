@@ -146,10 +146,9 @@ public:
         CanyonShapeConfiguration(shared_ptr<FloatProvider> distanceFactor, shared_ptr<FloatProvider> thickness,
                                  int widthSmoothness, shared_ptr<FloatProvider> horizontalRadiusFactor,
                                  float verticalRadiusDefaultFactor, float verticalRadiusCenterFactor)
-            : widthSmoothness(widthSmoothness), horizontalRadiusFactor(horizontalRadiusFactor),
-              verticalRadiusDefaultFactor(verticalRadiusDefaultFactor),
-              verticalRadiusCenterFactor(verticalRadiusCenterFactor), distanceFactor(distanceFactor),
-              thickness(thickness) {
+            : distanceFactor(distanceFactor), thickness(thickness), widthSmoothness(widthSmoothness),
+              horizontalRadiusFactor(horizontalRadiusFactor), verticalRadiusDefaultFactor(verticalRadiusDefaultFactor),
+              verticalRadiusCenterFactor(verticalRadiusCenterFactor) {
         }
     };
     shared_ptr<FloatProvider> verticalRotation;

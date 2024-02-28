@@ -5,6 +5,7 @@
 
 #include "biome-default-features.hpp"
 #include "biome-generation-settings.hpp"
+#include "chunks.hpp"
 #include "mob-spawner-settings.hpp"
 #include "mth.hpp"
 #include "noise/perlin-simplex-noise.hpp"
@@ -238,10 +239,56 @@ public:
     };
 };
 
+class GrassColor {
+private:
+    static shared_ptr<vector<uint8_t>> pixels;
+
+public:
+    static void init(shared_ptr<vector<uint8_t>> input) {
+        pixels = input;
+    }
+
+    static int get(double x, double z) {
+        z *= x;
+        int pixelX = (int)((1.0 - x) * 255.0);
+        int pixelY = (int)((1.0 - z) * 255.0);
+        int pixelIndex = pixelY << 8 | pixelX;
+        return pixelIndex >= pixels->size() ? -65281 : pixels->at(pixelIndex);
+    }
+};
+
+class FoliageColor {
+private:
+    static shared_ptr<vector<uint8_t>> pixels;
+
+public:
+    static void init(shared_ptr<vector<uint8_t>> input) {
+        pixels = input;
+    }
+
+    static int get(double x, double z) {
+        z *= x;
+        int pixelX = (int)((1.0 - x) * 255.0);
+        int pixelY = (int)((1.0 - z) * 255.0);
+        int pixelIndex = pixelY << 8 | pixelX;
+        return pixelIndex >= pixels->size() ? getDefaultColor() : pixels->at(pixelIndex);
+    }
+
+    static int getEvergreenColor() {
+        return 6396257;
+    }
+
+    static int getBirchColor() {
+        return 8431445;
+    }
+
+    static int getDefaultColor() {
+        return 4764952;
+    }
+};
+
 class Biome {
 public:
-    // TODO add constructor and fields
-
     static PerlinSimplexNoise TEMPERATURE_NOISE;
     static PerlinSimplexNoise FROZEN_TEMPERATURE_NOISE;
     static PerlinSimplexNoise BIOME_INFO_NOISE;
@@ -326,6 +373,215 @@ public:
                                       this->_mobSpawnSettings);
         }
     };
+
+private:
+    static constexpr int TEMPERATURE_CACHE_SIZE = 1024;
+
+    Biome::ClimateSettings climateSettings;
+    shared_ptr<BiomeGenerationSettings> generationSettings;
+    shared_ptr<MobSpawnSettings> mobSettings;
+    BiomeCategory biomeCategory;
+    shared_ptr<BiomeSpecialEffects> specialEffects;
+    map<int64_t, float> temperatureCache;
+
+public:
+    Biome(Biome::ClimateSettings climateSettings, BiomeCategory biomeCategory,
+          shared_ptr<BiomeSpecialEffects> specialEffects, shared_ptr<BiomeGenerationSettings> generationSettings,
+          shared_ptr<MobSpawnSettings> mobSettings)
+        : climateSettings(climateSettings), generationSettings(generationSettings), mobSettings(mobSettings),
+          biomeCategory(biomeCategory), specialEffects(specialEffects) {
+    }
+
+    int getSkyColor() {
+        return this->specialEffects->getSkyColor();
+    }
+
+    shared_ptr<MobSpawnSettings> getMobSettings() {
+        return this->mobSettings;
+    }
+
+    Precipitation getPrecipitation() {
+        return this->climateSettings.precipitation;
+    }
+
+    bool isHumid() {
+        return this->getDownfall() > 0.85F;
+    }
+
+private:
+    float getHeightAdjustedTemperature(BlockPos blockPos) {
+        float mofidiedTemperature = this->climateSettings.temperatureModifier(blockPos, this->getBaseTemperature());
+        if (blockPos.getY() > 80) {
+            float noiseTemperature =
+                (float)(TEMPERATURE_NOISE.getValue((double)((float)blockPos.getX() / 8.0F),
+                                                   (double)((float)blockPos.getZ() / 8.0F), false) *
+                        8.0);
+            return mofidiedTemperature - (noiseTemperature + (float)blockPos.getY() - 80.0F) * 0.05F / 40.0F;
+        } else {
+            return mofidiedTemperature;
+        }
+    }
+
+    float getTemperature(BlockPos blockPos) {
+        long pos = blockPos.asLong();
+        auto temperature = this->temperatureCache.find(pos);
+        if (temperature != this->temperatureCache.end()) {
+            return temperature->second;
+        } else {
+            float calculatedTemperature = this->getHeightAdjustedTemperature(blockPos);
+            if (this->temperatureCache.size() == TEMPERATURE_CACHE_SIZE) {
+                if (!this->temperatureCache.empty()) {
+                    this->temperatureCache.erase(this->temperatureCache.begin());
+                }
+            }
+
+            this->temperatureCache.emplace(pos, calculatedTemperature);
+            return calculatedTemperature;
+        }
+    }
+
+public:
+    bool shouldFreeze(const LevelHeightAccessor &level, BlockPos blockPos) {
+        return this->shouldFreeze(level, blockPos, true);
+    }
+
+    bool shouldFreeze(const LevelHeightAccessor &level, BlockPos blockPos, bool checkNeighbors) {
+        if (this->warmEnoughToRain(blockPos)) {
+            return false;
+        } else {
+            /*
+            if (blockPos.getY() >= level->getMinBuildHeight() && blockPos.getY() < level->getMaxBuildHeight() &&
+                level.getBrightness(LightLayer::BLOCK, blockPos) < 10) {
+                BlockState blockState = level->getBlockState(blockPos);
+                FluidState fluidState = level->getFluidState(blockPos);
+                if (fluidState.getType() == Fluids::WATER && blockState.getBlock() instanceof LiquidBlock) {
+                    if (!checkNeighbors) {
+                        return true;
+                    }
+
+                    bool neighborsIsWater = level.isWaterAt(blockPos.west()) && level.isWaterAt(blockPos.east()) &&
+                                            level.isWaterAt(blockPos.north()) && level.isWaterAt(blockPos.south());
+                    if (!neighborsIsWater) {
+                        return true;
+                    }
+                }
+            }
+            */
+
+            return false;
+        }
+    }
+
+    bool coldEnoughToSnow(BlockPos pos) {
+        return !this->warmEnoughToRain(pos);
+    }
+
+    bool warmEnoughToRain(BlockPos blockPos) {
+        return this->getTemperature(blockPos) >= 0.15F;
+    }
+
+    bool shouldMeltFrozenOceanIcebergSlightly(BlockPos blockPos) {
+        return this->getTemperature(blockPos) > 0.1F;
+    }
+
+    bool shouldSnowGolemBurn(BlockPos blockPos) {
+        return this->getTemperature(blockPos) > 1.0F;
+    }
+
+    bool shouldSnow(const LevelHeightAccessor &level, BlockPos blockPos) {
+        if (this->warmEnoughToRain(blockPos)) {
+            return false;
+        } else {
+            /*
+            if (blockPos.getY() >= level.getMinBuildHeight() && blockPos.getY() < level.getMaxBuildHeight() &&
+                level.getBrightness(LightLayer::BLOCK, blockPos) < 10) {
+                BlockState blockState = level.getBlockState(blockPos);
+                if (blockState.isAir() && Blocks::SNOW.defaultBlockState().canSurvive(level, blockPos)) {
+                    return true;
+                }
+            }
+            */
+
+            return false;
+        }
+    }
+
+    shared_ptr<BiomeGenerationSettings> getGenerationSettings() {
+        return this->generationSettings;
+    }
+
+    int getFogColor() {
+        return this->specialEffects->getFogColor();
+    }
+
+    int getGrassColor(double x, double z) {
+        shared_ptr<int> grassColorOverride = this->specialEffects->getGrassColorOverride();
+        int color = grassColorOverride ? *grassColorOverride : this->getGrassColorFromTexture();
+        return this->specialEffects->getGrassColorModifier()(x, z, color);
+    }
+
+private:
+    int getGrassColorFromTexture() {
+        double temperature = (double)Mth::clamp(this->climateSettings.temperature, 0.0F, 1.0F);
+        double downfall = (double)Mth::clamp(this->climateSettings.downfall, 0.0F, 1.0F);
+        return GrassColor::get(temperature, downfall);
+    }
+
+    int getFoliageColor() {
+        shared_ptr<int> foliageColorOverride = this->specialEffects->getFoliageColorOverride();
+        return foliageColorOverride ? *foliageColorOverride : this->getFoliageColorFromTexture();
+    }
+
+    int getFoliageColorFromTexture() {
+        double clampedTemperature = (double)Mth::clamp(this->climateSettings.temperature, 0.0F, 1.0F);
+        double clampedDownfall = (double)Mth::clamp(this->climateSettings.downfall, 0.0F, 1.0F);
+        return FoliageColor::get(clampedTemperature, clampedDownfall);
+    }
+
+public:
+    float getDownfall() {
+        return this->climateSettings.downfall;
+    }
+
+    float getBaseTemperature() {
+        return this->climateSettings.temperature;
+    }
+
+    shared_ptr<BiomeSpecialEffects> getSpecialEffects() {
+        return this->specialEffects;
+    }
+
+    int getWaterColor() {
+        return this->specialEffects->getWaterColor();
+    }
+
+    int getWaterFogColor() {
+        return this->specialEffects->getWaterFogColor();
+    }
+
+    shared_ptr<AmbientParticleSettings> getAmbientParticle() {
+        return this->specialEffects->getAmbientParticleSettings();
+    }
+
+    shared_ptr<SoundEvent> getAmbientLoop() {
+        return this->specialEffects->getAmbientLoopSoundEvent();
+    }
+
+    shared_ptr<AmbientMoodSettings> getAmbientMood() {
+        return this->specialEffects->getAmbientMoodSettings();
+    }
+
+    shared_ptr<AmbientAdditionsSettings> getAmbientAdditions() {
+        return this->specialEffects->getAmbientAdditionsSettings();
+    }
+
+    shared_ptr<Music> getBackgroundMusic() {
+        return this->specialEffects->getBackgroundMusic();
+    }
+
+    BiomeCategory getBiomeCategory() {
+        return this->biomeCategory;
+    }
 };
 
 class OverworldBiomes {
@@ -489,6 +745,7 @@ private:
                      NORMAL_MUSIC);
     }
 
+public:
     static shared_ptr<Biome> windsweptHills(bool forest) {
         MobSpawnSettings::Builder mobSpawnBuilder;
         BiomeDefaultFeatures::farmAnimals(mobSpawnBuilder);
@@ -1042,7 +1299,7 @@ public:
         /*
         biomeBuilder.addFeature(GenerationStep::Decoration::TOP_LAYER_MODIFICATION,
                                 MiscOverworldPlacements::VOID_START_PLATFORM);
-                                */
+        */
         return biome(Precipitation::Precipitation_NONE, BiomeCategory::BiomeCategory_NONE, 0.5F, 0.5F, mobSpawnBuilder,
                      biomeBuilder, NORMAL_MUSIC);
     }
@@ -1185,5 +1442,28 @@ public:
         BiomeDefaultFeatures::addDripstone(biomeBuilder);
         shared_ptr<Music> music = nullptr; // Musics::createGameMusic(SoundEvents::MUSIC_BIOME_DRIPSTONE_CAVES);
         return biome(Precipitation::RAIN, BiomeCategory::UNDERGROUND, 0.8F, 0.4F, mobSpawnBuilder, biomeBuilder, music);
+    }
+};
+
+class BiomeInstances {
+public:
+    static shared_ptr<Biome> THE_VOID;
+    static shared_ptr<Biome> PLAINS;
+
+    static void init();
+    static void free();
+
+private:
+    static map<Biomes, shared_ptr<Biome>> biomes;
+
+    static shared_ptr<Biome> registerBiome(Biomes biome, shared_ptr<Biome> biomeInstance) {
+        biomes.emplace(biome, biomeInstance);
+        return biomeInstance;
+    }
+
+public:
+    static shared_ptr<Biome> get(Biomes biome) {
+        auto it = biomes.find(biome);
+        return it != biomes.end() ? it->second : nullptr;
     }
 };

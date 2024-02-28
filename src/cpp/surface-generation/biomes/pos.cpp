@@ -51,6 +51,10 @@ int64_t BlockPos::asLong(int32_t x, int32_t y, int32_t z) {
     return result | ((int64_t)z & PACKED_Z_MASK) << Z_OFFSET;
 }
 
+int64_t BlockPos::asLong() {
+    return BlockPos::asLong(this->getX(), this->getY(), this->getZ());
+}
+
 // MutableBlockPos
 
 MutableBlockPos::MutableBlockPos(double x, double y, double z) : BlockPos(x, y, z) {

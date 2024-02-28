@@ -43,6 +43,7 @@ public:
     static int32_t getZ(int64_t z);
 
     static int64_t asLong(int32_t x, int32_t y, int32_t z);
+    int64_t asLong();
 };
 
 class SectionPos {
