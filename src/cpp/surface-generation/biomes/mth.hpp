@@ -9,6 +9,9 @@ using namespace std;
 
 #define ushr_l(value, bits) ((int64_t)((uint64_t)value >> bits))
 
+#define SIN_VALUE_COUNT 65536
+#define SIN_SCALE 10430.378F
+
 namespace Mth {
     template <typename T> int32_t binarySearch(int32_t startIndex, int32_t endIndex, T value, vector<T> const &values) {
         int32_t i = endIndex - startIndex;
@@ -25,6 +28,18 @@ namespace Mth {
         }
 
         return startIndex;
+    }
+
+    void init();
+
+    extern float SIN[SIN_VALUE_COUNT];
+
+    inline float sin(float angle) {
+        return SIN[(int)(angle * SIN_SCALE) & (SIN_VALUE_COUNT - 1)];
+    }
+
+    inline float cos(float p_14090_) {
+        return SIN[(int)(p_14090_ * SIN_SCALE + 16384.0F) & (SIN_VALUE_COUNT - 1)];
     }
 
     constexpr inline int8_t clamp(int8_t value, int8_t min, int8_t max) {

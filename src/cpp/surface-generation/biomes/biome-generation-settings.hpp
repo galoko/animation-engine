@@ -57,4 +57,11 @@ public:
             return make_shared<BiomeGenerationSettings>(this->carvers);
         }
     };
+
+    vector<shared_ptr<ConfiguredWorldCarver>> getCarvers(GenerationStep::Carving carvingBlock) {
+        vector<shared_ptr<ConfiguredWorldCarver>> emptyVector;
+
+        auto it = this->carvers.find(carvingBlock);
+        return it != this->carvers.end() ? it->second : emptyVector;
+    }
 };

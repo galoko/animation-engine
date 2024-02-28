@@ -2,6 +2,7 @@
 #include "biome-generation-settings.hpp"
 #include "biome-manager.hpp"
 #include "heightmap.hpp"
+#include "overworld-biomes.hpp"
 #include "random.hpp"
 #include "worldgen-region.hpp"
 
@@ -853,30 +854,29 @@ shared_ptr<ChunkAccess> ChunkGenerator::applyCarvers(shared_ptr<ChunkAccess> chu
             ChunkPos neighbourChunkPos(chunkPos.x + xOffset, chunkPos.z + zOffset);
 
             shared_ptr<ChunkAccess> neighbourChunk = worldRegion->getChunk(neighbourChunkPos.x, neighbourChunkPos.z);
-            /*
-            BiomeGenerationSettings generationSettings =
-                neighbourChunk
-                    .carverBiome(()->{
-                        return this->biomeSource.getNoiseBiome(QuartPos.fromBlock(neighbourChunkPos.getMinBlockX()), 0,
-                                                               QuartPos.fromBlock(neighbourChunkPos.getMinBlockZ()),
-                                                               this->climateSampler());
-                    })
-                    .getGenerationSettings();
-            List < Supplier < ConfiguredWorldCarver < ? >>> carvers = generationSettings.getCarvers(carvingBlock);
-            ListIterator < Supplier < ConfiguredWorldCarver < ? >>> carverIterator = carvers.listIterator();
 
-            while (carverIterator.hasNext()) {
-                int32_t carverIndex = carverIterator.nextIndex();
-                ConfiguredWorldCarver < ? > carver = carverIterator.next().get();
-                carverRandom.setLargeFeatureSeed(seed + (long)carverIndex, neighbourChunkPos.x, neighbourChunkPos.z);
-                if (carver.isStartChunk(carverRandom)) {
-                    carver.carve(context, chunk, biomeManagerWithSpecificBiomeSource::getBiome, carverRandom, aquifer,
-                                 neighbourChunkPos, mask);
+            shared_ptr<Biome> carverBiome = neighbourChunk->carverBiome;
+            if (!carverBiome) {
+                carverBiome = BiomeInstances::get(this->biomeSource->getNoiseBiome(
+                    QuartPos::fromBlock(neighbourChunkPos.getMinBlockX()), 0,
+                    QuartPos::fromBlock(neighbourChunkPos.getMinBlockZ()), this->climateSampler()));
+            }
+
+            shared_ptr<BiomeGenerationSettings> generationSettings = carverBiome->getGenerationSettings();
+            vector<shared_ptr<ConfiguredWorldCarver>> carvers = generationSettings->getCarvers(carvingBlock);
+
+            for (int32_t carverIndex = 0; carverIndex < carvers.size(); carverIndex++) {
+                shared_ptr<ConfiguredWorldCarver> carver = carvers[carverIndex];
+                carverRandom->setLargeFeatureSeed(seed + (long)carverIndex, neighbourChunkPos.x, neighbourChunkPos.z);
+                if (carver->isStartChunk(carverRandom)) {
+                    carver->carve(context, chunk, worldRegion->biomeManager, carverRandom, aquifer, neighbourChunkPos,
+                                  mask);
                 }
             }
-            */
         }
     }
+
+    return chunk;
 }
 
 shared_ptr<ChunkAccess> ChunkGenerator::doFill(shared_ptr<ChunkAccess> chunkAccess, int32_t minCellY,

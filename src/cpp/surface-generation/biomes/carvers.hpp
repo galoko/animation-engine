@@ -1,7 +1,10 @@
 #pragma once
 
+#define _USE_MATH_DEFINES
+
 #include <bitset>
 #include <functional>
+#include <math.h>
 #include <memory>
 #include <set>
 #include <vector>
@@ -10,6 +13,7 @@
 #include "biome-manager.hpp"
 #include "blocks.hpp"
 #include "chunk-generator.fwd.hpp"
+#include "chunks.fwd.hpp"
 #include "features.hpp"
 #include "noise-chunk.fwd.hpp"
 #include "pos.hpp"
@@ -138,13 +142,13 @@ public:
     public:
         shared_ptr<FloatProvider> distanceFactor;
         shared_ptr<FloatProvider> thickness;
-        int widthSmoothness;
+        int32_t widthSmoothness;
         shared_ptr<FloatProvider> horizontalRadiusFactor;
         float verticalRadiusDefaultFactor;
         float verticalRadiusCenterFactor;
 
         CanyonShapeConfiguration(shared_ptr<FloatProvider> distanceFactor, shared_ptr<FloatProvider> thickness,
-                                 int widthSmoothness, shared_ptr<FloatProvider> horizontalRadiusFactor,
+                                 int32_t widthSmoothness, shared_ptr<FloatProvider> horizontalRadiusFactor,
                                  float verticalRadiusDefaultFactor, float verticalRadiusCenterFactor)
             : distanceFactor(distanceFactor), thickness(thickness), widthSmoothness(widthSmoothness),
               horizontalRadiusFactor(horizontalRadiusFactor), verticalRadiusDefaultFactor(verticalRadiusDefaultFactor),
@@ -252,14 +256,93 @@ protected:
     bool carveBlock(CarvingContext &context, shared_ptr<CarverConfiguration> config, shared_ptr<ChunkAccess> chunk,
                     shared_ptr<BiomeManager> biomeManager, shared_ptr<CarvingMask> mask,
                     MutableBlockPos blockPosToCarve, shared_ptr<Aquifer> aquifer, bool *carvedGrass);
+
+    static bool canReach(ChunkPos chunkPos, double ellipseX, double ellipseZ, int32_t ellipseY, int32_t maxY,
+                         float thickness) {
+        double middleX = (double)chunkPos.getMiddleBlockX();
+        double middleZ = (double)chunkPos.getMiddleBlockZ();
+
+        double x = ellipseX - middleX;
+        double z = ellipseZ - middleZ;
+
+        double y = (double)(maxY - ellipseY);
+        double maxDistanceSq = (double)(thickness + 2.0F + 16.0F);
+
+        return x * x + z * z - y * y <= maxDistanceSq * maxDistanceSq;
+    }
+
+public:
+    virtual bool carve(CarvingContext &context, shared_ptr<CarverConfiguration> config, shared_ptr<ChunkAccess> chunk,
+                       shared_ptr<BiomeManager> biomeManager, shared_ptr<Random> random, shared_ptr<Aquifer> aquifer,
+                       ChunkPos startChunkPos, shared_ptr<CarvingMask> mask) = 0;
+    virtual bool isStartChunk(shared_ptr<CarverConfiguration> config, shared_ptr<Random> random) = 0;
+
+    virtual ~WorldCarver() {
+        //
+    }
 };
 
 class CaveWorldCarver : public WorldCarver {
-    //
+public:
+    virtual bool isStartChunk(shared_ptr<CarverConfiguration> config, shared_ptr<Random> random) {
+        return random->nextFloat() <= config->probability;
+    }
+
+    virtual bool carve(CarvingContext &context, shared_ptr<CarverConfiguration> config, shared_ptr<ChunkAccess> chunk,
+                       shared_ptr<BiomeManager> biomeManager, shared_ptr<Random> random, shared_ptr<Aquifer> aquifer,
+                       ChunkPos startChunkPos, shared_ptr<CarvingMask> mask);
+
+protected:
+    int32_t getCaveBound() {
+        return 15;
+    }
+
+    float getThickness(shared_ptr<Random> random) {
+        float thickness = random->nextFloat() * 2.0F + random->nextFloat();
+        if (random->nextInt(10) == 0) {
+            thickness *= random->nextFloat() * random->nextFloat() * 3.0F + 1.0F;
+        }
+
+        return thickness; // 12 max
+    }
+
+    double getYScale() {
+        return 1.0;
+    }
+
+    void createRoom(CarvingContext &context, shared_ptr<CaveCarverConfiguration> config, shared_ptr<ChunkAccess> chunk,
+                    shared_ptr<BiomeManager> biomeManager, shared_ptr<Aquifer> aquifer, double ellipseX,
+                    double ellipseY, double ellipseZ, float rangeMul, double yScale, shared_ptr<CarvingMask> mask,
+                    CarveSkipChecker checker);
+
+    void createTunnel(CarvingContext &context, shared_ptr<CaveCarverConfiguration> config,
+                      shared_ptr<ChunkAccess> chunk, shared_ptr<BiomeManager> biomeManager, int64_t seed,
+                      shared_ptr<Aquifer> aquifer, double ellipseX, double ellipseY, double ellipseZ,
+                      double horizontalRadiusMultiplier, double verticalRadiusMultiplier, float thickness,
+                      float horizontalRotation, float verticalRotation, int32_t yFrom, int32_t yTo, double yScale,
+                      shared_ptr<CarvingMask> mask, CarveSkipChecker checker);
+
+private:
+    static bool shouldSkip(double normalizedX, double normalizedY, double normalizedZ, double floorLevel) {
+        if (normalizedY <= floorLevel) {
+            return true;
+        } else {
+            return normalizedX * normalizedX + normalizedY * normalizedY + normalizedZ * normalizedZ >= 1.0;
+        }
+    }
 };
 
 class CanyonWorldCarver : public WorldCarver {
-    //
+public:
+    virtual bool carve(CarvingContext &context, shared_ptr<CarverConfiguration> config, shared_ptr<ChunkAccess> chunk,
+                       shared_ptr<BiomeManager> biomeManager, shared_ptr<Random> random, shared_ptr<Aquifer> aquifer,
+                       ChunkPos startChunkPos, shared_ptr<CarvingMask> mask) {
+        return true; // TODO
+    }
+
+    virtual bool isStartChunk(shared_ptr<CarverConfiguration> config, shared_ptr<Random> random) {
+        return true; // TODO
+    }
 };
 
 // Configured
@@ -272,6 +355,17 @@ private:
 public:
     ConfiguredWorldCarver(shared_ptr<WorldCarver> carver, shared_ptr<CarverConfiguration> config)
         : worldCarver(carver), config(config) {
+    }
+
+    bool isStartChunk(shared_ptr<Random> random) {
+        return this->worldCarver->isStartChunk(this->config, random);
+    }
+
+    bool carve(CarvingContext context, shared_ptr<ChunkAccess> chunk, shared_ptr<BiomeManager> biomeManager,
+               shared_ptr<Random> random, shared_ptr<Aquifer> aquifer, ChunkPos neighbourChunkPos,
+               shared_ptr<CarvingMask> mask) {
+        return this->worldCarver->carve(context, this->config, chunk, biomeManager, random, aquifer, neighbourChunkPos,
+                                        mask);
     }
 };
 

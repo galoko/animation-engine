@@ -11,6 +11,7 @@
 #include "heightmap.fwd.hpp"
 #include "mth.hpp"
 #include "noise-chunk.fwd.hpp"
+#include "overworld-biomes.fwd.hpp"
 #include "pos.hpp"
 
 #include <map>
@@ -120,6 +121,8 @@ private:
     static void replaceMissingSections(LevelHeightAccessor const &heightAccessor, vector<LevelChunkSection> &sections);
 
 public:
+    shared_ptr<Biome> carverBiome;
+
     LevelChunkSection *getHighestSection();
     int32_t getHighestSectionPosition();
     vector<LevelChunkSection> &getSections();

@@ -93,7 +93,7 @@ extern "C" {
 }
 
 #ifdef _MSC_VER
-int main(int argc, char *argv[]) {
+int32_t main(int32_t argc, char *argv[]) {
     init();
     test();
     bool ok = check();

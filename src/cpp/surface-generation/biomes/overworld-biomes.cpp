@@ -9,15 +9,15 @@ PerlinSimplexNoise Biome::FROZEN_TEMPERATURE_NOISE =
 PerlinSimplexNoise Biome::BIOME_INFO_NOISE =
     PerlinSimplexNoise(make_shared<WorldgenRandom>(make_unique<LegacyRandomSource>(2345L)), {0});
 
-int GrassColorModifier_NONE(double x, double z, int srcColor) {
+int32_t GrassColorModifier_NONE(double x, double z, int32_t srcColor) {
     return srcColor;
 }
 
-int GrassColorModifier_DARK_FOREST(double x, double z, int srcColor) {
+int32_t GrassColorModifier_DARK_FOREST(double x, double z, int32_t srcColor) {
     return ((srcColor & 16711422) + 2634762) >> 1;
 }
 
-int GrassColorModifier_SWAMP(double x, double z, int srcColor) {
+int32_t GrassColorModifier_SWAMP(double x, double z, int32_t srcColor) {
     double biomeInfo = Biome::BIOME_INFO_NOISE.getValue(x * 0.0225, z * 0.0225, false);
     return biomeInfo < -0.1 ? 5011004 : 6975545;
 }

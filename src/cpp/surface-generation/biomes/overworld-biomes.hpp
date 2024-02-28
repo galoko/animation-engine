@@ -41,45 +41,45 @@ enum Precipitation {
 };
 
 using TemperatureModifier = function<float(BlockPos, float)>;
-using GrassColorModifier = function<int(double, double, int)>;
+using GrassColorModifier = function<int32_t(double, double, int32_t)>;
 
 class AmbientParticleSettings {
 public:
-    int i = 0;
+    int32_t i = 0;
 };
 
 class AmbientMoodSettings {
 public:
-    int i = 0;
+    int32_t i = 0;
 };
 
 class SoundEvent {
 public:
-    int i = 0;
+    int32_t i = 0;
 };
 
 class AmbientAdditionsSettings {
 public:
-    int i = 0;
+    int32_t i = 0;
 };
 
 class Music {
 public:
-    int i = 0;
+    int32_t i = 0;
 };
 
-int GrassColorModifier_NONE(double x, double z, int srcColor);
-int GrassColorModifier_DARK_FOREST(double x, double z, int srcColor);
-int GrassColorModifier_SWAMP(double x, double z, int srcColor);
+int32_t GrassColorModifier_NONE(double x, double z, int32_t srcColor);
+int32_t GrassColorModifier_DARK_FOREST(double x, double z, int32_t srcColor);
+int32_t GrassColorModifier_SWAMP(double x, double z, int32_t srcColor);
 
 class BiomeSpecialEffects {
 private:
-    int fogColor;
-    int waterColor;
-    int waterFogColor;
-    int skyColor;
-    shared_ptr<int> foliageColorOverride;
-    shared_ptr<int> grassColorOverride;
+    int32_t fogColor;
+    int32_t waterColor;
+    int32_t waterFogColor;
+    int32_t skyColor;
+    shared_ptr<int32_t> foliageColorOverride;
+    shared_ptr<int32_t> grassColorOverride;
     GrassColorModifier grassColorModifier;
     shared_ptr<AmbientParticleSettings> ambientParticleSettings;
     shared_ptr<SoundEvent> ambientLoopSoundEvent;
@@ -88,8 +88,8 @@ private:
     shared_ptr<Music> backgroundMusic;
 
 public:
-    BiomeSpecialEffects(int fogColor, int waterColor, int waterFogColor, int skyColor,
-                        shared_ptr<int> foliageColorOverride, shared_ptr<int> grassColorOverride,
+    BiomeSpecialEffects(int32_t fogColor, int32_t waterColor, int32_t waterFogColor, int32_t skyColor,
+                        shared_ptr<int32_t> foliageColorOverride, shared_ptr<int32_t> grassColorOverride,
                         GrassColorModifier grassColorModifier,
                         shared_ptr<AmbientParticleSettings> ambientParticleSettings,
                         shared_ptr<SoundEvent> ambientLoopSoundEvent,
@@ -104,27 +104,27 @@ public:
     }
 
 public:
-    int getFogColor() {
+    int32_t getFogColor() {
         return this->fogColor;
     }
 
-    int getWaterColor() {
+    int32_t getWaterColor() {
         return this->waterColor;
     }
 
-    int getWaterFogColor() {
+    int32_t getWaterFogColor() {
         return this->waterFogColor;
     }
 
-    int getSkyColor() {
+    int32_t getSkyColor() {
         return this->skyColor;
     }
 
-    shared_ptr<int> getFoliageColorOverride() {
+    shared_ptr<int32_t> getFoliageColorOverride() {
         return this->foliageColorOverride;
     }
 
-    shared_ptr<int> getGrassColorOverride() {
+    shared_ptr<int32_t> getGrassColorOverride() {
         return this->grassColorOverride;
     }
 
@@ -154,12 +154,12 @@ public:
 
     class Builder {
     private:
-        int _fogColor = 0;
-        int _waterColor = 0;
-        int _waterFogColor = 0;
-        int _skyColor = 0;
-        shared_ptr<int> _foliageColorOverride = nullptr;
-        shared_ptr<int> _grassColorOverride = nullptr;
+        int32_t _fogColor = 0;
+        int32_t _waterColor = 0;
+        int32_t _waterFogColor = 0;
+        int32_t _skyColor = 0;
+        shared_ptr<int32_t> _foliageColorOverride = nullptr;
+        shared_ptr<int32_t> _grassColorOverride = nullptr;
         GrassColorModifier _grassColorModifier = GrassColorModifier_NONE;
         shared_ptr<AmbientParticleSettings> _ambientParticle = nullptr;
         shared_ptr<SoundEvent> _ambientLoopSoundEvent = nullptr;
@@ -168,33 +168,33 @@ public:
         shared_ptr<Music> _backgroundMusic = nullptr;
 
     public:
-        BiomeSpecialEffects::Builder &fogColor(int fogColor) {
+        BiomeSpecialEffects::Builder &fogColor(int32_t fogColor) {
             this->_fogColor = fogColor;
             return *this;
         }
 
-        BiomeSpecialEffects::Builder &waterColor(int waterColor) {
+        BiomeSpecialEffects::Builder &waterColor(int32_t waterColor) {
             this->_waterColor = waterColor;
             return *this;
         }
 
-        BiomeSpecialEffects::Builder &waterFogColor(int waterFogColor) {
+        BiomeSpecialEffects::Builder &waterFogColor(int32_t waterFogColor) {
             this->_waterFogColor = waterFogColor;
             return *this;
         }
 
-        BiomeSpecialEffects::Builder &skyColor(int skyColor) {
+        BiomeSpecialEffects::Builder &skyColor(int32_t skyColor) {
             this->_skyColor = skyColor;
             return *this;
         }
 
-        BiomeSpecialEffects::Builder &foliageColorOverride(int foliageColorOverride) {
-            this->_foliageColorOverride = make_shared<int>(foliageColorOverride);
+        BiomeSpecialEffects::Builder &foliageColorOverride(int32_t foliageColorOverride) {
+            this->_foliageColorOverride = make_shared<int32_t>(foliageColorOverride);
             return *this;
         }
 
-        BiomeSpecialEffects::Builder &grassColorOverride(int grassColorOverride) {
-            this->_grassColorOverride = make_shared<int>(grassColorOverride);
+        BiomeSpecialEffects::Builder &grassColorOverride(int32_t grassColorOverride) {
+            this->_grassColorOverride = make_shared<int32_t>(grassColorOverride);
             return *this;
         }
 
@@ -248,11 +248,11 @@ public:
         pixels = input;
     }
 
-    static int get(double x, double z) {
+    static int32_t get(double x, double z) {
         z *= x;
-        int pixelX = (int)((1.0 - x) * 255.0);
-        int pixelY = (int)((1.0 - z) * 255.0);
-        int pixelIndex = pixelY << 8 | pixelX;
+        int32_t pixelX = (int32_t)((1.0 - x) * 255.0);
+        int32_t pixelY = (int32_t)((1.0 - z) * 255.0);
+        int32_t pixelIndex = pixelY << 8 | pixelX;
         return pixelIndex >= pixels->size() ? -65281 : pixels->at(pixelIndex);
     }
 };
@@ -266,23 +266,23 @@ public:
         pixels = input;
     }
 
-    static int get(double x, double z) {
+    static int32_t get(double x, double z) {
         z *= x;
-        int pixelX = (int)((1.0 - x) * 255.0);
-        int pixelY = (int)((1.0 - z) * 255.0);
-        int pixelIndex = pixelY << 8 | pixelX;
+        int32_t pixelX = (int32_t)((1.0 - x) * 255.0);
+        int32_t pixelY = (int32_t)((1.0 - z) * 255.0);
+        int32_t pixelIndex = pixelY << 8 | pixelX;
         return pixelIndex >= pixels->size() ? getDefaultColor() : pixels->at(pixelIndex);
     }
 
-    static int getEvergreenColor() {
+    static int32_t getEvergreenColor() {
         return 6396257;
     }
 
-    static int getBirchColor() {
+    static int32_t getBirchColor() {
         return 8431445;
     }
 
-    static int getDefaultColor() {
+    static int32_t getDefaultColor() {
         return 4764952;
     }
 };
@@ -375,7 +375,7 @@ public:
     };
 
 private:
-    static constexpr int TEMPERATURE_CACHE_SIZE = 1024;
+    static constexpr int32_t TEMPERATURE_CACHE_SIZE = 1024;
 
     Biome::ClimateSettings climateSettings;
     shared_ptr<BiomeGenerationSettings> generationSettings;
@@ -392,7 +392,7 @@ public:
           biomeCategory(biomeCategory), specialEffects(specialEffects) {
     }
 
-    int getSkyColor() {
+    int32_t getSkyColor() {
         return this->specialEffects->getSkyColor();
     }
 
@@ -423,7 +423,7 @@ private:
     }
 
     float getTemperature(BlockPos blockPos) {
-        long pos = blockPos.asLong();
+        int64_t pos = blockPos.asLong();
         auto temperature = this->temperatureCache.find(pos);
         if (temperature != this->temperatureCache.end()) {
             return temperature->second;
@@ -510,29 +510,29 @@ public:
         return this->generationSettings;
     }
 
-    int getFogColor() {
+    int32_t getFogColor() {
         return this->specialEffects->getFogColor();
     }
 
-    int getGrassColor(double x, double z) {
-        shared_ptr<int> grassColorOverride = this->specialEffects->getGrassColorOverride();
-        int color = grassColorOverride ? *grassColorOverride : this->getGrassColorFromTexture();
+    int32_t getGrassColor(double x, double z) {
+        shared_ptr<int32_t> grassColorOverride = this->specialEffects->getGrassColorOverride();
+        int32_t color = grassColorOverride ? *grassColorOverride : this->getGrassColorFromTexture();
         return this->specialEffects->getGrassColorModifier()(x, z, color);
     }
 
 private:
-    int getGrassColorFromTexture() {
+    int32_t getGrassColorFromTexture() {
         double temperature = (double)Mth::clamp(this->climateSettings.temperature, 0.0F, 1.0F);
         double downfall = (double)Mth::clamp(this->climateSettings.downfall, 0.0F, 1.0F);
         return GrassColor::get(temperature, downfall);
     }
 
-    int getFoliageColor() {
-        shared_ptr<int> foliageColorOverride = this->specialEffects->getFoliageColorOverride();
+    int32_t getFoliageColor() {
+        shared_ptr<int32_t> foliageColorOverride = this->specialEffects->getFoliageColorOverride();
         return foliageColorOverride ? *foliageColorOverride : this->getFoliageColorFromTexture();
     }
 
-    int getFoliageColorFromTexture() {
+    int32_t getFoliageColorFromTexture() {
         double clampedTemperature = (double)Mth::clamp(this->climateSettings.temperature, 0.0F, 1.0F);
         double clampedDownfall = (double)Mth::clamp(this->climateSettings.downfall, 0.0F, 1.0F);
         return FoliageColor::get(clampedTemperature, clampedDownfall);
@@ -551,11 +551,11 @@ public:
         return this->specialEffects;
     }
 
-    int getWaterColor() {
+    int32_t getWaterColor() {
         return this->specialEffects->getWaterColor();
     }
 
-    int getWaterFogColor() {
+    int32_t getWaterFogColor() {
         return this->specialEffects->getWaterFogColor();
     }
 
