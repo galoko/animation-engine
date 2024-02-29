@@ -63,7 +63,7 @@ bool CaveWorldCarver::carve(CarvingContext &context, shared_ptr<CarverConfigurat
         double floorLevel = (double)carverConfig->floorLevel->sample(random);
 
         CarveSkipChecker checker = [floorLevel](CarvingContext &unused0, double normalizedX, double normalizedY,
-            double normalizedZ, int32_t unused1) -> bool {
+                                                double normalizedZ, int32_t unused1) -> bool {
             return shouldSkip(normalizedX, normalizedY, normalizedZ, floorLevel);
         };
 
