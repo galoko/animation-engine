@@ -337,7 +337,7 @@ shared_ptr<CarvingMask> ChunkAccess::getOrCreateCarvingMask(GenerationStep::Carv
     shared_ptr<CarvingMask> result;
 
     auto it = this->carvingMasks.find(carvingBlock);
-    if (it != this->carvingMasks.end()) {
+    if (it == this->carvingMasks.end()) {
         result = make_shared<CarvingMask>(this->getHeight(), this->getMinBuildHeight());
         this->carvingMasks.emplace(carvingBlock, result);
     } else {

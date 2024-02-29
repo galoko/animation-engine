@@ -334,88 +334,27 @@ private:
 
 class CanyonWorldCarver : public WorldCarver {
 public:
-    virtual bool isStartChunk(CanyonCarverConfiguration p_159023_, Random p_159024_) {
-        return p_159024_.nextFloat() <= p_159023_.probability;
+    virtual bool isStartChunk(shared_ptr<CarverConfiguration> config, shared_ptr<Random> random) {
+        return random->nextFloat() <= config->probability;
     }
 
-    virtual bool carve(CarvingContext &context, shared_ptr<CanyonCarverConfiguration> config,
-                       shared_ptr<ChunkAccess> chunk, shared_ptr<BiomeManager> biomeManager, shared_ptr<Random> random,
-                       shared_ptr<Aquifer> aquifer, ChunkPos startChunkPos, shared_ptr<CarvingMask> mask) {
-        int diameter = (this->getRange() * 2 - 1) * 16;
-
-        double blockX = (double)startChunkPos.getBlockX(random->nextInt(16));
-        int blockY = config->y->sample(random, context);
-        double blockZ = (double)startChunkPos.getBlockZ(random->nextInt(16));
-
-        float horizontalRotation = random->nextFloat() * ((float)M_PI * 2.0F);
-        float verticalRotation = config->verticalRotation->sample(random);
-        double yScale = (double)config->yScale->sample(random);
-        float thickness = config->shape->thickness->sample(random);
-
-        int yFrom = 0;
-        int yTo = (int)((float)diameter * config->shape->distanceFactor->sample(random));
-
-        this->doCarve(context, config, chunk, biomeManager, random->nextLong(), aquifer, blockX, (double)blockY, blockZ,
-                      thickness, horizontalRotation, verticalRotation, yFrom, yTo, yScale, mask);
-        return true;
-    }
+    virtual bool carve(CarvingContext &context, shared_ptr<CarverConfiguration> config, shared_ptr<ChunkAccess> chunk,
+                       shared_ptr<BiomeManager> biomeManager, shared_ptr<Random> random, shared_ptr<Aquifer> aquifer,
+                       ChunkPos startChunkPos, shared_ptr<CarvingMask> mask);
 
 private:
     void doCarve(CarvingContext context, shared_ptr<CanyonCarverConfiguration> config, shared_ptr<ChunkAccess> chunk,
-                 shared_ptr<BiomeManager> biomeManager, long seed, shared_ptr<Aquifer> aquifer, double blockX,
+                 shared_ptr<BiomeManager> biomeManager, int64_t seed, shared_ptr<Aquifer> aquifer, double blockX,
                  double blockY, double blockZ, float thickness, float horizontalRotation, float verticalRotation,
-                 int yFrom, int yTo, double yScale, shared_ptr<CarvingMask> mask) {
-        shared_ptr<Random> random = make_shared<Random>(seed);
-        vector<float> widthFactors = this->initWidthFactors(context, config, random);
-        CarveSkipChecker checker = [this, &widthFactors](CarvingContext &_context, double x, double _y, double z,
-                                                         int32_t floorLevel) -> bool {
-            return this->shouldSkip(_context, widthFactors, x, _y, z, floorLevel);
-        };
-
-        float horizontalAngleIncrement = 0.0F;
-        float verticalAngleIncrement = 0.0F;
-        for (int y = yFrom; y < yTo; ++y) {
-            double horizontalRadius = 1.5 + (double)(Mth::sin((float)y * (float)M_PI / (float)yTo) * thickness);
-            double verticalRadius = horizontalRadius * yScale;
-
-            horizontalRadius *= (double)config->shape->horizontalRadiusFactor->sample(random);
-            verticalRadius = this->updateVerticalRadius(config, random, verticalRadius, (float)yTo, (float)y);
-
-            float verticalCos = Mth::cos(verticalRotation);
-            float verticalSin = Mth::sin(verticalRotation);
-
-            blockX += (double)(Mth::cos(horizontalRotation) * verticalCos);
-            blockY += (double)verticalSin;
-            blockZ += (double)(Mth::sin(horizontalRotation) * verticalCos);
-
-            verticalRotation *= 0.7F;
-            verticalRotation += verticalAngleIncrement * 0.05F;
-            horizontalRotation += horizontalAngleIncrement * 0.05F;
-
-            verticalAngleIncrement *= 0.8F;
-            horizontalAngleIncrement *= 0.5F;
-
-            verticalAngleIncrement += (random->nextFloat() - random->nextFloat()) * random->nextFloat() * 2.0F;
-            horizontalAngleIncrement += (random->nextFloat() - random->nextFloat()) * random->nextFloat() * 4.0F;
-
-            if (random->nextInt(4) != 0) {
-                if (!canReach(chunk->getPos(), blockX, blockZ, y, yTo, thickness)) {
-                    return;
-                }
-
-                this->carveEllipsoid(context, config, chunk, biomeManager, aquifer, blockX, blockY, blockZ,
-                                     horizontalRadius, verticalRadius, mask, checker);
-            }
-        }
-    }
+                 int32_t yFrom, int32_t yTo, double yScale, shared_ptr<CarvingMask> mask);
 
     vector<float> initWidthFactors(CarvingContext &context, shared_ptr<CanyonCarverConfiguration> config,
                                    shared_ptr<Random> random) {
-        int depth = context.getGenDepth();
+        int32_t depth = context.getGenDepth();
         vector<float> widthFactors(depth);
 
         float factor = 1.0F;
-        for (int y = 0; y < depth; ++y) {
+        for (int32_t y = 0; y < depth; ++y) {
             if (y == 0 || random->nextInt(config->shape->widthSmoothness) == 0) {
                 factor = 1.0F + random->nextFloat() * random->nextFloat();
             }
@@ -436,8 +375,9 @@ private:
         return (double)normalizedVerticalRadiusWithFactors * range * (double)Rnd::randomBetween(random, 0.75F, 1.0F);
     }
 
-    bool shouldSkip(CarvingContext context, vector<float> &widthFactors, double x, double y, double z, int floorLevel) {
-        int minY = floorLevel - context.getMinGenY();
+    bool shouldSkip(CarvingContext context, vector<float> &widthFactors, double x, double y, double z,
+                    int32_t floorLevel) {
+        int32_t minY = floorLevel - context.getMinGenY();
         return (x * x + z * z) * (double)widthFactors[minY - 1] + y * y / 6.0 >= 1.0;
     }
 };

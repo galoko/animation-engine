@@ -867,7 +867,8 @@ shared_ptr<ChunkAccess> ChunkGenerator::applyCarvers(shared_ptr<ChunkAccess> chu
 
             for (int32_t carverIndex = 0; carverIndex < carvers.size(); carverIndex++) {
                 shared_ptr<ConfiguredWorldCarver> carver = carvers[carverIndex];
-                carverRandom->setLargeFeatureSeed(seed + (long)carverIndex, neighbourChunkPos.x, neighbourChunkPos.z);
+                carverRandom->setLargeFeatureSeed(seed + (int64_t)carverIndex, neighbourChunkPos.x,
+                                                  neighbourChunkPos.z);
                 if (carver->isStartChunk(carverRandom)) {
                     carver->carve(context, chunk, worldRegion->biomeManager, carverRandom, aquifer, neighbourChunkPos,
                                   mask);

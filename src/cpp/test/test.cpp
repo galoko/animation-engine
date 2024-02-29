@@ -11,7 +11,7 @@
 #include "../surface-generation/biomes/worldgen-region.hpp"
 #include "../surface-generation/biomes/worldgen-settings.hpp"
 
-#include "template-8-24-surface.hpp"
+#include "template-8-26-carvers.hpp"
 
 using namespace std;
 
@@ -60,7 +60,7 @@ void doTest() {
     LevelHeightAccessor heightAccessor = LevelHeightAccessor();
 
     for (int32_t i = 0; i < 1; i++) {
-        ChunkPos chunkPos = ChunkPos(8, 24);
+        ChunkPos chunkPos = ChunkPos(8, 26);
         shared_ptr<ChunkAccess> chunk = make_shared<ChunkAccess>(chunkPos, heightAccessor);
 
         vector<shared_ptr<ChunkAccess>> cache = {chunk};
@@ -85,6 +85,12 @@ void doTest() {
         end_time = std::chrono::high_resolution_clock::now();
         time = end_time - start_time;
         printf("surface took %lldms to run.\n", time / std::chrono::milliseconds(1));
+
+        start_time = chrono::high_resolution_clock::now();
+        ChunkStatus::CARVERS.generate(chunkGenerator, ChunkStatus::EMPTY_CONVERTER, cache);
+        end_time = std::chrono::high_resolution_clock::now();
+        time = end_time - start_time;
+        printf("carvers took %lldms to run.\n", time / std::chrono::milliseconds(1));
 
         printf("------\n");
 

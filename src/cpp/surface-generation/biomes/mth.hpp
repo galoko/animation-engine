@@ -35,11 +35,11 @@ namespace Mth {
     extern float SIN[SIN_VALUE_COUNT];
 
     inline float sin(float angle) {
-        return SIN[(int)(angle * SIN_SCALE) & (SIN_VALUE_COUNT - 1)];
+        return SIN[(int32_t)(angle * SIN_SCALE) & (SIN_VALUE_COUNT - 1)];
     }
 
-    inline float cos(float p_14090_) {
-        return SIN[(int)(p_14090_ * SIN_SCALE + 16384.0F) & (SIN_VALUE_COUNT - 1)];
+    inline float cos(float angle) {
+        return SIN[(int32_t)(angle * SIN_SCALE + 16384.0F) & (SIN_VALUE_COUNT - 1)];
     }
 
     constexpr inline int8_t clamp(int8_t value, int8_t min, int8_t max) {

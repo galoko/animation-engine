@@ -128,7 +128,7 @@ void WorldManager::init() {
     Services->cameraManager.orbit(player, 0, 0, 5 * 100, 0.5 * 100);
     Services->playerInputManager.setManagedEntity(player);
 
-    this->generateTerrain();
+    // this->generateTerrain();
 }
 
 void WorldManager::tick(double dt) {

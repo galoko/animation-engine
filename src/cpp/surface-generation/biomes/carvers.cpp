@@ -156,3 +156,78 @@ void CaveWorldCarver::createTunnel(CarvingContext &context, shared_ptr<CaveCarve
         }
     }
 }
+
+// CanyonWorldCarver
+
+bool CanyonWorldCarver::carve(CarvingContext &context, shared_ptr<CarverConfiguration> config,
+                              shared_ptr<ChunkAccess> chunk, shared_ptr<BiomeManager> biomeManager,
+                              shared_ptr<Random> random, shared_ptr<Aquifer> aquifer, ChunkPos startChunkPos,
+                              shared_ptr<CarvingMask> mask) {
+    shared_ptr<CanyonCarverConfiguration> carverConfig = static_pointer_cast<CanyonCarverConfiguration>(config);
+    int32_t diameter = (this->getRange() * 2 - 1) * 16;
+
+    double blockX = (double)startChunkPos.getBlockX(random->nextInt(16));
+    int32_t blockY = carverConfig->y->sample(random, context);
+    double blockZ = (double)startChunkPos.getBlockZ(random->nextInt(16));
+
+    float horizontalRotation = random->nextFloat() * ((float)M_PI * 2.0F);
+    float verticalRotation = carverConfig->verticalRotation->sample(random);
+    double yScale = (double)carverConfig->yScale->sample(random);
+    float thickness = carverConfig->shape->thickness->sample(random);
+
+    int32_t yFrom = 0;
+    int32_t yTo = (int32_t)((float)diameter * carverConfig->shape->distanceFactor->sample(random));
+
+    this->doCarve(context, carverConfig, chunk, biomeManager, random->nextLong(), aquifer, blockX, (double)blockY,
+                  blockZ, thickness, horizontalRotation, verticalRotation, yFrom, yTo, yScale, mask);
+    return true;
+}
+
+void CanyonWorldCarver::doCarve(CarvingContext context, shared_ptr<CanyonCarverConfiguration> config,
+                                shared_ptr<ChunkAccess> chunk, shared_ptr<BiomeManager> biomeManager, int64_t seed,
+                                shared_ptr<Aquifer> aquifer, double blockX, double blockY, double blockZ,
+                                float thickness, float horizontalRotation, float verticalRotation, int32_t yFrom,
+                                int32_t yTo, double yScale, shared_ptr<CarvingMask> mask) {
+    shared_ptr<Random> random = make_shared<Random>(seed);
+    vector<float> widthFactors = this->initWidthFactors(context, config, random);
+    CarveSkipChecker checker = [this, &widthFactors](CarvingContext &_context, double x, double _y, double z,
+                                                     int32_t floorLevel) -> bool {
+        return this->shouldSkip(_context, widthFactors, x, _y, z, floorLevel);
+    };
+
+    float horizontalAngleIncrement = 0.0F;
+    float verticalAngleIncrement = 0.0F;
+    for (int32_t y = yFrom; y < yTo; ++y) {
+        double horizontalRadius = 1.5 + (double)(Mth::sin((float)y * (float)M_PI / (float)yTo) * thickness);
+        double verticalRadius = horizontalRadius * yScale;
+
+        horizontalRadius *= (double)config->shape->horizontalRadiusFactor->sample(random);
+        verticalRadius = this->updateVerticalRadius(config, random, verticalRadius, (float)yTo, (float)y);
+
+        float verticalCos = Mth::cos(verticalRotation);
+        float verticalSin = Mth::sin(verticalRotation);
+
+        blockX += (double)(Mth::cos(horizontalRotation) * verticalCos);
+        blockY += (double)verticalSin;
+        blockZ += (double)(Mth::sin(horizontalRotation) * verticalCos);
+
+        verticalRotation *= 0.7F;
+        verticalRotation += verticalAngleIncrement * 0.05F;
+        horizontalRotation += horizontalAngleIncrement * 0.05F;
+
+        verticalAngleIncrement *= 0.8F;
+        horizontalAngleIncrement *= 0.5F;
+
+        verticalAngleIncrement += (random->nextFloat() - random->nextFloat()) * random->nextFloat() * 2.0F;
+        horizontalAngleIncrement += (random->nextFloat() - random->nextFloat()) * random->nextFloat() * 4.0F;
+
+        if (random->nextInt(4) != 0) {
+            if (!canReach(chunk->getPos(), blockX, blockZ, y, yTo, thickness)) {
+                return;
+            }
+
+            this->carveEllipsoid(context, config, chunk, biomeManager, aquifer, blockX, blockY, blockZ,
+                                 horizontalRadius, verticalRadius, mask, checker);
+        }
+    }
+}

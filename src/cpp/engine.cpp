@@ -13,8 +13,12 @@
 #include "test/test.hpp"
 
 // for finalize
+#include "surface-generation/biomes/carvers.hpp"
 #include "surface-generation/biomes/chunk-generator.hpp"
 #include "surface-generation/biomes/chunk-status.hpp"
+#include "surface-generation/biomes/mth.hpp"
+#include "surface-generation/biomes/overworld-biomes.hpp"
+#include "surface-generation/biomes/providers.hpp"
 #include "surface-generation/biomes/worldgen-settings.hpp"
 
 #include "surface-generation/biomes/noise-data.hpp"
@@ -41,11 +45,18 @@ extern "C" {
     // life cycle
 
     void init() {
+        Mth::init();
+        // GrassColor::init(...);
+        // FoliageColor::init(...);
+        ConstantFloat::init();
         Noises_initialize();
         ChunkStatus::initialize();
         SurfaceRules::initialize();
         SurfaceRulesData::initialize();
         NoiseGeneratorSettings::initialize();
+        WorldCarver::init();
+        Carvers::init();
+        BiomeInstances::init();
 
         Services = make_unique<ServicesManager>();
 
