@@ -2,10 +2,10 @@
 
 shared_ptr<ConstantFloat> ConstantFloat::ZERO;
 
-void ConstantFloat::init() {
+void ConstantFloat::initialize() {
     ConstantFloat::ZERO = make_shared<ConstantFloat>(0.0F);
 }
 
-void ConstantFloat::free() {
+void ConstantFloat::finalize() {
     ConstantFloat::ZERO = nullptr;
 }

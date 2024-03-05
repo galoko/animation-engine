@@ -7,8 +7,12 @@ using namespace std;
 
 float Mth::SIN[SIN_VALUE_COUNT];
 
-void Mth::init() {
+void Mth::initialize() {
     for (int32_t i = 0; i < SIN_VALUE_COUNT; ++i) {
         SIN[i] = (float)std::sin((double)i * M_PI * 2.0 / SIN_VALUE_COUNT);
     }
+}
+
+void Mth::finalize() {
+    //
 }

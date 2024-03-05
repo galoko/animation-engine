@@ -229,8 +229,8 @@ public:
     static shared_ptr<WorldCarver> CAVE;
     static shared_ptr<WorldCarver> CANYON;
 
-    static void init();
-    static void free();
+    static void initialize();
+    static void finalize();
 
     shared_ptr<ConfiguredWorldCarver> configured(shared_ptr<CarverConfiguration> config) {
         return make_shared<ConfiguredWorldCarver>(this->shared_from_this(), config);
@@ -414,6 +414,6 @@ public:
     static shared_ptr<ConfiguredWorldCarver> CAVE_EXTRA_UNDERGROUND;
     static shared_ptr<ConfiguredWorldCarver> CANYON;
 
-    static void init();
-    static void free();
+    static void initialize();
+    static void finalize();
 };

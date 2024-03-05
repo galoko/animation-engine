@@ -158,7 +158,7 @@ void LevelChunkSection::fillBiomesFromNoise(shared_ptr<BiomeSource> resolver, sh
 // ChunkAccess
 
 ChunkAccess::ChunkAccess(ChunkPos const &chunkPos, LevelHeightAccessor const &levelHeightAccessor)
-    : status(nullptr), chunkPos(chunkPos), levelHeightAccessor(levelHeightAccessor) {
+    : status(&ChunkStatus::EMPTY), chunkPos(chunkPos), levelHeightAccessor(levelHeightAccessor) {
     this->noiseChunk = nullptr;
     this->isLightCorrect = false;
     this->sections = vector<LevelChunkSection>(levelHeightAccessor.getSectionsCount());

@@ -853,6 +853,10 @@ shared_ptr<ChunkAccess> ChunkGenerator::applyCarvers(shared_ptr<ChunkAccess> chu
         for (int32_t zOffset = -carveRange; zOffset <= carveRange; ++zOffset) {
             ChunkPos neighbourChunkPos(chunkPos.x + xOffset, chunkPos.z + zOffset);
 
+            if (neighbourChunkPos.x == 10 && neighbourChunkPos.z == 24) {
+                neighbourChunkPos = neighbourChunkPos;
+            }
+
             shared_ptr<ChunkAccess> neighbourChunk = worldRegion->getChunk(neighbourChunkPos.x, neighbourChunkPos.z);
 
             shared_ptr<Biome> carverBiome = neighbourChunk->carverBiome;

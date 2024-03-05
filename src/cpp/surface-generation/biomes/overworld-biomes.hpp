@@ -1450,8 +1450,8 @@ public:
     static shared_ptr<Biome> THE_VOID;
     static shared_ptr<Biome> PLAINS;
 
-    static void init();
-    static void free();
+    static void initialize();
+    static void finalize();
 
 private:
     static map<Biomes, shared_ptr<Biome>> biomes;

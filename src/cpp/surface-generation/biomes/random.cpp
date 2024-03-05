@@ -293,6 +293,7 @@ unique_ptr<RandomSource> LegacyRandomSource::LegacyPositionalRandomFactory::from
 
 Random::Random(int64_t seed) {
     this->setSeed(seed);
+    objectCreated("RandomSource");
 }
 
 unique_ptr<RandomSource> Random::fork() {
@@ -331,7 +332,9 @@ int32_t Random::nextInt(int32_t bound) {
 
 int64_t Random::nextLong() {
     // it's okay that the bottom word remains signed.
-    return ((int64_t)(next(32)) << 32) + next(32);
+    int32_t a = next(32);
+    int32_t b = next(32);
+    return ((int64_t)(a) << 32) + b;
 }
 
 bool Random::nextBoolean() {
@@ -343,7 +346,9 @@ float Random::nextFloat() {
 }
 
 double Random::nextDouble() {
-    return (((int64_t)(next(26)) << 27) + next(27)) * DOUBLE_UNIT;
+    int32_t a = next(26);
+    int32_t b = next(27);
+    return (((int64_t)(a) << 27) + b) * DOUBLE_UNIT;
 }
 
 double Random::nextGaussian() {

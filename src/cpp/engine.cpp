@@ -45,18 +45,18 @@ extern "C" {
     // life cycle
 
     void init() {
-        Mth::init();
+        Mth::initialize();
         // GrassColor::init(...);
         // FoliageColor::init(...);
-        ConstantFloat::init();
+        ConstantFloat::initialize();
         Noises_initialize();
         ChunkStatus::initialize();
         SurfaceRules::initialize();
         SurfaceRulesData::initialize();
         NoiseGeneratorSettings::initialize();
-        WorldCarver::init();
-        Carvers::init();
-        BiomeInstances::init();
+        WorldCarver::initialize();
+        Carvers::initialize();
+        BiomeInstances::initialize();
 
         Services = make_unique<ServicesManager>();
 
@@ -72,12 +72,20 @@ extern "C" {
     }
 
     void finalize() {
+        WorldCarver::finalize();
+        Carvers::finalize();
+        BiomeInstances::finalize();
+
         Noises_finalize();
         ChunkStatus::finalize();
         SurfaceRules::finalize();
         SurfaceRulesData::finalize();
         NoiseGeneratorSettings::finalize();
         BiomeSource::Preset::finalize();
+        // FoliageColor::finalize(...);
+        // GrassColor::finalize(...);
+        ConstantFloat::finalize();
+        Mth::finalize();
         Services = nullptr;
         unregisterAll();
     }

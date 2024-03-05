@@ -28,11 +28,15 @@ bool compareChunkWithTemplate() {
                 i++;
                 if (strcmp(block, templateBlock) != 0) {
                     nonMatch++;
-                    // printf("non matched block at %d %d %d, template: %s, ours: %s\n", x, y, z, templateBlock, block);
+                    printf("non matched block at %d %d %d, template: %s, ours: %s\n", x, y, z, templateBlock, block);
                     // return false;
                 }
             }
         }
+    }
+
+    if (nonMatch > 0) {
+        printf("non matched block count: %d\n", nonMatch);
     }
 
     return nonMatch == 0;
@@ -59,11 +63,22 @@ void doTest() {
 
     LevelHeightAccessor heightAccessor = LevelHeightAccessor();
 
+    int32_t range = 8;
+
     for (int32_t i = 0; i < 1; i++) {
         ChunkPos chunkPos = ChunkPos(8, 26);
-        shared_ptr<ChunkAccess> chunk = make_shared<ChunkAccess>(chunkPos, heightAccessor);
 
-        vector<shared_ptr<ChunkAccess>> cache = {chunk};
+        vector<shared_ptr<ChunkAccess>> cache;
+        for (int32_t x = -range; x <= range; ++x) {
+            for (int32_t z = -range; z <= range; ++z) {
+                ChunkPos neighborChunkPos(chunkPos.x + x, chunkPos.z + z);
+
+                shared_ptr<ChunkAccess> chunk = make_shared<ChunkAccess>(neighborChunkPos, heightAccessor);
+
+                cache.push_back(chunk);
+            }
+        }
+
         shared_ptr<WorldGenRegion> region = make_shared<WorldGenRegion>(chunkGenerator, cache);
         region->init(seed);
         chunkGenerator->region = region;
@@ -94,6 +109,7 @@ void doTest() {
 
         printf("------\n");
 
+        shared_ptr<ChunkAccess> chunk = cache[cache.size() / 2];
         saveTestResult(chunk);
     }
 }

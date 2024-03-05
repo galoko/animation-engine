@@ -17,7 +17,7 @@ shared_ptr<ConfiguredWorldCarver> Carvers::CAVE;
 shared_ptr<ConfiguredWorldCarver> Carvers::CAVE_EXTRA_UNDERGROUND;
 shared_ptr<ConfiguredWorldCarver> Carvers::CANYON;
 
-void Carvers::init() {
+void Carvers::initialize() {
     Carvers::CAVE = WorldCarver::CAVE->configured(make_shared<CaveCarverConfiguration>(
         0.15F, UniformHeight::of(VerticalAnchor::aboveBottom(8), VerticalAnchor::absolute(180)),
         UniformFloat::of(0.1F, 0.9F), VerticalAnchor::aboveBottom(8), UniformFloat::of(0.7F, 1.4F),
@@ -36,7 +36,7 @@ void Carvers::init() {
                                                                          UniformFloat::of(0.75F, 1.0F), 1.0F, 0.0F)));
 }
 
-void Carvers::free() {
+void Carvers::finalize() {
     Carvers::CAVE = nullptr;
     Carvers::CAVE_EXTRA_UNDERGROUND = nullptr;
     Carvers::CANYON = nullptr;

@@ -2,12 +2,9 @@
 
 shared_ptr<Music> OverworldBiomes::NORMAL_MUSIC = nullptr;
 
-PerlinSimplexNoise Biome::TEMPERATURE_NOISE =
-    PerlinSimplexNoise(make_shared<WorldgenRandom>(make_unique<LegacyRandomSource>(1234L)), {0});
-PerlinSimplexNoise Biome::FROZEN_TEMPERATURE_NOISE =
-    PerlinSimplexNoise(make_shared<WorldgenRandom>(make_unique<LegacyRandomSource>(3456L)), {-2, -1, 0});
-PerlinSimplexNoise Biome::BIOME_INFO_NOISE =
-    PerlinSimplexNoise(make_shared<WorldgenRandom>(make_unique<LegacyRandomSource>(2345L)), {0});
+PerlinSimplexNoise Biome::TEMPERATURE_NOISE;
+PerlinSimplexNoise Biome::FROZEN_TEMPERATURE_NOISE;
+PerlinSimplexNoise Biome::BIOME_INFO_NOISE;
 
 int32_t GrassColorModifier_NONE(double x, double z, int32_t srcColor) {
     return srcColor;
@@ -50,7 +47,14 @@ map<Biomes, shared_ptr<Biome>> BiomeInstances::biomes;
 shared_ptr<Biome> BiomeInstances::THE_VOID;
 shared_ptr<Biome> BiomeInstances::PLAINS;
 
-void BiomeInstances::init() {
+void BiomeInstances::initialize() {
+    Biome::TEMPERATURE_NOISE =
+        PerlinSimplexNoise(make_shared<WorldgenRandom>(make_unique<LegacyRandomSource>(1234L)), {0});
+    Biome::FROZEN_TEMPERATURE_NOISE =
+        PerlinSimplexNoise(make_shared<WorldgenRandom>(make_unique<LegacyRandomSource>(3456L)), {-2, -1, 0});
+    Biome::BIOME_INFO_NOISE =
+        PerlinSimplexNoise(make_shared<WorldgenRandom>(make_unique<LegacyRandomSource>(2345L)), {0});
+
     THE_VOID = registerBiome(Biomes::THE_VOID, OverworldBiomes::theVoid());
     PLAINS = registerBiome(Biomes::PLAINS, OverworldBiomes::plains(false, false, false));
 
@@ -121,9 +125,13 @@ void BiomeInstances::init() {
     */
 }
 
-void BiomeInstances::free() {
+void BiomeInstances::finalize() {
     biomes.clear();
 
     THE_VOID = nullptr;
     PLAINS = nullptr;
+
+    Biome::TEMPERATURE_NOISE = PerlinSimplexNoise();
+    Biome::FROZEN_TEMPERATURE_NOISE = PerlinSimplexNoise();
+    Biome::BIOME_INFO_NOISE = PerlinSimplexNoise();
 }

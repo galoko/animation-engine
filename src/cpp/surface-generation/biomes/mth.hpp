@@ -30,7 +30,8 @@ namespace Mth {
         return startIndex;
     }
 
-    void init();
+    void initialize();
+    void finalize();
 
     extern float SIN[SIN_VALUE_COUNT];
 

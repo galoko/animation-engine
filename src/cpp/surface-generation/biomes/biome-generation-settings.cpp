@@ -5,12 +5,12 @@
 shared_ptr<WorldCarver> WorldCarver::CAVE;
 shared_ptr<WorldCarver> WorldCarver::CANYON;
 
-void WorldCarver::init() {
+void WorldCarver::initialize() {
     WorldCarver::CAVE = make_shared<CaveWorldCarver>();
     WorldCarver::CANYON = make_shared<CanyonWorldCarver>();
 }
 
-void WorldCarver::free() {
+void WorldCarver::finalize() {
     //
 }
 

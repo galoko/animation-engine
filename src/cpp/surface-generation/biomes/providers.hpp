@@ -114,8 +114,8 @@ public:
         return this->value + 1.0F;
     }
 
-    static void init();
-    static void free();
+    static void initialize();
+    static void finalize();
 };
 
 class TrapezoidFloat : public FloatProvider {
