@@ -52,6 +52,7 @@ public:
                        shared_ptr<NoiseChunk> noiseChunk, BlockPos blockPos, bool useWaterHeight) {
         shared_ptr<SurfaceRules::Context> context = make_shared<SurfaceRules::Context>(
             this->shared_from_this(), chunk, noiseChunk, biomeManager, carvingContext);
+        context->init();
         shared_ptr<SurfaceRules::SurfaceRule> surfaceRule = ruleSource->apply(context);
         int32_t x = blockPos.getX();
         int32_t y = blockPos.getY();

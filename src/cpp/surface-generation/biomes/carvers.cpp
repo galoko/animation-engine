@@ -130,17 +130,30 @@ void CaveWorldCarver::createTunnel(CarvingContext &context, shared_ptr<CaveCarve
         verticalAngleIncrement *= 0.9F;
         horizontalAngleIncrement *= 0.75F;
 
-        verticalAngleIncrement += (random->nextFloat() - random->nextFloat()) * random->nextFloat() * 2.0F;
-        horizontalAngleIncrement += (random->nextFloat() - random->nextFloat()) * random->nextFloat() * 4.0F;
+        float unknown_0 = random->nextFloat();
+        float unknown_1 = random->nextFloat();
+        float unknown_2 = random->nextFloat();
+
+        verticalAngleIncrement += (unknown_0 - unknown_1) * unknown_2 * 2.0F;
+
+        float unknown_3 = random->nextFloat();
+        float unknown_4 = random->nextFloat();
+        float unknown_5 = random->nextFloat();
+
+        horizontalAngleIncrement += (unknown_3 - unknown_4) * unknown_5 * 4.0F;
 
         if (y == branchingY && thickness > 1.0F) {
-            this->createTunnel(context, config, chunk, biomeManager, random->nextLong(), aquifer, ellipseX, ellipseY,
+            int64_t seed_0 = random->nextLong();
+            float thickness_0 = random->nextFloat();
+            this->createTunnel(context, config, chunk, biomeManager, seed_0, aquifer, ellipseX, ellipseY,
                                ellipseZ, horizontalRadiusMultiplier, verticalRadiusMultiplier,
-                               random->nextFloat() * 0.5F + 0.5F, horizontalRotation - ((float)M_PI / 2.0F),
+                                thickness_0 * 0.5F + 0.5F, horizontalRotation - ((float)M_PI / 2.0F),
                                verticalRotation / 3.0F, y, yTo, 1.0, mask, checker);
-            this->createTunnel(context, config, chunk, biomeManager, random->nextLong(), aquifer, ellipseX, ellipseY,
+            int64_t seed_1 = random->nextLong();
+            float thickness_1 = random->nextFloat();
+            this->createTunnel(context, config, chunk, biomeManager, seed_1, aquifer, ellipseX, ellipseY,
                                ellipseZ, horizontalRadiusMultiplier, verticalRadiusMultiplier,
-                               random->nextFloat() * 0.5F + 0.5F, horizontalRotation + ((float)M_PI / 2.0F),
+                                thickness_1 * 0.5F + 0.5F, horizontalRotation + ((float)M_PI / 2.0F),
                                verticalRotation / 3.0F, y, yTo, 1.0, mask, checker);
             return;
         }
@@ -218,8 +231,15 @@ void CanyonWorldCarver::doCarve(CarvingContext context, shared_ptr<CanyonCarverC
         verticalAngleIncrement *= 0.8F;
         horizontalAngleIncrement *= 0.5F;
 
-        verticalAngleIncrement += (random->nextFloat() - random->nextFloat()) * random->nextFloat() * 2.0F;
-        horizontalAngleIncrement += (random->nextFloat() - random->nextFloat()) * random->nextFloat() * 4.0F;
+        float unknown_0 = random->nextFloat();
+        float unknown_1 = random->nextFloat();
+        float unknown_2 = random->nextFloat();
+        verticalAngleIncrement += (unknown_0 - unknown_1) * unknown_2 * 2.0F;
+
+        float unknown_3 = random->nextFloat();
+        float unknown_4 = random->nextFloat();
+        float unknown_5 = random->nextFloat();
+        horizontalAngleIncrement += (unknown_3 - unknown_4) * unknown_5 * 4.0F;
 
         if (random->nextInt(4) != 0) {
             if (!canReach(chunk->getPos(), blockX, blockZ, y, yTo, thickness)) {

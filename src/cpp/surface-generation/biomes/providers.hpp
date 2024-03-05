@@ -139,7 +139,10 @@ public:
         float range = this->max - this->min;
         float halfRangeMinusPlateau = (range - this->plateau) / 2.0F;
         float halfRangePlusPlateau = range - halfRangeMinusPlateau;
-        return this->min + random->nextFloat() * halfRangePlusPlateau + random->nextFloat() * halfRangeMinusPlateau;
+
+        float unknown_0 = random->nextFloat();
+        float unknown_1 = random->nextFloat();
+        return this->min + unknown_0 * halfRangePlusPlateau + unknown_1 * halfRangeMinusPlateau;
     }
 
     virtual float getMinValue() {
