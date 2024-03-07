@@ -60,8 +60,8 @@ extern "C" {
 
         Services = make_unique<ServicesManager>();
 
-        Services->cameraManager.init();
-        Services->worldManager.init();
+        Services->cameraManager.initialize();
+        Services->worldManager.initialize();
     }
 
     void tick(double dt) {
@@ -86,6 +86,7 @@ extern "C" {
         // GrassColor::finalize(...);
         ConstantFloat::finalize();
         Mth::finalize();
+        Services->worldManager.finalize();
         Services = nullptr;
         unregisterAll();
     }

@@ -10,7 +10,7 @@ using namespace std;
 CameraManager::CameraManager() {
 }
 
-void CameraManager::init() {
+void CameraManager::initialize() {
     Services->inputManager.mouseEvent.connect<&CameraManager::onMouseEvent>(this);
 }
 

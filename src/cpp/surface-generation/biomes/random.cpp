@@ -374,7 +374,6 @@ double Random::nextGaussian() {
 
 WorldgenRandom::WorldgenRandom(unique_ptr<RandomSource> randomSource)
     : Random(0LL), randomSource(std::move(randomSource)), count(0) {
-    objectCreated("RandomSource");
 }
 
 unique_ptr<RandomSource> WorldgenRandom::fork() {

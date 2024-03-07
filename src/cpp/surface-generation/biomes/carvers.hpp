@@ -278,7 +278,6 @@ public:
     virtual bool isStartChunk(shared_ptr<CarverConfiguration> config, shared_ptr<Random> random) = 0;
 
     virtual ~WorldCarver() {
-        //
     }
 };
 

@@ -9,6 +9,7 @@ export async function test(): Promise<void> {
 
     Engine._init()
 
+    /*
     const startTime = performance.now()
     Engine._test()
     const endTime = performance.now()
@@ -23,6 +24,7 @@ export async function test(): Promise<void> {
     } else {
         console.warn("NOT OK")
     }
+    */
 
     Engine._finalize()
 

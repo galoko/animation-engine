@@ -50,7 +50,8 @@ public:
 
     WorldManager();
 
-    void init();
+    void initialize();
+    void finalize();
 
     void tick(double dt);
 };

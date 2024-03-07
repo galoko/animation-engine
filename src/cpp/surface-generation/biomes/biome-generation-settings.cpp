@@ -11,7 +11,8 @@ void WorldCarver::initialize() {
 }
 
 void WorldCarver::finalize() {
-    //
+    WorldCarver::CAVE = nullptr;
+    WorldCarver::CANYON = nullptr;
 }
 
 bool WorldCarver::carveEllipsoid(CarvingContext &context, shared_ptr<CarverConfiguration> config,

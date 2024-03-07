@@ -60,6 +60,7 @@ public:
         context->updateXZ(x, z);
         context->updateY(1, 1, useWaterHeight ? y + 1 : numeric_limits<int32_t>::min(), x, y, z);
         BlockState block = surfaceRule->tryApply(x, y, z);
+        context->free();
         return block;
     }
 

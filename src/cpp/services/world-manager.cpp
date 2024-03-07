@@ -106,7 +106,7 @@ WorldManager::WorldManager() {
     //
 }
 
-void WorldManager::init() {
+void WorldManager::initialize() {
     registerTexture(Blocks::STONE, Textures::STONE);
     registerTexture(Blocks::SAND, Textures::SAND);
     registerTexture(Blocks::DIRT, Textures::DIRT);
@@ -129,6 +129,10 @@ void WorldManager::init() {
     Services->playerInputManager.setManagedEntity(player);
 
     // this->generateTerrain();
+}
+
+void WorldManager::finalize() {
+    blockSideToTexture.clear();
 }
 
 void WorldManager::tick(double dt) {
