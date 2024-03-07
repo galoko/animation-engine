@@ -297,14 +297,14 @@ protected:
     }
 
     float getThickness(shared_ptr<Random> random) {
-        float unknown_0 = random->nextFloat();
-        float unknown_1 = random->nextFloat();
+        float ticknessComponent1 = random->nextFloat();
+        float ticknessComponent2 = random->nextFloat();
 
-        float thickness = unknown_0 * 2.0F + unknown_1;
+        float thickness = ticknessComponent1 * 2.0F + ticknessComponent2;
         if (random->nextInt(10) == 0) {
-            float unknown_2 = random->nextFloat();
-            float unknown_3 = random->nextFloat();
-            thickness *= unknown_2 * unknown_3 * 3.0F + 1.0F;
+            float ticknessComponent3 = random->nextFloat();
+            float ticknessComponent4 = random->nextFloat();
+            thickness *= ticknessComponent3 * ticknessComponent4 * 3.0F + 1.0F;
         }
 
         return thickness; // 12 max
@@ -360,9 +360,9 @@ private:
         float factor = 1.0F;
         for (int32_t y = 0; y < depth; ++y) {
             if (y == 0 || random->nextInt(config->shape->widthSmoothness) == 0) {
-                float unknown_0 = random->nextFloat();
-                float unknown_1 = random->nextFloat();
-                factor = 1.0F + unknown_0 * unknown_1;
+                float factorComponent1 = random->nextFloat();
+                float factorComponent2 = random->nextFloat();
+                factor = 1.0F + factorComponent1 * factorComponent2;
             }
 
             widthFactors[y] = factor * factor;
